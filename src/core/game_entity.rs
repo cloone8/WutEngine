@@ -4,6 +4,7 @@ pub struct GameEntity {
     name: String,
     transform: Transform,
     components: Vec<Box<dyn EntityComponent>>,
+    children: Vec<GameEntity>,
 }
 
 // Public methods for GameEntity
@@ -14,6 +15,7 @@ impl GameEntity {
                 name: String::new(),
                 transform: Transform::new(),
                 components: Vec::new(),
+                children: Vec::new(),
             }
         }
     }
@@ -44,6 +46,14 @@ impl GameEntity {
     pub(crate) fn get_components_mut(&mut self) -> &mut Vec<Box<dyn EntityComponent>> {
         &mut self.components
     }
+
+    pub(crate) fn get_children(&self) -> &Vec<GameEntity> {
+        &self.children
+    }
+
+    pub(crate) fn get_children_mut(&mut self) -> &mut Vec<GameEntity> {
+        &mut self.children
+    }
 }
 
 // Private methods for GameEntity
@@ -70,6 +80,11 @@ impl GameEntityBuilder {
         where T: EntityComponent + 'static
     {
         self.entity.components.push(Box::new(component));
+        self
+    }
+
+    pub fn with_child(mut self, child: GameEntity) -> GameEntityBuilder {
+        self.entity.children.push(child);
         self
     }
 
