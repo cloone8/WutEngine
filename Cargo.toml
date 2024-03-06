@@ -2,8 +2,45 @@
 name = "wutengine"
 version = "0.1.0"
 edition = "2021"
+authors = ["Wouter de Bruijn <wouter@wutru.io>"]
+homepage = "https://github.com/cloone8/WutEngine"
+build = "build.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["opengl", "software"]
+
+# The following features are used to enable the platform-default graphics API
+windows_default = ["opengl", "dx11", "dx12", "vulkan"]
+macos_default = ["opengl", "metal"]
+linux_default = ["opengl", "vulkan"]
+
+# The following features are used to enable different graphics APIs
+software = ["dep:softbuffer"]
+opengl = ["dep:gl_generator", "dep:raw-gl-context"]
+vulkan = ["dep:ash"]
+metal = ["dep:metal"]
+dx11 = ["dep:winapi", "winapi/d3d11"]
+dx12 = ["dep:winapi", "winapi/d3d12"]
+
+# Target-specific dependencies
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["std"], optional = true }
+
+[target.'cfg(macos)'.dependencies]
+metal = { version = "0.27.0", optional = true }
 
 [dependencies]
+# Always required
+cfg-if = "1.0.0"
 glam = { version = "0.25.0", features = ["debug-glam-assert", "serde"] }
+log = "0.4.21"
+winit = "0.29.10"
+
+# Feature-specific
+ash = { version = "0.37.3", optional = true }
+raw-gl-context = { path = "../raw-gl-context", optional = true }
+softbuffer = { version = "0.4.1", optional = true }
+
+[build-dependencies]
+gl_generator = { version = "0.14.0", optional = true }
+cfg-if = "1.0.0"
