@@ -34,7 +34,15 @@ pr-run-mode = "plan"
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
-lto = "thin"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+
+[profile.dev]
+debug = 0
+strip = false
 
 [workspace.dependencies]
 # Workspace crates
