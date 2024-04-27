@@ -2,7 +2,10 @@
 resolver = "2"
 members = [
     "wutengine",
-    "wutengine_editor"
+    "wutengine_core",
+    "wutengine_serialized",
+    "wutengine_editor",
+    "wutengine_builder"
 ]
 
 [workspace.package]
@@ -34,6 +37,14 @@ inherits = "release"
 lto = "thin"
 
 [workspace.dependencies]
+# Workspace crates
+wutengine = { path = "wutengine", version = "=0.0.1"}
+wutengine_core = { path = "wutengine_core", version = "=0.0.1"}
+wutengine_serialized = { path = "wutengine_serialized", version = "=0.0.1"}
+wutengine_editor = { path = "wutengine_editor", version = "=0.0.1"}
+wutengine_builder = { path = "wutengine_builder", version = "=0.0.1"}
+
+# External crates
 winit = { version = "0.29.15" }
 log = { version = "0.4.21" }
 thiserror = { version = "1.0.59" }

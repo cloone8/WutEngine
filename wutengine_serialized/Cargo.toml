@@ -1,5 +1,5 @@
 [package]
-name = "wutengine"
+name = "wutengine_serialized"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -13,6 +13,3 @@ categories.workspace = true
 
 [dependencies]
 wutengine_core.workspace = true
-winit.workspace = true
-log.workspace = true
-thiserror.workspace = true
