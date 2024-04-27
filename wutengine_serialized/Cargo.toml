@@ -13,3 +13,7 @@ categories.workspace = true
 
 [dependencies]
 wutengine_core.workspace = true
+relative-path.workspace = true
+mint.workspace = true
+serde.workspace = true
+uuid.workspace = true

@@ -1,14 +1,24 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+mod ordered_vec;
+pub use ordered_vec::*;
+
+use relative_path::RelativePathBuf;
+use serde::{Serialize, Deserialize};
+use uuid::Uuid;
+
+#[derive(Serialize, Deserialize)]
+pub struct Scene {
+    id: Uuid,
+    name: String
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[derive(Serialize, Deserialize)]
+pub struct Project {
+    name: String,
+    config: ProjectConfig,
+    scenes: Vec<RelativePathBuf>,
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[derive(Serialize, Deserialize)]
+pub struct ProjectConfig {
+ 
 }
