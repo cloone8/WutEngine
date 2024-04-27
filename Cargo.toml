@@ -32,3 +32,8 @@ pr-run-mode = "plan"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[workspace.dependencies]
+winit = { version = "0.29.15" }
+log = { version = "0.4.21" }
+thiserror = { version = "1.0.59" }
