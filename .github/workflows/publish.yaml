@@ -25,6 +25,11 @@ jobs:
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
+      - name: Publish Project Builder
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_builder
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
       - name: Publish Engine
         run: cargo publish --token ${CRATES_TOKEN} -p wutengine
         env:
