@@ -1,0 +1,6 @@
+[book]
+authors = ["Wouter de Bruijn"]
+language = "en"
+multilingual = false
+src = "src"
+title = "WutEngine"
