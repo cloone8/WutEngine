@@ -1,3 +1,3 @@
-# Summary
+# WutEngine User Manual
 
-- [Chapter 1](./chapter_1.md)
+- [Core Concepts](core-concepts.md)
