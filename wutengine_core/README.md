@@ -1,1 +1,0 @@
-# WutEngine Core Shared Library
