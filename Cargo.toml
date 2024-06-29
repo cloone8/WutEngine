@@ -1,9 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "wutengine",
-    "wutengine_editor",
-]
+members = ["wutengine", "wutengine_editor", "wutengine_examples/pong"]
 
 [workspace.package]
 version = "0.0.1"
@@ -24,7 +21,12 @@ ci = ["github"]
 # The installers to generate for each app
 installers = []
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+]
 # Publish jobs to run in CI
 pr-run-mode = "plan"
 
@@ -43,20 +45,17 @@ strip = false
 
 [workspace.dependencies]
 # Workspace crates
-wutengine = { path = "wutengine", version = "=0.0.1"}
-wutengine_editor = { path = "wutengine_editor", version = "=0.0.1"}
+wutengine = { path = "wutengine", version = "=0.0.1" }
+wutengine_editor = { path = "wutengine_editor", version = "=0.0.1" }
 
 # External crates
-winit = { version = "0.30.0" }
-glam = { version = "0.27.0", features = ["mint", "debug-glam-assert"] }
-mint = { version = "0.5.9", features = ["serde"] }
-log = { version = "0.4.21" }
-thiserror = { version = "1.0.59" }
-relative-path = { version = "1.9.2", features = ["serde"] }
-serde = { version = "1.0.199", features = ["derive"] }
-serde_json = { version = "1.0.116" }
-uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"]}
+winit = { version = "0.30.3" }
+glam = { version = "0.28.0", features = ["mint", "debug-glam-assert"] }
+log = { version = "0.4.22" }
+thiserror = { version = "1.0.61" }
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = { version = "1.0.118" }
 static_assertions = { version = "1.1.0" }
-syn = { version = "2.0.60" }
-quote = { version = "1.0.36" }
-proc-macro2 = { version = "1.0.81" }
+
+# Dependencies for example games
+simplelog = "0.12.2"

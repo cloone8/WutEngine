@@ -1,50 +1,46 @@
-use entity::Entity;
+use std::time::Instant;
+
 use renderer::WutEngineRenderer;
 
-pub mod entity;
 pub mod renderer;
 pub mod world;
 pub use glam as math;
 
 use thiserror::Error;
-use winit::{application::ApplicationHandler, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, window::{Window, WindowId}};
+use winit::{
+    application::ApplicationHandler,
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    window::{Window, WindowId},
+};
 use world::World;
 
 #[derive(Debug, Error)]
 pub enum WutEngineError {
     #[error("No initial world set")]
-    MissingWorld
+    MissingWorld,
 }
 
 #[derive(Debug)]
 pub struct WutEngine<R: WutEngineRenderer> {
-    /// Used only for initialization
-    initial_world: Option<World>,
+    prev_frame: Instant,
 
     renderer: R,
+    initialization_data: Option<Box<InitData>>,
     windows: Vec<Window>,
-    entities: Vec<Entity>
+}
+
+#[derive(Debug)]
+struct InitData {
+    num_windows: usize,
 }
 
 impl<R: WutEngineRenderer> ApplicationHandler for WutEngine<R> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         log::info!("Resumed");
 
-        if let Some(initial_world) = &mut self.initial_world {
-            log::info!("Initializing initial world");
-            log::info!("Spawning {} entities", initial_world.get_entities().len());
-
-            initial_world
-                .get_entities()
-                .drain(0..)
-                .for_each(|entity| self.entities.push(entity));
-
-            self.initial_world = None;
-            log::info!("World initialization done");
-
-            log::info!("Starting test window");
-
-            let test_window = event_loop.create_window(Window::default_attributes()).unwrap();
+        if let Some(init) = self.initialization_data.take() {
+            log::info!("Doing pre-first frame initialization");
 
             self.windows.push(test_window);
         }
@@ -56,29 +52,40 @@ impl<R: WutEngineRenderer> ApplicationHandler for WutEngine<R> {
         window_id: WindowId,
         event: WindowEvent,
     ) {
+        log::debug!("Window event for window {:?}: {:?}", window_id, event);
+
         match event {
             WindowEvent::CloseRequested => {
                 log::info!("Close requested");
                 event_loop.exit();
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-         
+        let cur_time = Instant::now();
+        let duration_secs = cur_time.duration_since(self.prev_frame).as_secs_f64();
+        log::debug!(
+            "About to wait, ms: {} FPS: {}",
+            duration_secs * 1000.0,
+            1.0 / duration_secs
+        );
+
+        self.prev_frame = cur_time;
     }
 }
 
 impl<R: WutEngineRenderer> WutEngine<R> {
-    pub fn new(initial_world: World) -> Self {
+    pub fn new(num_windows: usize, initial_world: World) -> Self {
         log::info!("Creating new WutEngine instance with backend {}", R::NAME);
+
+        let init = InitData { num_windows };
 
         WutEngine {
             renderer: R::default(),
             windows: Vec::new(),
-            initial_world: Some(initial_world),
-            entities: Vec::new()
+            prev_frame: Instant::now(),
         }
     }
 
