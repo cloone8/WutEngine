@@ -18,7 +18,7 @@ fn main() {
 
     let world = World {};
 
-    let engine = WutEngine::<HeadlessRenderer>::new(world);
+    let engine = WutEngine::<HeadlessRenderer>::new(1, world);
 
     engine.run().unwrap();
 }

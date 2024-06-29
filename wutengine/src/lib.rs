@@ -11,7 +11,7 @@ use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    window::{Window, WindowId},
+    window::{Window, WindowAttributes, WindowId},
 };
 use world::World;
 
@@ -42,7 +42,15 @@ impl<R: WutEngineRenderer> ApplicationHandler for WutEngine<R> {
         if let Some(init) = self.initialization_data.take() {
             log::info!("Doing pre-first frame initialization");
 
-            self.windows.push(test_window);
+            for _ in 0..init.num_windows {
+                let attrs = WindowAttributes::default().with_title("WutEngine");
+
+                let new_window = event_loop.create_window(attrs).unwrap();
+
+                self.windows.push(new_window);
+            }
+
+            log::info!("Pre-first frame initialization done");
         }
     }
 
@@ -85,6 +93,7 @@ impl<R: WutEngineRenderer> WutEngine<R> {
         WutEngine {
             renderer: R::default(),
             windows: Vec::new(),
+            initialization_data: Some(Box::new(init)),
             prev_frame: Instant::now(),
         }
     }
