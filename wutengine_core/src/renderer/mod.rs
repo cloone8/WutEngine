@@ -1,12 +1,9 @@
 use core::{fmt::Display, hash::Hash};
 
-use glam::U64Vec2;
 use raw_window_handle::{
     DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle,
 };
 use renderable::Renderable;
-
-use crate::id::instance::InstanceID;
 
 pub mod renderable;
 
@@ -14,7 +11,7 @@ pub trait WutEngineRenderer: Sized {
     const NAME: &'static str;
 
     fn init() -> Self;
-    fn init_window(&mut self, id: WindowId, handles: WindowHandles, viewport: U64Vec2);
+    fn init_window(&mut self, id: WindowId, handles: WindowHandles, viewport: (u32, u32));
     fn render(&mut self, window: WindowId, objects: &[Renderable]);
 }
 

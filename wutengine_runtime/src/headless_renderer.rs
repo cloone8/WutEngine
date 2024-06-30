@@ -1,4 +1,3 @@
-use glam::U64Vec2;
 use wutengine_core::renderer::{
     renderable::Renderable, WindowHandles, WindowId, WutEngineRenderer,
 };
@@ -14,7 +13,7 @@ impl WutEngineRenderer for HeadlessRenderer {
         Self
     }
 
-    fn init_window(&mut self, id: WindowId, handles: WindowHandles, viewport: U64Vec2) {}
+    fn init_window(&mut self, _id: WindowId, _handles: WindowHandles, _viewport: (u32, u32)) {}
 
-    fn render(&mut self, window: WindowId, objects: &[Renderable]) {}
+    fn render(&mut self, _window: WindowId, _objects: &[Renderable]) {}
 }

@@ -16,13 +16,13 @@ pub struct Window {
 }
 
 impl Window {
-    pub unsafe fn init(id: WindowId, handles: WindowHandles, viewport: U64Vec2) -> Self {
+    pub unsafe fn init(id: WindowId, handles: WindowHandles, viewport: (u32, u32)) -> Self {
         let context =
             GlContext::create_from_handles(handles.window, handles.display, GL_CONFIG).unwrap();
 
         let bindings = opengl::Gl::load_with(|symbol| context.get_proc_address(symbol) as *const _);
 
-        bindings.Viewport(0, 0, viewport.x as GLint, viewport.y as GLint);
+        bindings.Viewport(0, 0, viewport.0 as GLint, viewport.1 as GLint);
 
         Self {
             id,

@@ -42,7 +42,7 @@ impl WutEngineRenderer for OpenGLRenderer {
         }
     }
 
-    fn init_window(&mut self, id: WindowId, handles: WindowHandles, viewport: U64Vec2) {
+    fn init_window(&mut self, id: WindowId, handles: WindowHandles, viewport: (u32, u32)) {
         log::info!("Initializing OpenGL context for window with ID {}", id);
 
         self.windows

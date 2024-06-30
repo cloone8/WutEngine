@@ -1,6 +1,6 @@
 use std::{path::Path, time::Instant};
 
-use glam::{U64Vec2, U64Vec4};
+use glam::U64Vec2;
 use loading::{
     scene::SceneLoader,
     script::{ScriptLoader, ScriptLoaders},
@@ -11,14 +11,18 @@ pub use glam as math;
 pub use headless_renderer::HeadlessRenderer;
 pub mod loading;
 pub mod serialization;
+pub mod settings;
+pub mod window;
 
 use serialization::format::SerializationFormat;
+use settings::Settings;
 use thiserror::Error;
+use window::Window;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    window::{Window, WindowAttributes, WindowId},
+    window::WindowId,
 };
 use wutengine_core::{
     lookuptable::LookupTable,
@@ -35,7 +39,7 @@ pub enum WutEngineError {
 }
 
 #[derive(Debug)]
-pub struct WutEngine<const W: usize, R, F>
+pub struct WutEngine<R, F>
 where
     R: WutEngineRenderer,
     F: SerializationFormat,
@@ -44,17 +48,17 @@ where
 
     renderer: R,
     script_loaders: LookupTable<ScriptLoader<F>>,
-    initialized: bool,
+    initialization_settings: Option<Box<Settings>>,
     objects: LookupTable<Object>,
     scripts: LookupTable<ScriptData>,
-    windows: Vec<Window>,
+    windows: Vec<winit::window::Window>,
 }
 
 fn to_wutengine_window_id(id: WindowId) -> wutengine_core::renderer::WindowId {
     wutengine_core::renderer::WindowId::new(id.into())
 }
 
-impl<const W: usize, R, F> ApplicationHandler for WutEngine<W, R, F>
+impl<R, F> ApplicationHandler for WutEngine<R, F>
 where
     R: WutEngineRenderer,
     F: SerializationFormat,
@@ -62,31 +66,11 @@ where
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         log::info!("Resumed");
 
-        if !self.initialized {
-            self.initialized = true;
-
+        if let Some(settings) = &self.initialization_settings {
             log::info!("Doing pre-first frame initialization");
 
-            for i in 0..W {
-                let attrs = WindowAttributes::default().with_title(format!("WutEngine - {}", i));
-
-                let new_window = event_loop.create_window(attrs).unwrap();
-                let window_size: U64Vec2 = {
-                    let phys_size = new_window.inner_size();
-
-                    U64Vec2 {
-                        x: phys_size.width as u64,
-                        y: phys_size.height as u64,
-                    }
-                };
-
-                self.renderer.init_window(
-                    to_wutengine_window_id(new_window.id()),
-                    WindowHandles::from_window(&new_window).unwrap(),
-                    window_size,
-                );
-
-                self.windows.push(new_window);
+            if settings.open_window {
+                Window::open(self, event_loop, (800, 600))
             }
 
             log::info!("Pre-first frame initialization done");
@@ -129,7 +113,7 @@ where
     }
 }
 
-impl<const W: usize, R, F> WutEngine<W, R, F>
+impl<R, F> WutEngine<R, F>
 where
     R: WutEngineRenderer,
     F: SerializationFormat,
@@ -144,7 +128,7 @@ where
         }
     }
 
-    pub fn new(script_loaders: ScriptLoaders<F>, initial_scene: &Path) -> Self {
+    pub fn new(settings: Settings, script_loaders: ScriptLoaders<F>, initial_scene: &Path) -> Self {
         log::info!("Creating new WutEngine instance with backend {}", R::NAME);
 
         let mut engine = WutEngine {
@@ -153,7 +137,7 @@ where
             windows: Vec::new(),
             objects: LookupTable::new(),
             scripts: LookupTable::new(),
-            initialized: false,
+            initialization_settings: Some(Box::new(settings)),
             prev_frame: Instant::now(),
         };
 

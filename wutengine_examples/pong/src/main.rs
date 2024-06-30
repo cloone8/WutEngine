@@ -6,7 +6,8 @@ use enemy::Enemy;
 use player::Player;
 use wutengine_opengl::OpenGLRenderer;
 use wutengine_runtime::{
-    loading::script::ScriptLoaders, serialization::format::json::Json, WutEngine,
+    loading::script::ScriptLoaders, serialization::format::json::Json, settings::Settings,
+    WutEngine,
 };
 
 mod ball;
@@ -39,7 +40,8 @@ fn main() {
     script_loaders.register_script::<Enemy>();
     script_loaders.register_script::<Player>();
 
-    let engine = WutEngine::<1, OpenGLRenderer, Json>::new(
+    let engine = WutEngine::<OpenGLRenderer, Json>::new(
+        Settings::default(),
         script_loaders,
         PathBuf::from_str("wutengine_examples/pong/assets/main_scene.json")
             .unwrap()
