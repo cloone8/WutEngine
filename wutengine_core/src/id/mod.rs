@@ -1,4 +1,4 @@
-pub mod generator;
+// pub mod generator;
 pub mod instance;
 pub mod script;
 

@@ -1,5 +1,5 @@
 [package]
-name = "pong"
+name = "wutengine_core"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -10,8 +10,6 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-wutengine_core.workspace = true
-wutengine_runtime.workspace = true
-simplelog.workspace = true
+glam.workspace = true
 serde.workspace = true
-serde_json.workspace = true
+nohash-hasher.workspace = true

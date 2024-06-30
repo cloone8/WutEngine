@@ -1,5 +1,5 @@
 [package]
-name = "wutengine"
+name = "wutengine_runtime"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -10,10 +10,16 @@ keywords.workspace = true
 categories.workspace = true
 
 [features]
-default = ["serialization_json"]
+default = ["serialization_json", "opengl"]
+
+# Supported rendering backends
+opengl = []
+
+# Supported serialization formats for loading scenes from disk
 serialization_json = ["dep:serde_json"]
 
 [dependencies]
+wutengine_core.workspace = true
 glam.workspace = true
 winit.workspace = true
 log.workspace = true

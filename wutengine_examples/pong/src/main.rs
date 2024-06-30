@@ -1,21 +1,11 @@
 use core::str::FromStr;
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::path::PathBuf;
 
 use ball::Ball;
 use enemy::Enemy;
 use player::Player;
-use wutengine::{
-    loading::script::ScriptLoaders,
-    math::{Quat, Vec3},
-    renderer::HeadlessRenderer,
-    script::Script,
-    serialization::{
-        format::{json::Json, SerializationFormat},
-        object::SerializedObject,
-        scene::SerializedScene,
-        script::SerializedScript,
-        transform::SerializedTransform,
-    },
+use wutengine_runtime::{
+    loading::script::ScriptLoaders, renderer::HeadlessRenderer, serialization::format::json::Json,
     WutEngine,
 };
 
@@ -57,5 +47,5 @@ fn main() {
             .as_path(),
     );
 
-    // engine.run().unwrap();
+    engine.run().unwrap();
 }

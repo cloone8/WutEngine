@@ -1,9 +1,10 @@
-use crate::{
+use wutengine_core::{
     fastmap::FastMap,
     id::{instance::InstanceID, KeyType},
     script::{abstractscript::AbstractScript, Script},
-    serialization::format::SerializationFormat,
 };
+
+use crate::serialization::format::SerializationFormat;
 
 #[derive(Debug)]
 pub struct ScriptLoader<F: SerializationFormat> {

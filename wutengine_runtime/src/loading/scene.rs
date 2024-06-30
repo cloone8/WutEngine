@@ -1,12 +1,8 @@
 use std::{fs::File, io::BufReader, path::Path};
 
-use crate::{
-    fastmap::FastMap,
-    object::Object,
-    scene::Scene,
-    script::ScriptData,
-    serialization::{format::SerializationFormat, scene::SerializedScene},
-};
+use wutengine_core::{fastmap::FastMap, object::Object, scene::Scene, script::ScriptData};
+
+use crate::serialization::{format::SerializationFormat, scene::SerializedScene};
 
 use super::script::ScriptLoader;
 

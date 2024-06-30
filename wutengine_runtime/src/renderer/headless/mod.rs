@@ -1,8 +1,4 @@
-use std::fmt::Display;
-
-use crate::WutEngine;
-
-use super::{Renderable, WutEngineRenderer};
+use wutengine_core::renderer::{Renderable, WutEngineRenderer};
 
 #[derive(Debug, Default)]
 pub struct HeadlessRenderer;

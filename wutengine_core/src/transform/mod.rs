@@ -1,7 +1,5 @@
 use glam::{Quat, Vec3};
 
-use crate::serialization::transform::SerializedTransform;
-
 #[derive(Debug)]
 pub struct Transform {
     local_pos: Vec3,
@@ -29,17 +27,7 @@ impl Transform {
 
 #[derive(Debug, Clone, Copy)]
 pub struct LocalTransform {
-    pos: Vec3,
-    rot: Quat,
-    scale: Vec3,
-}
-
-impl From<SerializedTransform> for LocalTransform {
-    fn from(value: SerializedTransform) -> Self {
-        Self {
-            pos: value.position.into(),
-            rot: value.rotation.into(),
-            scale: value.scale.into(),
-        }
-    }
+    pub pos: Vec3,
+    pub rot: Quat,
+    pub scale: Vec3,
 }

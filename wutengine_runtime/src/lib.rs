@@ -1,24 +1,13 @@
 use std::{path::Path, time::Instant};
 
-use fastmap::FastMap;
 use loading::{
     scene::SceneLoader,
     script::{ScriptLoader, ScriptLoaders},
 };
-use object::Object;
-use renderer::WutEngineRenderer;
-use scene::Scene;
-use script::ScriptData;
 
-mod fastmap;
-pub mod object;
 pub mod renderer;
-pub mod script;
-pub mod transform;
 pub use glam as math;
-pub mod id;
 pub mod loading;
-pub mod scene;
 pub mod serialization;
 
 use serialization::{format::SerializationFormat, scene::SerializedScene};
@@ -28,6 +17,9 @@ use winit::{
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{Window, WindowAttributes, WindowId},
+};
+use wutengine_core::{
+    fastmap::FastMap, object::Object, renderer::WutEngineRenderer, scene::Scene, script::ScriptData,
 };
 
 #[derive(Debug, Error)]
@@ -78,7 +70,7 @@ impl<R: WutEngineRenderer, F: SerializationFormat> ApplicationHandler for WutEng
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        log::debug!("Window event for window {:?}: {:?}", window_id, event);
+        log::trace!("Window event for window {:?}: {:?}", window_id, event);
 
         match event {
             WindowEvent::CloseRequested => {
@@ -92,7 +84,7 @@ impl<R: WutEngineRenderer, F: SerializationFormat> ApplicationHandler for WutEng
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         let cur_time = Instant::now();
         let duration_secs = cur_time.duration_since(self.prev_frame).as_secs_f64();
-        log::debug!(
+        log::trace!(
             "About to wait, ms: {} FPS: {}",
             duration_secs * 1000.0,
             1.0 / duration_secs

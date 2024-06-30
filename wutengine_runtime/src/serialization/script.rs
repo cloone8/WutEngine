@@ -1,8 +1,7 @@
 use core::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-
-use crate::id::KeyType;
+use wutengine_core::id::KeyType;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SerializedScript<F> {

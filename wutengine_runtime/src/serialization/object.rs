@@ -1,8 +1,7 @@
 use core::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-
-use crate::id::KeyType;
+use wutengine_core::id::KeyType;
 
 use super::{script::SerializedScript, transform::SerializedTransform};
 

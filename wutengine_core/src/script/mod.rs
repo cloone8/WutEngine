@@ -1,10 +1,7 @@
 use abstractscript::AbstractScript;
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{
-    id::{instance::InstanceID, KeyType},
-    serialization::format::SerializationFormat,
-};
+use crate::id::{instance::InstanceID, KeyType};
 
 pub mod abstractscript;
 pub mod frame;
