@@ -1,7 +1,7 @@
-use crate::{fastmap::FastMap, object::Object, script::ScriptData};
+use crate::{lookuptable::LookupTable, object::Object, script::ScriptData};
 
 #[derive(Debug)]
 pub struct Scene {
-    pub objects: FastMap<Object>,
-    pub scripts: FastMap<ScriptData>,
+    pub objects: LookupTable<Object>,
+    pub scripts: LookupTable<ScriptData>,
 }

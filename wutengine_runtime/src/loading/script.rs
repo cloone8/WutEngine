@@ -1,6 +1,6 @@
 use wutengine_core::{
-    fastmap::FastMap,
     id::{instance::InstanceID, KeyType},
+    lookuptable::LookupTable,
     script::{abstractscript::AbstractScript, Script},
 };
 
@@ -40,13 +40,13 @@ fn load_object<T: Script, F: SerializationFormat>(data: F::RawType) -> Box<dyn A
 }
 
 pub struct ScriptLoaders<F: SerializationFormat> {
-    pub(crate) loaders: FastMap<ScriptLoader<F>>,
+    pub(crate) loaders: LookupTable<ScriptLoader<F>>,
 }
 
 impl<F: SerializationFormat> ScriptLoaders<F> {
     pub fn new() -> Self {
         Self {
-            loaders: FastMap::new(),
+            loaders: LookupTable::new(),
         }
     }
 

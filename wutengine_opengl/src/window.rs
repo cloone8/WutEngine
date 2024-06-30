@@ -1,9 +1,6 @@
 use gl_from_raw_window_handle::GlContext;
 use glam::U64Vec2;
-use wutengine_core::{
-    id::instance::InstanceID,
-    renderer::{renderable::Renderable, WindowHandles, WindowId},
-};
+use wutengine_core::renderer::{renderable::Renderable, WindowHandles, WindowId};
 
 use crate::{
     opengl::{self, Gl},
@@ -16,12 +13,6 @@ pub struct Window {
     id: WindowId,
     context: GlContext,
     bindings: Gl,
-}
-
-impl InstanceID for Window {
-    fn id(&self) -> wutengine_core::id::KeyType {
-        self.id.id()
-    }
 }
 
 impl Window {

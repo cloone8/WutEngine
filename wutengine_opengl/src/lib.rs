@@ -5,6 +5,7 @@ use window::Window;
 use wutengine_core::{
     fastmap::FastMap,
     id::instance::InstanceID,
+    lookuptable::LookupTable,
     renderer::{renderable::Renderable, WindowHandles, WindowId, WutEngineRenderer},
 };
 
@@ -27,7 +28,7 @@ const GL_CONFIG: GlConfig = GlConfig {
 };
 
 pub struct OpenGLRenderer {
-    windows: FastMap<Window>,
+    windows: FastMap<WindowId, Window>,
 }
 
 impl WutEngineRenderer for OpenGLRenderer {
@@ -45,11 +46,11 @@ impl WutEngineRenderer for OpenGLRenderer {
         log::info!("Initializing OpenGL context for window with ID {}", id);
 
         self.windows
-            .insert(unsafe { Window::init(id, handles, viewport) });
+            .insert(id, unsafe { Window::init(id, handles, viewport) });
     }
 
     fn render(&mut self, window: WindowId, objects: &[Renderable]) {
-        let window = self.windows.get_mut(window.id()).unwrap();
+        let window = self.windows.get_mut(window).unwrap();
 
         unsafe { window.render(objects) };
     }

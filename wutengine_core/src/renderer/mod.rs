@@ -45,12 +45,6 @@ impl Hash for WindowId {
 
 impl nohash_hasher::IsEnabled for WindowId {}
 
-impl InstanceID for WindowId {
-    fn id(&self) -> crate::id::KeyType {
-        self.0 as usize
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub struct WindowHandles<'a> {
     pub window: WindowHandle<'a>,

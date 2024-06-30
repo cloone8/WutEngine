@@ -1,4 +1,7 @@
-use core::hash::BuildHasherDefault;
+use core::{
+    fmt::Debug,
+    hash::{BuildHasherDefault, Hash},
+};
 use std::collections::HashMap;
 
 use nohash_hasher::NoHashHasher;
@@ -6,60 +9,75 @@ use nohash_hasher::NoHashHasher;
 use crate::id::{instance::InstanceID, KeyType};
 
 #[derive(Debug)]
-pub struct FastMap<T: InstanceID> {
-    map: HashMap<KeyType, T, BuildHasherDefault<NoHashHasher<KeyType>>>,
+pub struct FastMap<K, V>
+where
+    K: nohash_hasher::IsEnabled + Eq + Hash + Debug,
+{
+    map: HashMap<K, V, BuildHasherDefault<NoHashHasher<KeyType>>>,
 }
 
-impl<T: InstanceID> FastMap<T> {
+impl<K, V> FastMap<K, V>
+where
+    K: nohash_hasher::IsEnabled + Eq + Hash + Debug,
+{
     pub fn new() -> Self {
         FastMap {
             map: HashMap::with_hasher(BuildHasherDefault::default()),
         }
     }
 
-    pub fn insert(&mut self, item: T) {
+    pub fn insert(&mut self, key: K, val: V) {
         debug_assert!(
-            !self.map.contains_key(&item.id()),
-            "Map already contains item with key {}",
-            item.id()
+            !self.map.contains_key(&key),
+            "Map already contains item with key {:?}",
+            key
         );
 
-        self.map.insert(item.id(), item);
+        self.map.insert(key, val);
     }
 
-    pub fn get(&self, key: KeyType) -> Option<&T> {
+    pub fn get(&self, key: K) -> Option<&V> {
         self.map.get(&key)
     }
 
-    pub fn get_mut(&mut self, key: KeyType) -> Option<&mut T> {
+    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
         self.map.get_mut(&key)
     }
 }
 
-impl<T: InstanceID> IntoIterator for FastMap<T> {
-    type Item = (KeyType, T);
+impl<K, V> IntoIterator for FastMap<K, V>
+where
+    K: nohash_hasher::IsEnabled + Eq + Hash + Debug,
+{
+    type Item = (K, V);
 
-    type IntoIter = std::collections::hash_map::IntoIter<KeyType, T>;
+    type IntoIter = std::collections::hash_map::IntoIter<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.map.into_iter()
     }
 }
 
-impl<'a, T: InstanceID> IntoIterator for &'a FastMap<T> {
-    type Item = (&'a KeyType, &'a T);
+impl<'a, K, V> IntoIterator for &'a FastMap<K, V>
+where
+    K: nohash_hasher::IsEnabled + Eq + Hash + Debug,
+{
+    type Item = (&'a K, &'a V);
 
-    type IntoIter = std::collections::hash_map::Iter<'a, KeyType, T>;
+    type IntoIter = std::collections::hash_map::Iter<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.map.iter()
     }
 }
 
-impl<'a, T: InstanceID> IntoIterator for &'a mut FastMap<T> {
-    type Item = (&'a KeyType, &'a mut T);
+impl<'a, K, V> IntoIterator for &'a mut FastMap<K, V>
+where
+    K: nohash_hasher::IsEnabled + Eq + Hash + Debug,
+{
+    type Item = (&'a K, &'a mut V);
 
-    type IntoIter = std::collections::hash_map::IterMut<'a, KeyType, T>;
+    type IntoIter = std::collections::hash_map::IterMut<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.map.iter_mut()

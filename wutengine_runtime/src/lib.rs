@@ -21,7 +21,7 @@ use winit::{
     window::{Window, WindowAttributes, WindowId},
 };
 use wutengine_core::{
-    fastmap::FastMap,
+    lookuptable::LookupTable,
     object::Object,
     renderer::{WindowHandles, WutEngineRenderer},
     scene::Scene,
@@ -43,10 +43,10 @@ where
     prev_frame: Instant,
 
     renderer: R,
-    script_loaders: FastMap<ScriptLoader<F>>,
+    script_loaders: LookupTable<ScriptLoader<F>>,
     initialized: bool,
-    objects: FastMap<Object>,
-    scripts: FastMap<ScriptData>,
+    objects: LookupTable<Object>,
+    scripts: LookupTable<ScriptData>,
     windows: Vec<Window>,
 }
 
@@ -151,8 +151,8 @@ where
             renderer: R::init(),
             script_loaders: script_loaders.loaders,
             windows: Vec::new(),
-            objects: FastMap::new(),
-            scripts: FastMap::new(),
+            objects: LookupTable::new(),
+            scripts: LookupTable::new(),
             initialized: false,
             prev_frame: Instant::now(),
         };

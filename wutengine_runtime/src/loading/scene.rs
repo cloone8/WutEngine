@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufReader, path::Path};
 
-use wutengine_core::{fastmap::FastMap, object::Object, scene::Scene, script::ScriptData};
+use wutengine_core::{lookuptable::LookupTable, object::Object, scene::Scene, script::ScriptData};
 
 use crate::serialization::{format::SerializationFormat, scene::SerializedScene};
 
@@ -12,15 +12,15 @@ pub struct SceneLoader;
 impl SceneLoader {
     pub fn load<F: SerializationFormat>(
         source: &Path,
-        script_loaders: &FastMap<ScriptLoader<F>>,
+        script_loaders: &LookupTable<ScriptLoader<F>>,
     ) -> Result<Scene, ()> {
         let source_file = File::open(source).unwrap();
         let reader = BufReader::new(source_file);
         let serialized_scene: SerializedScene<F> = F::deserialize_from_reader(reader).unwrap();
 
         let mut scene = Scene {
-            objects: FastMap::new(),
-            scripts: FastMap::new(),
+            objects: LookupTable::new(),
+            scripts: LookupTable::new(),
         };
 
         for obj in serialized_scene.objects {
