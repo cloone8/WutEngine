@@ -17,7 +17,7 @@ pub mod window;
 use serialization::format::SerializationFormat;
 use settings::Settings;
 use thiserror::Error;
-use window::Window;
+use window::{Window, MAIN_WINDOW_ID};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -51,7 +51,7 @@ where
     initialization_settings: Option<Box<Settings>>,
     objects: LookupTable<Object>,
     scripts: LookupTable<ScriptData>,
-    windows: Vec<winit::window::Window>,
+    windows: Vec<Window>,
 }
 
 fn to_wutengine_window_id(id: WindowId) -> wutengine_core::renderer::WindowId {
@@ -70,7 +70,7 @@ where
             log::info!("Doing pre-first frame initialization");
 
             if settings.open_window {
-                Window::open(self, event_loop, (800, 600))
+                Window::open(MAIN_WINDOW_ID, self, event_loop, (800, 600));
             }
 
             log::info!("Pre-first frame initialization done");
@@ -106,9 +106,7 @@ where
         self.prev_frame = cur_time;
 
         for window in &self.windows {
-            let id = to_wutengine_window_id(window.id());
-
-            self.renderer.render(id, &[]);
+            self.renderer.render(window.id, &[]);
         }
     }
 }
