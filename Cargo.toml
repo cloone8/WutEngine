@@ -4,6 +4,7 @@ members = [
     "wutengine_runtime",
     "wutengine_editor",
     "wutengine_core",
+    "wutengine_opengl",
     "wutengine_examples/pong",
 ]
 
@@ -53,6 +54,7 @@ strip = false
 wutengine_runtime = { path = "wutengine_runtime", version = "=0.0.1" }
 wutengine_editor = { path = "wutengine_editor", version = "=0.0.1" }
 wutengine_core = { path = "wutengine_core", version = "=0.0.1" }
+wutengine_opengl = { path = "wutengine_opengl", version = "0.0.1" }
 
 # External crates
 winit = { version = "0.30.3" }
@@ -64,6 +66,7 @@ serde_json = { version = "1.0.118" }
 static_assertions = { version = "1.1.0" }
 nohash-hasher = { version = "0.2.0" }
 rand = { version = "0.8.5", features = ["small_rng"] }
+raw-window-handle = "0.6.2"
 
 # OpenGL dependencies
 gl-from-raw-window-handle = { path = "../gl-from-raw-window-handle" }

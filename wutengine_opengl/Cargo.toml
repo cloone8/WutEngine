@@ -1,5 +1,5 @@
 [package]
-name = "wutengine_core"
+name = "wutengine_opengl"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -10,7 +10,10 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+wutengine_core.workspace = true
+gl-from-raw-window-handle.workspace = true
 glam.workspace = true
-serde.workspace = true
-nohash-hasher.workspace = true
-raw-window-handle.workspace = true
+log.workspace = true
+
+[build-dependencies]
+gl_generator.workspace = true

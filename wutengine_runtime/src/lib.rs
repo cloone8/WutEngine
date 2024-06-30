@@ -1,16 +1,18 @@
 use std::{path::Path, time::Instant};
 
+use glam::{U64Vec2, U64Vec4};
 use loading::{
     scene::SceneLoader,
     script::{ScriptLoader, ScriptLoaders},
 };
 
-pub mod renderer;
+mod headless_renderer;
 pub use glam as math;
+pub use headless_renderer::HeadlessRenderer;
 pub mod loading;
 pub mod serialization;
 
-use serialization::{format::SerializationFormat, scene::SerializedScene};
+use serialization::format::SerializationFormat;
 use thiserror::Error;
 use winit::{
     application::ApplicationHandler,
@@ -19,7 +21,11 @@ use winit::{
     window::{Window, WindowAttributes, WindowId},
 };
 use wutengine_core::{
-    fastmap::FastMap, object::Object, renderer::WutEngineRenderer, scene::Scene, script::ScriptData,
+    fastmap::FastMap,
+    object::Object,
+    renderer::{WindowHandles, WutEngineRenderer},
+    scene::Scene,
+    script::ScriptData,
 };
 
 #[derive(Debug, Error)]
@@ -29,33 +35,56 @@ pub enum WutEngineError {
 }
 
 #[derive(Debug)]
-pub struct WutEngine<R: WutEngineRenderer, F: SerializationFormat> {
+pub struct WutEngine<const W: usize, R, F>
+where
+    R: WutEngineRenderer,
+    F: SerializationFormat,
+{
     prev_frame: Instant,
 
     renderer: R,
     script_loaders: FastMap<ScriptLoader<F>>,
-    initialization_data: Option<Box<InitData>>,
+    initialized: bool,
     objects: FastMap<Object>,
     scripts: FastMap<ScriptData>,
     windows: Vec<Window>,
 }
 
-#[derive(Debug)]
-struct InitData {
-    num_windows: usize,
+fn to_wutengine_window_id(id: WindowId) -> wutengine_core::renderer::WindowId {
+    wutengine_core::renderer::WindowId::new(id.into())
 }
 
-impl<R: WutEngineRenderer, F: SerializationFormat> ApplicationHandler for WutEngine<R, F> {
+impl<const W: usize, R, F> ApplicationHandler for WutEngine<W, R, F>
+where
+    R: WutEngineRenderer,
+    F: SerializationFormat,
+{
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         log::info!("Resumed");
 
-        if let Some(init) = self.initialization_data.take() {
+        if !self.initialized {
+            self.initialized = true;
+
             log::info!("Doing pre-first frame initialization");
 
-            for _ in 0..init.num_windows {
-                let attrs = WindowAttributes::default().with_title("WutEngine");
+            for i in 0..W {
+                let attrs = WindowAttributes::default().with_title(format!("WutEngine - {}", i));
 
                 let new_window = event_loop.create_window(attrs).unwrap();
+                let window_size: U64Vec2 = {
+                    let phys_size = new_window.inner_size();
+
+                    U64Vec2 {
+                        x: phys_size.width as u64,
+                        y: phys_size.height as u64,
+                    }
+                };
+
+                self.renderer.init_window(
+                    to_wutengine_window_id(new_window.id()),
+                    WindowHandles::from_window(&new_window).unwrap(),
+                    window_size,
+                );
 
                 self.windows.push(new_window);
             }
@@ -91,10 +120,20 @@ impl<R: WutEngineRenderer, F: SerializationFormat> ApplicationHandler for WutEng
         );
 
         self.prev_frame = cur_time;
+
+        for window in &self.windows {
+            let id = to_wutengine_window_id(window.id());
+
+            self.renderer.render(id, &[]);
+        }
     }
 }
 
-impl<R: WutEngineRenderer, F: SerializationFormat> WutEngine<R, F> {
+impl<const W: usize, R, F> WutEngine<W, R, F>
+where
+    R: WutEngineRenderer,
+    F: SerializationFormat,
+{
     fn add_scene(&mut self, scene: Scene) {
         for (_, obj) in scene.objects {
             self.objects.insert(obj);
@@ -105,18 +144,16 @@ impl<R: WutEngineRenderer, F: SerializationFormat> WutEngine<R, F> {
         }
     }
 
-    pub fn new(num_windows: usize, script_loaders: ScriptLoaders<F>, initial_scene: &Path) -> Self {
+    pub fn new(script_loaders: ScriptLoaders<F>, initial_scene: &Path) -> Self {
         log::info!("Creating new WutEngine instance with backend {}", R::NAME);
 
-        let init = InitData { num_windows };
-
         let mut engine = WutEngine {
-            renderer: R::default(),
+            renderer: R::init(),
             script_loaders: script_loaders.loaders,
             windows: Vec::new(),
             objects: FastMap::new(),
             scripts: FastMap::new(),
-            initialization_data: Some(Box::new(init)),
+            initialized: false,
             prev_frame: Instant::now(),
         };
 

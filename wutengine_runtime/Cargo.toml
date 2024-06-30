@@ -10,10 +10,7 @@ keywords.workspace = true
 categories.workspace = true
 
 [features]
-default = ["serialization_json", "opengl"]
-
-# Supported rendering backends
-opengl = []
+default = ["serialization_json"]
 
 # Supported serialization formats for loading scenes from disk
 serialization_json = ["dep:serde_json"]

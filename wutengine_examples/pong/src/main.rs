@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use ball::Ball;
 use enemy::Enemy;
 use player::Player;
+use wutengine_opengl::OpenGLRenderer;
 use wutengine_runtime::{
-    loading::script::ScriptLoaders, renderer::HeadlessRenderer, serialization::format::json::Json,
-    WutEngine,
+    loading::script::ScriptLoaders, serialization::format::json::Json, WutEngine,
 };
 
 mod ball;
@@ -39,8 +39,7 @@ fn main() {
     script_loaders.register_script::<Enemy>();
     script_loaders.register_script::<Player>();
 
-    let engine = WutEngine::<HeadlessRenderer, Json>::new(
-        1,
+    let engine = WutEngine::<1, OpenGLRenderer, Json>::new(
         script_loaders,
         PathBuf::from_str("wutengine_examples/pong/assets/main_scene.json")
             .unwrap()
