@@ -4,13 +4,8 @@ use crate::WutEngine;
 
 use super::{Renderable, WutEngineRenderer};
 
+#[derive(Debug, Default)]
 pub struct HeadlessRenderer;
-
-impl Default for HeadlessRenderer {
-    fn default() -> Self {
-        HeadlessRenderer {}
-    }
-}
 
 impl WutEngineRenderer for HeadlessRenderer {
     const NAME: &'static str = "Headless";

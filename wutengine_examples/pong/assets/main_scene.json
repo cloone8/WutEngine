@@ -1,0 +1,91 @@
+{
+    "objects": [
+        {
+            "instance_id": 0,
+            "name": "Ball",
+            "transform": {
+                "position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "scripts": [
+                {
+                    "script_id": 3294876123987,
+                    "instance_id": 0,
+                    "data": {}
+                }
+            ]
+        },
+        {
+            "instance_id": 1,
+            "name": "Player",
+            "transform": {
+                "position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "scripts": [
+                {
+                    "script_id": 1,
+                    "instance_id": 1,
+                    "data": {}
+                }
+            ]
+        },
+        {
+            "instance_id": 2,
+            "name": "Enemy",
+            "transform": {
+                "position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "scripts": [
+                {
+                    "script_id": 810010,
+                    "instance_id": 2,
+                    "data": {}
+                }
+            ]
+        }
+    ]
+}

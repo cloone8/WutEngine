@@ -1,11 +1,27 @@
-use std::time::Instant;
+use std::{path::Path, time::Instant};
 
+use fastmap::FastMap;
+use loading::{
+    scene::SceneLoader,
+    script::{ScriptLoader, ScriptLoaders},
+};
+use object::Object;
 use renderer::WutEngineRenderer;
+use scene::Scene;
+use script::ScriptData;
 
+mod fastmap;
+pub mod object;
 pub mod renderer;
-pub mod world;
+pub mod script;
+pub mod transform;
 pub use glam as math;
+pub mod id;
+pub mod loading;
+pub mod scene;
+pub mod serialization;
 
+use serialization::{format::SerializationFormat, scene::SerializedScene};
 use thiserror::Error;
 use winit::{
     application::ApplicationHandler,
@@ -13,7 +29,6 @@ use winit::{
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{Window, WindowAttributes, WindowId},
 };
-use world::World;
 
 #[derive(Debug, Error)]
 pub enum WutEngineError {
@@ -22,11 +37,14 @@ pub enum WutEngineError {
 }
 
 #[derive(Debug)]
-pub struct WutEngine<R: WutEngineRenderer> {
+pub struct WutEngine<R: WutEngineRenderer, F: SerializationFormat> {
     prev_frame: Instant,
 
     renderer: R,
+    script_loaders: FastMap<ScriptLoader<F>>,
     initialization_data: Option<Box<InitData>>,
+    objects: FastMap<Object>,
+    scripts: FastMap<ScriptData>,
     windows: Vec<Window>,
 }
 
@@ -35,7 +53,7 @@ struct InitData {
     num_windows: usize,
 }
 
-impl<R: WutEngineRenderer> ApplicationHandler for WutEngine<R> {
+impl<R: WutEngineRenderer, F: SerializationFormat> ApplicationHandler for WutEngine<R, F> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         log::info!("Resumed");
 
@@ -84,18 +102,37 @@ impl<R: WutEngineRenderer> ApplicationHandler for WutEngine<R> {
     }
 }
 
-impl<R: WutEngineRenderer> WutEngine<R> {
-    pub fn new(num_windows: usize, initial_world: World) -> Self {
+impl<R: WutEngineRenderer, F: SerializationFormat> WutEngine<R, F> {
+    fn add_scene(&mut self, scene: Scene) {
+        for (_, obj) in scene.objects {
+            self.objects.insert(obj);
+        }
+
+        for (_, script) in scene.scripts {
+            self.scripts.insert(script);
+        }
+    }
+
+    pub fn new(num_windows: usize, script_loaders: ScriptLoaders<F>, initial_scene: &Path) -> Self {
         log::info!("Creating new WutEngine instance with backend {}", R::NAME);
 
         let init = InitData { num_windows };
 
-        WutEngine {
+        let mut engine = WutEngine {
             renderer: R::default(),
+            script_loaders: script_loaders.loaders,
             windows: Vec::new(),
+            objects: FastMap::new(),
+            scripts: FastMap::new(),
             initialization_data: Some(Box::new(init)),
             prev_frame: Instant::now(),
-        }
+        };
+
+        let loaded_scene = SceneLoader::load(initial_scene, &engine.script_loaders).unwrap();
+
+        engine.add_scene(loaded_scene);
+
+        engine
     }
 
     pub fn run(mut self) -> Result<(), WutEngineError> {

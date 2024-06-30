@@ -50,12 +50,14 @@ wutengine_editor = { path = "wutengine_editor", version = "=0.0.1" }
 
 # External crates
 winit = { version = "0.30.3" }
-glam = { version = "0.28.0", features = ["mint", "debug-glam-assert"] }
+glam = { version = "0.28.0", features = ["serde", "debug-glam-assert"] }
 log = { version = "0.4.22" }
 thiserror = { version = "1.0.61" }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = { version = "1.0.118" }
 static_assertions = { version = "1.1.0" }
+nohash-hasher = { version = "0.2.0" }
+rand = { version = "0.8.5", features = ["small_rng"] }
 
 # Dependencies for example games
 simplelog = "0.12.2"

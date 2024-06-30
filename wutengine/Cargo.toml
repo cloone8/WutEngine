@@ -9,7 +9,9 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["serialization_json"]
+serialization_json = ["dep:serde_json"]
 
 [dependencies]
 glam.workspace = true
@@ -17,3 +19,7 @@ winit.workspace = true
 log.workspace = true
 thiserror.workspace = true
 static_assertions.workspace = true
+nohash-hasher.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, optional = true }
