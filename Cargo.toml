@@ -1,12 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "wutengine_runtime",
-    "wutengine_editor",
-    "wutengine_core",
-    "wutengine_opengl",
-    "wutengine_examples/pong",
-]
+members = ["wutengine", "wutengine_examples/pong"]
 
 [workspace.package]
 version = "0.0.1"
@@ -18,59 +12,5 @@ license = "MPL-2.0"
 keywords = []
 categories = ["game-engines"]
 
-# Config for 'cargo dist'
-[workspace.metadata.dist]
-# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.13.3"
-# CI backends to support
-ci = ["github"]
-# The installers to generate for each app
-installers = []
-# Target platforms to build apps for (Rust target-triple syntax)
-targets = [
-    "aarch64-apple-darwin",
-    "x86_64-apple-darwin",
-    "x86_64-unknown-linux-gnu",
-    "x86_64-pc-windows-msvc",
-]
-# Publish jobs to run in CI
-pr-run-mode = "plan"
-
-# The profile that 'cargo dist' will build with
-[profile.dist]
-inherits = "release"
-
-[profile.release]
-strip = true
-lto = true
-codegen-units = 1
-
-[profile.dev]
-debug = 0
-strip = false
-
 [workspace.dependencies]
-# Workspace crates
-wutengine_runtime = { path = "wutengine_runtime", version = "=0.0.1" }
-wutengine_editor = { path = "wutengine_editor", version = "=0.0.1" }
-wutengine_core = { path = "wutengine_core", version = "=0.0.1" }
-wutengine_opengl = { path = "wutengine_opengl", version = "0.0.1" }
-
-# External crates
-winit = { version = "0.30.3" }
-glam = { version = "0.28.0", features = ["serde", "debug-glam-assert"] }
-log = { version = "0.4.22" }
-thiserror = { version = "1.0.61" }
-serde = { version = "1.0.203", features = ["derive"] }
-serde_json = { version = "1.0.118" }
-static_assertions = { version = "1.1.0" }
-nohash-hasher = { version = "0.2.0" }
-rand = { version = "0.8.5", features = ["small_rng"] }
-raw-window-handle = "0.6.2"
-
-# OpenGL dependencies
-gl-from-raw-window-handle = { path = "../gl-from-raw-window-handle" }
-gl_generator = { version = "0.14.0" }
-
-# Dependencies for example games
-simplelog = "0.12.2"
+wutengine = { path = "wutengine", version = "0.0.1" }

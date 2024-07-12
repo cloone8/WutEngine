@@ -10,9 +10,3 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-wutengine_opengl.workspace = true
-wutengine_core.workspace = true
-wutengine_runtime.workspace = true
-simplelog.workspace = true
-serde.workspace = true
-serde_json.workspace = true

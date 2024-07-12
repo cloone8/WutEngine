@@ -1,5 +1,5 @@
 [package]
-name = "wutengine_core"
+name = "wutengine"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -10,7 +10,3 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-glam.workspace = true
-serde.workspace = true
-nohash-hasher.workspace = true
-raw-window-handle.workspace = true
