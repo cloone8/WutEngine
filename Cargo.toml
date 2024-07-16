@@ -26,3 +26,13 @@ wutengine_macro = { path = "wutengine_macro", version = "0.0.1" }
 # External dependencies
 winit = { version = "0.30.3" }
 nohash-hasher = { version = "0.2.0" }
+
+[profile.dev]
+opt-level = 1
+panic = "unwind"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "unwind"
