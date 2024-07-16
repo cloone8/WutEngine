@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["wutengine", "wutengine_examples/pong"]
+members = [
+    "wutengine",
+    "wutengine_core",
+    "wutengine_examples/pong",
+    "wutengine_macro",
+]
 
 [workspace.package]
 version = "0.0.1"
@@ -13,4 +18,11 @@ keywords = []
 categories = ["game-engines"]
 
 [workspace.dependencies]
+# Workspace dependencies
 wutengine = { path = "wutengine", version = "0.0.1" }
+wutengine_core = { path = "wutengine_core", version = "0.0.1" }
+wutengine_macro = { path = "wutengine_macro", version = "0.0.1" }
+
+# External dependencies
+winit = { version = "0.30.3" }
+nohash-hasher = { version = "0.2.0" }

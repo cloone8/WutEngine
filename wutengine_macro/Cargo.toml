@@ -1,5 +1,5 @@
 [package]
-name = "pong"
+name = "wutengine_macro"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -10,4 +10,4 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-wutengine.workspace = true
+wutengine_core.workspace = true
