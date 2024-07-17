@@ -15,12 +15,17 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Publish Engine
-        run: cargo publish --token ${CRATES_TOKEN} -p wutengine
+      - name: Publish engine core
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_core
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+      
+      - name: Publish engine macros
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_macro
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
-      - name: Publish Editor
-        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_editor
+      - name: Publish main engine crate
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
