@@ -1,5 +1,6 @@
 [package]
 name = "wutengine"
+description = "A modern game engine"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

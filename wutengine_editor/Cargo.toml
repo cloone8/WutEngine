@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_editor"
+description = "An easy-to-use editor for WutEngine games"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

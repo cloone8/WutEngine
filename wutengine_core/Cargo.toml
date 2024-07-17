@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_core"
+description = "Core datatypes and traits for WutEngine"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

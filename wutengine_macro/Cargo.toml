@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_macro"
+description = "Macros for WutEngine games"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
