@@ -798,7 +798,7 @@ dependencies = [
 
 [[package]]
 name = "pong"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "wutengine",
 ]
@@ -1562,7 +1562,7 @@ dependencies = [
 
 [[package]]
 name = "wutengine"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "nohash-hasher",
  "winit",
@@ -1572,18 +1572,18 @@ dependencies = [
 
 [[package]]
 name = "wutengine_core"
-version = "0.0.1"
+version = "0.0.0"
 
 [[package]]
 name = "wutengine_editor"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "wutengine",
 ]
 
 [[package]]
 name = "wutengine_macro"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "wutengine_core",
 ]

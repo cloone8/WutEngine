@@ -9,7 +9,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.1"
+version = "0.0.0"
 edition = "2021"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
@@ -20,9 +20,9 @@ categories = ["game-engines"]
 
 [workspace.dependencies]
 # Workspace dependencies
-wutengine = { path = "wutengine", version = "0.0.1" }
-wutengine_core = { path = "wutengine_core", version = "0.0.1" }
-wutengine_macro = { path = "wutengine_macro", version = "0.0.1" }
+wutengine = { path = "wutengine", version = "0.0.0" }
+wutengine_core = { path = "wutengine_core", version = "0.0.0" }
+wutengine_macro = { path = "wutengine_macro", version = "0.0.0" }
 
 # External dependencies
 winit = { version = "0.30.3" }
