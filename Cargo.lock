@@ -1575,6 +1575,13 @@ name = "wutengine_core"
 version = "0.0.1"
 
 [[package]]
+name = "wutengine_editor"
+version = "0.0.1"
+dependencies = [
+ "wutengine",
+]
+
+[[package]]
 name = "wutengine_macro"
 version = "0.0.1"
 dependencies = [

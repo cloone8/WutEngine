@@ -29,3 +29,8 @@ jobs:
         run: cargo publish --token ${CRATES_TOKEN} -p wutengine
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+      
+      - name: Publish editor
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_editor
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
