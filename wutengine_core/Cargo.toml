@@ -11,3 +11,6 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+rand.workspace = true
+static_assertions.workspace = true
+nohash-hasher.workspace = true

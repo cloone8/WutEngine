@@ -27,6 +27,9 @@ wutengine_macro = { path = "wutengine_macro", version = "0.0.0" }
 # External dependencies
 winit = { version = "0.30.3" }
 nohash-hasher = { version = "0.2.0" }
+log = "0.4.22"
+rand = { version = "0.8.5", features = ["std", "std_rng", "small_rng"] }
+static_assertions = "1.1.0"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
