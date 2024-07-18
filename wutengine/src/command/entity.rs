@@ -1,7 +1,4 @@
-use wutengine_core::{
-    component::{Component, DynComponent},
-    entity::EntityId,
-};
+use wutengine_core::{component::DynComponent, entity::EntityId};
 
 use crate::EngineCommand;
 

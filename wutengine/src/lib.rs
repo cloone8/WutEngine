@@ -29,8 +29,8 @@ pub mod world;
 
 #[derive(Debug)]
 pub enum SystemFunction {
-    Immutable(fn(&mut Command, &World)),
-    Mutable(fn(&mut Command, &mut World)),
+    Immutable(for<'a> fn(&mut Command, &'a World<'a>)),
+    Mutable(for<'a> fn(&mut Command, &'a mut World<'a>)),
 }
 
 #[derive(Debug)]
@@ -68,7 +68,7 @@ impl RuntimeInitializer {
     }
 
     pub fn add_component_type<T: Component>(&mut self) -> &mut Self {
-        let id = T::get_component_id();
+        let id = T::COMPONENT_ID;
 
         if self.components.contains_key(&id) {
             panic!("Component already registered!");
@@ -156,7 +156,7 @@ impl Runtime {
         let mut commands = Command::empty();
 
         for system in self.systems.iter_mut().filter(|sys| sys.phase == phase) {
-            let mut world = World;
+            let mut world = World::new(&mut self.components);
 
             match system.func {
                 SystemFunction::Immutable(func) => func(&mut commands, &world),

@@ -17,7 +17,7 @@ impl Hash for ComponentTypeId {
 impl IsEnabled for ComponentTypeId {}
 
 impl ComponentTypeId {
-    pub fn from_int(val: u64) -> Self {
+    pub const fn from_int(val: u64) -> Self {
         Self(val)
     }
 }
@@ -27,7 +27,7 @@ pub trait DynComponent: Any + Debug {
 }
 
 pub trait Component: DynComponent + Sized {
-    fn get_component_id() -> ComponentTypeId;
+    const COMPONENT_ID: ComponentTypeId;
 }
 
 assert_obj_safe!(DynComponent);

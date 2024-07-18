@@ -13,7 +13,9 @@ categories.workspace = true
 [dependencies]
 wutengine_core.workspace = true
 wutengine_macro.workspace = true
+wutengine_util_macro.workspace = true
 
 nohash-hasher.workspace = true
 winit.workspace = true
 log.workspace = true
+itertools.workspace = true

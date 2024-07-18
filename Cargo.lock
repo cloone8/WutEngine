@@ -280,6 +280,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f25c0e292a7ca6d6498557ff1df68f32c99850012b6ea401cf8daf771f22ff53"
 
 [[package]]
+name = "either"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
+
+[[package]]
 name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -363,6 +369,15 @@ checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
  "equivalent",
  "hashbrown",
+]
+
+[[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -798,7 +813,7 @@ dependencies = [
 
 [[package]]
 name = "pong"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "wutengine",
 ]
@@ -1604,18 +1619,20 @@ dependencies = [
 
 [[package]]
 name = "wutengine"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
+ "itertools",
  "log",
  "nohash-hasher",
  "winit",
  "wutengine_core",
  "wutengine_macro",
+ "wutengine_util_macro",
 ]
 
 [[package]]
 name = "wutengine_core"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "nohash-hasher",
  "rand",
@@ -1624,16 +1641,25 @@ dependencies = [
 
 [[package]]
 name = "wutengine_editor"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "wutengine",
 ]
 
 [[package]]
 name = "wutengine_macro"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "wutengine_core",
+]
+
+[[package]]
+name = "wutengine_util_macro"
+version = "0.0.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
