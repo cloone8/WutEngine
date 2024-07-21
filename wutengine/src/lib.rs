@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use ::core::cell::RefCell;
+use std::{collections::HashMap, sync::RwLock};
 
 use command::Command;
-use component::storage::array::ComponentArray;
+use component::storage::{ComponentStorage, StorageKind};
 use nohash_hasher::IntMap;
 use plugin::EnginePlugin;
 use windowing::WindowIdentifier;
@@ -51,7 +52,7 @@ pub enum EngineEvent {
 
 pub struct RuntimeInitializer {
     plugins: Vec<Box<dyn EnginePlugin>>,
-    components: IntMap<ComponentTypeId, ComponentArray>,
+    components: IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
 }
 
 impl RuntimeInitializer {
@@ -68,13 +69,21 @@ impl RuntimeInitializer {
     }
 
     pub fn add_component_type<T: Component>(&mut self) -> &mut Self {
+        self.add_component_type_with_storage::<T>(StorageKind::Array)
+    }
+
+    pub fn add_component_type_with_storage<T: Component>(
+        &mut self,
+        storage: StorageKind,
+    ) -> &mut Self {
         let id = T::COMPONENT_ID;
 
         if self.components.contains_key(&id) {
             panic!("Component already registered!");
         }
 
-        self.components.insert(id, ComponentArray::new_for::<T>());
+        self.components
+            .insert(id, RefCell::new(ComponentStorage::new_for::<T>(storage)));
 
         self
     }
@@ -90,6 +99,7 @@ impl RuntimeInitializer {
 
         let mut runtime = Runtime {
             plugins: self.plugins.into_boxed_slice(),
+            entities: Vec::new(),
             components: self.components,
             systems: Vec::new(),
             windows: HashMap::new(),
@@ -105,7 +115,9 @@ impl RuntimeInitializer {
 
 pub struct Runtime {
     plugins: Box<[Box<dyn EnginePlugin>]>,
-    components: IntMap<ComponentTypeId, ComponentArray>,
+
+    entities: Vec<EntityId>,
+    components: IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
     systems: Vec<System<SystemFunction>>,
 
     eventloop: EventLoopProxy<WindowingEvent>,
@@ -123,11 +135,15 @@ impl Runtime {
                 .send_event(WindowingEvent::OpenWindow(id))
                 .unwrap(),
             EngineCommand::SpawnEntity(id, components) => {
+                debug_assert!(!self.entities.contains(&id));
+                self.entities.push(id);
+
                 for component in components.into_iter() {
                     let array = self
                         .components
                         .get_mut(&component.get_dyn_component_id())
-                        .expect("Unknown component type!");
+                        .expect("Unknown component type!")
+                        .get_mut();
 
                     array.push(id, component);
                 }
@@ -156,7 +172,7 @@ impl Runtime {
         let mut commands = Command::empty();
 
         for system in self.systems.iter_mut().filter(|sys| sys.phase == phase) {
-            let mut world = World::new(&mut self.components);
+            let mut world = World::new(&mut self.entities, &mut self.components);
 
             match system.func {
                 SystemFunction::Immutable(func) => func(&mut commands, &world),

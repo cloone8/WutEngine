@@ -70,19 +70,16 @@ pub fn generate_component_filter_for_tuple(input: TokenStream) -> TokenStream {
         quote! {let #var_ident = components.get(&#ident::COMPONENT_ID).expect(err_str)}
     });
 
-    let first_ident = idents.first().cloned().unwrap();
-    let first_arr = format_ident!("{}_arr", first_ident.to_string().to_lowercase());
-
     let entities = map_tokens_statements(&idents, |ident, _| {
         let arr_ident = format_ident!("{}_arr", ident.to_string().to_lowercase());
         let var_ident = format_ident!("{}_entities", ident.to_string().to_lowercase());
-        quote! {let #var_ident = #arr_ident.get_multi::<#ident>(&entity_ids);}
+        quote! {let #var_ident = #arr_ident.get_multi::<#ident>(entities);}
     });
 
     let entities_mut = map_tokens_statements(&idents, |ident, _| {
         let arr_ident = format_ident!("{}_arr", ident.to_string().to_lowercase());
         let var_ident = format_ident!("{}_entities", ident.to_string().to_lowercase());
-        quote! {let #var_ident = #arr_ident.get_mut_multi::<#ident>(&entity_ids);}
+        quote! {let #var_ident = #arr_ident.get_mut_multi::<#ident>(entities);}
     });
 
     let entity_idents = map_tokens(&idents, |ident, _| {
@@ -95,7 +92,7 @@ pub fn generate_component_filter_for_tuple(input: TokenStream) -> TokenStream {
             span: ident.span(),
         };
 
-        quote! {.filter(|components| components.#index.is_some())}
+        quote! {.filter(|(_, components)| components.#index.is_some())}
     });
 
     let maps = map_tokens(&idents, |ident, idx| {
@@ -121,14 +118,14 @@ pub fn generate_component_filter_for_tuple(input: TokenStream) -> TokenStream {
     });
 
     let result = quote! {
-        impl<#idents_punctuated> ComponentFilter for (#idents_punctuated)
+        impl<#idents_punctuated> MultiComponentFilter for (#idents_punctuated)
         where
             #trait_bounds
         {
-            type Output<'a> = Vec<(#ref_types)>;
-            type OutputMut<'a> = Vec<(#mut_types)>;
+            type Output<'a> = (#ref_types);
+            type OutputMut<'a> = (#mut_types);
 
-            fn filter(components: &IntMap<ComponentTypeId, ComponentArray>) -> Self::Output<'_> {
+            fn filter<'a>(entities: &[EntityId], components: &'a IntMap<ComponentTypeId, ComponentArray>) -> Vec<(EntityId, Self::Output<'a>)> {
                 let err_str = "Unknown component type!";
 
                 let component_types = vec![#component_ids];
@@ -136,19 +133,20 @@ pub fn generate_component_filter_for_tuple(input: TokenStream) -> TokenStream {
 
                 #arrs;
 
-                let entity_ids: Vec<EntityId> = #first_arr.slice::<#first_ident>().iter().map(|x| x.id).collect();
-
                 unsafe {
                     #entities;
 
-                    itertools::izip!(#entity_idents)
-                        #filters
-                        .map(|components| (#maps))
-                        .collect()
+                    entities
+                        .iter()
+                        .cloned()
+                        .zip(itertools::izip!(#entity_idents))
+                            #filters
+                            .map(|(id, components)| (id, (#maps)))
+                            .collect()
                 }
             }
 
-            fn filter_mut(components: &mut IntMap<ComponentTypeId, ComponentArray>) -> Self::OutputMut<'_> {
+            fn filter_mut<'a>(entities: &[EntityId], components: &'a mut IntMap<ComponentTypeId, ComponentArray>) -> Vec<(EntityId, Self::OutputMut<'a>)> {
                 let unknown_component_err_str = "Unknown component type!";
                 let ptr_err_str = "Pointer was just crated from valid reference!";
 
@@ -159,15 +157,16 @@ pub fn generate_component_filter_for_tuple(input: TokenStream) -> TokenStream {
 
                 #arr_ptrs_as_mut;
 
-                let entity_ids: Vec<EntityId> = #first_arr.slice::<#first_ident>().iter().map(|x| x.id).collect();
-
                 unsafe {
                     #entities_mut;
 
-                    itertools::izip!(#entity_idents)
-                        #filters
-                        .map(|components| (#maps))
-                        .collect()
+                    entities
+                        .iter()
+                        .cloned()
+                        .zip(itertools::izip!(#entity_idents))
+                            #filters
+                            .map(|(id, components)| (id, (#maps)))
+                            .collect()
                 }
             }
         }

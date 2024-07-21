@@ -12,7 +12,7 @@ use wutengine_core::{
 
 use crate::component::storage::ptr_helpers::debug_assert_aligned;
 
-pub struct ComponentElement<T> {
+struct ComponentElement<T> {
     pub component: T,
     pub id: EntityId,
 }
@@ -33,7 +33,7 @@ pub struct ComponentArray {
 }
 
 impl ComponentArray {
-    pub fn new_for<T: Component + Sized>() -> Self {
+    pub fn new_for<T: Component>() -> Self {
         Self {
             component_id: T::COMPONENT_ID,
             component_offset: offset_of!(ComponentElement<T>, component),
@@ -80,7 +80,7 @@ impl ComponentArray {
         self.len
     }
 
-    pub fn slice<T: Component>(&self) -> &[ComponentElement<T>] {
+    fn slice<T: Component>(&self) -> &[ComponentElement<T>] {
         debug_assert_eq!(self.component_id, T::COMPONENT_ID, "Component mismatch");
 
         if self.len == 0 {
@@ -101,7 +101,7 @@ impl ComponentArray {
         }
     }
 
-    pub fn slice_mut<T: Component>(&mut self) -> &mut [ComponentElement<T>] {
+    fn slice_mut<T: Component>(&mut self) -> &mut [ComponentElement<T>] {
         debug_assert_eq!(self.component_id, T::COMPONENT_ID, "Component mismatch");
 
         if self.len == 0 {

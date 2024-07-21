@@ -1,78 +1,207 @@
+use core::{
+    cell::RefCell,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
+use std::sync::{RwLock, RwLockReadGuard};
+
 use nohash_hasher::IntMap;
 use wutengine_core::{
-    component::{Component, ComponentTypeId},
+    component::{self, Component, ComponentTypeId},
     entity::EntityId,
 };
 use wutengine_util_macro::generate_component_filter_for_tuple;
 
-use crate::component::storage::array::ComponentArray;
+use crate::component::storage::ComponentStorage;
 
-pub trait ComponentFilter {
-    type Output<'a>;
-    type OutputMut<'a>;
+pub trait ComponentFilter<'a>: Sized {
+    type Output<'o>;
 
-    fn filter(components: &IntMap<ComponentTypeId, ComponentArray>) -> Self::Output<'_>;
-    fn filter_mut(components: &mut IntMap<ComponentTypeId, ComponentArray>) -> Self::OutputMut<'_>;
+    fn filter<F>(
+        entities: &[EntityId],
+        components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+        func: F,
+    ) where
+        F: for<'x> FnOnce(Vec<(EntityId, Self::Output<'x>)>);
+}
+
+// TODO: All these impls in a macro
+
+impl<'a, A, B> ComponentFilter<'a> for (&'a A, &'a B)
+where
+    A: Component,
+    B: Component,
+{
+    type Output<'o> = (&'o A, &'o B);
+
+    fn filter<F>(
+        entities: &[EntityId],
+        components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+        func: F,
+    ) where
+        F: for<'x> FnOnce(Vec<(EntityId, Self::Output<'x>)>),
+    {
+        let a_storage = components.get(&A::COMPONENT_ID).unwrap();
+        let b_storage = components.get(&B::COMPONENT_ID).unwrap();
+
+        let a = a_storage.borrow();
+        let b = b_storage.borrow();
+
+        let a_components = unsafe { a.get_multi::<A>(entities) };
+        let b_components = unsafe { b.get_multi::<B>(entities) };
+
+        let result = entities
+            .iter()
+            .copied()
+            .zip(itertools::izip!(a_components, b_components))
+            .filter(|(_, components)| components.0.is_some())
+            .filter(|(_, components)| components.1.is_some())
+            .map(|(id, components)| (id, (components.0.unwrap(), components.1.unwrap())))
+            .collect();
+
+        func(result);
+    }
+}
+
+impl<'a, A, B> ComponentFilter<'a> for (&'a mut A, &'a B)
+where
+    A: Component,
+    B: Component,
+{
+    type Output<'o> = (&'o mut A, &'o B);
+
+    fn filter<F>(
+        entities: &[EntityId],
+        components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+        func: F,
+    ) where
+        F: for<'x> FnOnce(Vec<(EntityId, Self::Output<'x>)>),
+    {
+        let a_storage = components.get(&A::COMPONENT_ID).unwrap();
+        let b_storage = components.get(&B::COMPONENT_ID).unwrap();
+
+        let mut a = a_storage.borrow_mut();
+        let b = b_storage.borrow();
+
+        let a_components = unsafe { a.get_mut_multi::<A>(entities) };
+        let b_components = unsafe { b.get_multi::<B>(entities) };
+
+        let result = entities
+            .iter()
+            .copied()
+            .zip(itertools::izip!(a_components, b_components))
+            .filter(|(_, components)| components.0.is_some())
+            .filter(|(_, components)| components.1.is_some())
+            .map(|(id, components)| (id, (components.0.unwrap(), components.1.unwrap())))
+            .collect();
+
+        func(result);
+    }
+}
+
+impl<'a, A, B> ComponentFilter<'a> for (Option<&'a A>, &'a B)
+where
+    A: Component,
+    B: Component,
+{
+    type Output<'o> = (Option<&'o A>, &'o B);
+
+    fn filter<F>(
+        entities: &[EntityId],
+        components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+        func: F,
+    ) where
+        F: for<'x> FnOnce(Vec<(EntityId, Self::Output<'x>)>),
+    {
+        let a_storage = components.get(&A::COMPONENT_ID).unwrap();
+        let b_storage = components.get(&B::COMPONENT_ID).unwrap();
+
+        let a = a_storage.borrow();
+        let b = b_storage.borrow();
+
+        let a_components = unsafe { a.get_multi::<A>(entities) };
+        let b_components = unsafe { b.get_multi::<B>(entities) };
+
+        let result = entities
+            .iter()
+            .copied()
+            .zip(itertools::izip!(a_components, b_components))
+            .filter(|(_, components)| components.1.is_some())
+            .map(|(id, components)| (id, (components.0, components.1.unwrap())))
+            .collect();
+
+        func(result);
+    }
 }
 
 pub struct World<'a> {
-    components: &'a mut IntMap<ComponentTypeId, ComponentArray>,
+    entities: &'a [EntityId],
+    components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
 }
 
 impl<'a> World<'a> {
-    pub(crate) fn new(components: &'a mut IntMap<ComponentTypeId, ComponentArray>) -> Self {
-        Self { components }
-    }
-
-    pub fn query<T: Component>(&'a self) -> Vec<&'a T> {
-        let err_str = "Unknown component type!";
-
-        let a_arr = self.components.get(&T::COMPONENT_ID).expect(err_str);
-
-        let entity_ids: Vec<EntityId> = a_arr.slice::<T>().iter().map(|x| x.id).collect();
-
-        unsafe {
-            let a_entities = a_arr.get_multi::<T>(&entity_ids);
-
-            a_entities.into_iter().flatten().collect()
+    pub(crate) fn new(
+        entities: &'a [EntityId],
+        components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+    ) -> Self {
+        Self {
+            entities,
+            components,
         }
     }
 
-    pub fn query_mut<T: Component>(&'a mut self) -> Vec<&'a mut T> {
-        let unknown_component_err_str = "Unknown component type!";
+    pub fn query<T: Component>(&'a self, func: impl FnOnce(Vec<(EntityId, &T)>)) {
+        let err_str = "Unknown component type!";
 
         let a_arr = self
             .components
-            .get_mut(&T::COMPONENT_ID)
-            .expect(unknown_component_err_str);
+            .get(&T::COMPONENT_ID)
+            .expect(err_str)
+            .borrow();
 
-        let entity_ids: Vec<EntityId> = a_arr.slice::<T>().iter().map(|x| x.id).collect();
+        let params = unsafe {
+            let a_entities = a_arr.get_multi::<T>(self.entities);
 
-        unsafe {
-            let a_entities = a_arr.get_mut_multi::<T>(&entity_ids);
+            self.entities
+                .iter()
+                .cloned()
+                .zip(a_entities)
+                .filter(|(_, component)| component.is_some())
+                .map(|(entity, component)| (entity, component.unwrap()))
+                .collect()
+        };
 
-            a_entities.into_iter().flatten().collect()
-        }
+        func(params);
     }
 
-    pub fn query_multiple<F: ComponentFilter>(&'a self) -> F::Output<'a> {
-        F::filter(self.components)
+    pub fn query_mut<T: Component>(&'a self, func: impl FnOnce(Vec<(EntityId, &mut T)>)) {
+        let unknown_component_err_str = "Unknown component type!";
+
+        let mut a_arr = self
+            .components
+            .get(&T::COMPONENT_ID)
+            .expect(unknown_component_err_str)
+            .borrow_mut();
+
+        let params = unsafe {
+            let a_entities = a_arr.get_mut_multi::<T>(self.entities);
+
+            self.entities
+                .iter()
+                .cloned()
+                .zip(a_entities)
+                .filter(|(_, component)| component.is_some())
+                .map(|(entity, component)| (entity, component.unwrap()))
+                .collect()
+        };
+
+        func(params);
     }
 
-    pub fn query_multiple_mut<F: ComponentFilter>(&'a mut self) -> F::OutputMut<'a> {
-        F::filter_mut(self.components)
+    pub fn query_multiple<F: ComponentFilter<'a>>(
+        &'a self,
+        func: impl for<'x> FnOnce(Vec<(EntityId, F::Output<'x>)>),
+    ) {
+        F::filter(self.entities, self.components, func);
     }
 }
-
-macro_rules! generate_all_component_filters_tuples {
-    ($a:ident, $b: ident) => {
-        generate_component_filter_for_tuple!($a, $b);
-    };
-
-    ($a:ident, $b:ident, $($cs:ident),+) => {
-        generate_component_filter_for_tuple!($a, $b, $($cs),*);
-        generate_all_component_filters_tuples!($b, $($cs),*);
-    };
-}
-
-generate_all_component_filters_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
