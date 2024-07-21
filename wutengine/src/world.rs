@@ -26,6 +26,7 @@ pub trait ComponentFilter<'a>: Sized {
 }
 
 // TODO: All these impls in a macro
+// TODO: Derive macro for using custom structs as a component filter
 
 impl<'a, A, B> ComponentFilter<'a> for (&'a A, &'a B)
 where
@@ -113,11 +114,8 @@ where
     ) where
         F: for<'x> FnOnce(Vec<(EntityId, Self::Output<'x>)>),
     {
-        let a_storage = components.get(&A::COMPONENT_ID).unwrap();
-        let b_storage = components.get(&B::COMPONENT_ID).unwrap();
-
-        let a = a_storage.borrow();
-        let b = b_storage.borrow();
+        let a = components.get(&A::COMPONENT_ID).unwrap().borrow();
+        let b = components.get(&B::COMPONENT_ID).unwrap().borrow();
 
         let a_components = unsafe { a.get_multi::<A>(entities) };
         let b_components = unsafe { b.get_multi::<B>(entities) };
