@@ -1,7 +1,6 @@
 use core::cell::UnsafeCell;
 
 use array::ComponentArray;
-use parking_lot::lock_api::RawRwLock;
 use wutengine_core::{
     component::{Component, DynComponent},
     entity::EntityId,
