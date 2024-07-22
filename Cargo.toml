@@ -6,7 +6,7 @@ members = [
     "wutengine_core",
     "wutengine_examples/pong",
     "wutengine_macro",
-    "wutengine_util_macro",
+    "wutengine_util/*",
 ]
 
 [workspace.package]
@@ -24,7 +24,7 @@ categories = ["game-engines"]
 wutengine = { path = "wutengine", version = "0.0.1" }
 wutengine_core = { path = "wutengine_core", version = "0.0.1" }
 wutengine_macro = { path = "wutengine_macro", version = "0.0.1" }
-wutengine_util_macro = { path = "wutengine_util_macro", version = "0.0.1" }
+wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.1" }
 
 # External dependencies
 winit = { version = "0.30.3" }
