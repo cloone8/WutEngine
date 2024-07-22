@@ -1657,6 +1657,7 @@ dependencies = [
 name = "wutengine_util_macro"
 version = "0.0.1"
 dependencies = [
+ "itertools",
  "proc-macro2",
  "quote",
  "syn",
