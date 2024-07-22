@@ -10,6 +10,14 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+build = "build/main.rs"
+
+[build-dependencies]
+itertools.workspace = true
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+
 [dependencies]
 wutengine_core.workspace = true
 wutengine_macro.workspace = true

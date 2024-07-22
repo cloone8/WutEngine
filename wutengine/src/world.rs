@@ -96,4 +96,9 @@ impl<'a> World<'a> {
     }
 }
 
-wutengine_util_macro::make_componentfilter_tuples!(5);
+mod componentfilter_impls {
+    #![allow(clippy)]
+
+    include!(concat!(env!("OUT_DIR"), "/componentfilters.rs"));
+}
+// wutengine_util_macro::make_componentfilter_tuples!(5);
