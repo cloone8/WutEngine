@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
@@ -21,10 +21,10 @@ categories = ["game-engines"]
 
 [workspace.dependencies]
 # Workspace dependencies
-wutengine = { path = "wutengine", version = "0.0.1" }
-wutengine_core = { path = "wutengine_core", version = "0.0.1" }
-wutengine_macro = { path = "wutengine_macro", version = "0.0.1" }
-wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.1" }
+wutengine = { path = "wutengine", version = "0.0.2" }
+wutengine_core = { path = "wutengine_core", version = "0.0.2" }
+wutengine_macro = { path = "wutengine_macro", version = "0.0.2" }
+wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.2" }
 
 # External dependencies
 winit = { version = "0.30.3" }
@@ -37,7 +37,6 @@ itertools = "0.13.0"
 syn = { version = "2.0.66", features = ["full", "parsing"] }
 quote = "1.0.36"
 proc-macro2 = "1.0.86"
-constcat = "0.5.0"
 
 
 # Config for 'cargo dist'

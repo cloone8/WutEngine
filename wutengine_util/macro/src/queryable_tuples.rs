@@ -1,7 +1,6 @@
-use itertools::{repeat_n, Itertools};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, punctuated::Punctuated, Ident, Index, LitInt, Token};
+use syn::{parse_macro_input, punctuated::Punctuated, Ident, Index, Token};
 
 fn map_tokens<'a, T: Clone + 'static>(
     elems: impl IntoIterator<Item = &'a T>,
@@ -28,6 +27,7 @@ fn map_tokens_punctuated<'a, T: Clone + 'static, P: Default>(
         .map(|(i, t)| func(t, i))
         .collect()
 }
+
 fn map_tokens_append<'a, T: Clone + 'static>(
     elems: impl IntoIterator<Item = &'a T>,
     func: impl Fn(T, usize) -> proc_macro2::TokenStream,

@@ -1,5 +1,3 @@
-use core::cell::UnsafeCell;
-
 use array::ComponentArray;
 use wutengine_core::{
     component::{Component, DynComponent},

@@ -19,4 +19,3 @@ nohash-hasher.workspace = true
 winit.workspace = true
 log.workspace = true
 itertools.workspace = true
-constcat.workspace = true
