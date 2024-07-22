@@ -1,5 +1,5 @@
 use ::core::cell::RefCell;
-use std::{collections::HashMap, sync::RwLock};
+use std::{cell::UnsafeCell, collections::HashMap, sync::RwLock};
 
 use command::Command;
 use component::storage::{ComponentStorage, StorageKind};
@@ -52,7 +52,7 @@ pub enum EngineEvent {
 
 pub struct RuntimeInitializer {
     plugins: Vec<Box<dyn EnginePlugin>>,
-    components: IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+    components: IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
 }
 
 impl RuntimeInitializer {
@@ -83,7 +83,7 @@ impl RuntimeInitializer {
         }
 
         self.components
-            .insert(id, RefCell::new(ComponentStorage::new_for::<T>(storage)));
+            .insert(id, UnsafeCell::new(ComponentStorage::new_for::<T>(storage)));
 
         self
     }
@@ -117,7 +117,7 @@ pub struct Runtime {
     plugins: Box<[Box<dyn EnginePlugin>]>,
 
     entities: Vec<EntityId>,
-    components: IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+    components: IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
     systems: Vec<System<SystemFunction>>,
 
     eventloop: EventLoopProxy<WindowingEvent>,
@@ -172,7 +172,7 @@ impl Runtime {
         let mut commands = Command::empty();
 
         for system in self.systems.iter_mut().filter(|sys| sys.phase == phase) {
-            let mut world = World::new(&mut self.entities, &mut self.components);
+            let mut world = unsafe { World::new(&self.entities, &self.components) };
 
             match system.func {
                 SystemFunction::Immutable(func) => func(&mut commands, &world),

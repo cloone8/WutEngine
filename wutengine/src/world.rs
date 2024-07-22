@@ -1,38 +1,96 @@
-use core::{
-    cell::RefCell,
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
-use std::sync::{RwLock, RwLockReadGuard};
+use std::cell::UnsafeCell;
 
 use nohash_hasher::IntMap;
 use wutengine_core::{
-    component::{self, Component, ComponentTypeId},
+    component::{Component, ComponentTypeId},
     entity::EntityId,
 };
+use wutengine_util_macro::make_queryable_tuples;
 
 use crate::component::storage::ComponentStorage;
 
-pub trait ComponentFilter<'a>: Sized {
-    type Output<'o>;
+pub unsafe trait Queryable<'a>: Sized {
+    fn reads() -> Vec<ComponentTypeId>;
+    fn writes() -> Vec<ComponentTypeId>;
 
-    fn filter<F>(
-        entities: &[EntityId],
-        components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
-        func: F,
-    ) where
-        F: for<'x> FnOnce(Vec<(EntityId, Self::Output<'x>)>);
+    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)>;
+}
+
+unsafe impl<'a, T> Queryable<'a> for &'a T
+where
+    T: Component,
+{
+    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)> {
+        let storage_cell = world.components.get(&T::COMPONENT_ID).unwrap();
+        let storage = unsafe { storage_cell.get().as_ref::<'a>().unwrap() };
+
+        let components = unsafe { storage.get_multi::<T>(world.entities) };
+
+        world.entities.iter().copied().zip(components).collect()
+    }
+
+    fn reads() -> Vec<ComponentTypeId> {
+        vec![T::COMPONENT_ID]
+    }
+
+    fn writes() -> Vec<ComponentTypeId> {
+        Vec::new()
+    }
+}
+
+unsafe impl<'a, T> Queryable<'a> for &'a mut T
+where
+    T: Component,
+{
+    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)> {
+        let storage_cell = world.components.get(&T::COMPONENT_ID).unwrap();
+        let storage = unsafe { storage_cell.get().as_mut::<'a>().unwrap() };
+
+        let components = unsafe { storage.get_mut_multi::<T>(world.entities) };
+
+        world.entities.iter().copied().zip(components).collect()
+    }
+
+    fn reads() -> Vec<ComponentTypeId> {
+        Vec::new()
+    }
+
+    fn writes() -> Vec<ComponentTypeId> {
+        vec![T::COMPONENT_ID]
+    }
+}
+
+unsafe impl<'a, T> Queryable<'a> for Option<T>
+where
+    T: Queryable<'a>,
+{
+    fn reads() -> Vec<ComponentTypeId> {
+        T::reads()
+    }
+
+    fn writes() -> Vec<ComponentTypeId> {
+        T::writes()
+    }
+
+    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)> {
+        let inner_result = T::do_query(world);
+
+        inner_result
+            .into_iter()
+            .map(|(id, comp)| (id, Some(comp)))
+            .collect()
+    }
 }
 
 pub struct World<'a> {
     entities: &'a [EntityId],
-    components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+    components: &'a IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
 }
 
 impl<'a> World<'a> {
-    pub(crate) fn new(
+    pub(crate) unsafe fn new(
         entities: &'a [EntityId],
-        components: &'a IntMap<ComponentTypeId, RefCell<ComponentStorage>>,
+        components: &'a IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
     ) -> Self {
         Self {
             entities,
@@ -40,65 +98,24 @@ impl<'a> World<'a> {
         }
     }
 
-    pub fn query<T: Component>(&'a self, func: impl FnOnce(Vec<(EntityId, &T)>)) {
-        let err_str = "Unknown component type!";
-
-        let a_arr = self
-            .components
-            .get(&T::COMPONENT_ID)
-            .expect(err_str)
-            .borrow();
-
-        let params = unsafe {
-            let a_entities = a_arr.get_multi::<T>(self.entities);
-
-            self.entities
-                .iter()
-                .cloned()
-                .zip(a_entities)
-                .filter(|(_, component)| component.is_some())
-                .map(|(entity, component)| (entity, component.unwrap()))
-                .collect()
-        };
-
-        func(params);
-    }
-
-    pub fn query_mut<T: Component>(&'a self, func: impl FnOnce(Vec<(EntityId, &mut T)>)) {
-        let unknown_component_err_str = "Unknown component type!";
-
-        let mut a_arr = self
-            .components
-            .get(&T::COMPONENT_ID)
-            .expect(unknown_component_err_str)
-            .borrow_mut();
-
-        let params = unsafe {
-            let a_entities = a_arr.get_mut_multi::<T>(self.entities);
-
-            self.entities
-                .iter()
-                .cloned()
-                .zip(a_entities)
-                .filter(|(_, component)| component.is_some())
-                .map(|(entity, component)| (entity, component.unwrap()))
-                .collect()
-        };
-
-        func(params);
-    }
-
-    pub fn query_multiple<F: ComponentFilter<'a>>(
-        &'a self,
-        func: impl for<'x> FnOnce(Vec<(EntityId, F::Output<'x>)>),
-    ) {
-        F::filter(self.entities, self.components, func);
+    pub fn query<T: Queryable<'a>>(&'a self) -> Vec<(EntityId, T)> {
+        T::do_query(self)
+            .into_iter()
+            .filter(|(_, comp)| comp.is_some())
+            .map(|(id, comp)| (id, comp.unwrap()))
+            .collect()
     }
 }
 
-mod componentfilter_impls {
-    #![allow(clippy)]
+macro_rules! make_all_queryable_tuples {
+    ($a:ident, $b: ident) => {
+        make_queryable_tuples!($a, $b);
+    };
 
-    include!(concat!(env!("OUT_DIR"), "/componentfilters.rs"));
+    ($a:ident, $b:ident, $($cs:ident),+) => {
+        make_queryable_tuples!($a, $b, $($cs),*);
+        make_all_queryable_tuples!($b, $($cs),*);
+    };
 }
-// wutengine_util_macro::make_componentfilter_tuples!(5);
+
+make_all_queryable_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
