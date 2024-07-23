@@ -1,6 +1,6 @@
 [package]
-name = "wutengine_core"
-description = "Core datatypes and traits for WutEngine"
+name = "wutengine_opengl"
+description = "The OpenGL backend for WutEngine"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -10,8 +10,9 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[build-dependencies]
+gl_generator.workspace = true
+
 [dependencies]
-rand.workspace = true
-static_assertions.workspace = true
-nohash-hasher.workspace = true
-raw-window-handle.workspace = true
+wutengine_core.workspace = true
+gl-from-raw-window-handle.workspace = true

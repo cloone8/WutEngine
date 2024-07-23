@@ -1,4 +1,4 @@
-use crate::windowing::WindowIdentifier;
+use crate::core::windowing::WindowIdentifier;
 
 use super::Command;
 

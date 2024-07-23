@@ -4,7 +4,6 @@ use command::Command;
 use component::storage::{ComponentStorage, StorageKind};
 use nohash_hasher::IntMap;
 use plugin::EnginePlugin;
-use windowing::WindowIdentifier;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -17,14 +16,16 @@ pub use wutengine_core as core;
 use wutengine_core::{
     component::{Component, ComponentTypeId, DynComponent},
     entity::EntityId,
+    renderer::{RenderContext, WutEngineRenderer},
     system::{System, SystemPhase},
+    windowing::WindowIdentifier,
 };
 pub use wutengine_macro as macros;
 
 pub mod command;
 pub mod component;
 pub mod plugin;
-pub mod windowing;
+pub mod renderer;
 pub mod world;
 
 #[derive(Debug)]
@@ -49,6 +50,7 @@ pub enum EngineEvent {
     RuntimeStart,
 }
 
+#[derive(Default)]
 pub struct RuntimeInitializer {
     plugins: Vec<Box<dyn EnginePlugin>>,
     components: IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
@@ -56,10 +58,7 @@ pub struct RuntimeInitializer {
 
 impl RuntimeInitializer {
     pub fn new() -> Self {
-        Self {
-            plugins: Vec::new(),
-            components: IntMap::default(),
-        }
+        Self::default()
     }
 
     pub fn add_plugin(&mut self, plugin: Box<dyn EnginePlugin>) -> &mut Self {
@@ -87,7 +86,7 @@ impl RuntimeInitializer {
         self
     }
 
-    pub fn run(mut self) -> Result<(), ()> {
+    pub fn run<R: WutEngineRenderer>(mut self) -> Result<(), ()> {
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
             .build()
             .unwrap();
@@ -101,9 +100,11 @@ impl RuntimeInitializer {
             entities: Vec::new(),
             components: self.components,
             systems: Vec::new(),
+            window_id_map: HashMap::new(),
             windows: HashMap::new(),
             eventloop: event_loop.create_proxy(),
             started: false,
+            renderer: R::default(),
         };
 
         event_loop.run_app(&mut runtime).unwrap();
@@ -112,7 +113,7 @@ impl RuntimeInitializer {
     }
 }
 
-pub struct Runtime {
+pub struct Runtime<R: WutEngineRenderer> {
     plugins: Box<[Box<dyn EnginePlugin>]>,
 
     entities: Vec<EntityId>,
@@ -120,12 +121,16 @@ pub struct Runtime {
     systems: Vec<System<SystemFunction>>,
 
     eventloop: EventLoopProxy<WindowingEvent>,
+
+    window_id_map: HashMap<WindowId, WindowIdentifier>,
     windows: HashMap<WindowIdentifier, Window>,
 
     started: bool,
+
+    renderer: R,
 }
 
-impl Runtime {
+impl<R: WutEngineRenderer> Runtime<R> {
     fn exec_engine_command(&mut self, command: EngineCommand) {
         match command {
             EngineCommand::AddSystem(system) => self.systems.push(system),
@@ -190,8 +195,8 @@ impl Runtime {
     }
 }
 
-impl ApplicationHandler<WindowingEvent> for Runtime {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
+    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
         if !self.started {
             self.start();
         }
@@ -199,6 +204,14 @@ impl ApplicationHandler<WindowingEvent> for Runtime {
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.run_systems_for_phase(SystemPhase::Update);
+
+        for window_identifier in self.windows.keys() {
+            let render_context = RenderContext {
+                window: window_identifier,
+            };
+
+            self.renderer.render(render_context, &[])
+        }
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WindowingEvent) {
@@ -207,6 +220,13 @@ impl ApplicationHandler<WindowingEvent> for Runtime {
                 let window = event_loop
                     .create_window(Window::default_attributes())
                     .unwrap();
+
+                self.renderer
+                    .new_window(&id, &window, window.inner_size().into());
+
+                let old_val = self.window_id_map.insert(window.id(), id.clone());
+
+                debug_assert!(old_val.is_none());
 
                 let old_val = self.windows.insert(id, window);
 
@@ -221,8 +241,11 @@ impl ApplicationHandler<WindowingEvent> for Runtime {
         window_id: WindowId,
         event: WindowEvent,
     ) {
+        let identifier = self.window_id_map.get(&window_id).unwrap().clone();
+
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::Resized(size) => self.renderer.size_changed(&identifier, size.into()),
             _ => (),
         }
     }

@@ -10,10 +10,16 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+default = ["opengl"]
+opengl = ["dep:wutengine_opengl"]
+
 [dependencies]
 wutengine_core.workspace = true
 wutengine_macro.workspace = true
 wutengine_util_macro.workspace = true
+
+wutengine_opengl = { workspace = true, optional = true }
 
 nohash-hasher.workspace = true
 winit.workspace = true
