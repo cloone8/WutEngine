@@ -1,10 +1,12 @@
 pub use raw_window_handle::HasDisplayHandle;
 pub use raw_window_handle::HasWindowHandle;
 
+use crate::color::Color;
 use crate::windowing::WindowIdentifier;
 
 pub struct RenderContext<'a> {
     pub window: &'a WindowIdentifier,
+    pub clear_color: Color,
 }
 
 pub struct Renderable;

@@ -16,3 +16,4 @@ gl_generator.workspace = true
 [dependencies]
 wutengine_core.workspace = true
 gl-from-raw-window-handle.workspace = true
+log.workspace = true

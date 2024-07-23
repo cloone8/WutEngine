@@ -15,3 +15,5 @@ rand.workspace = true
 static_assertions.workspace = true
 nohash-hasher.workspace = true
 raw-window-handle.workspace = true
+glam.workspace = true
+log.workspace = true

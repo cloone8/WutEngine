@@ -1,4 +1,8 @@
-use std::{cell::UnsafeCell, collections::HashMap};
+use std::{
+    cell::UnsafeCell,
+    collections::HashMap,
+    time::{Instant, SystemTime},
+};
 
 use command::Command;
 use component::storage::{ComponentStorage, StorageKind};
@@ -13,7 +17,10 @@ use winit::{
 
 use world::World;
 pub use wutengine_core as core;
+pub use wutengine_core::math;
+
 use wutengine_core::{
+    color::Color,
     component::{Component, ComponentTypeId, DynComponent},
     entity::EntityId,
     renderer::{RenderContext, WutEngineRenderer},
@@ -96,6 +103,7 @@ impl RuntimeInitializer {
         self.components.shrink_to_fit();
 
         let mut runtime = Runtime {
+            start_time: Instant::now(),
             plugins: self.plugins.into_boxed_slice(),
             entities: Vec::new(),
             components: self.components,
@@ -114,6 +122,8 @@ impl RuntimeInitializer {
 }
 
 pub struct Runtime<R: WutEngineRenderer> {
+    start_time: Instant, //TODO: Make nice and not hacky
+
     plugins: Box<[Box<dyn EnginePlugin>]>,
 
     entities: Vec<EntityId>,
@@ -205,9 +215,20 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.run_systems_for_phase(SystemPhase::Update);
 
+        let time = Instant::now().duration_since(self.start_time).as_secs_f32();
+
+        let speed_r = 0.5;
+        let speed_g = 5.9;
+        let speed_b = 0.02;
+
+        let r = (f32::sin(time * speed_r) + 1.0) / 2.0;
+        let g = (f32::sin(time * speed_g) + 1.0) / 2.0;
+        let b = (f32::sin(time * speed_b) + 1.0) / 2.0;
+
         for window_identifier in self.windows.keys() {
             let render_context = RenderContext {
                 window: window_identifier,
+                clear_color: Color::rgb(r, g, b),
             };
 
             self.renderer.render(render_context, &[])

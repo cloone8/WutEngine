@@ -1,5 +1,5 @@
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
-use wutengine_core::renderer::{HasDisplayHandle, HasWindowHandle};
+use wutengine_core::renderer::{HasDisplayHandle, HasWindowHandle, RenderContext, Renderable};
 
 use crate::opengl::{self, Gl};
 
@@ -50,15 +50,17 @@ impl Window {
         };
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
         unsafe {
             self.context.make_current();
         }
 
         let gl = &self.bindings;
 
+        let clear_color = render_context.clear_color;
+
         unsafe {
-            gl.ClearColor(0.2, 0.3, 0.3, 1.0);
+            gl.ClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
             gl.Clear(opengl::COLOR_BUFFER_BIT);
         }
 

@@ -45,6 +45,6 @@ impl WutEngineRenderer for OpenGLRenderer {
     ) {
         let window = self.windows.get_mut(render_context.window).unwrap();
 
-        window.render();
+        window.render(render_context, objects);
     }
 }

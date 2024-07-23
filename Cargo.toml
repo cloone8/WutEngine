@@ -42,6 +42,8 @@ proc-macro2 = "1.0.86"
 gl-from-raw-window-handle = { path = "../gl-from-raw-window-handle" }
 gl_generator = "0.14.0"
 raw-window-handle = "0.6.2"
+glam = { version = "0.28.0", features = ["std", "debug-glam-assert"] }
+simplelog = "0.12.2"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
