@@ -20,6 +20,11 @@ jobs:
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
       
+      - name: Publish OpenGL backend
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_opengl
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+      
       - name: Publish engine utility macros
         run: cargo publish --token ${CRATES_TOKEN} -p wutengine_util_macro
         env:
