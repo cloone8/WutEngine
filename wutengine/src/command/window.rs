@@ -14,7 +14,16 @@ impl<'a> WindowCommand<'a> {
 }
 
 impl<'a> WindowCommand<'a> {
-    pub fn open(&mut self, id: WindowIdentifier) {
-        self.cmd.commands.push(crate::EngineCommand::OpenWindow(id));
+    pub fn open(&mut self, params: OpenWindowParams) {
+        self.cmd
+            .commands
+            .push(crate::EngineCommand::OpenWindow(params));
     }
+}
+
+#[derive(Debug)]
+pub struct OpenWindowParams {
+    pub id: WindowIdentifier,
+    pub title: String,
+    pub ignore_existing: bool,
 }

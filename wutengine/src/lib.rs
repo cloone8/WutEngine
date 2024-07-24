@@ -1,10 +1,7 @@
-use std::{
-    cell::UnsafeCell,
-    collections::HashMap,
-    time::{Instant, SystemTime},
-};
+use std::{cell::UnsafeCell, collections::HashMap, time::Instant};
 
-use command::Command;
+use builtins::{camera::Camera, ID_CAMERA};
+use command::{Command, OpenWindowParams};
 use component::storage::{ComponentStorage, StorageKind};
 use nohash_hasher::IntMap;
 use plugin::EnginePlugin;
@@ -29,6 +26,7 @@ use wutengine_core::{
 };
 pub use wutengine_macro as macros;
 
+pub mod builtins;
 pub mod command;
 pub mod component;
 pub mod plugin;
@@ -45,12 +43,12 @@ pub enum SystemFunction {
 pub enum EngineCommand {
     AddSystem(System<SystemFunction>),
     SpawnEntity(EntityId, Vec<Box<dyn DynComponent>>),
-    OpenWindow(WindowIdentifier),
+    OpenWindow(OpenWindowParams),
 }
 
 #[derive(Debug)]
 pub enum WindowingEvent {
-    OpenWindow(WindowIdentifier),
+    OpenWindow(OpenWindowParams),
 }
 
 pub enum EngineEvent {
@@ -94,6 +92,8 @@ impl RuntimeInitializer {
     }
 
     pub fn run<R: WutEngineRenderer>(mut self) -> Result<(), ()> {
+        builtins::register_builtins(&mut self);
+
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
             .build()
             .unwrap();
@@ -103,7 +103,6 @@ impl RuntimeInitializer {
         self.components.shrink_to_fit();
 
         let mut runtime = Runtime {
-            start_time: Instant::now(),
             plugins: self.plugins.into_boxed_slice(),
             entities: Vec::new(),
             components: self.components,
@@ -122,8 +121,6 @@ impl RuntimeInitializer {
 }
 
 pub struct Runtime<R: WutEngineRenderer> {
-    start_time: Instant, //TODO: Make nice and not hacky
-
     plugins: Box<[Box<dyn EnginePlugin>]>,
 
     entities: Vec<EntityId>,
@@ -141,6 +138,17 @@ pub struct Runtime<R: WutEngineRenderer> {
 }
 
 impl<R: WutEngineRenderer> Runtime<R> {
+    unsafe fn get_component_for_entity<T: Component>(&self, entity: EntityId) -> Option<&T> {
+        if let Some(storage) = self.components.get(&T::COMPONENT_ID) {
+            let storage_cell = storage.get();
+            let storage = storage_cell.as_ref().expect("Storage returned nullptr");
+
+            return storage.get::<T>(entity);
+        }
+
+        None
+    }
+
     fn exec_engine_command(&mut self, command: EngineCommand) {
         match command {
             EngineCommand::AddSystem(system) => self.systems.push(system),
@@ -215,41 +223,44 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.run_systems_for_phase(SystemPhase::Update);
 
-        let time = Instant::now().duration_since(self.start_time).as_secs_f32();
+        let cam_storage = self.components.get_mut(&ID_CAMERA).unwrap().get_mut();
+        let all_cams = cam_storage.all::<Camera>();
 
-        let speed_r = 0.5;
-        let speed_g = 5.9;
-        let speed_b = 0.02;
+        for camera in all_cams {
+            if !self.windows.contains_key(&camera.component.display) {
+                log::warn!(
+                    "Camera trying to render to non-existing window {}",
+                    &camera.component.display
+                );
+                continue;
+            }
 
-        let r = (f32::sin(time * speed_r) + 1.0) / 2.0;
-        let g = (f32::sin(time * speed_g) + 1.0) / 2.0;
-        let b = (f32::sin(time * speed_b) + 1.0) / 2.0;
-
-        for window_identifier in self.windows.keys() {
-            let render_context = RenderContext {
-                window: window_identifier,
-                clear_color: Color::rgb(r, g, b),
-            };
-
-            self.renderer.render(render_context, &[])
+            self.renderer.render(camera.component.to_context(), &[]);
         }
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WindowingEvent) {
         match event {
-            WindowingEvent::OpenWindow(id) => {
-                let window = event_loop
-                    .create_window(Window::default_attributes())
-                    .unwrap();
+            WindowingEvent::OpenWindow(params) => {
+                if self.windows.contains_key(&params.id) {
+                    if params.ignore_existing {
+                    } else {
+                        panic!("Window {} already exists!", params.id);
+                    }
+                }
+
+                let attrs = Window::default_attributes().with_title(params.title);
+
+                let window = event_loop.create_window(attrs).unwrap();
 
                 self.renderer
-                    .new_window(&id, &window, window.inner_size().into());
+                    .new_window(&params.id, &window, window.inner_size().into());
 
-                let old_val = self.window_id_map.insert(window.id(), id.clone());
+                let old_val = self.window_id_map.insert(window.id(), params.id.clone());
 
                 debug_assert!(old_val.is_none());
 
-                let old_val = self.windows.insert(id, window);
+                let old_val = self.windows.insert(params.id, window);
 
                 debug_assert!(old_val.is_none());
             }
@@ -266,7 +277,16 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::Resized(size) => self.renderer.size_changed(&identifier, size.into()),
+            WindowEvent::Resized(size) => {
+                log::debug!(
+                    "Resizing window {} to {}x{}",
+                    identifier,
+                    size.width,
+                    size.height
+                );
+
+                self.renderer.size_changed(&identifier, size.into());
+            }
             _ => (),
         }
     }

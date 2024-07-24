@@ -1,6 +1,8 @@
 use wutengine::{
-    command::Command,
+    builtins::camera::Camera,
+    command::{Command, OpenWindowParams},
     core::{
+        color::Color,
         system::{System, SystemPhase},
         windowing::WindowIdentifier,
     },
@@ -54,5 +56,18 @@ impl EnginePlugin for PongStarterPlugin {
 }
 
 fn init_system(commands: &mut Command, world: &World) {
-    commands.window().open(WindowIdentifier::new("pong"));
+    commands.window().open(OpenWindowParams {
+        id: WindowIdentifier::new("pong"),
+        title: "Pong - WutEngine Example".to_owned(),
+        ignore_existing: false,
+    });
+
+    let camera = Camera {
+        display: WindowIdentifier::new("pong"),
+        clear_color: Color::rgb(0.2, 0.3, 0.1),
+    };
+
+    commands
+        .entity()
+        .spawn_with_components(vec![Box::new(camera)]);
 }

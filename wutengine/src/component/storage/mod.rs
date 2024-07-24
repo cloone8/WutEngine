@@ -9,6 +9,11 @@ mod array;
 #[macro_use]
 mod ptr_helpers;
 
+pub struct ComponentElement<T> {
+    pub component: T,
+    pub id: EntityId,
+}
+
 pub enum ComponentStorage {
     Array(ComponentArray),
 }
@@ -56,6 +61,18 @@ impl ComponentStorage {
     ) -> Vec<Option<&mut T>> {
         match self {
             ComponentStorage::Array(storage) => storage.get_mut_multi(entities),
+        }
+    }
+
+    pub fn all<T: Component>(&self) -> &[ComponentElement<T>] {
+        match self {
+            ComponentStorage::Array(storage) => storage.slice(),
+        }
+    }
+
+    pub fn all_mut<T: Component>(&mut self) -> &mut [ComponentElement<T>] {
+        match self {
+            ComponentStorage::Array(storage) => storage.slice_mut(),
         }
     }
 }
