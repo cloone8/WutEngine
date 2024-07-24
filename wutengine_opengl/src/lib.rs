@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use window::Window;
 use wutengine_core::{
-    renderer::{HasDisplayHandle, HasWindowHandle, WutEngineRenderer},
+    renderer::{HasDisplayHandle, HasWindowHandle, RenderContext, Renderable, WutEngineRenderer},
     windowing::WindowIdentifier,
 };
 
@@ -24,27 +24,54 @@ impl WutEngineRenderer for OpenGLRenderer {
         window: &(impl HasDisplayHandle + HasWindowHandle),
         phys_size: (u32, u32),
     ) {
+        log::debug!("Creating window {}", id);
+
+        if self.windows.contains_key(id) {
+            log::error!("Cannot create window {} because it already exists", id);
+            return;
+        }
+
         self.windows
             .insert(id.clone(), Window::new(window, phys_size));
     }
 
     fn destroy_window(&mut self, id: &WindowIdentifier) {
-        self.windows.remove(id);
+        log::debug!("Destroying window {}", id);
+
+        if self.windows.remove(id).is_none() {
+            log::error!("Removing window {} failed because it did not exist", id);
+        }
     }
 
     fn size_changed(&mut self, id: &WindowIdentifier, phys_size: (u32, u32)) {
-        let window = self.windows.get_mut(id).unwrap();
+        log::debug!(
+            "Handling size change to {}x{} for {}",
+            phys_size.0,
+            phys_size.1,
+            id
+        );
 
-        window.size_changed(phys_size);
+        if let Some(window) = self.windows.get_mut(id) {
+            window.size_changed(phys_size);
+        } else {
+            log::error!("Window {} unknown, not doing resize", id);
+        }
     }
 
-    fn render(
-        &mut self,
-        render_context: wutengine_core::renderer::RenderContext,
-        objects: &[wutengine_core::renderer::Renderable],
-    ) {
-        let window = self.windows.get_mut(render_context.window).unwrap();
+    fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
+        log::trace!(
+            "Rendering context {:#?} with {} objects",
+            render_context,
+            objects.len()
+        );
 
-        window.render(render_context, objects);
+        if let Some(window) = self.windows.get_mut(render_context.window) {
+            window.render(render_context, objects);
+        } else {
+            log::error!(
+                "Window {} unknown, not doing rendering",
+                render_context.window
+            );
+        }
     }
 }

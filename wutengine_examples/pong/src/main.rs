@@ -1,6 +1,6 @@
 use wutengine::{
     builtins::camera::Camera,
-    command::{Command, OpenWindowParams},
+    command::{Command, FullscreenType, OpenWindowParams},
     core::{
         color::Color,
         system::{System, SystemPhase},
@@ -60,6 +60,7 @@ fn init_system(commands: &mut Command, world: &World) {
         id: WindowIdentifier::new("pong"),
         title: "Pong - WutEngine Example".to_owned(),
         ignore_existing: false,
+        mode: FullscreenType::Windowed,
     });
 
     let camera = Camera {

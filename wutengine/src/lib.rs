@@ -51,6 +51,7 @@ pub enum WindowingEvent {
     OpenWindow(OpenWindowParams),
 }
 
+#[derive(Debug)]
 pub enum EngineEvent {
     RuntimeStart,
 }
@@ -152,9 +153,9 @@ impl<R: WutEngineRenderer> Runtime<R> {
     fn exec_engine_command(&mut self, command: EngineCommand) {
         match command {
             EngineCommand::AddSystem(system) => self.systems.push(system),
-            EngineCommand::OpenWindow(id) => self
+            EngineCommand::OpenWindow(params) => self
                 .eventloop
-                .send_event(WindowingEvent::OpenWindow(id))
+                .send_event(WindowingEvent::OpenWindow(params))
                 .unwrap(),
             EngineCommand::SpawnEntity(id, components) => {
                 debug_assert!(!self.entities.contains(&id));
@@ -180,6 +181,8 @@ impl<R: WutEngineRenderer> Runtime<R> {
     }
 
     fn send_engine_event(&mut self, event: EngineEvent) {
+        log::debug!("Sending engine event:\n{:#?}", event);
+
         let mut response_commands: Vec<EngineCommand> = Vec::new();
 
         for plugin in self.plugins.iter_mut() {
@@ -216,11 +219,19 @@ impl<R: WutEngineRenderer> Runtime<R> {
 impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
         if !self.started {
+            log::info!("Initializing WutEngine");
             self.start();
         }
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if !self.started {
+            log::trace!("about_to_wait fired but engine not yet initialized");
+            return;
+        }
+
+        log::trace!("Starting frame");
+
         self.run_systems_for_phase(SystemPhase::Update);
 
         let cam_storage = self.components.get_mut(&ID_CAMERA).unwrap().get_mut();
@@ -240,6 +251,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WindowingEvent) {
+        log::debug!("Handling WutEngine WindowingEvent:\n{:#?}", event);
+
         match event {
             WindowingEvent::OpenWindow(params) => {
                 if self.windows.contains_key(&params.id) {
@@ -249,7 +262,9 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
                     }
                 }
 
-                let attrs = Window::default_attributes().with_title(params.title);
+                let attrs = Window::default_attributes()
+                    .with_title(params.title)
+                    .with_fullscreen(params.mode.into());
 
                 let window = event_loop.create_window(attrs).unwrap();
 

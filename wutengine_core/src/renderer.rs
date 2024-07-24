@@ -4,6 +4,7 @@ pub use raw_window_handle::HasWindowHandle;
 use crate::color::Color;
 use crate::windowing::WindowIdentifier;
 
+#[derive(Debug)]
 pub struct RenderContext<'a> {
     pub window: &'a WindowIdentifier,
     pub clear_color: Color,
