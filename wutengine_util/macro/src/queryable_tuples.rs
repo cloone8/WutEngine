@@ -82,7 +82,7 @@ pub fn make_queryable_tuples_impl(input: proc_macro::TokenStream) -> proc_macro:
     let results = map_tokens_statements(&idents, |ident, _| {
         let result_ident = format_ident!("{}_results", ident.to_string().to_lowercase());
 
-        quote! {let #result_ident = #ident::do_query(world)}
+        quote! {let #result_ident = #ident::do_query(entities, components)}
     });
 
     let len_asserts = map_tokens_statements(&idents, |ident, _| {
@@ -147,8 +147,11 @@ pub fn make_queryable_tuples_impl(input: proc_macro::TokenStream) -> proc_macro:
                 writes
             }
 
-            fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)> {
-                let entity_len = world.entities.len();
+            fn do_query(
+                entities: &'a [EntityId],
+                components: &'a IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
+            ) -> Vec<(EntityId, Option<Self>)> {
+                let entity_len = entities.len();
 
                 #results;
 
@@ -156,8 +159,7 @@ pub fn make_queryable_tuples_impl(input: proc_macro::TokenStream) -> proc_macro:
 
                 #comps_only;
 
-                world
-                    .entities
+                entities
                     .iter()
                     .copied()
                     .zip(itertools::izip!(#comps_only_idents))

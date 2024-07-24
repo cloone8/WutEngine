@@ -1,8 +1,16 @@
+use std::rc::Rc;
+
+use glam::Vec3;
 pub use raw_window_handle::HasDisplayHandle;
 pub use raw_window_handle::HasWindowHandle;
 
 use crate::color::Color;
 use crate::windowing::WindowIdentifier;
+
+#[derive(Debug, Clone, Default)]
+pub struct MeshData {
+    pub vertices: Vec<Vec3>,
+}
 
 #[derive(Debug)]
 pub struct RenderContext<'a> {
@@ -10,7 +18,9 @@ pub struct RenderContext<'a> {
     pub clear_color: Color,
 }
 
-pub struct Renderable;
+pub struct Renderable {
+    pub mesh: (usize, Rc<MeshData>),
+}
 
 pub trait WutEngineRenderer: Default {
     fn new_window(

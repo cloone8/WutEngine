@@ -1836,6 +1836,7 @@ dependencies = [
  "itertools",
  "log",
  "nohash-hasher",
+ "rand",
  "winit",
  "wutengine_core",
  "wutengine_macro",

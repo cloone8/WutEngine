@@ -13,20 +13,26 @@ pub unsafe trait Queryable<'a>: Sized {
     fn reads() -> Vec<ComponentTypeId>;
     fn writes() -> Vec<ComponentTypeId>;
 
-    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)>;
+    fn do_query(
+        entities: &'a [EntityId],
+        components: &'a IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
+    ) -> Vec<(EntityId, Option<Self>)>;
 }
 
 unsafe impl<'a, T> Queryable<'a> for &'a T
 where
     T: Component,
 {
-    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)> {
-        let storage_cell = world.components.get(&T::COMPONENT_ID).unwrap();
+    fn do_query(
+        entities: &'a [EntityId],
+        components: &'a IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
+    ) -> Vec<(EntityId, Option<Self>)> {
+        let storage_cell = components.get(&T::COMPONENT_ID).unwrap();
         let storage = unsafe { storage_cell.get().as_ref::<'a>().unwrap() };
 
-        let components = unsafe { storage.get_multi::<T>(world.entities) };
+        let components = unsafe { storage.get_multi::<T>(entities) };
 
-        world.entities.iter().copied().zip(components).collect()
+        entities.iter().copied().zip(components).collect()
     }
 
     fn reads() -> Vec<ComponentTypeId> {
@@ -42,13 +48,16 @@ unsafe impl<'a, T> Queryable<'a> for &'a mut T
 where
     T: Component,
 {
-    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)> {
-        let storage_cell = world.components.get(&T::COMPONENT_ID).unwrap();
+    fn do_query(
+        entities: &'a [EntityId],
+        components: &'a IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
+    ) -> Vec<(EntityId, Option<Self>)> {
+        let storage_cell = components.get(&T::COMPONENT_ID).unwrap();
         let storage = unsafe { storage_cell.get().as_mut::<'a>().unwrap() };
 
-        let components = unsafe { storage.get_mut_multi::<T>(world.entities) };
+        let components = unsafe { storage.get_mut_multi::<T>(entities) };
 
-        world.entities.iter().copied().zip(components).collect()
+        entities.iter().copied().zip(components).collect()
     }
 
     fn reads() -> Vec<ComponentTypeId> {
@@ -72,8 +81,11 @@ where
         T::writes()
     }
 
-    fn do_query(world: &'a World<'a>) -> Vec<(EntityId, Option<Self>)> {
-        let inner_result = T::do_query(world);
+    fn do_query(
+        entities: &'a [EntityId],
+        components: &'a IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
+    ) -> Vec<(EntityId, Option<Self>)> {
+        let inner_result = T::do_query(entities, components);
 
         inner_result
             .into_iter()
@@ -99,7 +111,7 @@ impl<'a> World<'a> {
     }
 
     pub fn query<T: Queryable<'a>>(&'a self) -> Vec<(EntityId, T)> {
-        T::do_query(self)
+        T::do_query(self.entities, self.components)
             .into_iter()
             .filter(|(_, comp)| comp.is_some())
             .map(|(id, comp)| (id, comp.unwrap()))

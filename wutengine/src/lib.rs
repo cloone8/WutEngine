@@ -1,6 +1,6 @@
 use std::{cell::UnsafeCell, collections::HashMap, time::Instant};
 
-use builtins::{camera::Camera, ID_CAMERA};
+use builtins::{camera::Camera, mesh::Mesh, ID_CAMERA};
 use command::{Command, OpenWindowParams};
 use component::storage::{ComponentStorage, StorageKind};
 use nohash_hasher::IntMap;
@@ -12,7 +12,7 @@ use winit::{
     window::{Window, WindowId},
 };
 
-use world::World;
+use world::{Queryable, World};
 pub use wutengine_core as core;
 pub use wutengine_core::math;
 
@@ -20,7 +20,7 @@ use wutengine_core::{
     color::Color,
     component::{Component, ComponentTypeId, DynComponent},
     entity::EntityId,
-    renderer::{RenderContext, WutEngineRenderer},
+    renderer::{RenderContext, Renderable, WutEngineRenderer},
     system::{System, SystemPhase},
     windowing::WindowIdentifier,
 };
@@ -80,6 +80,27 @@ impl RuntimeInitializer {
         &mut self,
         storage: StorageKind,
     ) -> &mut Self {
+        let id = T::COMPONENT_ID;
+
+        if id <= ComponentTypeId::from_int(u16::MAX as u64) {
+            panic!(
+                "Trying to register component in builtin range! Given {}, min {}",
+                id,
+                (u16::MAX as u32) + 1
+            );
+        }
+
+        if self.components.contains_key(&id) {
+            panic!("Component already registered!");
+        }
+
+        self.components
+            .insert(id, UnsafeCell::new(ComponentStorage::new_for::<T>(storage)));
+
+        self
+    }
+
+    pub(crate) fn add_builtin<T: Component>(&mut self, storage: StorageKind) -> &mut Self {
         let id = T::COMPONENT_ID;
 
         if self.components.contains_key(&id) {
@@ -148,6 +169,32 @@ impl<R: WutEngineRenderer> Runtime<R> {
         }
 
         None
+    }
+
+    /// # Safety
+    ///
+    /// The components you are querying for _must_ not be accessed mutable by more
+    /// than one caller at a time.
+    unsafe fn query<'a, T: Queryable<'a>>(&'a self) -> Vec<(EntityId, Option<T>)> {
+        T::do_query(&self.entities, &self.components)
+    }
+
+    fn get_renderables(&self) -> Vec<Renderable> {
+        let query_result: Vec<(EntityId, Option<&Mesh>)> = unsafe { self.query() };
+
+        let mut renderables = Vec::new();
+
+        for components in query_result
+            .into_iter()
+            .filter(|(_, comps)| comps.is_some())
+            .map(|(_, comps)| comps.unwrap())
+        {
+            renderables.push(Renderable {
+                mesh: (components.get_unique_id(), components.data.clone()),
+            })
+        }
+
+        renderables
     }
 
     fn exec_engine_command(&mut self, command: EngineCommand) {
@@ -234,8 +281,18 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         self.run_systems_for_phase(SystemPhase::Update);
 
-        let cam_storage = self.components.get_mut(&ID_CAMERA).unwrap().get_mut();
+        let cam_storage = unsafe {
+            self.components
+                .get(&ID_CAMERA)
+                .unwrap()
+                .get()
+                .as_ref()
+                .unwrap()
+        };
+
         let all_cams = cam_storage.all::<Camera>();
+
+        let renderables = self.get_renderables();
 
         for camera in all_cams {
             if !self.windows.contains_key(&camera.component.display) {
@@ -246,7 +303,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
                 continue;
             }
 
-            self.renderer.render(camera.component.to_context(), &[]);
+            self.renderer
+                .render(camera.component.to_context(), &renderables);
         }
     }
 

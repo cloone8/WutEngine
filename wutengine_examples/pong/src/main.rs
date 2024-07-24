@@ -65,7 +65,7 @@ fn init_system(commands: &mut Command, world: &World) {
 
     let camera = Camera {
         display: WindowIdentifier::new("pong"),
-        clear_color: Color::rgb(0.2, 0.3, 0.1),
+        clear_color: Color::rgb(0.2, 0.3, 0.3),
     };
 
     commands
