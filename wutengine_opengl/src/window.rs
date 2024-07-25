@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
 use wutengine_graphics::{
     renderer::{RenderContext, Renderable},

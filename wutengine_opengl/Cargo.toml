@@ -18,3 +18,4 @@ gl_generator.workspace = true
 wutengine_graphics.workspace = true
 gl-from-raw-window-handle.workspace = true
 log.workspace = true
+thiserror.workspace = true
