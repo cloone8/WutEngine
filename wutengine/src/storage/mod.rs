@@ -1,7 +1,6 @@
 use array::ComponentArray;
 use wutengine_core::{
-    component::{Component, DynComponent},
-    entity::EntityId,
+    EntityId, {Component, DynComponent},
 };
 
 mod array;

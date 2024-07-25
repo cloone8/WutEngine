@@ -6,11 +6,10 @@ use std::alloc::Layout;
 
 use nohash_hasher::IntMap;
 use wutengine_core::{
-    component::{Component, ComponentTypeId, DynComponent},
-    entity::EntityId,
+    EntityId, {Component, ComponentTypeId, DynComponent},
 };
 
-use crate::component::storage::ptr_helpers::debug_assert_aligned;
+use crate::storage::ptr_helpers::debug_assert_aligned;
 
 use super::ComponentElement;
 

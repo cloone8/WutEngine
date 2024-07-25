@@ -9,6 +9,7 @@ repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 categories.workspace = true
+rust-version.workspace = true
 
 [features]
 default = ["opengl"]
@@ -16,6 +17,7 @@ opengl = ["dep:wutengine_opengl"]
 
 [dependencies]
 wutengine_core.workspace = true
+wutengine_graphics.workspace = true
 wutengine_macro.workspace = true
 wutengine_util_macro.workspace = true
 
@@ -26,3 +28,4 @@ winit.workspace = true
 log.workspace = true
 itertools.workspace = true
 rand.workspace = true
+glam.workspace = true

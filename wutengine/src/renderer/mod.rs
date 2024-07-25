@@ -1,6 +1,6 @@
-use wutengine_core::{
-    renderer::{HasDisplayHandle, HasWindowHandle, WutEngineRenderer},
-    windowing::WindowIdentifier,
+use wutengine_graphics::{
+    renderer::WutEngineRenderer,
+    windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
 };
 
 #[cfg(feature = "opengl")]
@@ -24,8 +24,8 @@ impl WutEngineRenderer for HeadlessRenderer {
 
     fn render(
         &mut self,
-        _render_context: wutengine_core::renderer::RenderContext,
-        _objects: &[wutengine_core::renderer::Renderable],
+        _render_context: wutengine_graphics::renderer::RenderContext,
+        _objects: &[wutengine_graphics::renderer::Renderable],
     ) {
     }
 }

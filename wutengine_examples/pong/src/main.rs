@@ -1,11 +1,8 @@
 use wutengine::{
-    builtins::camera::Camera,
     command::{Command, FullscreenType, OpenWindowParams},
-    core::{
-        color::Color,
-        system::{System, SystemPhase},
-        windowing::WindowIdentifier,
-    },
+    components::camera::Camera,
+    core::{System, SystemPhase},
+    graphics::{color::Color, windowing::WindowIdentifier},
     plugin::EnginePlugin,
     renderer::OpenGLRenderer,
     world::World,

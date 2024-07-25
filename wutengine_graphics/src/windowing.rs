@@ -1,5 +1,8 @@
 use core::fmt::Display;
 
+pub use raw_window_handle::HasDisplayHandle;
+pub use raw_window_handle::HasWindowHandle;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WindowIdentifier {
     id: String,

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use window::Window;
-use wutengine_core::{
-    renderer::{HasDisplayHandle, HasWindowHandle, RenderContext, Renderable, WutEngineRenderer},
-    windowing::WindowIdentifier,
+use wutengine_graphics::{
+    renderer::{RenderContext, Renderable, WutEngineRenderer},
+    windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
 };
 
 mod opengl {

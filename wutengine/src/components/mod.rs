@@ -1,9 +1,9 @@
 use camera::Camera;
 use mesh::Mesh;
 use name::Name;
-use wutengine_core::component::ComponentTypeId;
+use wutengine_core::ComponentTypeId;
 
-use crate::{component::storage::StorageKind, RuntimeInitializer};
+use crate::{storage::StorageKind, RuntimeInitializer};
 
 pub mod camera;
 pub mod mesh;

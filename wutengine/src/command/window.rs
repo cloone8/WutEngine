@@ -1,6 +1,5 @@
 use winit::window::Fullscreen;
-
-use crate::core::windowing::WindowIdentifier;
+use wutengine_graphics::windowing::WindowIdentifier;
 
 use super::Command;
 

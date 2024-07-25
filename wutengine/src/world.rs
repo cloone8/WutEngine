@@ -1,13 +1,10 @@
 use std::cell::UnsafeCell;
 
 use nohash_hasher::IntMap;
-use wutengine_core::{
-    component::{Component, ComponentTypeId},
-    entity::EntityId,
-};
+use wutengine_core::{Component, ComponentTypeId, EntityId};
 use wutengine_util_macro::make_queryable_tuples;
 
-use crate::component::storage::ComponentStorage;
+use crate::storage::ComponentStorage;
 
 pub unsafe trait Queryable<'a>: Sized {
     fn reads() -> Vec<ComponentTypeId>;

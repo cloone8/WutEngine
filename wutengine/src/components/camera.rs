@@ -1,9 +1,5 @@
-use wutengine_core::{
-    color::Color,
-    component::{Component, ComponentTypeId, DynComponent},
-    renderer::RenderContext,
-    windowing::WindowIdentifier,
-};
+use wutengine_core::{Component, ComponentTypeId, DynComponent};
+use wutengine_graphics::{color::Color, renderer::RenderContext, windowing::WindowIdentifier};
 
 use super::ID_CAMERA;
 

@@ -1,7 +1,7 @@
-pub mod component;
-pub mod entity;
-pub mod renderer;
-pub mod system;
-pub mod windowing;
-pub use glam as math;
-pub mod color;
+mod component;
+mod entity;
+mod system;
+
+pub use component::*;
+pub use entity::*;
+pub use system::*;

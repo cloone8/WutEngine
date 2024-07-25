@@ -3,11 +3,6 @@ use core::hash::{Hash, Hasher};
 use nohash_hasher::IsEnabled;
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
-#[derive(Debug)]
-pub struct Entity {
-    id: EntityId,
-}
-
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EntityId(u64);

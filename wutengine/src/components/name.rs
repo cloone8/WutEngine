@@ -1,4 +1,4 @@
-use wutengine_core::component::{Component, ComponentTypeId, DynComponent};
+use wutengine_core::{Component, ComponentTypeId, DynComponent};
 
 use super::ID_NAME;
 

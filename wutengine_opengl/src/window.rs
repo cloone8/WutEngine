@@ -1,5 +1,8 @@
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
-use wutengine_core::renderer::{HasDisplayHandle, HasWindowHandle, RenderContext, Renderable};
+use wutengine_graphics::{
+    renderer::{RenderContext, Renderable},
+    windowing::{HasDisplayHandle, HasWindowHandle},
+};
 
 use crate::opengl::{self, Gl};
 

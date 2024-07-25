@@ -1833,12 +1833,14 @@ dependencies = [
 name = "wutengine"
 version = "0.0.2"
 dependencies = [
+ "glam",
  "itertools",
  "log",
  "nohash-hasher",
  "rand",
  "winit",
  "wutengine_core",
+ "wutengine_graphics",
  "wutengine_macro",
  "wutengine_opengl",
  "wutengine_util_macro",
@@ -1864,6 +1866,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wutengine_graphics"
+version = "0.0.2"
+dependencies = [
+ "glam",
+ "rand",
+ "raw-window-handle",
+]
+
+[[package]]
 name = "wutengine_macro"
 version = "0.0.2"
 dependencies = [
@@ -1877,7 +1888,7 @@ dependencies = [
  "gl-from-raw-window-handle",
  "gl_generator",
  "log",
- "wutengine_core",
+ "wutengine_graphics",
 ]
 
 [[package]]

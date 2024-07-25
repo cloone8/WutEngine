@@ -1,15 +1,16 @@
 [package]
-name = "wutengine_editor"
-description = "An easy-to-use editor for WutEngine games"
+name = "wutengine_graphics"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 categories.workspace = true
-rust-version.workspace = true
 
 [dependencies]
-wutengine.workspace = true
+glam.workspace = true
+raw-window-handle.workspace = true
+rand.workspace = true

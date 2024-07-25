@@ -1,10 +1,10 @@
-use std::{cell::UnsafeCell, collections::HashMap, time::Instant};
+use std::{cell::UnsafeCell, collections::HashMap};
 
-use builtins::{camera::Camera, mesh::Mesh, ID_CAMERA};
 use command::{Command, OpenWindowParams};
-use component::storage::{ComponentStorage, StorageKind};
+use components::{camera::Camera, mesh::Mesh, ID_CAMERA};
 use nohash_hasher::IntMap;
 use plugin::EnginePlugin;
+use storage::{ComponentStorage, StorageKind};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -12,25 +12,32 @@ use winit::{
     window::{Window, WindowId},
 };
 
-use world::{Queryable, World};
+#[doc(inline)]
 pub use wutengine_core as core;
-pub use wutengine_core::math;
 
-use wutengine_core::{
-    color::Color,
-    component::{Component, ComponentTypeId, DynComponent},
-    entity::EntityId,
-    renderer::{RenderContext, Renderable, WutEngineRenderer},
-    system::{System, SystemPhase},
+#[doc(inline)]
+pub use wutengine_graphics as graphics;
+
+use wutengine_graphics::{
+    renderer::{Renderable, WutEngineRenderer},
     windowing::WindowIdentifier,
 };
+
+#[doc(inline)]
 pub use wutengine_macro as macros;
 
-pub mod builtins;
+use world::{Queryable, World};
+
+use wutengine_core::{
+    EntityId, {Component, ComponentTypeId, DynComponent}, {System, SystemPhase},
+};
+
 pub mod command;
-pub mod component;
+pub mod components;
+pub mod math;
 pub mod plugin;
 pub mod renderer;
+pub mod storage;
 pub mod world;
 
 #[derive(Debug)]
@@ -114,7 +121,7 @@ impl RuntimeInitializer {
     }
 
     pub fn run<R: WutEngineRenderer>(mut self) -> Result<(), ()> {
-        builtins::register_builtins(&mut self);
+        components::register_builtins(&mut self);
 
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
             .build()
@@ -190,7 +197,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
             .map(|(_, comps)| comps.unwrap())
         {
             renderables.push(Renderable {
-                mesh: (components.get_unique_id(), components.data.clone()),
+                mesh: components.data.clone(),
             })
         }
 
