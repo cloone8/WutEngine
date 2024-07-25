@@ -933,7 +933,7 @@ dependencies = [
 
 [[package]]
 name = "pong"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "log",
  "simplelog",
@@ -1831,7 +1831,7 @@ dependencies = [
 
 [[package]]
 name = "wutengine"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "glam",
  "itertools",
@@ -1848,7 +1848,7 @@ dependencies = [
 
 [[package]]
 name = "wutengine_core"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "glam",
  "log",
@@ -1860,7 +1860,7 @@ dependencies = [
 
 [[package]]
 name = "wutengine_editor"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "log",
  "simplelog",
@@ -1869,7 +1869,7 @@ dependencies = [
 
 [[package]]
 name = "wutengine_graphics"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "glam",
  "rand",
@@ -1878,14 +1878,14 @@ dependencies = [
 
 [[package]]
 name = "wutengine_macro"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "wutengine_core",
 ]
 
 [[package]]
 name = "wutengine_opengl"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "gl-from-raw-window-handle",
  "gl_generator",
@@ -1896,7 +1896,7 @@ dependencies = [
 
 [[package]]
 name = "wutengine_util_macro"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "itertools",
  "proc-macro2",
