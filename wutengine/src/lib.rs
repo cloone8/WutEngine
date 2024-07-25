@@ -74,8 +74,8 @@ impl RuntimeInitializer {
         Self::default()
     }
 
-    pub fn add_plugin(&mut self, plugin: Box<dyn EnginePlugin>) -> &mut Self {
-        self.plugins.push(plugin);
+    pub fn add_plugin<P: EnginePlugin>(&mut self) -> &mut Self {
+        self.plugins.push(Box::new(P::build()));
         self
     }
 

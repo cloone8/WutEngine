@@ -29,13 +29,20 @@ fn main() {
 
     let mut runtime = RuntimeInitializer::new();
 
-    runtime.add_plugin(Box::new(PongStarterPlugin));
+    runtime.add_plugin::<PongStarterPlugin>();
     runtime.run::<OpenGLRenderer>().unwrap();
 }
 
 struct PongStarterPlugin;
 
 impl EnginePlugin for PongStarterPlugin {
+    fn build() -> Self
+    where
+        Self: Sized,
+    {
+        PongStarterPlugin
+    }
+
     fn on_event(&mut self, event: &wutengine::EngineEvent) -> Vec<EngineCommand> {
         let mut response = Vec::new();
 
