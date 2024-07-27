@@ -11,7 +11,16 @@ mod opengl {
     include!(concat!(env!("OUT_DIR"), "/gl_generated_bindings.rs"));
 }
 
+mod embedded {
+    use include_dir::{include_dir, Dir};
+
+    pub static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
+}
+
+mod gltypes;
 mod shader;
+mod shaderprogram;
+mod vao;
 mod vbo;
 mod window;
 
@@ -78,23 +87,3 @@ impl WutEngineRenderer for OpenGLRenderer {
         }
     }
 }
-
-static VERTEX_SHADER: &CStr = c"
-#version 330 core
-layout (location = 0) in vec3 aPos;
-
-void main()
-{
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-}
-";
-
-static FRAGMENT_SHADER: &CStr = c"
-#version 330 core
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-} 
-";

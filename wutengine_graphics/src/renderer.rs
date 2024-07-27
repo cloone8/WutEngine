@@ -3,6 +3,7 @@ use std::rc::Rc;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use crate::color::Color;
+use crate::material::MaterialData;
 use crate::mesh::MeshData;
 use crate::windowing::WindowIdentifier;
 
@@ -14,6 +15,7 @@ pub struct RenderContext<'a> {
 
 pub struct Renderable {
     pub mesh: Rc<MeshData>,
+    pub material: Rc<MaterialData>,
 }
 
 pub trait WutEngineRenderer: Default {

@@ -1,3 +1,6 @@
+use wutengine::components::mesh::Mesh;
+use wutengine::graphics::mesh::MeshData;
+use wutengine::math::Vec3;
 use wutengine::{
     command::{Command, FullscreenType, OpenWindowParams},
     components::camera::Camera,
@@ -72,7 +75,21 @@ fn init_system(commands: &mut Command, world: &World) {
         clear_color: Color::rgb(0.2, 0.3, 0.3),
     };
 
+    let mut triangle_mesh = MeshData::new();
+
+    triangle_mesh.vertices = vec![
+        Vec3::new(-0.5, -0.5, 0.0),
+        Vec3::new(0.5, -0.5, 0.0),
+        Vec3::new(0.0, 0.5, 0.0),
+    ];
+
+    let triangle = Mesh::new(triangle_mesh);
+
     commands
         .entity()
         .spawn_with_components(vec![Box::new(camera)]);
+
+    commands
+        .entity()
+        .spawn_with_components(vec![Box::new(triangle)]);
 }

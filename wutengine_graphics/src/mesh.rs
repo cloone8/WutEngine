@@ -31,7 +31,8 @@ impl MeshData {
         Self::default()
     }
 
-    pub fn get_id(&self) -> usize {
+    #[inline]
+    pub const fn get_id(&self) -> usize {
         self.id
     }
 

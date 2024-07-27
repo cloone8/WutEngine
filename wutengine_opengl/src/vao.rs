@@ -1,28 +1,30 @@
-use core::{ffi::c_void, num::NonZero};
+use core::num::NonZero;
+use std::ptr::null;
 
 use thiserror::Error;
+use wutengine_graphics::mesh::MeshData;
 
 use crate::gltypes::GlVertex;
-use crate::opengl::{self, types::GLuint, Gl};
+use crate::opengl::types::GLuint;
+use crate::opengl::{self, Gl};
 
-//TODO: Type-state? Vbo<Unbound> -> Vbo<Bound> etc.
 #[derive(Debug)]
-pub struct Vbo {
+pub struct Vao {
     handle: Option<NonZero<GLuint>>,
 }
 
-#[derive(Debug, Clone, Copy, Error)]
+#[derive(Debug, Error)]
 pub enum CreateErr {
     #[error("OpenGL returned 0")]
     Zero,
 }
 
-impl Vbo {
+impl Vao {
     pub fn new(gl: &Gl) -> Result<Self, CreateErr> {
         let mut handle = 0;
 
         unsafe {
-            gl.GenBuffers(1, &mut handle);
+            gl.GenVertexArrays(1, &mut handle);
         }
 
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
@@ -36,26 +38,27 @@ impl Vbo {
         unsafe {
             let handle_int = self.handle.unwrap().get();
 
-            gl.BindBuffer(opengl::ARRAY_BUFFER, handle_int);
+            gl.BindVertexArray(handle_int);
         }
     }
 
     pub fn unbind(&mut self, gl: &Gl) {
         unsafe {
-            gl.BindBuffer(opengl::ARRAY_BUFFER, 0);
+            gl.BindVertexArray(0);
         }
     }
 
-    pub fn buffer_data<T: Into<GlVertex> + Copy>(&mut self, gl: &Gl, data: &[T]) {
-        let gl_verts: Vec<GlVertex> = data.iter().copied().map(|v| v.into()).collect();
-
+    pub fn set_vertex_attrs_for(&mut self, gl: &Gl, mesh: &MeshData) {
         unsafe {
-            gl.BufferData(
-                opengl::ARRAY_BUFFER,
-                (gl_verts.len() * size_of::<GlVertex>()) as isize,
-                gl_verts.as_ptr() as *const c_void,
-                opengl::STATIC_DRAW,
+            gl.VertexAttribPointer(
+                0,
+                3,
+                opengl::FLOAT,
+                opengl::FALSE,
+                size_of::<GlVertex>() as i32,
+                null(),
             );
+            gl.EnableVertexAttribArray(0);
         }
     }
 
@@ -71,10 +74,10 @@ impl Vbo {
 }
 
 #[cfg(debug_assertions)]
-impl Drop for Vbo {
+impl Drop for Vao {
     fn drop(&mut self) {
         if self.handle.is_some() {
-            log::warn!("VBO dropped without being destroyed!");
+            log::warn!("VAO dropped without being destroyed!");
         }
     }
 }

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::{cell::UnsafeCell, collections::HashMap};
 
 use command::{Command, OpenWindowParams};
@@ -17,6 +18,9 @@ pub use wutengine_core as core;
 
 #[doc(inline)]
 pub use wutengine_graphics as graphics;
+use wutengine_graphics::material::MaterialData;
+use wutengine_graphics::shader::builtins::UNLIT;
+use wutengine_graphics::shader::ShaderVariant;
 
 use wutengine_graphics::{
     renderer::{Renderable, WutEngineRenderer},
@@ -196,8 +200,13 @@ impl<R: WutEngineRenderer> Runtime<R> {
             .filter(|(_, comps)| comps.is_some())
             .map(|(_, comps)| comps.unwrap())
         {
+            log::trace!("Pushing renderable mesh: {:#?}", components);
+
             renderables.push(Renderable {
                 mesh: components.data.clone(),
+                material: Rc::new(MaterialData {
+                    shader: UNLIT.make_variant(Vec::<String>::new()),
+                }),
             })
         }
 
