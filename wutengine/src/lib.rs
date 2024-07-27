@@ -375,6 +375,11 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
                 );
 
                 self.renderer.size_changed(&identifier, size.into());
+
+                if cfg!(target_os = "windows") {
+                    // hack for resizing bug in winit, remove once fixed
+                    self.about_to_wait(event_loop);
+                }
             }
             _ => (),
         }
