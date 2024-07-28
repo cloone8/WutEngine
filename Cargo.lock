@@ -396,9 +396,9 @@ dependencies = [
 
 [[package]]
 name = "gl-from-raw-window-handle"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06e9a7270b11d0f06523f9589800c843acf93298f7b3e13565300b5cdb87409e"
+checksum = "f8e0594b310ce9c12ed2ff2284bb88326a77ef09ae6bae8e4823b645b95ef1d8"
 dependencies = [
  "cocoa",
  "core-foundation",
