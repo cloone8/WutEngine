@@ -3,7 +3,15 @@
 This file documents the most important changes for each released version.
 
 ## [v0.0.3]
-- Some basic rendering functionality: Camera component, mesh, OpenGL, squares
+- Generic rendering backend support
+- Start of the first rendering backend: OpenGL
+- First setup for a camera component
+- First setup for meshes
+- Support for rendering unlit 2D shapes, with a static color
+- Locked toolchain for reproducible builds
+- Moved a lot of public functions around for a more comprehensible user-side API (although how comprehensible is it really, without documentation)
+- Editor actually opens a WutEngine window now
+
 
 ## [v0.0.2]
 - Basic mutable and optional query qupport
