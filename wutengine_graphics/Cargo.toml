@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_graphics"
+description = "Graphics and rendering interfacing code for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
