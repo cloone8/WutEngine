@@ -4,8 +4,8 @@ use glam::Vec3;
 use wutengine_graphics::mesh::MeshData;
 
 use crate::opengl::types::{GLenum, GLint, GLsizei};
-use crate::opengl::{self, Gl};
-use crate::shaderattribute::ShaderAttribute;
+use crate::opengl::Gl;
+use crate::shader::attribute::ShaderAttribute;
 use crate::vbo::{CreateErr, Vbo};
 
 #[repr(C)]
@@ -24,30 +24,6 @@ impl From<Vec3> for GlPosition {
             z: value.z,
         }
     }
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-pub struct GlColorRgb {
-    r: f32,
-    g: f32,
-    b: f32,
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-pub struct GlColorRgba {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-pub struct GlTexCoord {
-    u: f32,
-    v: f32,
 }
 
 #[derive(Debug)]

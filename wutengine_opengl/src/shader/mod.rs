@@ -1,18 +1,18 @@
 use core::ffi::{c_char, CStr};
 use core::fmt::Debug;
 use core::num::NonZero;
-use std::cell::RefCell;
 use std::ffi::CString;
 use std::marker::PhantomData;
 use std::ptr::{null, null_mut};
 
-use include_dir::Dir;
 use thiserror::Error;
 
-use crate::embedded;
 use crate::opengl::types::GLint;
 use crate::opengl::{self, types::GLuint, Gl};
-use crate::shaderprogram::ShaderSet;
+
+pub mod attribute;
+pub mod program;
+pub mod set;
 
 pub unsafe trait ShaderType: Debug {
     const GL_SHADER_TYPE: GLuint;
@@ -184,7 +184,7 @@ impl ShaderData {
                     logbuf.as_mut_ptr() as *mut c_char,
                 );
 
-                let logstr = CString::new(logbuf).unwrap();
+                let logstr = CString::from_vec_with_nul(logbuf).unwrap();
 
                 return Err(CompileErr::Gl(logstr.to_string_lossy().to_string()));
             } else {
@@ -202,32 +202,4 @@ impl Drop for ShaderData {
             log::warn!("Shader {:#?} dropped without being destroyed!", self);
         }
     }
-}
-
-fn load_builtin_from_dir(gl: &Gl, shader_dir: &Dir) -> Result<ShaderSet, CreateErr> {
-    let base_path = shader_dir.path().to_path_buf();
-
-    let vertex = if let Some(file) = shader_dir.get_file(base_path.join("vertex.glsl")) {
-        let source = file.contents_utf8().expect("Non UTF-8 shaderfile content");
-        Some(Shader::<Vertex>::new(gl, source)?)
-    } else {
-        None
-    };
-
-    let fragment = if let Some(file) = shader_dir.get_file(base_path.join("fragment.glsl")) {
-        let source = file.contents_utf8().expect("Non UTF-8 shaderfile content");
-        Some(Shader::<Fragment>::new(gl, source)?)
-    } else {
-        None
-    };
-
-    Ok(ShaderSet { vertex, fragment })
-}
-
-pub fn load_builtin(gl: &Gl, identifier: &str) -> Option<Result<ShaderSet, CreateErr>> {
-    log::debug!("Loading builtin shader: {}", identifier);
-
-    let shader_dir = embedded::SHADERS.get_dir(identifier)?;
-
-    Some(load_builtin_from_dir(gl, shader_dir))
 }

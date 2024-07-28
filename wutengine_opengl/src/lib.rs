@@ -1,7 +1,8 @@
-use core::ffi::CStr;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use window::Window;
+use wutengine_graphics::shader::resolver::ShaderResolver;
 use wutengine_graphics::{
     renderer::{RenderContext, Renderable, WutEngineRenderer},
     windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
@@ -11,26 +12,25 @@ mod opengl {
     include!(concat!(env!("OUT_DIR"), "/gl_generated_bindings.rs"));
 }
 
-mod embedded {
-    use include_dir::{include_dir, Dir};
-
-    pub static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
-}
-
 mod gltypes;
 mod shader;
-mod shaderattribute;
-mod shaderprogram;
 mod vao;
 mod vbo;
 mod window;
 
-#[derive(Default)]
 pub struct OpenGLRenderer {
+    shader_resolver: Rc<dyn ShaderResolver>,
     windows: HashMap<WindowIdentifier, Window>,
 }
 
 impl WutEngineRenderer for OpenGLRenderer {
+    fn build<R: ShaderResolver>(shaders: R) -> Self {
+        Self {
+            shader_resolver: Rc::new(shaders),
+            windows: HashMap::default(),
+        }
+    }
+
     fn new_window(
         &mut self,
         id: &WindowIdentifier,
@@ -44,8 +44,10 @@ impl WutEngineRenderer for OpenGLRenderer {
             return;
         }
 
-        self.windows
-            .insert(id.clone(), Window::new(window, phys_size));
+        self.windows.insert(
+            id.clone(),
+            Window::new(self.shader_resolver.clone(), window, phys_size),
+        );
     }
 
     fn destroy_window(&mut self, id: &WindowIdentifier) {

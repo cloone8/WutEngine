@@ -12,12 +12,14 @@ pub enum ShaderAttribute {
 impl ShaderAttribute {
     pub const ALL: [ShaderAttribute; 1] = [ShaderAttribute::Position];
 
-    pub fn as_c_str(self) -> &'static CStr {
+    #[inline]
+    pub const fn as_c_str(self) -> &'static CStr {
         match self {
             ShaderAttribute::Position => c"aPos",
         }
     }
 
+    #[inline]
     pub fn num_components(self) -> GLint {
         GLint::try_from(match self {
             ShaderAttribute::Position => size_of::<GlPosition>() / size_of::<f32>(),
@@ -25,6 +27,7 @@ impl ShaderAttribute {
         .unwrap()
     }
 
+    #[inline]
     pub fn size_bytes(self) -> GLint {
         let base_size = GLint::try_from(match self.component_type() {
             opengl::FLOAT => size_of::<f32>(),
@@ -35,7 +38,8 @@ impl ShaderAttribute {
         base_size * self.num_components()
     }
 
-    pub fn component_type(self) -> GLenum {
+    #[inline]
+    pub const fn component_type(self) -> GLenum {
         match self {
             ShaderAttribute::Position => opengl::FLOAT,
         }

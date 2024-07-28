@@ -2,7 +2,6 @@ use core::{ffi::c_void, num::NonZero};
 
 use thiserror::Error;
 
-use crate::gltypes::GlPosition;
 use crate::opengl::{self, types::GLuint, Gl};
 
 //TODO: Type-state? Vbo<Unbound> -> Vbo<Bound> etc.

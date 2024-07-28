@@ -5,6 +5,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use crate::color::Color;
 use crate::material::MaterialData;
 use crate::mesh::MeshData;
+use crate::shader::resolver::ShaderResolver;
 use crate::windowing::WindowIdentifier;
 
 #[derive(Debug)]
@@ -19,7 +20,9 @@ pub struct Renderable {
     pub material: Rc<MaterialData>,
 }
 
-pub trait WutEngineRenderer: Default {
+pub trait WutEngineRenderer {
+    fn build<R: ShaderResolver>(shaders: R) -> Self;
+
     fn new_window(
         &mut self,
         id: &WindowIdentifier,

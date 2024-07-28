@@ -15,3 +15,4 @@ glam.workspace = true
 raw-window-handle.workspace = true
 rand.workspace = true
 log.workspace = true
+nohash-hasher.workspace = true

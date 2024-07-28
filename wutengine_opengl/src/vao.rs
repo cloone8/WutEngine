@@ -1,13 +1,11 @@
 use core::num::NonZero;
-use std::ptr::null;
 
 use thiserror::Error;
-use wutengine_graphics::mesh::MeshData;
 
-use crate::gltypes::{GlMeshBuffers, GlPosition};
+use crate::gltypes::GlMeshBuffers;
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
-use crate::shaderprogram::ShaderProgram;
+use crate::shader::program::ShaderProgram;
 
 #[derive(Debug)]
 pub struct Vao {

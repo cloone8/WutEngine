@@ -1,17 +1,21 @@
+use core::fmt::Display;
+
 use glam::Vec3;
+use nohash_hasher::IsEnabled;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
+use std::hash::Hash;
 
 #[derive(Debug)]
 pub struct MeshData {
     /// Unique mesh identifier
-    id: usize,
+    id: MeshDataId,
     pub positions: Vec<Vec3>,
 }
 
 impl Default for MeshData {
     fn default() -> Self {
         Self {
-            id: MeshData::random_id(),
+            id: MeshDataId::random(),
             positions: Vec::new(),
         }
     }
@@ -20,7 +24,7 @@ impl Default for MeshData {
 impl Clone for MeshData {
     fn clone(&self) -> Self {
         Self {
-            id: MeshData::random_id(),
+            id: MeshDataId::random(),
             positions: self.positions.clone(),
         }
     }
@@ -32,12 +36,39 @@ impl MeshData {
     }
 
     #[inline]
-    pub const fn get_id(&self) -> usize {
+    pub const fn get_id(&self) -> MeshDataId {
         self.id
     }
+}
 
-    fn random_id() -> usize {
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MeshDataId(u64);
+
+impl Display for MeshDataId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Wrong size will mess up the format string.
+        debug_assert_eq!(
+            8,
+            size_of::<MeshDataId>(),
+            "Mesh Data ID size different from expected for 16 character hex string"
+        );
+
+        write!(f, "{:016x}", self.0)
+    }
+}
+
+impl Hash for MeshDataId {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u64(self.0);
+    }
+}
+
+impl IsEnabled for MeshDataId {}
+
+impl MeshDataId {
+    pub fn random() -> Self {
         let mut rng = SmallRng::from_entropy();
-        rng.gen()
+        Self(rng.gen())
     }
 }

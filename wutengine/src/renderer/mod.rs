@@ -3,10 +3,12 @@ use wutengine_graphics::{
     windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
 };
 
+pub(crate) mod shader_resolver;
+
 #[cfg(feature = "opengl")]
 pub use wutengine_opengl::OpenGLRenderer;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct HeadlessRenderer;
 
 impl WutEngineRenderer for HeadlessRenderer {
@@ -27,5 +29,9 @@ impl WutEngineRenderer for HeadlessRenderer {
         _render_context: wutengine_graphics::renderer::RenderContext,
         _objects: &[wutengine_graphics::renderer::Renderable],
     ) {
+    }
+
+    fn build<R: wutengine_graphics::shader::resolver::ShaderResolver>(shaders: R) -> Self {
+        Self
     }
 }

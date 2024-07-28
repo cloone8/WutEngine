@@ -9,56 +9,7 @@ use crate::opengl::types::{GLint, GLuint};
 use crate::opengl::{self, Gl};
 use crate::shader::{CompileErr, Fragment, Shader, Vertex};
 
-#[derive(Debug)]
-pub struct ShaderSet {
-    pub vertex: Option<Shader<Vertex>>,
-    pub fragment: Option<Shader<Fragment>>,
-}
-
-impl ShaderSet {
-    fn compile_all(&mut self, gl: &Gl) -> Result<(), CompileErr> {
-        if let Some(vtx) = &mut self.vertex {
-            _ = vtx.get_compiled(gl)?;
-        };
-
-        if let Some(frag) = &mut self.fragment {
-            _ = frag.get_compiled(gl)?;
-        };
-
-        Ok(())
-    }
-
-    fn attach_all(&mut self, gl: &Gl, program: NonZero<GLuint>) {
-        unsafe {
-            if let Some(sh) = self.vertex.as_mut() {
-                gl.AttachShader(program.get(), sh.assert_compiled().get())
-            }
-            if let Some(sh) = self.fragment.as_mut() {
-                gl.AttachShader(program.get(), sh.assert_compiled().get())
-            }
-        }
-    }
-
-    fn detach_all(&mut self, gl: &Gl, program: NonZero<GLuint>) {
-        unsafe {
-            if let Some(sh) = self.vertex.as_mut() {
-                gl.DetachShader(program.get(), sh.assert_compiled().get())
-            }
-            if let Some(sh) = self.fragment.as_mut() {
-                gl.DetachShader(program.get(), sh.assert_compiled().get())
-            }
-        }
-    }
-
-    fn destroy_all(&mut self, gl: &Gl) {
-        if let Some(sh) = self.vertex.take() {
-            sh.destroy(gl)
-        }
-        if let Some(sh) = self.fragment.take() {
-            sh.destroy(gl)
-        }
-    }
-}
+use super::set::GlShaderSet;
 
 #[derive(Debug)]
 pub enum ShaderProgram {
@@ -67,7 +18,7 @@ pub enum ShaderProgram {
     },
     Unlinked {
         handle: NonZero<GLuint>,
-        shaders: ShaderSet,
+        shaders: GlShaderSet,
     },
     Destroyed,
 }
@@ -88,7 +39,7 @@ pub enum LinkErr {
 }
 
 impl ShaderProgram {
-    pub fn new(gl: &Gl, stages: ShaderSet) -> Result<Self, CreateErr> {
+    pub fn new(gl: &Gl, stages: GlShaderSet) -> Result<Self, CreateErr> {
         let handle = unsafe { gl.CreateProgram() };
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
@@ -130,7 +81,7 @@ impl ShaderProgram {
         }
     }
 
-    fn get_shaders(&mut self) -> &mut ShaderSet {
+    fn get_shaders(&mut self) -> &mut GlShaderSet {
         match self {
             ShaderProgram::Linked { .. } => {
                 panic!("Trying to get shader stages of an already linked shader program")

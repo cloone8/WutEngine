@@ -5,6 +5,7 @@ use command::{Command, OpenWindowParams};
 use components::{camera::Camera, mesh::Mesh, ID_CAMERA};
 use nohash_hasher::IntMap;
 use plugin::EnginePlugin;
+use renderer::shader_resolver::EmbeddedShaderResolver;
 use storage::{ComponentStorage, StorageKind};
 use winit::{
     application::ApplicationHandler,
@@ -18,9 +19,9 @@ pub use wutengine_core as core;
 
 #[doc(inline)]
 pub use wutengine_graphics as graphics;
+use wutengine_graphics::shader::ShaderSetId;
+
 use wutengine_graphics::material::MaterialData;
-use wutengine_graphics::shader::builtins::UNLIT;
-use wutengine_graphics::shader::ShaderVariant;
 
 use wutengine_graphics::{
     renderer::{Renderable, WutEngineRenderer},
@@ -35,6 +36,12 @@ use world::{Queryable, World};
 use wutengine_core::{
     EntityId, {Component, ComponentTypeId, DynComponent}, {System, SystemPhase},
 };
+
+mod embedded {
+    use include_dir::{include_dir, Dir};
+
+    pub static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
+}
 
 pub mod command;
 pub mod components;
@@ -144,7 +151,7 @@ impl RuntimeInitializer {
             windows: HashMap::new(),
             eventloop: event_loop.create_proxy(),
             started: false,
-            renderer: R::default(),
+            renderer: R::build(EmbeddedShaderResolver),
         };
 
         event_loop.run_app(&mut runtime).unwrap();
@@ -205,7 +212,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
             renderables.push(Renderable {
                 mesh: components.data.clone(),
                 material: Rc::new(MaterialData {
-                    shader: UNLIT.make_variant(Vec::<String>::new()),
+                    shader: ShaderSetId::new("unlit"),
                 }),
             })
         }
