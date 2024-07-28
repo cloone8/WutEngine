@@ -202,7 +202,12 @@ impl Window {
             program.use_program(gl).unwrap();
 
             unsafe {
-                gl.DrawArrays(opengl::TRIANGLES, 0, 3);
+                //TODO: Dirty hack until I can get the amount of triangles properly from the VAO or soemthing
+                gl.DrawArrays(
+                    opengl::TRIANGLES,
+                    0,
+                    object.mesh.positions.len().try_into().unwrap(),
+                );
             }
         }
 

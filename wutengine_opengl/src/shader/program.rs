@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::opengl::types::{GLint, GLuint};
 use crate::opengl::{self, Gl};
-use crate::shader::{CompileErr, Fragment, Shader, Vertex};
+use crate::shader::CompileErr;
 
 use super::set::GlShaderSet;
 

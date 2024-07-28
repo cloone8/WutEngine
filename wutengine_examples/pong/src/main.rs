@@ -75,15 +75,25 @@ fn init_system(commands: &mut Command, world: &World) {
         clear_color: Color::rgb(0.2, 0.3, 0.3),
     };
 
-    let mut triangle_mesh = MeshData::new();
+    let mut left_triangle_mesh = MeshData::new();
 
-    triangle_mesh.positions = vec![
-        Vec3::new(-0.5, -0.5, 0.0),
-        Vec3::new(0.5, -0.5, 0.0),
-        Vec3::new(0.0, 0.5, 0.0),
+    left_triangle_mesh.positions = vec![
+        Vec3::new(-1.0, -0.5, 0.0),
+        Vec3::new(0.0, -0.5, 0.0),
+        Vec3::new(-0.5, 0.5, 0.0),
     ];
 
-    let triangle = Mesh::new(triangle_mesh);
+    let left_triangle = Mesh::new(left_triangle_mesh);
+
+    let mut right_triangle_mesh = MeshData::new();
+
+    right_triangle_mesh.positions = vec![
+        Vec3::new(0.0, -0.5, 0.0),
+        Vec3::new(1.0, -0.5, 0.0),
+        Vec3::new(0.5, 0.5, 0.0),
+    ];
+
+    let right_triangle = Mesh::new(right_triangle_mesh);
 
     commands
         .entity()
@@ -91,5 +101,9 @@ fn init_system(commands: &mut Command, world: &World) {
 
     commands
         .entity()
-        .spawn_with_components(vec![Box::new(triangle)]);
+        .spawn_with_components(vec![Box::new(left_triangle)]);
+
+    commands
+        .entity()
+        .spawn_with_components(vec![Box::new(right_triangle)]);
 }
