@@ -186,6 +186,26 @@ impl ShaderProgram {
         Ok(())
     }
 
+    pub fn ensure_linked(&mut self, gl: &Gl) -> Result<(), LinkErr> {
+        if matches!(self, Self::Destroyed) {
+            panic!("Trying to use a destroyed shader program");
+        }
+
+        if matches!(self, Self::Unlinked { .. }) {
+            self.link(gl)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn assert_linked(&self) -> NonZero<GLuint> {
+        if let ShaderProgram::Linked { handle } = self {
+            *handle
+        } else {
+            panic!("Program not linked!");
+        }
+    }
+
     pub fn use_program(&mut self, gl: &Gl) -> Result<(), LinkErr> {
         if matches!(self, Self::Destroyed) {
             panic!("Trying to use a destroyed shader program");

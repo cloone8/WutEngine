@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
 use nohash_hasher::IntMap;
@@ -9,17 +10,33 @@ use wutengine_graphics::{
     windowing::{HasDisplayHandle, HasWindowHandle},
 };
 
+use crate::gltypes::GlMeshBuffers;
 use crate::opengl::{self, Gl};
 use crate::shader::load_builtin;
 use crate::shaderprogram::ShaderProgram;
 use crate::vao::Vao;
-use crate::vbo::Vbo;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RenderableKey<'a> {
+    pub mesh_id: usize,
+    pub shader: &'a ShaderVariant,
+}
+
+impl<'a> RenderableKey<'a> {
+    pub fn get_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+
+        hasher.finish()
+    }
+}
 
 pub struct Window {
     context: GlContext,
     bindings: Gl,
     shaders: HashMap<ShaderVariant, ShaderProgram>,
-    meshes: IntMap<usize, Vao>,
+    meshes: IntMap<usize, GlMeshBuffers>,
+    attributes: IntMap<u64, Vao>,
 }
 
 impl Window {
@@ -58,6 +75,7 @@ impl Window {
             bindings,
             shaders: HashMap::new(),
             meshes: IntMap::default(),
+            attributes: IntMap::default(),
         }
     }
 
@@ -69,15 +87,19 @@ impl Window {
         };
     }
 
-    fn get_or_insert_shader(&mut self, shader: &ShaderVariant) -> &mut ShaderProgram {
-        if self.shaders.contains_key(shader) {
-            return self.shaders.get_mut(shader).unwrap();
+    fn get_or_insert_shader<'a>(
+        gl: &Gl,
+        shaders: &'a mut HashMap<ShaderVariant, ShaderProgram>,
+        shader: &ShaderVariant,
+    ) -> &'a mut ShaderProgram {
+        if shaders.contains_key(shader) {
+            return shaders.get_mut(shader).unwrap();
         }
 
         log::info!("Unknown shader variant, loading from source");
 
         let sources = match shader.source {
-            ShaderSource::Builtin { identifier } => load_builtin(&self.bindings, identifier),
+            ShaderSource::Builtin { identifier } => load_builtin(gl, identifier),
         };
 
         if sources.is_none() {
@@ -97,7 +119,7 @@ impl Window {
 
         log::debug!("Loaded shaderset: {:#?}", sources);
 
-        let program = ShaderProgram::new(&self.bindings, sources);
+        let program = ShaderProgram::new(gl, sources);
 
         if program.is_err() {
             panic!(
@@ -108,31 +130,63 @@ impl Window {
 
         let program = program.unwrap();
 
-        self.shaders.insert(shader.clone(), program);
+        shaders.insert(shader.clone(), program);
 
-        self.shaders.get_mut(shader).unwrap()
+        shaders.get_mut(shader).unwrap()
     }
 
-    fn get_or_insert_meshdata(&mut self, meshdata: &MeshData) -> &mut Vao {
-        if self.meshes.contains_key(&meshdata.get_id()) {
-            return self.meshes.get_mut(&meshdata.get_id()).unwrap();
+    fn get_or_insert_mesh_buffer<'a>(
+        gl: &Gl,
+        meshes: &'a mut IntMap<usize, GlMeshBuffers>,
+        mesh: &MeshData,
+    ) -> &'a mut GlMeshBuffers {
+        if meshes.contains_key(&mesh.get_id()) {
+            return meshes.get_mut(&mesh.get_id()).unwrap();
         }
 
-        log::info!("Unknown mesh, loading into buffers");
+        log::info!("Unknown mesh, creating buffer");
+
+        let buffers = GlMeshBuffers::new(gl, mesh).unwrap();
+
+        meshes.insert(mesh.get_id(), buffers);
+
+        meshes.get_mut(&mesh.get_id()).unwrap()
+    }
+
+    pub fn get_object_data(&mut self, object: &Renderable) -> (&mut Vao, &mut ShaderProgram) {
+        let mesh = &object.mesh;
+        let shader = &object.material.shader;
+
+        let program = Self::get_or_insert_shader(&self.bindings, &mut self.shaders, shader);
+        program.ensure_linked(&self.bindings).unwrap();
+
+        let key = RenderableKey {
+            mesh_id: mesh.get_id(),
+            shader,
+        }
+        .get_hash();
+
+        if self.attributes.contains_key(&key) {
+            return (self.attributes.get_mut(&key).unwrap(), program);
+        }
+
+        log::info!("Unknown mesh/shader combination. Creating VAO");
+
+        let mesh_buffers = Self::get_or_insert_mesh_buffer(&self.bindings, &mut self.meshes, mesh);
         let gl = &self.bindings;
 
         let mut vao = Vao::new(gl).unwrap();
+
         vao.bind(gl);
 
-        let mut vbo = Vbo::new(gl).unwrap();
-        vbo.bind(gl);
-        vbo.buffer_data(gl, &meshdata.vertices);
+        mesh_buffers.vertex.bind(gl);
+        vao.set_vertex_attrs_for(gl, mesh_buffers, program);
 
-        vao.set_vertex_attrs_for(gl, meshdata);
+        vao.unbind(gl);
 
-        self.meshes.insert(meshdata.get_id(), vao);
+        self.attributes.insert(key, vao);
 
-        self.meshes.get_mut(&meshdata.get_id()).unwrap()
+        (self.attributes.get_mut(&key).unwrap(), program)
     }
 
     pub fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
@@ -150,10 +204,9 @@ impl Window {
         }
 
         for object in objects {
-            let vao = self.get_or_insert_meshdata(&object.mesh);
-            vao.bind(gl);
+            let (vao, program) = self.get_object_data(object);
 
-            let program = self.get_or_insert_shader(&object.material.shader);
+            vao.bind(gl);
             program.use_program(gl).unwrap();
 
             unsafe {

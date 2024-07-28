@@ -5,14 +5,14 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 pub struct MeshData {
     /// Unique mesh identifier
     id: usize,
-    pub vertices: Vec<Vec3>,
+    pub positions: Vec<Vec3>,
 }
 
 impl Default for MeshData {
     fn default() -> Self {
         Self {
             id: MeshData::random_id(),
-            vertices: Vec::new(),
+            positions: Vec::new(),
         }
     }
 }
@@ -21,7 +21,7 @@ impl Clone for MeshData {
     fn clone(&self) -> Self {
         Self {
             id: MeshData::random_id(),
-            vertices: self.vertices.clone(),
+            positions: self.positions.clone(),
         }
     }
 }

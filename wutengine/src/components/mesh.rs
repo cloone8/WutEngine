@@ -13,7 +13,7 @@ pub struct Mesh {
 
 impl Mesh {
     pub fn get_vertices(&self) -> &[Vec3] {
-        &self.data.vertices
+        &self.data.positions
     }
 
     pub fn new(data: MeshData) -> Self {

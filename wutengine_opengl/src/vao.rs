@@ -4,9 +4,10 @@ use std::ptr::null;
 use thiserror::Error;
 use wutengine_graphics::mesh::MeshData;
 
-use crate::gltypes::GlVertex;
+use crate::gltypes::{GlMeshBuffers, GlPosition};
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
+use crate::shaderprogram::ShaderProgram;
 
 #[derive(Debug)]
 pub struct Vao {
@@ -48,17 +49,37 @@ impl Vao {
         }
     }
 
-    pub fn set_vertex_attrs_for(&mut self, gl: &Gl, mesh: &MeshData) {
-        unsafe {
-            gl.VertexAttribPointer(
-                0,
-                3,
-                opengl::FLOAT,
-                opengl::FALSE,
-                size_of::<GlVertex>() as i32,
-                null(),
-            );
-            gl.EnableVertexAttribArray(0);
+    pub fn set_vertex_attrs_for(&mut self, gl: &Gl, mesh: &GlMeshBuffers, program: &ShaderProgram) {
+        for attribute in mesh.layout.get_present_attributes() {
+            log::debug!("Checking attribute {:?}", attribute);
+
+            let location_index = unsafe {
+                gl.GetAttribLocation(program.assert_linked().get(), attribute.as_c_str().as_ptr())
+            };
+
+            if location_index == -1 {
+                log::debug!("Attribute not present");
+                // Attribute not present on shader
+                continue;
+            }
+
+            log::debug!("Attribute present at {}", location_index);
+
+            let layout = mesh.layout.get_for_attribute(attribute).unwrap();
+
+            log::debug!("Resolved layout: {:#?}", layout);
+
+            unsafe {
+                gl.VertexAttribPointer(
+                    location_index as GLuint,
+                    layout.size,
+                    layout.gltype,
+                    opengl::FALSE,
+                    layout.stride,
+                    layout.offset,
+                );
+                gl.EnableVertexAttribArray(location_index as GLuint);
+            }
         }
     }
 

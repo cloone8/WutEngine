@@ -2,7 +2,7 @@ use core::{ffi::c_void, num::NonZero};
 
 use thiserror::Error;
 
-use crate::gltypes::GlVertex;
+use crate::gltypes::GlPosition;
 use crate::opengl::{self, types::GLuint, Gl};
 
 //TODO: Type-state? Vbo<Unbound> -> Vbo<Bound> etc.
@@ -46,14 +46,12 @@ impl Vbo {
         }
     }
 
-    pub fn buffer_data<T: Into<GlVertex> + Copy>(&mut self, gl: &Gl, data: &[T]) {
-        let gl_verts: Vec<GlVertex> = data.iter().copied().map(|v| v.into()).collect();
-
+    pub fn buffer_data<T: Copy>(&mut self, gl: &Gl, data: &[T]) {
         unsafe {
             gl.BufferData(
                 opengl::ARRAY_BUFFER,
-                (gl_verts.len() * size_of::<GlVertex>()) as isize,
-                gl_verts.as_ptr() as *const c_void,
+                std::mem::size_of_val(data) as isize,
+                data.as_ptr() as *const c_void,
                 opengl::STATIC_DRAW,
             );
         }

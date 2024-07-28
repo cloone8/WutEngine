@@ -19,6 +19,7 @@ mod embedded {
 
 mod gltypes;
 mod shader;
+mod shaderattribute;
 mod shaderprogram;
 mod vao;
 mod vbo;

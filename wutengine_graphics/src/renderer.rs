@@ -13,6 +13,7 @@ pub struct RenderContext<'a> {
     pub clear_color: Color,
 }
 
+#[derive(Debug)]
 pub struct Renderable {
     pub mesh: Rc<MeshData>,
     pub material: Rc<MaterialData>,

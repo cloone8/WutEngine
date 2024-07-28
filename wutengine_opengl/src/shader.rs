@@ -199,7 +199,7 @@ impl ShaderData {
 impl Drop for ShaderData {
     fn drop(&mut self) {
         if !matches!(self, Self::Destroyed) {
-            log::warn!("Shader dropped without being destroyed!");
+            log::warn!("Shader {:#?} dropped without being destroyed!", self);
         }
     }
 }

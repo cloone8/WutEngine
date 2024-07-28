@@ -77,7 +77,7 @@ fn init_system(commands: &mut Command, world: &World) {
 
     let mut triangle_mesh = MeshData::new();
 
-    triangle_mesh.vertices = vec![
+    triangle_mesh.positions = vec![
         Vec3::new(-0.5, -0.5, 0.0),
         Vec3::new(0.5, -0.5, 0.0),
         Vec3::new(0.0, 0.5, 0.0),
