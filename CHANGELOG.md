@@ -3,6 +3,7 @@
 This file documents the most important changes for each released version.
 
 ## [v0.0.5]
+- Initial support for material parameters (and the corresponding uniforms in the rendering backends)
 
 ## [v0.0.4]
 - Fixed various compilation and pipeline errors
