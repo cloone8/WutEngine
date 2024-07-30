@@ -5,7 +5,7 @@ This file documents the most important changes for each released version.
 ## [v0.0.4]
 - Fixed various compilation and pipeline errors
 
-## [v0.0.4]
+## [v0.0.3]
 - Generic rendering backend support
 - Start of the first rendering backend: OpenGL
 - First setup for a camera component
