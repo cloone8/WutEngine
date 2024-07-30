@@ -200,6 +200,11 @@ impl Window {
 
             vao.bind(gl);
             program.use_program(gl).unwrap();
+            unsafe {
+                program
+                    .set_uniforms(gl, &object.material.parameters)
+                    .unwrap();
+            }
 
             unsafe {
                 //TODO: Dirty hack until I can get the amount of triangles properly from the VAO or soemthing

@@ -19,9 +19,10 @@ pub use wutengine_core as core;
 
 #[doc(inline)]
 pub use wutengine_graphics as graphics;
+use wutengine_graphics::color::Color;
 use wutengine_graphics::shader::ShaderSetId;
 
-use wutengine_graphics::material::MaterialData;
+use wutengine_graphics::material::{MaterialData, MaterialParameter};
 
 use wutengine_graphics::{
     renderer::{Renderable, WutEngineRenderer},
@@ -208,11 +209,15 @@ impl<R: WutEngineRenderer> Runtime<R> {
             .map(|(_, comps)| comps.unwrap())
         {
             log::trace!("Pushing renderable mesh: {:#?}", components);
+            let a = wutengine_macro::map!(
+                "baseColor".to_owned() => MaterialParameter::Color(Color::rgb(0.5, 0.0, 0.0))
+            );
 
             renderables.push(Renderable {
                 mesh: components.data.clone(),
                 material: Rc::new(MaterialData {
                     shader: ShaderSetId::new("unlit"),
+                    parameters: a,
                 }),
             })
         }

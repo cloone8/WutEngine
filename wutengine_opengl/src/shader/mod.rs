@@ -13,6 +13,7 @@ use crate::opengl::{self, types::GLuint, Gl};
 pub mod attribute;
 pub mod program;
 pub mod set;
+pub mod uniform;
 
 pub unsafe trait ShaderType: Debug {
     const GL_SHADER_TYPE: GLuint;

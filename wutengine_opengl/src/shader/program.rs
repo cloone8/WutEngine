@@ -1,19 +1,23 @@
 use core::ffi::c_char;
 use core::num::NonZero;
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::null_mut;
 
 use thiserror::Error;
+use wutengine_graphics::material::MaterialParameter;
 
 use crate::opengl::types::{GLint, GLuint};
 use crate::opengl::{self, Gl};
 use crate::shader::CompileErr;
 
 use super::set::GlShaderSet;
+use super::uniform::{GlUniformConversionError, UniformDescriptor};
 
 #[derive(Debug)]
 pub struct ShaderProgram {
     data: ShaderProgramData,
+    uniforms: HashMap<String, UniformDescriptor>,
 }
 
 #[derive(Debug)]
@@ -53,6 +57,7 @@ impl ShaderProgram {
                 handle,
                 shaders: stages,
             },
+            uniforms: HashMap::new(),
         })
     }
 
@@ -143,7 +148,25 @@ impl ShaderProgram {
 
         self.data = ShaderProgramData::Linked { handle };
 
+        self.resolve_uniforms(gl);
+
         Ok(())
+    }
+
+    fn resolve_uniforms(&mut self, gl: &Gl) {
+        log::debug!("Resolving uniforms");
+
+        if !matches!(self.data, ShaderProgramData::Linked { .. }) {
+            panic!("Cannot resolve uniforms for unlinked program");
+        }
+
+        let uniforms = unsafe { UniformDescriptor::get_for(gl, self.get_handle()) };
+
+        log::debug!("Resolved uniforms: {:#?}", uniforms);
+
+        for (name, descriptor) in uniforms {
+            self.uniforms.insert(name, descriptor);
+        }
     }
 
     pub fn ensure_linked(&mut self, gl: &Gl) -> Result<(), LinkErr> {
@@ -183,6 +206,34 @@ impl ShaderProgram {
 
         Ok(())
     }
+
+    pub unsafe fn set_uniforms(
+        &mut self,
+        gl: &Gl,
+        parameters: &HashMap<String, MaterialParameter>,
+    ) -> Result<(), SetUniformErr> {
+        _ = self.assert_linked();
+
+        for (name, value) in parameters {
+            let uniform_descriptor = self
+                .uniforms
+                .get_mut(name)
+                .ok_or_else(|| SetUniformErr::UnknownParam(name.clone()))?;
+
+            unsafe { uniform_descriptor.set_with(gl, value)? };
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum SetUniformErr {
+    #[error("Unknown parameter: {}", 0)]
+    UnknownParam(String),
+
+    #[error("Parameter had an invalid value")]
+    InvalidParam(#[from] GlUniformConversionError),
 }
 
 #[cfg(debug_assertions)]

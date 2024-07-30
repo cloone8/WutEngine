@@ -1,14 +1,12 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+#[macro_export]
+macro_rules! map {
+    ($($key:expr => $val:expr),+) => {{
+        let mut new_hashmap = ::std::collections::HashMap::new();
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+        $(
+            new_hashmap.insert($key, $val);
+        )*
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+        new_hashmap
+    }};
 }

@@ -15,7 +15,7 @@ impl ShaderAttribute {
     #[inline]
     pub const fn as_c_str(self) -> &'static CStr {
         match self {
-            ShaderAttribute::Position => c"aPos",
+            ShaderAttribute::Position => c"wuteng_Position",
         }
     }
 
