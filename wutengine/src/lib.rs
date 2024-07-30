@@ -7,6 +7,7 @@ use nohash_hasher::IntMap;
 use plugin::EnginePlugin;
 use renderer::shader_resolver::EmbeddedShaderResolver;
 use storage::{ComponentStorage, StorageKind};
+use winit::dpi::PhysicalSize;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -350,6 +351,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
                 let attrs = Window::default_attributes()
                     .with_title(params.title)
+                    .with_min_inner_size(PhysicalSize::<u32>::from((640u32, 480u32)))
                     .with_fullscreen(params.mode.into());
 
                 let window = event_loop.create_window(attrs).unwrap();
