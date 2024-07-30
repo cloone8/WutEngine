@@ -132,7 +132,7 @@ impl ComponentArray {
 
         let ids: Vec<Option<usize>> = entities
             .iter()
-            .map(|id| self.entity_to_idx.get(&id).cloned())
+            .map(|id| self.entity_to_idx.get(id).cloned())
             .collect();
 
         debug_assert!(
@@ -166,7 +166,7 @@ impl ComponentArray {
     ) -> Vec<Option<&mut T>> {
         let ids: Vec<Option<usize>> = entities
             .iter()
-            .map(|id| self.entity_to_idx.get(&id).cloned())
+            .map(|id| self.entity_to_idx.get(id).cloned())
             .collect();
 
         debug_assert!(

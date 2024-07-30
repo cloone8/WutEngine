@@ -149,6 +149,14 @@ impl TryFrom<GLenum> for UniformType {
             opengl::FLOAT_VEC2 => UniformType::Float { count: 2 },
             opengl::FLOAT_VEC3 => UniformType::Float { count: 3 },
             opengl::FLOAT_VEC4 => UniformType::Float { count: 4 },
+            opengl::INT => UniformType::Int { count: 1 },
+            opengl::INT_VEC2 => UniformType::Int { count: 2 },
+            opengl::INT_VEC3 => UniformType::Int { count: 3 },
+            opengl::INT_VEC4 => UniformType::Int { count: 4 },
+            opengl::UNSIGNED_INT => UniformType::Uint { count: 1 },
+            opengl::UNSIGNED_INT_VEC2 => UniformType::Uint { count: 2 },
+            opengl::UNSIGNED_INT_VEC3 => UniformType::Uint { count: 3 },
+            opengl::UNSIGNED_INT_VEC4 => UniformType::Uint { count: 4 },
             _ => return Err(UniformTypeParsingError::UnknownType(value)),
         };
 
