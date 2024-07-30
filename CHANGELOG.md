@@ -2,6 +2,8 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.0.5]
+
 ## [v0.0.4]
 - Fixed various compilation and pipeline errors
 
