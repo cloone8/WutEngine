@@ -12,7 +12,12 @@ use crate::shader::CompileErr;
 use super::set::GlShaderSet;
 
 #[derive(Debug)]
-pub enum ShaderProgram {
+pub struct ShaderProgram {
+    data: ShaderProgramData,
+}
+
+#[derive(Debug)]
+enum ShaderProgramData {
     Linked {
         handle: NonZero<GLuint>,
     },
@@ -43,20 +48,22 @@ impl ShaderProgram {
         let handle = unsafe { gl.CreateProgram() };
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
-        Ok(Self::Unlinked {
-            handle,
-            shaders: stages,
+        Ok(Self {
+            data: ShaderProgramData::Unlinked {
+                handle,
+                shaders: stages,
+            },
         })
     }
 
     pub fn destroy(mut self, gl: &Gl) {
         log::debug!("Destroying ShaderProgram");
 
-        if matches!(self, Self::Destroyed) {
+        if matches!(self.data, ShaderProgramData::Destroyed) {
             panic!("ShaderProgram already destroyed");
         }
 
-        if let Self::Unlinked { shaders, .. } = &mut self {
+        if let ShaderProgramData::Unlinked { shaders, .. } = &mut self.data {
             shaders.destroy_all(gl);
         }
 
@@ -70,26 +77,28 @@ impl ShaderProgram {
             gl.DeleteProgram(handle.get());
         }
 
-        *self = Self::Destroyed;
+        self.data = ShaderProgramData::Destroyed;
     }
 
     fn get_handle(&self) -> NonZero<GLuint> {
-        match self {
-            Self::Unlinked { handle, .. } => *handle,
-            Self::Linked { handle, .. } => *handle,
-            Self::Destroyed => panic!("Trying to get the handle to a destroyed shader program"),
+        match self.data {
+            ShaderProgramData::Unlinked { handle, .. } => handle,
+            ShaderProgramData::Linked { handle, .. } => handle,
+            ShaderProgramData::Destroyed => {
+                panic!("Trying to get the handle to a destroyed shader program")
+            }
         }
     }
 
     fn get_shaders(&mut self) -> &mut GlShaderSet {
-        match self {
-            ShaderProgram::Linked { .. } => {
+        match &mut self.data {
+            ShaderProgramData::Linked { .. } => {
                 panic!("Trying to get shader stages of an already linked shader program")
             }
-            ShaderProgram::Destroyed => {
+            ShaderProgramData::Destroyed => {
                 panic!("Trying to get shader stages of a destroyed shader program")
             }
-            ShaderProgram::Unlinked { shaders, .. } => shaders,
+            ShaderProgramData::Unlinked { shaders, .. } => shaders,
         }
     }
 
@@ -132,17 +141,17 @@ impl ShaderProgram {
         shaders.detach_all(gl, handle);
         shaders.destroy_all(gl);
 
-        *self = ShaderProgram::Linked { handle };
+        self.data = ShaderProgramData::Linked { handle };
 
         Ok(())
     }
 
     pub fn ensure_linked(&mut self, gl: &Gl) -> Result<(), LinkErr> {
-        if matches!(self, Self::Destroyed) {
+        if matches!(self.data, ShaderProgramData::Destroyed) {
             panic!("Trying to use a destroyed shader program");
         }
 
-        if matches!(self, Self::Unlinked { .. }) {
+        if matches!(self.data, ShaderProgramData::Unlinked { .. }) {
             self.link(gl)
         } else {
             Ok(())
@@ -150,19 +159,19 @@ impl ShaderProgram {
     }
 
     pub fn assert_linked(&self) -> NonZero<GLuint> {
-        if let ShaderProgram::Linked { handle } = self {
-            *handle
+        if let ShaderProgramData::Linked { handle } = self.data {
+            handle
         } else {
             panic!("Program not linked!");
         }
     }
 
     pub fn use_program(&mut self, gl: &Gl) -> Result<(), LinkErr> {
-        if matches!(self, Self::Destroyed) {
+        if matches!(self.data, ShaderProgramData::Destroyed) {
             panic!("Trying to use a destroyed shader program");
         }
 
-        if matches!(self, Self::Unlinked { .. }) {
+        if matches!(self.data, ShaderProgramData::Unlinked { .. }) {
             self.link(gl)?;
         }
 
@@ -179,7 +188,7 @@ impl ShaderProgram {
 #[cfg(debug_assertions)]
 impl Drop for ShaderProgram {
     fn drop(&mut self) {
-        if matches!(self, Self::Destroyed) {
+        if matches!(self.data, ShaderProgramData::Destroyed) {
             log::warn!("ShaderProgram dropped without being destroyed!");
         }
     }

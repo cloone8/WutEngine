@@ -49,10 +49,10 @@ impl GlShaderSet {
     }
 
     pub fn destroy_all(&mut self, gl: &Gl) {
-        if let Some(sh) = self.vertex.take() {
+        if let Some(mut sh) = self.vertex.take() {
             sh.destroy(gl)
         }
-        if let Some(sh) = self.fragment.take() {
+        if let Some(mut sh) = self.fragment.take() {
             sh.destroy(gl)
         }
     }

@@ -75,11 +75,22 @@ impl<T: ShaderType> Shader<T> {
 
         self.data.get_handle()
     }
+    pub fn destroy(&mut self, gl: &Gl) {
+        log::trace!("Destroying shader: {:?}", self);
 
-    pub fn destroy(mut self, gl: &Gl) {
-        log::debug!("Destroying shader");
+        let handle = match self.data {
+            ShaderData::Uncompiled { handle, .. } => handle,
+            ShaderData::Compiled { handle } => handle,
+            ShaderData::Destroyed => panic!("Trying to destroy an already destroyed shader"),
+        };
 
-        self.data.destroy(gl);
+        let as_int = handle.get();
+
+        unsafe {
+            gl.DeleteShader(as_int);
+        }
+
+        self.data = ShaderData::Destroyed;
     }
 }
 
@@ -95,9 +106,8 @@ enum ShaderData {
     Destroyed,
 }
 
-/// Public API
 impl ShaderData {
-    pub fn new<T: ShaderType>(gl: &Gl, src: &str) -> Result<Self, CreateErr> {
+    fn new<T: ShaderType>(gl: &Gl, src: &str) -> Result<Self, CreateErr> {
         let handle = unsafe { gl.CreateShader(T::GL_SHADER_TYPE) };
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
@@ -107,32 +117,11 @@ impl ShaderData {
         })
     }
 
-    pub fn destroy(&mut self, gl: &Gl) {
-        log::debug!("Destroying shaderdata: {:?}", self);
-
-        let handle = match self {
-            Self::Uncompiled { handle, .. } => *handle,
-            Self::Compiled { handle } => *handle,
-            Self::Destroyed => panic!("Trying to destroy an already destroyed shader"),
-        };
-
-        let as_int = handle.get();
-
-        unsafe {
-            gl.DeleteShader(as_int);
-        }
-
-        *self = Self::Destroyed;
-    }
-}
-
-/// Internal API
-impl ShaderData {
-    pub fn is_compiled(&self) -> bool {
+    fn is_compiled(&self) -> bool {
         matches!(self, Self::Compiled { .. })
     }
 
-    pub fn get_handle(&self) -> NonZero<GLuint> {
+    fn get_handle(&self) -> NonZero<GLuint> {
         match self {
             Self::Uncompiled { handle, .. } => *handle,
             Self::Compiled { handle, .. } => *handle,
@@ -148,7 +137,7 @@ impl ShaderData {
         }
     }
 
-    pub fn do_compile(&mut self, gl: &Gl) -> Result<(), CompileErr> {
+    fn do_compile(&mut self, gl: &Gl) -> Result<(), CompileErr> {
         if matches!(self, Self::Destroyed) {
             panic!("Trying to compile a destroyed shader");
         }
@@ -196,9 +185,9 @@ impl ShaderData {
 }
 
 #[cfg(debug_assertions)]
-impl Drop for ShaderData {
+impl<T: ShaderType> Drop for Shader<T> {
     fn drop(&mut self) {
-        if !matches!(self, Self::Destroyed) {
+        if !matches!(self.data, ShaderData::Destroyed) {
             log::warn!("Shader {:#?} dropped without being destroyed!", self);
         }
     }

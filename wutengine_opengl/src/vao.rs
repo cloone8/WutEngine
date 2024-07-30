@@ -49,23 +49,23 @@ impl Vao {
 
     pub fn set_vertex_attrs_for(&mut self, gl: &Gl, mesh: &GlMeshBuffers, program: &ShaderProgram) {
         for attribute in mesh.layout.get_present_attributes() {
-            log::debug!("Checking attribute {:?}", attribute);
+            log::trace!("Checking attribute presence: {:?}", attribute);
 
             let location_index = unsafe {
                 gl.GetAttribLocation(program.assert_linked().get(), attribute.as_c_str().as_ptr())
             };
 
             if location_index == -1 {
-                log::debug!("Attribute not present");
+                log::trace!("Attribute not present");
                 // Attribute not present on shader
                 continue;
             }
 
-            log::debug!("Attribute present at {}", location_index);
+            log::trace!("Attribute present at {}", location_index);
 
             let layout = mesh.layout.get_for_attribute(attribute).unwrap();
 
-            log::debug!("Resolved layout: {:#?}", layout);
+            log::trace!("Resolved layout: {:#?}", layout);
 
             unsafe {
                 gl.VertexAttribPointer(
