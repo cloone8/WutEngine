@@ -1924,6 +1924,7 @@ dependencies = [
 name = "wutengine_storage"
 version = "0.0.5"
 dependencies = [
+ "itertools",
  "rand",
 ]
 
