@@ -1,6 +1,8 @@
 use wutengine::components::mesh::Mesh;
 use wutengine::graphics::mesh::MeshData;
+use wutengine::log;
 use wutengine::math::Vec3;
+use wutengine::runtime::RuntimeInitializer;
 use wutengine::{
     command::{Command, FullscreenType, OpenWindowParams},
     components::camera::Camera,
@@ -9,27 +11,10 @@ use wutengine::{
     plugin::EnginePlugin,
     renderer::OpenGLRenderer,
     world::World,
-    EngineCommand, RuntimeInitializer, SystemFunction,
+    EngineCommand, SystemFunction,
 };
 
 fn main() {
-    let logconfig = simplelog::ConfigBuilder::new()
-        .set_thread_mode(simplelog::ThreadLogMode::Both)
-        .set_time_format_rfc3339()
-        .set_time_offset_to_local()
-        .expect("Could not set logger time offset to local")
-        .build();
-
-    simplelog::TermLogger::init(
-        log::LevelFilter::Debug,
-        logconfig,
-        simplelog::TerminalMode::Stdout,
-        simplelog::ColorChoice::Auto,
-    )
-    .expect("Could not initialize logger");
-
-    log::info!("Starting Pong");
-
     let mut runtime = RuntimeInitializer::new();
 
     runtime.add_plugin::<PongStarterPlugin>();
@@ -51,6 +36,8 @@ impl EnginePlugin for PongStarterPlugin {
 
         match event {
             wutengine::EngineEvent::RuntimeStart => {
+                log::info!("Received runtime start event");
+
                 response.push(EngineCommand::AddSystem(System {
                     phase: SystemPhase::RuntimeStart,
                     func: SystemFunction::Immutable(init_system),

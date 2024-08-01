@@ -956,8 +956,6 @@ dependencies = [
 name = "pong"
 version = "0.0.5"
 dependencies = [
- "log",
- "simplelog",
  "wutengine",
 ]
 
@@ -1860,6 +1858,7 @@ dependencies = [
  "log",
  "nohash-hasher",
  "rand",
+ "simplelog",
  "winit",
  "wutengine_core",
  "wutengine_graphics",

@@ -1,9 +1,10 @@
+use wutengine::runtime::RuntimeInitializer;
 use wutengine::{
     command::{FullscreenType, OpenWindowParams},
     graphics::windowing::WindowIdentifier,
     plugin::EnginePlugin,
     renderer::OpenGLRenderer,
-    EngineCommand, EngineEvent, RuntimeInitializer,
+    EngineCommand, EngineEvent,
 };
 
 fn main() {

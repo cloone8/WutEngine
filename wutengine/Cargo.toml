@@ -17,13 +17,16 @@ default = ["opengl"]
 opengl = ["dep:wutengine_opengl"]
 
 [dependencies]
+# Core
 wutengine_core.workspace = true
 wutengine_graphics.workspace = true
 wutengine_macro.workspace = true
 wutengine_util_macro.workspace = true
 
+# Renderers
 wutengine_opengl = { workspace = true, optional = true }
 
+# External
 nohash-hasher.workspace = true
 winit.workspace = true
 log.workspace = true
@@ -31,3 +34,4 @@ itertools.workspace = true
 rand.workspace = true
 glam.workspace = true
 include_dir.workspace = true
+simplelog.workspace = true

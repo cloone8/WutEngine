@@ -3,7 +3,8 @@ use mesh::Mesh;
 use name::Name;
 use wutengine_core::ComponentTypeId;
 
-use crate::{storage::StorageKind, RuntimeInitializer};
+use crate::runtime::RuntimeInitializer;
+use crate::storage::StorageKind;
 
 pub mod camera;
 pub mod mesh;

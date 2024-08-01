@@ -13,5 +13,3 @@ publish = false
 
 [dependencies]
 wutengine.workspace = true
-log.workspace = true
-simplelog.workspace = true
