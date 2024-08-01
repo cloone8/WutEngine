@@ -1921,6 +1921,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "wutengine_storage"
+version = "0.0.5"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "wutengine_util_macro"
 version = "0.0.5"
 dependencies = [
