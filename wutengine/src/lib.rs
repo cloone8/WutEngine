@@ -29,6 +29,8 @@ pub mod runtime;
 pub mod storage;
 pub mod world;
 
+//NOTE: This top-level module will _not_ be logged due to level filtering difficulties. Put any logic in a submodule.
+
 #[derive(Debug)]
 pub enum SystemFunction {
     Immutable(for<'a> fn(&mut Command, &'a World<'a>)),

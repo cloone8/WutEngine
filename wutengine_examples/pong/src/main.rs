@@ -1,6 +1,6 @@
 use wutengine::components::mesh::Mesh;
 use wutengine::graphics::mesh::MeshData;
-use wutengine::log;
+use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::math::Vec3;
 use wutengine::runtime::RuntimeInitializer;
 use wutengine::{
@@ -18,6 +18,13 @@ fn main() {
     let mut runtime = RuntimeInitializer::new();
 
     runtime.add_plugin::<PongStarterPlugin>();
+    runtime.with_log_config(LogConfig {
+        runtime: Some(ComponentLogConfig {
+            min_level: log::LevelFilter::Info,
+            output: log::LogOutput::StdOut,
+        }),
+        ..Default::default()
+    });
     runtime.run::<OpenGLRenderer>().unwrap();
 }
 
