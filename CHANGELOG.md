@@ -4,6 +4,7 @@ This file documents the most important changes for each released version.
 
 ## [v0.0.5]
 - Initial support for material parameters (and the corresponding uniforms in the rendering backends)
+- Initial support for logging and granular logging configuration
 
 ## [v0.0.4]
 - Fixed various compilation and pipeline errors
