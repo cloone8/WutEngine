@@ -1,6 +1,5 @@
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use nohash_hasher::IntMap;
 use winit::application::ApplicationHandler;
@@ -9,14 +8,12 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
 use wutengine_core::{Component, ComponentTypeId, EntityId, System, SystemPhase};
-use wutengine_graphics::color::Color;
-use wutengine_graphics::material::{MaterialData, MaterialParameter};
 use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
-use wutengine_graphics::shader::ShaderSetId;
 use wutengine_graphics::windowing::WindowIdentifier;
 
 use crate::command::Command;
 use crate::components::camera::Camera;
+use crate::components::material::Material;
 use crate::components::mesh::Mesh;
 use crate::components::ID_CAMERA;
 use crate::plugin::EnginePlugin;
@@ -66,26 +63,24 @@ impl<R: WutEngineRenderer> Runtime<R> {
     }
 
     fn get_renderables(&self) -> Vec<Renderable> {
-        let query_result: Vec<(EntityId, Option<&Mesh>)> = unsafe { self.query() };
+        let query_result: Vec<(EntityId, Option<(&Mesh, &Material)>)> = unsafe { self.query() };
 
         let mut renderables = Vec::new();
 
-        for components in query_result
+        for (mesh, material) in query_result
             .into_iter()
             .filter(|(_, comps)| comps.is_some())
             .map(|(_, comps)| comps.unwrap())
         {
-            log::trace!("Pushing renderable mesh: {:#?}", components);
-            let a = wutengine_macro::map!(
-                "baseColor".to_owned() => MaterialParameter::Color(Color::rgb(0.5, 0.0, 0.0))
+            log::trace!(
+                "Pushing renderable mesh {:#?} with material {:#?}",
+                mesh,
+                material
             );
 
             renderables.push(Renderable {
-                mesh: components.data.clone(),
-                material: Rc::new(MaterialData {
-                    shader: ShaderSetId::new("unlit"),
-                    parameters: a,
-                }),
+                mesh: mesh.data.clone(),
+                material: material.data.clone(),
             })
         }
 

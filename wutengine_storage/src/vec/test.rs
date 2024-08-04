@@ -191,7 +191,7 @@ fn test_rand() {
 fn test_type_push_panic() {
     let mut anyvec = AnyVec::new::<u32>();
 
-    anyvec.push(0xdead_u64);
+    anyvec.push::<u64>(0xdead);
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn test_type_push_panic() {
 fn test_type_pop_panic() {
     let mut anyvec = AnyVec::new::<u32>();
 
-    let _dead: Option<u64> = anyvec.pop();
+    let _dead = anyvec.pop::<u64>();
 }
 
 #[test]

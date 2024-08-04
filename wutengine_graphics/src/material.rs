@@ -5,7 +5,7 @@ use glam::{Vec2, Vec3, Vec4};
 use crate::color::Color;
 use crate::shader::ShaderSetId;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MaterialData {
     pub shader: ShaderSetId,
     pub parameters: HashMap<String, MaterialParameter>,

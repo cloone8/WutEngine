@@ -1,5 +1,8 @@
+use wutengine::components::material::Material;
 use wutengine::components::mesh::Mesh;
+use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::MeshData;
+use wutengine::graphics::shader::ShaderSetId;
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::math::Vec3;
 use wutengine::runtime::RuntimeInitializer;
@@ -89,15 +92,25 @@ fn init_system(commands: &mut Command, world: &World) {
 
     let right_triangle = Mesh::new(right_triangle_mesh);
 
-    commands
-        .entity()
-        .spawn_with_components(vec![Box::new(camera)]);
+    let matdata = MaterialData {
+        shader: ShaderSetId::new("unlit"),
+        parameters: wutengine::macros::map!(
+            "baseColor".to_owned() => MaterialParameter::Color(Color::rgb(0.5, 0.0, 0.0))
+        ),
+    };
 
-    commands
-        .entity()
-        .spawn_with_components(vec![Box::new(left_triangle)]);
+    commands.entity().spawn_with_components(vec![
+        Box::new(camera),
+        Box::new(Material::new(matdata.clone())),
+    ]);
 
-    commands
-        .entity()
-        .spawn_with_components(vec![Box::new(right_triangle)]);
+    commands.entity().spawn_with_components(vec![
+        Box::new(left_triangle),
+        Box::new(Material::new(matdata.clone())),
+    ]);
+
+    commands.entity().spawn_with_components(vec![
+        Box::new(right_triangle),
+        Box::new(Material::new(matdata.clone())),
+    ]);
 }
