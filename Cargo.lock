@@ -1883,8 +1883,6 @@ dependencies = [
 name = "wutengine_editor"
 version = "0.0.5"
 dependencies = [
- "log",
- "simplelog",
  "wutengine",
 ]
 
