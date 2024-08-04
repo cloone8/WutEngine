@@ -6,12 +6,12 @@ use winit::event_loop::EventLoop;
 use wutengine_core::{Component, ComponentTypeId};
 use wutengine_graphics::renderer::WutEngineRenderer;
 
+use crate::legacy_storage::{ComponentStorage, StorageKind};
 use crate::log::LogConfig;
 use crate::plugin::EnginePlugin;
 use crate::renderer::shader_resolver::EmbeddedShaderResolver;
 use crate::runtime::Runtime;
-use crate::storage::{ComponentStorage, StorageKind};
-use crate::{components, WindowingEvent};
+use crate::{builtins, WindowingEvent};
 
 #[derive(Default)]
 pub struct RuntimeInitializer {
@@ -79,7 +79,7 @@ impl RuntimeInitializer {
     pub fn run<R: WutEngineRenderer>(mut self) -> Result<(), ()> {
         crate::log::initialize_loggers(&self.log_config);
 
-        components::register_builtins(&mut self);
+        builtins::components::register_builtins(&mut self);
 
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
             .build()

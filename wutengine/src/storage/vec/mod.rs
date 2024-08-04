@@ -5,6 +5,7 @@ use std::ptr::NonNull;
 #[cfg(test)]
 mod test;
 
+#[derive(Debug)]
 pub struct AnyVec {
     len: usize,
     capacity: usize,
@@ -34,6 +35,17 @@ impl AnyVec {
         new.ensure_capacity(num);
 
         new
+    }
+
+    pub fn duplicate_for_type(&self) -> Self {
+        Self {
+            len: 0,
+            capacity: 0,
+            storage: None,
+            base_layout: self.base_layout,
+            actual_type: self.actual_type,
+            drop_fn: self.drop_fn,
+        }
     }
 
     pub fn inner_type_id(&self) -> TypeId {

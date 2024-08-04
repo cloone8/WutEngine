@@ -4,7 +4,7 @@ use nohash_hasher::IntMap;
 use wutengine_core::{Component, ComponentTypeId, EntityId};
 use wutengine_util_macro::make_queryable_tuples;
 
-use crate::storage::ComponentStorage;
+use crate::legacy_storage::ComponentStorage;
 
 pub unsafe trait Queryable<'a>: Sized {
     fn reads() -> Vec<ComponentTypeId>;

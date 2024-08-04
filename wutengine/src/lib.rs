@@ -19,8 +19,9 @@ mod embedded {
     pub static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
 }
 
+pub mod builtins;
 pub mod command;
-pub mod components;
+pub mod legacy_storage;
 pub mod log;
 pub mod math;
 pub mod plugin;

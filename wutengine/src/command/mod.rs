@@ -1,9 +1,11 @@
 use crate::EngineCommand;
 
 mod entity;
+mod event;
 mod window;
 
 pub use entity::*;
+pub use event::*;
 pub use window::*;
 
 #[derive(Debug)]
@@ -59,5 +61,9 @@ impl Command {
 
     pub fn entity(&mut self) -> EntityCommand {
         EntityCommand::new(self)
+    }
+
+    pub fn event(&mut self) -> EventCommand {
+        EventCommand::new(self)
     }
 }

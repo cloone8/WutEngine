@@ -11,13 +11,13 @@ use wutengine_core::{Component, ComponentTypeId, EntityId, System, SystemPhase};
 use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
 use wutengine_graphics::windowing::WindowIdentifier;
 
+use crate::builtins::components::camera::Camera;
+use crate::builtins::components::material::Material;
+use crate::builtins::components::mesh::Mesh;
+use crate::builtins::components::ID_CAMERA;
 use crate::command::Command;
-use crate::components::camera::Camera;
-use crate::components::material::Material;
-use crate::components::mesh::Mesh;
-use crate::components::ID_CAMERA;
+use crate::legacy_storage::ComponentStorage;
 use crate::plugin::EnginePlugin;
-use crate::storage::ComponentStorage;
 use crate::world::{Queryable, World};
 use crate::{EngineCommand, EngineEvent, SystemFunction, WindowingEvent};
 

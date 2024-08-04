@@ -5,7 +5,7 @@ use name::Name;
 use wutengine_core::ComponentTypeId;
 
 use crate::runtime::RuntimeInitializer;
-use crate::storage::StorageKind;
+use crate::legacy_storage::StorageKind;
 
 pub mod camera;
 pub mod material;

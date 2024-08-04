@@ -1,7 +1,7 @@
 macro_rules! debug_assert_aligned {
     ($ptr:expr, $align:expr) => {
         if cfg!(debug_assertions) {
-            $crate::storage::ptr_helpers::assert_aligned!($ptr, $align);
+            $crate::legacy_storage::ptr_helpers::assert_aligned!($ptr, $align);
         }
     };
 }
@@ -11,10 +11,10 @@ pub(super) use debug_assert_aligned;
 macro_rules! assert_aligned {
     ($ptr:expr, $align:expr) => {
         assert!(
-            $crate::storage::ptr_helpers::is_aligned_to($ptr, $align),
+            $crate::legacy_storage::ptr_helpers::is_aligned_to($ptr, $align),
             "Alignment error. Expected at least {}, actual max alignment {}",
             $align,
-            $crate::storage::ptr_helpers::calc_max_alignment($ptr)
+            $crate::legacy_storage::ptr_helpers::calc_max_alignment($ptr)
         )
     };
 }

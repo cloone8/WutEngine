@@ -9,7 +9,7 @@ use wutengine_core::{
     EntityId, {Component, ComponentTypeId, DynComponent},
 };
 
-use crate::storage::ptr_helpers::debug_assert_aligned;
+use crate::legacy_storage::ptr_helpers::debug_assert_aligned;
 
 use super::ComponentElement;
 

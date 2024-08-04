@@ -80,10 +80,6 @@ impl Archetype {
                 Ordering::Equal => self_idx += 1,
                 Ordering::Greater => return false,
             }
-
-            if self_idx == self.inner.len() {
-                return true;
-            }
         }
 
         self_idx == self.inner.len()

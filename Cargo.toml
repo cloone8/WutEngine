@@ -8,7 +8,7 @@ members = [
     "wutengine_examples/pong",
     "wutengine_util/macro",
     "wutengine_graphics",
-    "wutengine_opengl", "wutengine_storage",
+    "wutengine_opengl",
 ]
 
 [workspace.package]

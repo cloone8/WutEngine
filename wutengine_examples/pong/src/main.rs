@@ -1,5 +1,6 @@
-use wutengine::components::material::Material;
-use wutengine::components::mesh::Mesh;
+use wutengine::builtins::components::camera::Camera;
+use wutengine::builtins::components::material::Material;
+use wutengine::builtins::components::mesh::Mesh;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::MeshData;
 use wutengine::graphics::shader::ShaderSetId;
@@ -8,7 +9,6 @@ use wutengine::math::Vec3;
 use wutengine::runtime::RuntimeInitializer;
 use wutengine::{
     command::{Command, FullscreenType, OpenWindowParams},
-    components::camera::Camera,
     core::{System, SystemPhase},
     graphics::{color::Color, windowing::WindowIdentifier},
     plugin::EnginePlugin,
