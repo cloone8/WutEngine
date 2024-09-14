@@ -75,6 +75,10 @@ impl Archetype {
         self.components.keys()
     }
 
+    pub fn get_components_for_read(&self) -> &HashMap<TypeId, AnyVec> {
+        &self.components
+    }
+
     pub fn get_components_for_add(&mut self, to_add: EntityId) -> ArchetypeMapMut {
         debug_assert!(
             !self.entities.contains(&to_add),

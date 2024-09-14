@@ -110,21 +110,40 @@ impl World {
     }
 
     pub fn archetype_ids_for(&self, type_ids: &[TypeId]) -> Vec<ArchetypeId> {
-        let mut init_archetypes = self.type_containers.get(&type_ids[0]).unwrap().clone();
+        let mut init_archetypes = self
+            .type_containers
+            .get(&type_ids[0])
+            .expect("Unknown TypeId")
+            .clone();
 
         for type_id in &type_ids[1..] {
-            let containing_archetypes = self.type_containers.get(type_id).unwrap();
+            let containing_archetypes = self.type_containers.get(type_id).expect("Unknown TypeId");
 
             init_archetypes.retain(|e| containing_archetypes.contains(e));
         }
 
         init_archetypes
     }
-}
 
-// entities: HashMap<EntityId, ArchetypeId>,
-// archetypes: HashMap<ArchetypeId, Archetype>,
-// type_containers: HashMap<TypeId, Vec<ArchetypeId>>,
+    pub fn query<T: Any>(&self) -> Vec<&T> {
+        let archetype_ids = self.archetype_ids_for(&[TypeId::of::<T>()]);
+
+        let mut to_ret = Vec::new();
+
+        for archetype_id in archetype_ids {
+            let archetype = self
+                .archetypes
+                .get(&archetype_id)
+                .expect("Could not find archetype");
+
+            let components = archetype.get_components_for_read();
+
+            to_ret.extend(components.get(&TypeId::of::<T>()).unwrap().as_slice::<T>());
+        }
+
+        to_ret
+    }
+}
 
 impl World {
     #[track_caller]
