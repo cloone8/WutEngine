@@ -41,6 +41,7 @@ impl World {
             component_map
                 .get_mut(&TypeId::of::<T>())
                 .expect("AnyVec could not be found")
+                .get_mut()
                 .push(init_component);
         }
 
@@ -61,9 +62,11 @@ impl World {
         let mut removed_archetype_type_ids: Vec<TypeId> = Vec::new();
 
         for component_vec in archetype_components.values_mut() {
-            removed_archetype_type_ids.push(component_vec.inner_type_id());
+            let borrowed = component_vec.get_mut();
 
-            component_vec.swap_remove(entity_idx);
+            removed_archetype_type_ids.push(borrowed.inner_type_id());
+
+            borrowed.swap_remove(entity_idx);
         }
 
         std::mem::drop(archetype_components);
@@ -125,10 +128,8 @@ impl World {
         init_archetypes
     }
 
-    pub fn query<T: Any>(&self) -> Vec<&T> {
+    pub fn query<T: Any, F: FnMut(&T)>(&self, mut callback: F) {
         let archetype_ids = self.archetype_ids_for(&[TypeId::of::<T>()]);
-
-        let mut to_ret = Vec::new();
 
         for archetype_id in archetype_ids {
             let archetype = self
@@ -136,12 +137,12 @@ impl World {
                 .get(&archetype_id)
                 .expect("Could not find archetype");
 
-            let components = archetype.get_components_for_read();
+            let components = archetype.get_components_for_read(&[TypeId::of::<T>()]);
 
-            to_ret.extend(components.get(&TypeId::of::<T>()).unwrap().as_slice::<T>());
+            for comps in components[0].borrow().as_slice::<T>() {
+                callback(comps);
+            }
         }
-
-        to_ret
     }
 }
 

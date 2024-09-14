@@ -38,18 +38,30 @@ fn simple_create() {
 
     world.assert_coherent::<false>();
 
-    let positions = world.query::<Position>();
-    let velocities = world.query::<Velocity>();
-    let sizes = world.query::<Size>();
+    let mut num_found = 0;
 
-    assert_eq!(1, positions.len());
-    assert_eq!(pos, *positions[0]);
+    world.query::<Position, _>(|found| {
+        num_found += 1;
+        assert_eq!(pos, *found);
+    });
 
-    assert_eq!(1, velocities.len());
-    assert_eq!(vel, *velocities[0]);
+    assert_eq!(1, num_found);
 
-    assert_eq!(1, sizes.len());
-    assert_eq!(size, *sizes[0]);
+    num_found = 0;
+    world.query::<Velocity, _>(|found| {
+        num_found += 1;
+        assert_eq!(vel, *found);
+    });
+
+    assert_eq!(1, num_found);
+
+    num_found = 0;
+    world.query::<Size, _>(|found| {
+        num_found += 1;
+        assert_eq!(size, *found);
+    });
+
+    assert_eq!(1, num_found);
 }
 
 #[test]
@@ -74,15 +86,28 @@ fn create_multiple_same_component() {
 
     world.assert_coherent::<false>();
 
-    let positions = world.query::<Position>();
-    let sizes = world.query::<Size>();
+    let mut found1 = false;
+    let mut found2 = false;
 
-    assert_eq!(2, positions.len());
-    assert!(positions.contains(&&pos1));
-    assert!(positions.contains(&&pos2));
+    world.query::<Position, _>(|found| {
+        if *found == pos1 {
+            assert!(!found1);
+            found1 = true;
+        } else if *found == pos2 {
+            assert!(!found2);
+            found2 = true;
+        } else {
+            panic!("Got unknown position: {:?}", found);
+        }
+    });
 
-    assert_eq!(1, sizes.len());
-    assert_eq!(size, *sizes[0]);
+    let mut num_found = 0;
+    world.query::<Size, _>(|found| {
+        num_found += 1;
+        assert_eq!(size, *found);
+    });
+
+    assert_eq!(1, num_found);
 }
 
 #[test]
@@ -108,13 +133,17 @@ fn create_and_remove_single() {
     world.remove_entity(b);
     world.assert_coherent::<false>();
 
-    let positions = world.query::<Position>();
-    let velocities = world.query::<Velocity>();
-    let sizes = world.query::<Size>();
+    world.query::<Position, _>(|p| {
+        panic!("Found unexpected position {:?}", p);
+    });
 
-    assert_eq!(0, positions.len());
-    assert_eq!(0, velocities.len());
-    assert_eq!(0, sizes.len());
+    world.query::<Velocity, _>(|p| {
+        panic!("Found unexpected velocity {:?}", p);
+    });
+
+    world.query::<Size, _>(|p| {
+        panic!("Found unexpected size {:?}", p);
+    });
 }
 
 #[test]
@@ -140,9 +169,11 @@ fn create_and_remove_multiple_same_component() {
     world.remove_entity(b);
     world.assert_coherent::<false>();
 
-    let positions = world.query::<Position>();
-    let sizes = world.query::<Size>();
+    world.query::<Position, _>(|p| {
+        panic!("Found unexpected position {:?}", p);
+    });
 
-    assert_eq!(0, positions.len());
-    assert_eq!(0, sizes.len());
+    world.query::<Size, _>(|p| {
+        panic!("Found unexpected size {:?}", p);
+    });
 }

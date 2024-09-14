@@ -1,4 +1,5 @@
 use core::any::{Any, TypeId};
+use core::cell::RefCell;
 use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 
@@ -12,7 +13,7 @@ pub use archetype_id::*;
 #[derive(Debug)]
 pub struct Archetype {
     entities: Vec<EntityId>,
-    components: HashMap<TypeId, AnyVec>,
+    components: HashMap<TypeId, RefCell<AnyVec>>,
 }
 
 #[derive(Debug)]
@@ -27,7 +28,7 @@ impl<'a> ArchetypeMapMut<'a> {
 }
 
 impl<'a> Deref for ArchetypeMapMut<'a> {
-    type Target = HashMap<TypeId, AnyVec>;
+    type Target = HashMap<TypeId, RefCell<AnyVec>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner.components
@@ -59,7 +60,7 @@ impl Archetype {
         component_vec.push(value);
 
         let mut components_map = HashMap::default();
-        components_map.insert(TypeId::of::<T>(), component_vec);
+        components_map.insert(TypeId::of::<T>(), RefCell::new(component_vec));
 
         Archetype {
             entities: vec![entity],
@@ -75,8 +76,11 @@ impl Archetype {
         self.components.keys()
     }
 
-    pub fn get_components_for_read(&self) -> &HashMap<TypeId, AnyVec> {
-        &self.components
+    pub fn get_components_for_read(&self, types: &[TypeId]) -> Vec<&RefCell<AnyVec>> {
+        types
+            .iter()
+            .map(|t| self.components.get(t).expect("Unknown TypeId"))
+            .collect()
     }
 
     pub fn get_components_for_add(&mut self, to_add: EntityId) -> ArchetypeMapMut {
@@ -140,13 +144,13 @@ impl Archetype {
         for (component_type, component_vec) in self.components.iter() {
             assert_eq!(
                 *component_type,
-                component_vec.inner_type_id(),
+                component_vec.borrow().inner_type_id(),
                 "AnyVec inner type does not match expected type"
             );
 
             assert_eq!(
                 expected_len,
-                component_vec.len(),
+                component_vec.borrow().len(),
                 "Length mismatch for component vector for type {:?}",
                 component_type
             );
