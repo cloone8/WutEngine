@@ -1880,6 +1880,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "wutengine_ecs"
+version = "0.0.5"
+dependencies = [
+ "rand",
+ "thiserror",
+]
+
+[[package]]
 name = "wutengine_editor"
 version = "0.0.5"
 dependencies = [
