@@ -11,6 +11,7 @@ pub use queries::*;
 
 use wutengine_core::EntityId;
 
+#[derive(Debug, Default)]
 pub struct World {
     entities: HashMap<EntityId, ArchetypeId>,
     archetypes: HashMap<ArchetypeId, Archetype>,
@@ -19,11 +20,7 @@ pub struct World {
 
 impl World {
     pub fn new() -> Self {
-        Self {
-            entities: HashMap::default(),
-            archetypes: HashMap::default(),
-            type_containers: HashMap::default(),
-        }
+        Self::default()
     }
 
     pub fn create_entity<T: Any>(&mut self, init_component: T) -> EntityId {
@@ -147,7 +144,7 @@ impl World {
     pub unsafe fn query<'a, C, F, O>(&'a self, callback: F) -> Vec<O>
     where
         C: CombinedQuery<'a>,
-        F: Fn(C) -> O,
+        F: Fn(EntityId, C) -> O,
     {
         let type_ids = C::get_type_ids();
 
@@ -164,8 +161,9 @@ impl World {
                 .expect("Could not find archetype");
 
             let components = archetype.get_components_for_read(&type_ids);
+            let entities = archetype.get_contained_entities();
 
-            output.extend(C::do_callback(components, &callback));
+            output.extend(C::do_callback(entities, components, &callback));
         }
 
         output

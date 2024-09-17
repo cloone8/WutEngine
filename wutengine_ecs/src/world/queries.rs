@@ -1,6 +1,7 @@
 use core::any::{Any, TypeId};
 use core::cell::UnsafeCell;
 
+use wutengine_core::EntityId;
 use wutengine_util_macro::make_combined_query_tuples;
 
 use crate::vec::AnyVec;
@@ -59,9 +60,13 @@ where
 
 pub trait CombinedQuery<'q>: Sized {
     fn get_type_ids() -> Vec<TypeId>;
-    fn do_callback<F, O>(cells: Vec<&'q UnsafeCell<AnyVec>>, callback: F) -> Vec<O>
+    fn do_callback<F, O>(
+        entities: &[EntityId],
+        cells: Vec<&'q UnsafeCell<AnyVec>>,
+        callback: F,
+    ) -> Vec<O>
     where
-        F: Fn(Self) -> O;
+        F: Fn(EntityId, Self) -> O;
 }
 
 impl<'q, T> CombinedQuery<'q> for T
@@ -72,15 +77,19 @@ where
         vec![TypeId::of::<T::Inner>()]
     }
 
-    fn do_callback<F, O>(cells: Vec<&'q UnsafeCell<AnyVec>>, callback: F) -> Vec<O>
+    fn do_callback<F, O>(
+        entites: &[EntityId],
+        cells: Vec<&'q UnsafeCell<AnyVec>>,
+        callback: F,
+    ) -> Vec<O>
     where
-        F: Fn(Self) -> O,
+        F: Fn(EntityId, Self) -> O,
     {
         let refs = T::from_anyvec(cells[0]);
         let mut outputs = Vec::with_capacity(refs.len());
 
-        for args in refs {
-            outputs.push(callback(args));
+        for (args, &entity) in refs.into_iter().zip(entites) {
+            outputs.push(callback(entity, args));
         }
 
         outputs

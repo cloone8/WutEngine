@@ -40,7 +40,7 @@ fn simple_create() {
 
     unsafe {
         let num_found: usize = world
-            .query(|found: &Position| {
+            .query(|_, found: &Position| {
                 assert_eq!(pos, *found);
                 1
             })
@@ -50,7 +50,7 @@ fn simple_create() {
         assert_eq!(1, num_found);
 
         let num_found = world
-            .query(|found: &Velocity| {
+            .query(|_, found: &Velocity| {
                 assert_eq!(vel, *found);
                 1
             })
@@ -60,7 +60,7 @@ fn simple_create() {
         assert_eq!(1, num_found);
 
         let num_found = world
-            .query(|found: &Size| {
+            .query(|_, found: &Size| {
                 assert_eq!(size, *found);
                 1
             })
@@ -94,7 +94,7 @@ fn create_multiple_same_component() {
     world.assert_coherent::<false>();
 
     unsafe {
-        let found = world.query(|found: &Position| *found);
+        let found = world.query(|_, found: &Position| *found);
 
         let mut found1 = false;
         let mut found2 = false;
@@ -110,7 +110,7 @@ fn create_multiple_same_component() {
                 panic!("Got unknown position: {:?}", foundpos);
             }
         }
-        let num_found = world.query(|found: &Size| {
+        let num_found = world.query(|_, found: &Size| {
             assert_eq!(size, *found);
             1
         });
@@ -143,15 +143,15 @@ fn create_and_remove_single() {
     world.assert_coherent::<false>();
 
     unsafe {
-        world.query(|p: &Position| {
+        world.query(|_, p: &Position| {
             panic!("Found unexpected position {:?}", p);
         });
 
-        world.query(|p: &Velocity| {
+        world.query(|_, p: &Velocity| {
             panic!("Found unexpected velocity {:?}", p);
         });
 
-        world.query(|p: &Size| {
+        world.query(|_, p: &Size| {
             panic!("Found unexpected size {:?}", p);
         });
     }
@@ -181,13 +181,13 @@ fn create_and_remove_multiple_same_component() {
     world.assert_coherent::<false>();
 
     unsafe {
-        world.query(|p: &Position| {
+        world.query(|_, p: &Position| {
             panic!("Found unexpected position {:?}", p);
         });
 
         dbg!(b);
 
-        world.query(|p: &Size| {
+        world.query(|_, p: &Size| {
             panic!("Found unexpected size {:?}", p);
         });
     }
