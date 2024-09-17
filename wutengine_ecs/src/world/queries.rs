@@ -1,5 +1,5 @@
-use core::any::{Any, TypeId};
-use core::cell::{Ref, RefCell, RefMut, UnsafeCell};
+use core::any::Any;
+use core::cell::UnsafeCell;
 
 use crate::vec::AnyVec;
 
@@ -32,10 +32,25 @@ where
     }
 }
 
-// impl<T> Queryable for &mut T {
-//     type Borrowed<'rc> = RefMut<'rc, AnyVec>;
+impl<'q, T> Queryable<'q> for &'q mut T
+where
+    T: 'static,
+{
+    type Inner = T;
 
-//     fn do_borrow(storage: &RefCell<AnyVec>) -> Self::Borrowed<'_> {
-//         storage.borrow_mut()
-//     }
-// }
+    fn from_anyvec<'a: 'q>(cell: &'a UnsafeCell<AnyVec>) -> Vec<Self> {
+        let mut output = Vec::new();
+
+        let cell_ref = unsafe {
+            cell.get()
+                .as_mut::<'q>()
+                .expect("UnsafeCell returned nullptr")
+        };
+
+        for r in cell_ref.as_mut_slice::<T>() {
+            output.push(r);
+        }
+
+        output
+    }
+}
