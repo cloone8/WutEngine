@@ -135,12 +135,27 @@ impl World {
         init_archetypes
     }
 
-    pub unsafe fn query<'a, C: CombinedQuery<'a>>(&'a self, mut callback: impl FnMut(C)) {
+    /// Queries the world
+    ///
+    /// # Safety
+    ///
+    /// This function mutably borrows using unsafe. To ensure safety, the following
+    /// rule must be upheld:
+    ///
+    /// For any mutably queried type `T`, no other queries must be running that either
+    /// mutably or immutably borrow `T`
+    pub unsafe fn query<'a, C, F, O>(&'a self, callback: F) -> Vec<O>
+    where
+        C: CombinedQuery<'a>,
+        F: Fn(C) -> O,
+    {
         let type_ids = C::get_type_ids();
 
         assert_unique_type_ids(&type_ids);
 
         let archetype_ids = self.archetype_ids_for(&type_ids);
+
+        let mut output = Vec::new();
 
         for archetype_id in archetype_ids {
             let archetype = self
@@ -150,8 +165,10 @@ impl World {
 
             let components = archetype.get_components_for_read(&type_ids);
 
-            C::do_callback(components, &mut callback);
+            output.extend(C::do_callback(components, &callback));
         }
+
+        output
     }
 }
 

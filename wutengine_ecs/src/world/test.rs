@@ -38,29 +38,34 @@ fn simple_create() {
 
     world.assert_coherent::<false>();
 
-    let mut num_found = 0;
-
     unsafe {
-        world.query(|found: &Position| {
-            num_found += 1;
-            assert_eq!(pos, *found);
-        });
+        let num_found: usize = world
+            .query(|found: &Position| {
+                assert_eq!(pos, *found);
+                1
+            })
+            .into_iter()
+            .sum();
 
         assert_eq!(1, num_found);
 
-        num_found = 0;
-        world.query(|found: &Velocity| {
-            num_found += 1;
-            assert_eq!(vel, *found);
-        });
+        let num_found = world
+            .query(|found: &Velocity| {
+                assert_eq!(vel, *found);
+                1
+            })
+            .into_iter()
+            .sum();
 
         assert_eq!(1, num_found);
 
-        num_found = 0;
-        world.query(|found: &Size| {
-            num_found += 1;
-            assert_eq!(size, *found);
-        });
+        let num_found = world
+            .query(|found: &Size| {
+                assert_eq!(size, *found);
+                1
+            })
+            .into_iter()
+            .sum();
 
         assert_eq!(1, num_found);
     }
@@ -88,29 +93,29 @@ fn create_multiple_same_component() {
 
     world.assert_coherent::<false>();
 
-    let mut found1 = false;
-    let mut found2 = false;
-
     unsafe {
-        world.query(|found: &Position| {
-            if *found == pos1 {
+        let found = world.query(|found: &Position| *found);
+
+        let mut found1 = false;
+        let mut found2 = false;
+
+        for foundpos in found {
+            if foundpos == pos1 {
                 assert!(!found1);
                 found1 = true;
-            } else if *found == pos2 {
+            } else if foundpos == pos2 {
                 assert!(!found2);
                 found2 = true;
             } else {
-                panic!("Got unknown position: {:?}", found);
+                panic!("Got unknown position: {:?}", foundpos);
             }
-        });
-
-        let mut num_found = 0;
-        world.query(|found: &Size| {
-            num_found += 1;
+        }
+        let num_found = world.query(|found: &Size| {
             assert_eq!(size, *found);
+            1
         });
 
-        assert_eq!(1, num_found);
+        assert_eq!(1, num_found.into_iter().sum());
     }
 }
 
@@ -179,6 +184,8 @@ fn create_and_remove_multiple_same_component() {
         world.query(|p: &Position| {
             panic!("Found unexpected position {:?}", p);
         });
+
+        dbg!(b);
 
         world.query(|p: &Size| {
             panic!("Found unexpected size {:?}", p);

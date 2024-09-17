@@ -18,13 +18,13 @@ where
     type Inner = T;
 
     fn from_anyvec<'a: 'q>(cell: &'a UnsafeCell<AnyVec>) -> Vec<Self> {
-        let mut output = Vec::new();
-
         let cell_ref = unsafe {
             cell.get()
                 .as_ref::<'q>()
                 .expect("UnsafeCell returned nullptr")
         };
+
+        let mut output = Vec::with_capacity(cell_ref.len());
 
         for r in cell_ref.as_slice::<T>() {
             output.push(r);
@@ -41,13 +41,13 @@ where
     type Inner = T;
 
     fn from_anyvec<'a: 'q>(cell: &'a UnsafeCell<AnyVec>) -> Vec<Self> {
-        let mut output = Vec::new();
-
         let cell_ref = unsafe {
             cell.get()
                 .as_mut::<'q>()
                 .expect("UnsafeCell returned nullptr")
         };
+
+        let mut output = Vec::with_capacity(cell_ref.len());
 
         for r in cell_ref.as_mut_slice::<T>() {
             output.push(r);
@@ -59,7 +59,9 @@ where
 
 pub trait CombinedQuery<'q>: Sized {
     fn get_type_ids() -> Vec<TypeId>;
-    fn do_callback(cells: Vec<&'q UnsafeCell<AnyVec>>, callback: impl FnMut(Self));
+    fn do_callback<F, O>(cells: Vec<&'q UnsafeCell<AnyVec>>, callback: F) -> Vec<O>
+    where
+        F: Fn(Self) -> O;
 }
 
 impl<'q, T> CombinedQuery<'q> for T
@@ -70,12 +72,18 @@ where
         vec![TypeId::of::<T::Inner>()]
     }
 
-    fn do_callback(cells: Vec<&'q UnsafeCell<AnyVec>>, mut callback: impl FnMut(Self)) {
+    fn do_callback<F, O>(cells: Vec<&'q UnsafeCell<AnyVec>>, callback: F) -> Vec<O>
+    where
+        F: Fn(Self) -> O,
+    {
         let refs = T::from_anyvec(cells[0]);
+        let mut outputs = Vec::with_capacity(refs.len());
 
         for args in refs {
-            callback(args);
+            outputs.push(callback(args));
         }
+
+        outputs
     }
 }
 

@@ -225,18 +225,21 @@ pub fn make_combined_query_tuples_impl(input: proc_macro::TokenStream) -> proc_m
                 ]
             }
 
-            fn do_callback(cells: Vec<&'q ::core::cell::UnsafeCell<AnyVec>>, mut callback: impl FnMut(Self)) {
+            fn do_callback<Func, Out>(cells: Vec<&'q ::core::cell::UnsafeCell<AnyVec>>, callback: Func) -> Vec<Out> where Func: Fn(Self) -> Out {
                 assert_eq!(#expected_cells, cells.len());
 
                 #refs;
 
                 #checks;
 
+                let mut outputs = Vec::with_capacity(#first_ref_ident.len());
                 let combined = ::itertools::izip!(#all_refs_idents);
 
                 for args in combined {
-                    callback(args);
+                    outputs.push(callback(args));
                 }
+
+                outputs
             }
         }
     }
