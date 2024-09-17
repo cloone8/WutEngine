@@ -40,7 +40,7 @@ fn simple_create() {
 
     let mut num_found = 0;
 
-    world.query::<Position, _>(|found| {
+    world.query::<&Position, _>(|found| {
         num_found += 1;
         assert_eq!(pos, *found);
     });
@@ -48,7 +48,7 @@ fn simple_create() {
     assert_eq!(1, num_found);
 
     num_found = 0;
-    world.query::<Velocity, _>(|found| {
+    world.query::<&Velocity, _>(|found| {
         num_found += 1;
         assert_eq!(vel, *found);
     });
@@ -56,7 +56,7 @@ fn simple_create() {
     assert_eq!(1, num_found);
 
     num_found = 0;
-    world.query::<Size, _>(|found| {
+    world.query::<&Size, _>(|found| {
         num_found += 1;
         assert_eq!(size, *found);
     });
@@ -89,7 +89,7 @@ fn create_multiple_same_component() {
     let mut found1 = false;
     let mut found2 = false;
 
-    world.query::<Position, _>(|found| {
+    world.query::<&Position, _>(|found| {
         if *found == pos1 {
             assert!(!found1);
             found1 = true;
@@ -102,7 +102,7 @@ fn create_multiple_same_component() {
     });
 
     let mut num_found = 0;
-    world.query::<Size, _>(|found| {
+    world.query::<&Size, _>(|found| {
         num_found += 1;
         assert_eq!(size, *found);
     });
@@ -133,15 +133,15 @@ fn create_and_remove_single() {
     world.remove_entity(b);
     world.assert_coherent::<false>();
 
-    world.query::<Position, _>(|p| {
+    world.query::<&Position, _>(|p| {
         panic!("Found unexpected position {:?}", p);
     });
 
-    world.query::<Velocity, _>(|p| {
+    world.query::<&Velocity, _>(|p| {
         panic!("Found unexpected velocity {:?}", p);
     });
 
-    world.query::<Size, _>(|p| {
+    world.query::<&Size, _>(|p| {
         panic!("Found unexpected size {:?}", p);
     });
 }
@@ -169,11 +169,11 @@ fn create_and_remove_multiple_same_component() {
     world.remove_entity(b);
     world.assert_coherent::<false>();
 
-    world.query::<Position, _>(|p| {
+    world.query::<&Position, _>(|p| {
         panic!("Found unexpected position {:?}", p);
     });
 
-    world.query::<Size, _>(|p| {
+    world.query::<&Size, _>(|p| {
         panic!("Found unexpected size {:?}", p);
     });
 }

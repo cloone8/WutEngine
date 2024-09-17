@@ -1,5 +1,5 @@
 use core::any::{Any, TypeId};
-use core::cell::RefCell;
+use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 
@@ -13,7 +13,7 @@ pub use archetype_id::*;
 #[derive(Debug)]
 pub struct Archetype {
     entities: Vec<EntityId>,
-    components: HashMap<TypeId, RefCell<AnyVec>>,
+    components: HashMap<TypeId, UnsafeCell<AnyVec>>,
 }
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ impl<'a> ArchetypeMapMut<'a> {
 }
 
 impl<'a> Deref for ArchetypeMapMut<'a> {
-    type Target = HashMap<TypeId, RefCell<AnyVec>>;
+    type Target = HashMap<TypeId, UnsafeCell<AnyVec>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner.components
@@ -60,7 +60,7 @@ impl Archetype {
         component_vec.push(value);
 
         let mut components_map = HashMap::default();
-        components_map.insert(TypeId::of::<T>(), RefCell::new(component_vec));
+        components_map.insert(TypeId::of::<T>(), UnsafeCell::new(component_vec));
 
         Archetype {
             entities: vec![entity],
@@ -76,7 +76,7 @@ impl Archetype {
         self.components.keys()
     }
 
-    pub fn get_components_for_read(&self, types: &[TypeId]) -> Vec<&RefCell<AnyVec>> {
+    pub fn get_components_for_read(&self, types: &[TypeId]) -> Vec<&UnsafeCell<AnyVec>> {
         types
             .iter()
             .map(|t| self.components.get(t).expect("Unknown TypeId"))
@@ -142,18 +142,20 @@ impl Archetype {
         let expected_len = self.entities.len();
 
         for (component_type, component_vec) in self.components.iter() {
-            assert_eq!(
-                *component_type,
-                component_vec.borrow().inner_type_id(),
-                "AnyVec inner type does not match expected type"
-            );
+            unsafe {
+                assert_eq!(
+                    *component_type,
+                    component_vec.get().as_ref().unwrap().inner_type_id(),
+                    "AnyVec inner type does not match expected type"
+                );
 
-            assert_eq!(
-                expected_len,
-                component_vec.borrow().len(),
-                "Length mismatch for component vector for type {:?}",
-                component_type
-            );
+                assert_eq!(
+                    expected_len,
+                    component_vec.get().as_ref().unwrap().len(),
+                    "Length mismatch for component vector for type {:?}",
+                    component_type
+                );
+            }
         }
     }
 }

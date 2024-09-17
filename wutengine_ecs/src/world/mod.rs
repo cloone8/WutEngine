@@ -4,6 +4,9 @@ use std::collections::HashMap;
 use crate::archetype::{Archetype, ArchetypeId};
 use crate::entity_id::EntityId;
 
+mod queries;
+pub use queries::*;
+
 pub struct World {
     entities: HashMap<EntityId, ArchetypeId>,
     archetypes: HashMap<ArchetypeId, Archetype>,
@@ -128,8 +131,8 @@ impl World {
         init_archetypes
     }
 
-    pub fn query<T: Any, F: FnMut(&T)>(&self, mut callback: F) {
-        let archetype_ids = self.archetype_ids_for(&[TypeId::of::<T>()]);
+    pub fn query<'a, T: Queryable<'a>, F: FnMut(T)>(&'a self, mut callback: F) {
+        let archetype_ids = self.archetype_ids_for(&[TypeId::of::<T::Inner>()]);
 
         for archetype_id in archetype_ids {
             let archetype = self
@@ -137,9 +140,11 @@ impl World {
                 .get(&archetype_id)
                 .expect("Could not find archetype");
 
-            let components = archetype.get_components_for_read(&[TypeId::of::<T>()]);
+            let components = archetype.get_components_for_read(&[TypeId::of::<T::Inner>()]);
 
-            for comps in components[0].borrow().as_slice::<T>() {
+            let refs = T::from_anyvec(components[0]);
+
+            for comps in refs {
                 callback(comps);
             }
         }
