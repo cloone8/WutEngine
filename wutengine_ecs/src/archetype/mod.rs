@@ -3,12 +3,12 @@ use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 
-use crate::entity_id::EntityId;
 use crate::vec::AnyVec;
 
 mod archetype_id;
 
 pub use archetype_id::*;
+use wutengine_core::EntityId;
 
 #[derive(Debug)]
 pub struct Archetype {

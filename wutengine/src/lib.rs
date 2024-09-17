@@ -4,6 +4,9 @@ use command::{Command, OpenWindowParams};
 pub use wutengine_core as core;
 
 #[doc(inline)]
+pub use wutengine_ecs as ecs;
+
+#[doc(inline)]
 pub use wutengine_graphics as graphics;
 
 #[doc(inline)]

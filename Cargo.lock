@@ -1861,6 +1861,7 @@ dependencies = [
  "simplelog",
  "winit",
  "wutengine_core",
+ "wutengine_ecs",
  "wutengine_graphics",
  "wutengine_macro",
  "wutengine_opengl",
@@ -1886,6 +1887,8 @@ dependencies = [
  "itertools",
  "rand",
  "thiserror",
+ "wutengine_core",
+ "wutengine_util_macro",
 ]
 
 [[package]]

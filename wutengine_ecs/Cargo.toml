@@ -11,6 +11,9 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+wutengine_core.workspace = true
+wutengine_util_macro.workspace = true
+
 rand.workspace = true
 thiserror.workspace = true
 itertools.workspace = true

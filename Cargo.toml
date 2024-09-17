@@ -8,7 +8,8 @@ members = [
     "wutengine_examples/pong",
     "wutengine_util/macro",
     "wutengine_graphics",
-    "wutengine_opengl", "wutengine_ecs",
+    "wutengine_opengl",
+    "wutengine_ecs",
 ]
 
 [workspace.package]
@@ -30,6 +31,7 @@ wutengine_core = { path = "wutengine_core", version = "0.0.5" }
 wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.5" }
 wutengine_graphics = { path = "wutengine_graphics", version = "0.0.5" }
 wutengine_opengl = { path = "wutengine_opengl", version = "0.0.5" }
+wutengine_ecs = { path = "wutengine_ecs", version = "0.0.5" }
 
 # External dependencies
 winit = { version = "0.30.3" }

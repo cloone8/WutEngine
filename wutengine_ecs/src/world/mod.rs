@@ -2,11 +2,11 @@ use core::any::{Any, TypeId};
 use std::collections::HashMap;
 
 use crate::archetype::{Archetype, ArchetypeId};
-use crate::entity_id::EntityId;
 
 mod queries;
 use itertools::izip;
 pub use queries::*;
+use wutengine_core::EntityId;
 
 pub struct World {
     entities: HashMap<EntityId, ArchetypeId>,
@@ -24,7 +24,7 @@ impl World {
     }
 
     pub fn create_entity<T: Any>(&mut self, init_component: T) -> EntityId {
-        let id = EntityId::new();
+        let id = EntityId::random();
         let initial_archetype = ArchetypeId::new(&[TypeId::of::<T>()]);
 
         let prev_key = self.entities.insert(id, initial_archetype);

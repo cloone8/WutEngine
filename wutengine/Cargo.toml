@@ -22,6 +22,7 @@ wutengine_core.workspace = true
 wutengine_graphics.workspace = true
 wutengine_macro.workspace = true
 wutengine_util_macro.workspace = true
+wutengine_ecs.workspace = true
 
 # Renderers
 wutengine_opengl = { workspace = true, optional = true }
