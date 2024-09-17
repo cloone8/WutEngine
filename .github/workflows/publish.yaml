@@ -25,6 +25,16 @@ jobs:
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
       
+      - name: Publish engine utility macros
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_util_macro
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Publish ECS
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_ecs
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        
       - name: Publish engine graphics core
         run: cargo publish --token ${CRATES_TOKEN} -p wutengine_graphics
         env:
@@ -35,11 +45,6 @@ jobs:
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
       
-      - name: Publish engine utility macros
-        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_util_macro
-        env:
-          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-
       - name: Publish engine macros
         run: cargo publish --token ${CRATES_TOKEN} -p wutengine_macro
         env:
