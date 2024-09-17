@@ -3,8 +3,6 @@ use core::cell::UnsafeCell;
 
 use wutengine_util_macro::make_combined_query_tuples;
 
-use itertools::izip;
-
 use crate::vec::AnyVec;
 
 pub trait Queryable<'q>: Sized {
