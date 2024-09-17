@@ -5,6 +5,7 @@ use crate::archetype::{Archetype, ArchetypeId};
 use crate::entity_id::EntityId;
 
 mod queries;
+use itertools::izip;
 pub use queries::*;
 
 pub struct World {
@@ -131,7 +132,11 @@ impl World {
         init_archetypes
     }
 
-    pub fn query<'a, T: Queryable<'a>, F: FnMut(T)>(&'a self, mut callback: F) {
+    pub fn query<'a, T, F>(&'a self, mut callback: F)
+    where
+        T: Queryable<'a>,
+        F: FnMut(T),
+    {
         let archetype_ids = self.archetype_ids_for(&[TypeId::of::<T::Inner>()]);
 
         for archetype_id in archetype_ids {
@@ -149,6 +154,121 @@ impl World {
             }
         }
     }
+
+    pub fn query_2<'a, A, B, F>(&'a self, mut callback: F)
+    where
+        A: Queryable<'a>,
+        B: Queryable<'a>,
+        F: FnMut(A, B),
+    {
+        let type_ids = [TypeId::of::<A::Inner>(), TypeId::of::<B::Inner>()];
+
+        assert_unique_type_ids(&type_ids);
+
+        let archetype_ids = self.archetype_ids_for(&type_ids);
+
+        for archetype_id in archetype_ids {
+            let archetype = self
+                .archetypes
+                .get(&archetype_id)
+                .expect("Could not find archetype");
+
+            let components = archetype.get_components_for_read(&type_ids);
+
+            let refs_a = A::from_anyvec(components[0]);
+            let refs_b = B::from_anyvec(components[1]);
+
+            debug_assert_eq!(refs_a.len(), refs_b.len());
+
+            let combined = izip!(refs_a, refs_b);
+
+            for x in combined {
+                callback(x.0, x.1);
+            }
+        }
+    }
+
+    pub fn query_3<'a, A, B, C, F>(&'a self, mut callback: F)
+    where
+        A: Queryable<'a>,
+        B: Queryable<'a>,
+        C: Queryable<'a>,
+        F: FnMut(A, B, C),
+    {
+        let type_ids = [
+            TypeId::of::<A::Inner>(),
+            TypeId::of::<B::Inner>(),
+            TypeId::of::<C::Inner>(),
+        ];
+
+        assert_unique_type_ids(&type_ids);
+
+        let archetype_ids = self.archetype_ids_for(&type_ids);
+
+        for archetype_id in archetype_ids {
+            let archetype = self
+                .archetypes
+                .get(&archetype_id)
+                .expect("Could not find archetype");
+
+            let components = archetype.get_components_for_read(&type_ids);
+
+            let refs_a = A::from_anyvec(components[0]);
+            let refs_b = B::from_anyvec(components[1]);
+            let refs_c = C::from_anyvec(components[2]);
+
+            debug_assert_eq!(refs_a.len(), refs_b.len());
+            debug_assert_eq!(refs_a.len(), refs_c.len());
+
+            let combined = izip!(refs_a, refs_b, refs_c);
+
+            for x in combined {
+                callback(x.0, x.1, x.2);
+            }
+        }
+    }
+
+    pub fn query_combined<'a, C: CombinedQuery<'a>>(&'a self, mut callback: impl FnMut(C)) {
+        let type_ids = C::get_type_ids();
+
+        assert_unique_type_ids(&type_ids);
+
+        let archetype_ids = self.archetype_ids_for(&type_ids);
+
+        for archetype_id in archetype_ids {
+            let archetype = self
+                .archetypes
+                .get(&archetype_id)
+                .expect("Could not find archetype");
+
+            let components = archetype.get_components_for_read(&type_ids);
+
+            C::do_callback(components, &mut callback);
+        }
+    }
+}
+
+#[track_caller]
+pub fn assert_unique_type_ids(ids: &[TypeId]) {
+    let duplicate = get_first_duplicate_type_id(ids);
+
+    if let Some(duplicate) = duplicate {
+        panic!("Duplicate TypeId given: {:?}", duplicate)
+    }
+}
+
+pub fn get_first_duplicate_type_id(ids: &[TypeId]) -> Option<TypeId> {
+    for i in 0..ids.len() {
+        for j in (i + 1)..ids.len() {
+            debug_assert_ne!(i, j);
+
+            if ids[i] == ids[j] {
+                return Some(ids[i]);
+            }
+        }
+    }
+
+    None
 }
 
 impl World {
