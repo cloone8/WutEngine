@@ -1,9 +1,11 @@
 use core::any::{Any, TypeId};
 use core::cell::UnsafeCell;
+use core::f32::consts::E;
 use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 
 use crate::vec::AnyVec;
+use crate::world::TypeDescriptorSet;
 
 mod archetype_id;
 
@@ -68,6 +70,42 @@ impl Archetype {
         }
     }
 
+    pub fn new_from_template(
+        template: &Archetype,
+        extra_types: TypeDescriptorSet,
+        filtered_types: &[TypeId],
+    ) -> Self {
+        let mut new_components = HashMap::<TypeId, UnsafeCell<AnyVec>>::default();
+
+        for (typeid, storagecell) in &template.components {
+            if filtered_types.contains(typeid) {
+                continue;
+            }
+
+            new_components.insert(
+                *typeid,
+                UnsafeCell::new(AnyVec::from_descriptor(unsafe {
+                    storagecell.get().as_ref().unwrap().get_descriptor()
+                })),
+            );
+        }
+
+        for (extra_type_id, extra_storage_desc) in extra_types.descriptors {
+            assert!(!new_components.contains_key(&extra_type_id));
+            assert!(!filtered_types.contains(&extra_type_id));
+
+            new_components.insert(
+                extra_type_id,
+                UnsafeCell::new(AnyVec::from_descriptor(extra_storage_desc)),
+            );
+        }
+
+        Self {
+            entities: Vec::new(),
+            components: new_components,
+        }
+    }
+
     pub fn get_contained_entities(&self) -> &[EntityId] {
         &self.entities
     }
@@ -105,6 +143,63 @@ impl Archetype {
         self.entities.swap_remove(entity_idx);
 
         (entity_idx, self.mutmap())
+    }
+
+    pub fn move_entity_to<const ALLOW_REMOVAL: bool>(
+        &mut self,
+        to_move: EntityId,
+        destination: &mut Self,
+    ) {
+        let entity_idx = self
+            .entities
+            .iter()
+            .position(|e| *e == to_move)
+            .expect("Entity to-move not found in source archetype");
+
+        let removed_entity = self.entities.swap_remove(entity_idx);
+
+        debug_assert_eq!(to_move, removed_entity, "Removed the wrong entity");
+
+        for (type_id, storage) in &mut self.components {
+            let target_storage_opt = destination.components.get_mut(type_id);
+
+            if ALLOW_REMOVAL && target_storage_opt.is_none() {
+                // If we allow removals, then we simply drop
+                // the component if the target storage doesn't exist
+                storage.get_mut().swap_remove(entity_idx);
+            } else {
+                // else we move the component to the new destination
+                target_storage_opt
+                    .expect("Target is missing type_id storage")
+                    .get_mut()
+                    .take_from_other(storage.get_mut(), entity_idx);
+            }
+        }
+
+        destination.entities.push(to_move);
+    }
+
+    pub fn add_to_entity_unchecked<T: Any>(&mut self, entity: EntityId, component: T) {
+        let entity_idx = self
+            .entities
+            .iter()
+            .position(|e| *e == entity)
+            .expect("Could not find entity");
+
+        let storage = self
+            .components
+            .get_mut(&TypeId::of::<T>())
+            .expect("Could not find component storage");
+
+        let storage_mut = storage.get_mut();
+
+        assert_eq!(
+            storage_mut.len(),
+            entity_idx,
+            "Not adding to the latest entry, will result in incoherent archetype"
+        );
+
+        storage_mut.push(component);
     }
 
     pub fn len(&self) -> usize {

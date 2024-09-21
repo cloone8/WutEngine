@@ -2,6 +2,7 @@ use core::any::{Any, TypeId};
 use std::collections::HashMap;
 
 use crate::archetype::{Archetype, ArchetypeId};
+use crate::vec::AnyVecStorageDescriptor;
 
 #[cfg(test)]
 mod test;
@@ -98,7 +99,139 @@ impl World {
         self.entities.remove(&entity);
     }
 
-    fn create_single_component_archetype<T: Any>(&mut self, entity: EntityId, value: T) {
+    pub fn add_component_to_entity<T: Any>(&mut self, entity: EntityId, component: T) {
+        let current_archetype_id = self.entities.get(&entity).expect("Entity not found");
+        let current_archetype = self
+            .archetypes
+            .get(current_archetype_id)
+            .expect("Archetype not found");
+        let mut typeid_set = Vec::from_iter(current_archetype.get_contained_types().copied());
+
+        let new_component_type = TypeId::of::<T>();
+
+        assert!(!typeid_set.contains(&new_component_type));
+
+        typeid_set.push(new_component_type);
+
+        let new_archetype_id = ArchetypeId::new(&typeid_set);
+
+        // Ensure target archetype exists first
+        #[expect(
+            clippy::map_entry,
+            reason = "Clippy's solution causes borrow-checker problems"
+        )]
+        if !self.archetypes.contains_key(&new_archetype_id) {
+            let new_empty_archetype =
+                Archetype::new_from_template(current_archetype, TypeDescriptorSet::new::<T>(), &[]);
+
+            self.archetypes
+                .insert(new_archetype_id, new_empty_archetype);
+        }
+
+        // Scary reference magic: Rust does not allow multiple mutable borrows to the
+        // same hashmap, so we trick the borrowchecker by casting them to pointers.
+        // To ensure this is valid, we must ensure that we do not mutably borrow the hashmap
+        // again while holding these pointers
+        let source_archetype_ptr =
+            self.archetypes.get_mut(current_archetype_id).unwrap() as *mut Archetype;
+        let target_archetype_ptr =
+            self.archetypes.get_mut(&new_archetype_id).unwrap() as *mut Archetype;
+
+        assert_ne!(
+            source_archetype_ptr, target_archetype_ptr,
+            "current is target, invalid aliasing"
+        );
+
+        // SAFETY: Pointers are valid as long as the hashmap containing them is not modified, as we
+        // know they do not reference the same archetype
+        let source_archetype_empty = unsafe {
+            source_archetype_ptr
+                .as_mut()
+                .unwrap()
+                .move_entity_to::<false>(entity, target_archetype_ptr.as_mut().unwrap());
+
+            target_archetype_ptr
+                .as_mut()
+                .unwrap()
+                .add_to_entity_unchecked(entity, component);
+
+            source_archetype_ptr.as_ref().unwrap().is_empty()
+        };
+
+        if source_archetype_empty {
+            let removed_archetype = self.archetypes.remove(current_archetype_id);
+            debug_assert!(removed_archetype.is_some());
+        }
+
+        self.assert_coherent::<true>();
+    }
+
+    pub fn remove_components_from_entity(&mut self, entity: EntityId, components: &[TypeId]) {
+        let current_archetype_id = self.entities.get(&entity).expect("Entity not found");
+        let current_archetype = self
+            .archetypes
+            .get(current_archetype_id)
+            .expect("Archetype not found");
+
+        let new_typeid_set = Vec::from_iter(
+            current_archetype
+                .get_contained_types()
+                .filter(|t_id| !components.contains(t_id))
+                .copied(),
+        );
+
+        let new_archetype_id = ArchetypeId::new(&new_typeid_set);
+
+        // Ensure target archetype exists first
+        #[expect(
+            clippy::map_entry,
+            reason = "Clippy's solution causes borrow-checker problems"
+        )]
+        if !self.archetypes.contains_key(&new_archetype_id) {
+            let new_empty_archetype = Archetype::new_from_template(
+                current_archetype,
+                TypeDescriptorSet::new_empty(),
+                components,
+            );
+
+            self.archetypes
+                .insert(new_archetype_id, new_empty_archetype);
+        }
+
+        // Scary reference magic: Rust does not allow multiple mutable borrows to the
+        // same hashmap, so we trick the borrowchecker by casting them to pointers.
+        // To ensure this is valid, we must ensure that we do not mutably borrow the hashmap
+        // again while holding these pointers
+        let source_archetype_ptr =
+            self.archetypes.get_mut(current_archetype_id).unwrap() as *mut Archetype;
+        let target_archetype_ptr =
+            self.archetypes.get_mut(&new_archetype_id).unwrap() as *mut Archetype;
+
+        assert_ne!(
+            source_archetype_ptr, target_archetype_ptr,
+            "current is target, invalid aliasing"
+        );
+
+        // SAFETY: Pointers are valid as long as the hashmap containing them is not modified, as we
+        // know they do not reference the same archetype
+        let source_archetype_empty = unsafe {
+            source_archetype_ptr
+                .as_mut()
+                .unwrap()
+                .move_entity_to::<true>(entity, target_archetype_ptr.as_mut().unwrap());
+
+            source_archetype_ptr.as_ref().unwrap().is_empty()
+        };
+
+        if source_archetype_empty {
+            let removed_archetype = self.archetypes.remove(current_archetype_id);
+            debug_assert!(removed_archetype.is_some());
+        }
+
+        self.assert_coherent::<true>();
+    }
+
+    fn create_single_component_archetype<T: Any>(&mut self, entity: EntityId, component: T) {
         let new_archetype_id = ArchetypeId::new(&[TypeId::of::<T>()]);
 
         debug_assert!(
@@ -106,7 +239,7 @@ impl World {
             "Archetype already created"
         );
 
-        let new_archetype = Archetype::new_single(entity, value);
+        let new_archetype = Archetype::new_single(entity, component);
 
         self.archetypes.insert(new_archetype_id, new_archetype);
 
@@ -191,6 +324,29 @@ pub fn get_first_duplicate_type_id(ids: &[TypeId]) -> Option<TypeId> {
     }
 
     None
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct TypeDescriptorSet {
+    pub descriptors: Vec<(TypeId, AnyVecStorageDescriptor)>,
+}
+
+impl TypeDescriptorSet {
+    pub fn new_empty() -> Self {
+        Self {
+            descriptors: Vec::new(),
+        }
+    }
+    pub fn new<T: Any>() -> Self {
+        Self {
+            descriptors: vec![(TypeId::of::<T>(), AnyVecStorageDescriptor::new::<T>())],
+        }
+    }
+
+    pub fn add<T: Any>(&mut self) {
+        self.descriptors
+            .push((TypeId::of::<T>(), AnyVecStorageDescriptor::new::<T>()));
+    }
 }
 
 impl World {

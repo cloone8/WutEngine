@@ -142,6 +142,8 @@ impl AnyVec {
             (self.drop_fn)(elem_ptr);
 
             // Then replace it with the one at the tail
+            self.overwrite_with_tail(index);
+
             if index != (self.len() - 1) {
                 let tail_elem_ptr =
                     storage_ptr.byte_add(self.base_layout.size() * (self.len() - 1));
@@ -153,6 +155,60 @@ impl AnyVec {
         }
 
         self.len -= 1;
+    }
+
+    pub fn take_from_other(&mut self, other: &mut Self, index: usize) {
+        assert_eq!(self.actual_type, other.actual_type, "Non-matching types!");
+        assert!(
+            index < other.len(),
+            "Index out of range: {} (max {})",
+            index,
+            other.len()
+        );
+        debug_assert_eq!(
+            self.base_layout, other.base_layout,
+            "Types of AnyVecs are the same, but layouts aren't"
+        );
+
+        self.ensure_capacity(self.len() + 1);
+
+        let other_storage_ptr = other.storage.expect("Len > 0 but no storage").as_ptr();
+        let my_storage_ptr = self.storage.expect("Len > 0 but no storage").as_ptr();
+
+        unsafe {
+            let source_ptr = other_storage_ptr.byte_add(other.base_layout.size() * index);
+            let dst_ptr = my_storage_ptr.byte_add(self.base_layout.size() * self.len());
+
+            debug_assert_eq!(0, source_ptr as usize % other.base_layout.align());
+            debug_assert_eq!(0, dst_ptr as usize % self.base_layout.align());
+
+            // First copy the element from `other` to `self`
+            source_ptr.copy_to_nonoverlapping(dst_ptr, other.base_layout.size());
+
+            // Now overwrite the copied (moved) element in `other` with the tail of `other`
+            other.overwrite_with_tail(index);
+        }
+
+        self.len += 1;
+        other.len -= 1;
+    }
+
+    /// Overwrites the element at the given index with the current tail, _without_ running
+    /// its drop function and _without_ modifying the length of `self`.
+    ///
+    /// If the given index _is_ the tail, does nothing.
+    unsafe fn overwrite_with_tail(&mut self, index: usize) {
+        let elem_size = self.base_layout.size();
+        let storage_ptr = self.storage.expect("Len > 0 but no storage").as_ptr();
+        let to_overwrite_ptr: *mut u8 = storage_ptr.byte_add(elem_size * index);
+
+        if index != (self.len() - 1) {
+            let tail_elem_ptr: *mut u8 = storage_ptr.byte_add(elem_size * (self.len() - 1));
+
+            debug_assert_ne!(to_overwrite_ptr, tail_elem_ptr);
+
+            to_overwrite_ptr.copy_from_nonoverlapping(tail_elem_ptr, elem_size);
+        }
     }
 
     pub fn clear(&mut self) {
