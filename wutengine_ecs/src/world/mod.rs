@@ -134,6 +134,13 @@ impl World {
             let new_empty_archetype =
                 Archetype::new_from_template(current_archetype, TypeDescriptorSet::new::<T>(), &[]);
 
+            for type_id in new_empty_archetype.get_contained_types() {
+                self.type_containers
+                    .entry(*type_id)
+                    .or_default()
+                    .push(new_archetype_id);
+            }
+
             self.archetypes
                 .insert(new_archetype_id, new_empty_archetype);
         }
@@ -207,6 +214,13 @@ impl World {
                 TypeDescriptorSet::new_empty(),
                 components,
             );
+
+            for type_id in new_empty_archetype.get_contained_types() {
+                self.type_containers
+                    .entry(*type_id)
+                    .or_default()
+                    .push(new_archetype_id);
+            }
 
             self.archetypes
                 .insert(new_archetype_id, new_empty_archetype);
@@ -400,6 +414,8 @@ impl World {
             assert_eq!(*archetype_id, computed_archetype_id, "Computer archetype ID for archetype does not match its world key. Expected {:?}, computed {:?}", archetype_id, computed_archetype_id);
             assert!(!archetype.is_empty(), "Empty archetype found");
         }
+
+        //TODO: Check for all archetypes, if they can be found properly in their type containers
 
         // Type container checks
         for (type_id, type_id_containers) in &self.type_containers {
