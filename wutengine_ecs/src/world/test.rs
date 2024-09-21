@@ -1,3 +1,5 @@
+use core::any::TypeId;
+
 use crate::world::World;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -231,6 +233,66 @@ fn create_entity_and_add_components() {
         assert_eq!(1, res.len());
 
         let res = world.query(|id, _components_inv: (&Size, &Position)| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+    }
+}
+
+#[test]
+fn create_entity_and_remove_single_components() {
+    let mut world = World::new();
+    world.assert_coherent::<false>();
+
+    let entity = world.create_entity(Position { x: 0.0, y: 0.1 });
+    world.assert_coherent::<false>();
+
+    unsafe {
+        let res = world.query(|id, _p: &Position| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+    }
+
+    world.add_component_to_entity(entity, Size { x: 5.0 });
+    world.add_component_to_entity(entity, Velocity { x: 6.0, y: 7.0 });
+
+    unsafe {
+        let res = world.query(|id, _components_inv: (&Position, &Size, &Velocity)| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+    }
+
+    world.remove_components_from_entity(entity, &[TypeId::of::<Size>()]);
+
+    unsafe {
+        world.query(|id, _components_inv: (&Position, &Size, &Velocity)| {
+            panic!("Found invalid entity: {:?}", id);
+        });
+
+        let res = world.query(|id, _components_inv: (&Position, &Velocity)| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+    }
+
+    world.remove_components_from_entity(entity, &[TypeId::of::<Position>()]);
+
+    unsafe {
+        world.query(|id, _components_inv: (&Position, &Size, &Velocity)| {
+            panic!("Found invalid entity: {:?}", id);
+        });
+
+        world.query(|id, _components_inv: (&Position, &Velocity)| {
+            panic!("Found invalid entity: {:?}", id);
+        });
+
+        let res = world.query(|id, _components_inv: &Velocity| {
             assert_eq!(entity, id);
         });
 
