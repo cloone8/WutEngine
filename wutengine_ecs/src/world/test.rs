@@ -192,3 +192,48 @@ fn create_and_remove_multiple_same_component() {
         });
     }
 }
+
+#[test]
+fn create_entity_and_add_components() {
+    let mut world = World::new();
+    world.assert_coherent::<false>();
+
+    let entity = world.create_entity(Position { x: 0.0, y: 0.1 });
+    world.assert_coherent::<false>();
+
+    unsafe {
+        let res = world.query(|id, _p: &Position| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+    }
+
+    world.add_component_to_entity(entity, Size { x: 5.0 });
+
+    unsafe {
+        let res = world.query(|id, _p: &Position| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+
+        let res = world.query(|id, _s: &Size| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+
+        let res = world.query(|id, _components: (&Position, &Size)| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+
+        let res = world.query(|id, _components_inv: (&Size, &Position)| {
+            assert_eq!(entity, id);
+        });
+
+        assert_eq!(1, res.len());
+    }
+}

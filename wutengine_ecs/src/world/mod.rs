@@ -78,32 +78,42 @@ impl World {
 
         // If removing the components has left the archetype empty, remove it entirely
         if archetype.is_empty() {
-            let old_val = self.archetypes.remove(archetype_id);
-
-            debug_assert!(old_val.is_some());
-
-            // Use the TypeIds we saved before to clean up the type_containers map
-            for removed_archetype_type_id in removed_archetype_type_ids.into_iter() {
-                if let Some(type_containers) =
-                    self.type_containers.get_mut(&removed_archetype_type_id)
-                {
-                    if let Some(removed_archetype_pos) =
-                        type_containers.iter().position(|e| e == archetype_id)
-                    {
-                        type_containers.swap_remove(removed_archetype_pos);
-                    }
-                }
-            }
+            let to_delete = *archetype_id;
+            self.delete_archetype(&to_delete);
         }
 
         self.entities.remove(&entity);
     }
 
+    /// Deletes the given archetype. The archetype must already be empty.
+    /// The types contained
+    fn delete_archetype(&mut self, id: &ArchetypeId) {
+        let archetype = self
+            .archetypes
+            .get(id)
+            .expect("Cannot find archetype to remove");
+
+        assert!(archetype.is_empty(), "Archetype is not empty");
+
+        let archetype_types: Vec<TypeId> = archetype.get_contained_types().copied().collect();
+
+        self.archetypes.remove(id);
+
+        for removed_archetype_type_id in archetype_types.into_iter() {
+            if let Some(type_containers) = self.type_containers.get_mut(&removed_archetype_type_id)
+            {
+                if let Some(removed_archetype_pos) = type_containers.iter().position(|e| e == id) {
+                    type_containers.swap_remove(removed_archetype_pos);
+                }
+            }
+        }
+    }
+
     pub fn add_component_to_entity<T: Any>(&mut self, entity: EntityId, component: T) {
-        let current_archetype_id = self.entities.get(&entity).expect("Entity not found");
+        let current_archetype_id = *self.entities.get(&entity).expect("Entity not found");
         let current_archetype = self
             .archetypes
-            .get(current_archetype_id)
+            .get(&current_archetype_id)
             .expect("Archetype not found");
         let mut typeid_set = Vec::from_iter(current_archetype.get_contained_types().copied());
 
@@ -133,7 +143,7 @@ impl World {
         // To ensure this is valid, we must ensure that we do not mutably borrow the hashmap
         // again while holding these pointers
         let source_archetype_ptr =
-            self.archetypes.get_mut(current_archetype_id).unwrap() as *mut Archetype;
+            self.archetypes.get_mut(&current_archetype_id).unwrap() as *mut Archetype;
         let target_archetype_ptr =
             self.archetypes.get_mut(&new_archetype_id).unwrap() as *mut Archetype;
 
@@ -159,18 +169,22 @@ impl World {
         };
 
         if source_archetype_empty {
-            let removed_archetype = self.archetypes.remove(current_archetype_id);
-            debug_assert!(removed_archetype.is_some());
+            self.delete_archetype(&current_archetype_id);
         }
+
+        let old_archetype_id = self.entities.insert(entity, new_archetype_id);
+
+        debug_assert!(old_archetype_id.is_some());
+        debug_assert_eq!(current_archetype_id, old_archetype_id.unwrap());
 
         self.assert_coherent::<true>();
     }
 
     pub fn remove_components_from_entity(&mut self, entity: EntityId, components: &[TypeId]) {
-        let current_archetype_id = self.entities.get(&entity).expect("Entity not found");
+        let current_archetype_id = *self.entities.get(&entity).expect("Entity not found");
         let current_archetype = self
             .archetypes
-            .get(current_archetype_id)
+            .get(&current_archetype_id)
             .expect("Archetype not found");
 
         let new_typeid_set = Vec::from_iter(
@@ -203,7 +217,7 @@ impl World {
         // To ensure this is valid, we must ensure that we do not mutably borrow the hashmap
         // again while holding these pointers
         let source_archetype_ptr =
-            self.archetypes.get_mut(current_archetype_id).unwrap() as *mut Archetype;
+            self.archetypes.get_mut(&current_archetype_id).unwrap() as *mut Archetype;
         let target_archetype_ptr =
             self.archetypes.get_mut(&new_archetype_id).unwrap() as *mut Archetype;
 
@@ -224,8 +238,7 @@ impl World {
         };
 
         if source_archetype_empty {
-            let removed_archetype = self.archetypes.remove(current_archetype_id);
-            debug_assert!(removed_archetype.is_some());
+            self.delete_archetype(&current_archetype_id);
         }
 
         self.assert_coherent::<true>();
