@@ -201,6 +201,11 @@ impl World {
                 .copied(),
         );
 
+        if new_typeid_set.is_empty() {
+            self.remove_entity(entity);
+            return;
+        }
+
         let new_archetype_id = ArchetypeId::new(&new_typeid_set);
 
         // Ensure target archetype exists first
@@ -254,6 +259,11 @@ impl World {
         if source_archetype_empty {
             self.delete_archetype(&current_archetype_id);
         }
+
+        let old_archetype_id = self.entities.insert(entity, new_archetype_id);
+
+        debug_assert!(old_archetype_id.is_some());
+        debug_assert_eq!(current_archetype_id, old_archetype_id.unwrap());
 
         self.assert_coherent::<true>();
     }
