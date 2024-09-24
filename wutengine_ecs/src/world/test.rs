@@ -187,8 +187,6 @@ fn create_and_remove_multiple_same_component() {
             panic!("Found unexpected position {:?}", p);
         });
 
-        dbg!(b);
-
         world.query(|_, p: &Size| {
             panic!("Found unexpected size {:?}", p);
         });
