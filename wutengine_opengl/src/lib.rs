@@ -80,7 +80,7 @@ impl WutEngineRenderer for OpenGLRenderer {
             objects.len()
         );
 
-        if let Some(window) = self.windows.get_mut(render_context.window) {
+        if let Some(window) = self.windows.get_mut(&render_context.window) {
             window.render(render_context, objects);
         } else {
             log::error!(

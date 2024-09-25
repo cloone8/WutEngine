@@ -28,15 +28,17 @@ fn simple_create() {
 
     world.assert_coherent::<false>();
 
-    world.create_entity(pos);
+    let new = world.create_entity();
+    world.add_component_to_entity(new, pos);
 
     world.assert_coherent::<false>();
 
-    world.create_entity(vel);
-
+    let new = world.create_entity();
+    world.add_component_to_entity(new, vel);
     world.assert_coherent::<false>();
 
-    world.create_entity(size);
+    let new = world.create_entity();
+    world.add_component_to_entity(new, size);
 
     world.assert_coherent::<false>();
 
@@ -83,15 +85,18 @@ fn create_multiple_same_component() {
 
     world.assert_coherent::<false>();
 
-    world.create_entity(pos1);
+    let new = world.create_entity();
+    world.add_component_to_entity(new, pos1);
 
     world.assert_coherent::<false>();
 
-    world.create_entity(pos2);
+    let new = world.create_entity();
+    world.add_component_to_entity(new, pos2);
 
     world.assert_coherent::<false>();
 
-    world.create_entity(size);
+    let new = world.create_entity();
+    world.add_component_to_entity(new, size);
 
     world.assert_coherent::<false>();
 
@@ -126,13 +131,19 @@ fn create_and_remove_single() {
     let mut world = World::new();
     world.assert_coherent::<false>();
 
-    let a = world.create_entity(Position { x: 0.0, y: 0.1 });
+    let a = world.create_entity();
+    world.add_component_to_entity(a, Position { x: 0.0, y: 0.1 });
+
     world.assert_coherent::<false>();
 
-    let b = world.create_entity(Velocity { x: 0.0, y: 0.1 });
+    let b = world.create_entity();
+    world.add_component_to_entity(b, Velocity { x: 0.0, y: 0.1 });
+
     world.assert_coherent::<false>();
 
-    let c = world.create_entity(Size { x: 0.0 });
+    let c = world.create_entity();
+    world.add_component_to_entity(c, Size { x: 0.0 });
+
     world.assert_coherent::<false>();
 
     world.remove_entity(a);
@@ -164,13 +175,19 @@ fn create_and_remove_multiple_same_component() {
     let mut world = World::new();
     world.assert_coherent::<false>();
 
-    let a = world.create_entity(Position { x: 0.0, y: 0.1 });
+    let a = world.create_entity();
+    world.add_component_to_entity(a, Position { x: 0.0, y: 0.1 });
+
     world.assert_coherent::<false>();
 
-    let b = world.create_entity(Position { x: 0.0, y: 0.1 });
+    let b = world.create_entity();
+    world.add_component_to_entity(b, Position { x: 0.0, y: 0.1 });
+
     world.assert_coherent::<false>();
 
-    let c = world.create_entity(Size { x: 0.0 });
+    let c = world.create_entity();
+    world.add_component_to_entity(c, Size { x: 0.0 });
+
     world.assert_coherent::<false>();
 
     world.remove_entity(a);
@@ -198,7 +215,9 @@ fn create_entity_and_add_components() {
     let mut world = World::new();
     world.assert_coherent::<false>();
 
-    let entity = world.create_entity(Position { x: 0.0, y: 0.1 });
+    let entity = world.create_entity();
+    world.add_component_to_entity(entity, Position { x: 0.0, y: 0.1 });
+
     world.assert_coherent::<false>();
 
     unsafe {
@@ -243,7 +262,9 @@ fn create_entity_and_remove_single_components() {
     let mut world = World::new();
     world.assert_coherent::<false>();
 
-    let entity = world.create_entity(Position { x: 0.0, y: 0.1 });
+    let entity = world.create_entity();
+    world.add_component_to_entity(entity, Position { x: 0.0, y: 0.1 });
+
     world.assert_coherent::<false>();
 
     unsafe {
@@ -311,7 +332,9 @@ fn create_entity_and_remove_multiple_components() {
     let mut world = World::new();
     world.assert_coherent::<false>();
 
-    let entity = world.create_entity(Position { x: 0.0, y: 0.1 });
+    let entity = world.create_entity();
+    world.add_component_to_entity(entity, Position { x: 0.0, y: 0.1 });
+
     world.assert_coherent::<false>();
 
     unsafe {

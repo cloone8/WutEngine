@@ -9,8 +9,8 @@ use crate::shader::resolver::ShaderResolver;
 use crate::windowing::WindowIdentifier;
 
 #[derive(Debug)]
-pub struct RenderContext<'a> {
-    pub window: &'a WindowIdentifier,
+pub struct RenderContext {
+    pub window: WindowIdentifier,
     pub clear_color: Color,
 }
 

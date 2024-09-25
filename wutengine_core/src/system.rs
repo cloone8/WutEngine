@@ -1,11 +1,10 @@
 #[derive(Debug)]
-pub struct System<F> {
+pub struct System<I, O> {
     pub phase: SystemPhase,
-    pub func: F,
+    pub func: fn(&mut I) -> O,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemPhase {
-    RuntimeStart,
     Update,
 }

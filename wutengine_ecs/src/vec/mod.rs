@@ -237,6 +237,16 @@ impl AnyVec {
             return;
         }
 
+        if self.base_layout.size() == 0 {
+            if self.storage.is_none() {
+                self.storage = Some(NonNull::<u8>::dangling())
+            }
+
+            self.capacity = at_least;
+
+            return;
+        }
+
         let new_layout = array_layout(self.base_layout, at_least);
 
         if let Some(cur_alloc) = self.storage {
@@ -300,7 +310,9 @@ impl Drop for AnyVec {
                     (self.drop_fn)(elem_ptr);
                 }
 
-                std::alloc::dealloc(storage_ptr, array_layout(self.base_layout, self.capacity))
+                if self.base_layout.size() != 0 {
+                    std::alloc::dealloc(storage_ptr, array_layout(self.base_layout, self.capacity))
+                }
             }
         }
     }

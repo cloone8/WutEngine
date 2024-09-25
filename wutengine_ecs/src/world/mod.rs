@@ -1,20 +1,22 @@
 use core::any::{Any, TypeId};
 use std::collections::HashMap;
 
-use crate::archetype::{Archetype, ArchetypeId};
+use crate::archetype::{self, Archetype, ArchetypeId, TypeDescriptorSet};
 use crate::vec::AnyVecStorageDescriptor;
 
 #[cfg(test)]
 mod test;
 
+mod checks;
 mod queries;
+
 pub use queries::*;
 
-use wutengine_core::EntityId;
+use wutengine_core::{Component, EntityId};
 
 #[derive(Debug, Default)]
 pub struct World {
-    entities: HashMap<EntityId, ArchetypeId>,
+    entities: HashMap<EntityId, Option<ArchetypeId>>,
     archetypes: HashMap<ArchetypeId, Archetype>,
     type_containers: HashMap<TypeId, Vec<ArchetypeId>>,
 }
@@ -24,37 +26,26 @@ impl World {
         Self::default()
     }
 
-    pub fn create_entity<T: Any>(&mut self, init_component: T) -> EntityId {
+    pub fn create_entity(&mut self) -> EntityId {
         let id = EntityId::random();
-        let initial_archetype = ArchetypeId::new(&[TypeId::of::<T>()]);
 
-        let prev_key = self.entities.insert(id, initial_archetype);
+        let prev_key = self.entities.insert(id, None);
 
         debug_assert!(prev_key.is_none(), "Entity already present");
-
-        if !self.archetypes.contains_key(&initial_archetype) {
-            self.create_single_component_archetype(id, init_component);
-
-            debug_assert!(
-                self.archetypes.contains_key(&initial_archetype),
-                "Archetype should have been created"
-            );
-        } else {
-            let archetype = self.archetypes.get_mut(&initial_archetype).unwrap();
-
-            let mut component_map = archetype.get_components_for_add(id);
-            component_map
-                .get_mut(&TypeId::of::<T>())
-                .expect("AnyVec could not be found")
-                .get_mut()
-                .push(init_component);
-        }
 
         id
     }
 
     pub fn remove_entity(&mut self, entity: EntityId) {
         let archetype_id = self.entities.get(&entity).expect("Entity does not exist");
+
+        if archetype_id.is_none() {
+            self.entities.remove(&entity);
+            return;
+        }
+
+        let archetype_id = archetype_id.as_ref().unwrap();
+
         let archetype = self
             .archetypes
             .get_mut(archetype_id)
@@ -111,6 +102,35 @@ impl World {
 
     pub fn add_component_to_entity<T: Any>(&mut self, entity: EntityId, component: T) {
         let current_archetype_id = *self.entities.get(&entity).expect("Entity not found");
+
+        if current_archetype_id.is_none() {
+            let initial_archetype = ArchetypeId::new(&[TypeId::of::<T>()]);
+
+            if !self.archetypes.contains_key(&initial_archetype) {
+                self.create_single_component_archetype(entity, component);
+
+                debug_assert!(
+                    self.archetypes.contains_key(&initial_archetype),
+                    "Archetype should have been created"
+                );
+            } else {
+                let archetype = self.archetypes.get_mut(&initial_archetype).unwrap();
+
+                let mut component_map = archetype.get_components_for_add(entity);
+                component_map
+                    .get_mut(&TypeId::of::<T>())
+                    .expect("AnyVec could not be found")
+                    .get_mut()
+                    .push(component);
+            }
+
+            self.entities.insert(entity, Some(initial_archetype));
+
+            return;
+        }
+
+        let current_archetype_id = current_archetype_id.unwrap();
+
         let current_archetype = self
             .archetypes
             .get(&current_archetype_id)
@@ -179,16 +199,24 @@ impl World {
             self.delete_archetype(&current_archetype_id);
         }
 
-        let old_archetype_id = self.entities.insert(entity, new_archetype_id);
+        let old_archetype_id = self.entities.insert(entity, Some(new_archetype_id));
 
         debug_assert!(old_archetype_id.is_some());
-        debug_assert_eq!(current_archetype_id, old_archetype_id.unwrap());
+        debug_assert_eq!(current_archetype_id, old_archetype_id.unwrap().unwrap());
 
         self.assert_coherent::<true>();
     }
 
     pub fn remove_components_from_entity(&mut self, entity: EntityId, components: &[TypeId]) {
         let current_archetype_id = *self.entities.get(&entity).expect("Entity not found");
+
+        if current_archetype_id.is_none() {
+            //TODO: Don't delete the entity by default if its last component is deleted
+            return;
+        }
+
+        let current_archetype_id = current_archetype_id.unwrap();
+
         let current_archetype = self
             .archetypes
             .get(&current_archetype_id)
@@ -260,10 +288,10 @@ impl World {
             self.delete_archetype(&current_archetype_id);
         }
 
-        let old_archetype_id = self.entities.insert(entity, new_archetype_id);
+        let old_archetype_id = self.entities.insert(entity, Some(new_archetype_id));
 
         debug_assert!(old_archetype_id.is_some());
-        debug_assert_eq!(current_archetype_id, old_archetype_id.unwrap());
+        debug_assert_eq!(current_archetype_id, old_archetype_id.unwrap().unwrap());
 
         self.assert_coherent::<true>();
     }
@@ -284,171 +312,5 @@ impl World {
             .entry(TypeId::of::<T>())
             .or_default()
             .push(new_archetype_id);
-    }
-
-    pub fn archetype_ids_for(&self, type_ids: &[TypeId]) -> Vec<ArchetypeId> {
-        let mut init_archetypes = self
-            .type_containers
-            .get(&type_ids[0])
-            .expect("Unknown TypeId")
-            .clone();
-
-        for type_id in &type_ids[1..] {
-            let containing_archetypes = self.type_containers.get(type_id).expect("Unknown TypeId");
-
-            init_archetypes.retain(|e| containing_archetypes.contains(e));
-        }
-
-        init_archetypes
-    }
-
-    /// Queries the world
-    ///
-    /// # Safety
-    ///
-    /// This function mutably borrows using unsafe. To ensure safety, the following
-    /// rule must be upheld:
-    ///
-    /// For any mutably queried type `T`, no other queries must be running that either
-    /// mutably or immutably borrow `T`
-    pub unsafe fn query<'a, C, F, O>(&'a self, callback: F) -> Vec<O>
-    where
-        C: CombinedQuery<'a>,
-        F: Fn(EntityId, C) -> O,
-    {
-        let type_ids = C::get_type_ids();
-
-        assert_unique_type_ids(&type_ids);
-
-        let archetype_ids = self.archetype_ids_for(&type_ids);
-
-        let mut output = Vec::new();
-
-        for archetype_id in archetype_ids {
-            let archetype = self
-                .archetypes
-                .get(&archetype_id)
-                .expect("Could not find archetype");
-
-            let components = archetype.get_components_for_read(&type_ids);
-            let entities = archetype.get_contained_entities();
-
-            output.extend(C::do_callback(entities, components, &callback));
-        }
-
-        output
-    }
-}
-
-#[track_caller]
-pub fn assert_unique_type_ids(ids: &[TypeId]) {
-    let duplicate = get_first_duplicate_type_id(ids);
-
-    if let Some(duplicate) = duplicate {
-        panic!("Duplicate TypeId given: {:?}", duplicate)
-    }
-}
-
-pub fn get_first_duplicate_type_id(ids: &[TypeId]) -> Option<TypeId> {
-    for i in 0..ids.len() {
-        for j in (i + 1)..ids.len() {
-            debug_assert_ne!(i, j);
-
-            if ids[i] == ids[j] {
-                return Some(ids[i]);
-            }
-        }
-    }
-
-    None
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct TypeDescriptorSet {
-    pub descriptors: Vec<(TypeId, AnyVecStorageDescriptor)>,
-}
-
-impl TypeDescriptorSet {
-    pub fn new_empty() -> Self {
-        Self {
-            descriptors: Vec::new(),
-        }
-    }
-    pub fn new<T: Any>() -> Self {
-        Self {
-            descriptors: vec![(TypeId::of::<T>(), AnyVecStorageDescriptor::new::<T>())],
-        }
-    }
-
-    pub fn add<T: Any>(&mut self) {
-        self.descriptors
-            .push((TypeId::of::<T>(), AnyVecStorageDescriptor::new::<T>()));
-    }
-}
-
-impl World {
-    #[track_caller]
-    pub fn assert_coherent<const DEBUG_ONLY: bool>(&self) {
-        if DEBUG_ONLY && !cfg!(debug_assertions) {
-            return;
-        }
-
-        // Entity checks
-        for (entity_id, containing_archetype_id) in &self.entities {
-            let containing_archetype = self.archetypes.get(containing_archetype_id);
-
-            assert!(
-                containing_archetype.is_some(),
-                "Could not find containing archetype for entity {:?}",
-                entity_id
-            );
-
-            let containing_archetype = containing_archetype.unwrap();
-            containing_archetype.assert_coherent::<DEBUG_ONLY>();
-
-            assert!(
-                containing_archetype
-                    .get_contained_entities()
-                    .iter()
-                    .any(|e| e == entity_id),
-                "Containing archetype for entity {:?} does not actually contain the entity",
-                entity_id
-            );
-        }
-
-        // Archetype checks
-        for (archetype_id, archetype) in &self.archetypes {
-            let archetype_types: Vec<TypeId> = archetype.get_contained_types().copied().collect();
-            let computed_archetype_id = ArchetypeId::new(&archetype_types);
-
-            assert_eq!(*archetype_id, computed_archetype_id, "Computer archetype ID for archetype does not match its world key. Expected {:?}, computed {:?}", archetype_id, computed_archetype_id);
-            assert!(!archetype.is_empty(), "Empty archetype found");
-        }
-
-        //TODO: Check for all archetypes, if they can be found properly in their type containers
-
-        // Type container checks
-        for (type_id, type_id_containers) in &self.type_containers {
-            for type_id_container_id in type_id_containers {
-                let type_id_container = self.archetypes.get(type_id_container_id);
-
-                assert!(
-                    type_id_container.is_some(),
-                    "Could not find container for TypeId {:?} and archetype id {:?}",
-                    type_id,
-                    type_id_container_id
-                );
-
-                let type_id_container = type_id_container.unwrap();
-
-                assert!(
-                    type_id_container
-                        .get_contained_types()
-                        .any(|e| e == type_id),
-                    "Container for TypeId {:?} does not actually contain the TypeId",
-                    type_id
-                );
-            }
-        }
     }
 }

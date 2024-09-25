@@ -19,6 +19,3 @@ syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
 itertools.workspace = true
-
-[profile.dev]
-opt-level = 3

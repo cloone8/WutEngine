@@ -1,4 +1,5 @@
-use wutengine_core::{DynComponent, EntityId};
+use wutengine_core::{Component, EntityId};
+use wutengine_ecs::world::World;
 
 use crate::EngineCommand;
 
@@ -16,23 +17,7 @@ impl<'a> EntityCommand<'a> {
 }
 
 impl<'a> EntityCommand<'a> {
-    pub fn spawn(&mut self) -> EntityId {
-        let new_id = EntityId::random();
-
-        self.cmd
-            .commands
-            .push(EngineCommand::SpawnEntity(new_id, Vec::new()));
-
-        new_id
-    }
-
-    pub fn spawn_with_components(&mut self, components: Vec<Box<dyn DynComponent>>) -> EntityId {
-        let new_id = EntityId::random();
-
-        self.cmd
-            .commands
-            .push(EngineCommand::SpawnEntity(new_id, components));
-
-        new_id
+    pub fn spawn(&mut self, callback: for<'x> fn(EntityId, &'x mut World)) {
+        self.cmd.commands.push(EngineCommand::SpawnEntity(callback));
     }
 }

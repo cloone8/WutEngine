@@ -1,7 +1,5 @@
-use wutengine_core::{Component, ComponentTypeId, DynComponent};
+use wutengine_core::Component;
 use wutengine_graphics::{color::Color, renderer::RenderContext, windowing::WindowIdentifier};
-
-use super::ID_CAMERA;
 
 #[derive(Debug)]
 pub struct Camera {
@@ -9,20 +7,12 @@ pub struct Camera {
     pub clear_color: Color,
 }
 
-impl DynComponent for Camera {
-    fn get_dyn_component_id(&self) -> ComponentTypeId {
-        Self::COMPONENT_ID
-    }
-}
-
-impl Component for Camera {
-    const COMPONENT_ID: ComponentTypeId = ID_CAMERA;
-}
+impl Component for Camera {}
 
 impl Camera {
     pub(crate) fn to_context(&self) -> RenderContext {
         RenderContext {
-            window: &self.display,
+            window: self.display.clone(),
             clear_color: self.clear_color,
         }
     }

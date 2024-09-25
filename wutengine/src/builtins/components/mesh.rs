@@ -1,10 +1,8 @@
 use std::rc::Rc;
 
 use glam::Vec3;
-use wutengine_core::{Component, ComponentTypeId, DynComponent};
+use wutengine_core::Component;
 use wutengine_graphics::mesh::MeshData;
-
-use super::ID_MESH;
 
 #[derive(Debug, Clone)]
 pub struct Mesh {
@@ -23,12 +21,4 @@ impl Mesh {
     }
 }
 
-impl DynComponent for Mesh {
-    fn get_dyn_component_id(&self) -> ComponentTypeId {
-        Self::COMPONENT_ID
-    }
-}
-
-impl Component for Mesh {
-    const COMPONENT_ID: ComponentTypeId = ID_MESH;
-}
+impl Component for Mesh {}

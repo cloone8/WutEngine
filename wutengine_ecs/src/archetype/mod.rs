@@ -1,15 +1,15 @@
 use core::any::{Any, TypeId};
 use core::cell::UnsafeCell;
-use core::f32::consts::E;
 use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 
 use crate::vec::AnyVec;
-use crate::world::TypeDescriptorSet;
 
 mod archetype_id;
+mod descriptorset;
 
 pub use archetype_id::*;
+pub(crate) use descriptorset::*;
 use wutengine_core::EntityId;
 
 #[derive(Debug)]

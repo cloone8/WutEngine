@@ -186,6 +186,39 @@ fn test_rand() {
     }
 }
 
+struct NoSize;
+
+#[test]
+fn test_zero_sized() {
+    assert_eq!(
+        0,
+        size_of::<NoSize>(),
+        "Test won't be valid because the type is not actually zero-sized"
+    );
+
+    let mut anyvec = AnyVec::new::<NoSize>();
+
+    anyvec.push(NoSize);
+    anyvec.push(NoSize);
+    anyvec.push(NoSize);
+    anyvec.push(NoSize);
+
+    assert_eq!(4, anyvec.len());
+
+    for item in anyvec.as_slice::<NoSize>() {
+        let as_ptr = item as *const NoSize;
+
+        assert!(as_ptr.is_aligned());
+    }
+
+    assert!(anyvec.pop::<NoSize>().is_some());
+    assert!(anyvec.pop::<NoSize>().is_some());
+    assert!(anyvec.pop::<NoSize>().is_some());
+    assert!(anyvec.pop::<NoSize>().is_some());
+
+    assert_eq!(0, anyvec.len());
+}
+
 #[test]
 #[should_panic]
 fn test_type_push_panic() {

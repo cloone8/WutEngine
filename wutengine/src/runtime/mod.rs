@@ -7,19 +7,17 @@ use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
-use wutengine_core::{Component, ComponentTypeId, EntityId, System, SystemPhase};
+use wutengine_core::{Component, EntityId, System, SystemPhase};
+use wutengine_ecs::world::World;
 use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
 use wutengine_graphics::windowing::WindowIdentifier;
 
 use crate::builtins::components::camera::Camera;
 use crate::builtins::components::material::Material;
 use crate::builtins::components::mesh::Mesh;
-use crate::builtins::components::ID_CAMERA;
 use crate::command::Command;
-use crate::legacy_storage::ComponentStorage;
 use crate::plugin::EnginePlugin;
-use crate::world::{Queryable, World};
-use crate::{EngineCommand, EngineEvent, SystemFunction, WindowingEvent};
+use crate::{EngineCommand, EngineEvent, WindowingEvent};
 
 mod init;
 
@@ -28,9 +26,8 @@ pub use init::*;
 pub struct Runtime<R: WutEngineRenderer> {
     plugins: Box<[Box<dyn EnginePlugin>]>,
 
-    entities: Vec<EntityId>,
-    components: IntMap<ComponentTypeId, UnsafeCell<ComponentStorage>>,
-    systems: Vec<System<SystemFunction>>,
+    world: World,
+    systems: Vec<System<World, Command>>,
 
     eventloop: EventLoopProxy<WindowingEvent>,
 
@@ -43,48 +40,19 @@ pub struct Runtime<R: WutEngineRenderer> {
 }
 
 impl<R: WutEngineRenderer> Runtime<R> {
-    unsafe fn get_component_for_entity<T: Component>(&self, entity: EntityId) -> Option<&T> {
-        if let Some(storage) = self.components.get(&T::COMPONENT_ID) {
-            let storage_cell = storage.get();
-            let storage = storage_cell.as_ref().expect("Storage returned nullptr");
+    unsafe fn get_renderables(&self) -> Vec<Renderable> {
+        self.world.query(|_, args: (&Mesh, &Material)| {
+            let mesh = args.0.data.clone();
+            let material = args.1.data.clone();
 
-            return storage.get::<T>(entity);
-        }
-
-        None
-    }
-
-    /// # Safety
-    ///
-    /// The components you are querying for _must_ not be accessed mutable by more
-    /// than one caller at a time.
-    unsafe fn query<'a, T: Queryable<'a>>(&'a self) -> Vec<(EntityId, Option<T>)> {
-        T::do_query(&self.entities, &self.components)
-    }
-
-    fn get_renderables(&self) -> Vec<Renderable> {
-        let query_result: Vec<(EntityId, Option<(&Mesh, &Material)>)> = unsafe { self.query() };
-
-        let mut renderables = Vec::new();
-
-        for (mesh, material) in query_result
-            .into_iter()
-            .filter(|(_, comps)| comps.is_some())
-            .map(|(_, comps)| comps.unwrap())
-        {
             log::trace!(
                 "Pushing renderable mesh {:#?} with material {:#?}",
                 mesh,
                 material
             );
 
-            renderables.push(Renderable {
-                mesh: mesh.data.clone(),
-                material: material.data.clone(),
-            })
-        }
-
-        renderables
+            Renderable { mesh, material }
+        })
     }
 
     fn exec_engine_command(&mut self, command: EngineCommand) {
@@ -94,19 +62,10 @@ impl<R: WutEngineRenderer> Runtime<R> {
                 .eventloop
                 .send_event(WindowingEvent::OpenWindow(params))
                 .unwrap(),
-            EngineCommand::SpawnEntity(id, components) => {
-                debug_assert!(!self.entities.contains(&id));
-                self.entities.push(id);
+            EngineCommand::SpawnEntity(callback) => {
+                let new_entity = self.world.create_entity();
 
-                for component in components.into_iter() {
-                    let array = self
-                        .components
-                        .get_mut(&component.get_dyn_component_id())
-                        .expect("Unknown component type!")
-                        .get_mut();
-
-                    array.push(id, component);
-                }
+                callback(new_entity, &mut self.world);
             }
         }
     }
@@ -134,12 +93,8 @@ impl<R: WutEngineRenderer> Runtime<R> {
         let mut commands = Command::empty();
 
         for system in self.systems.iter_mut().filter(|sys| sys.phase == phase) {
-            let mut world = unsafe { World::new(&self.entities, &self.components) };
-
-            match system.func {
-                SystemFunction::Immutable(func) => func(&mut commands, &world),
-                SystemFunction::Mutable(func) => func(&mut commands, &mut world),
-            }
+            let ret = (system.func)(&mut self.world);
+            commands.merge_with(ret);
         }
 
         self.exec_engine_commands(commands.consume());
@@ -147,7 +102,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
     fn start(&mut self) {
         self.send_engine_event(EngineEvent::RuntimeStart);
-        self.run_systems_for_phase(SystemPhase::RuntimeStart);
+        // self.run_systems_for_phase(SystemPhase::RuntimeStart);
 
         self.started = true;
     }
@@ -171,30 +126,27 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         self.run_systems_for_phase(SystemPhase::Update);
 
-        let cam_storage = unsafe {
-            self.components
-                .get(&ID_CAMERA)
-                .unwrap()
-                .get()
-                .as_ref()
-                .unwrap()
-        };
+        let renderables = unsafe { self.get_renderables() };
 
-        let all_cams = cam_storage.all::<Camera>();
+        unsafe {
+            let contexts = self.world.query(|_id, camera: &Camera| {
+                if !self.windows.contains_key(&camera.display) {
+                    log::warn!(
+                        "Camera trying to render to non-existing window {}",
+                        &camera.display
+                    );
 
-        let renderables = self.get_renderables();
+                    return None;
+                }
 
-        for camera in all_cams {
-            if !self.windows.contains_key(&camera.component.display) {
-                log::warn!(
-                    "Camera trying to render to non-existing window {}",
-                    &camera.component.display
-                );
-                continue;
+                Some(camera.to_context())
+            });
+
+            for maybe_context in contexts.into_iter() {
+                if let Some(context) = maybe_context {
+                    self.renderer.render(context, &renderables);
+                }
             }
-
-            self.renderer
-                .render(camera.component.to_context(), &renderables);
         }
     }
 
