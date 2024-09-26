@@ -1,5 +1,6 @@
 use core::any::TypeId;
 
+use crate::vec::Dynamic;
 use crate::world::World;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -29,16 +30,16 @@ fn simple_create() {
     world.assert_coherent::<false>();
 
     let new = world.create_entity();
-    world.add_component_to_entity(new, pos);
+    world.add_component_to_entity(new, Dynamic::new(pos));
 
     world.assert_coherent::<false>();
 
     let new = world.create_entity();
-    world.add_component_to_entity(new, vel);
+    world.add_component_to_entity(new, Dynamic::new(vel));
     world.assert_coherent::<false>();
 
     let new = world.create_entity();
-    world.add_component_to_entity(new, size);
+    world.add_component_to_entity(new, Dynamic::new(size));
 
     world.assert_coherent::<false>();
 
@@ -86,17 +87,17 @@ fn create_multiple_same_component() {
     world.assert_coherent::<false>();
 
     let new = world.create_entity();
-    world.add_component_to_entity(new, pos1);
+    world.add_component_to_entity(new, Dynamic::new(pos1));
 
     world.assert_coherent::<false>();
 
     let new = world.create_entity();
-    world.add_component_to_entity(new, pos2);
+    world.add_component_to_entity(new, Dynamic::new(pos2));
 
     world.assert_coherent::<false>();
 
     let new = world.create_entity();
-    world.add_component_to_entity(new, size);
+    world.add_component_to_entity(new, Dynamic::new(size));
 
     world.assert_coherent::<false>();
 
@@ -132,17 +133,17 @@ fn create_and_remove_single() {
     world.assert_coherent::<false>();
 
     let a = world.create_entity();
-    world.add_component_to_entity(a, Position { x: 0.0, y: 0.1 });
+    world.add_component_to_entity(a, Dynamic::new(Position { x: 0.0, y: 0.1 }));
 
     world.assert_coherent::<false>();
 
     let b = world.create_entity();
-    world.add_component_to_entity(b, Velocity { x: 0.0, y: 0.1 });
+    world.add_component_to_entity(b, Dynamic::new(Velocity { x: 0.0, y: 0.1 }));
 
     world.assert_coherent::<false>();
 
     let c = world.create_entity();
-    world.add_component_to_entity(c, Size { x: 0.0 });
+    world.add_component_to_entity(c, Dynamic::new(Size { x: 0.0 }));
 
     world.assert_coherent::<false>();
 
@@ -176,17 +177,17 @@ fn create_and_remove_multiple_same_component() {
     world.assert_coherent::<false>();
 
     let a = world.create_entity();
-    world.add_component_to_entity(a, Position { x: 0.0, y: 0.1 });
+    world.add_component_to_entity(a, Dynamic::new(Position { x: 0.0, y: 0.1 }));
 
     world.assert_coherent::<false>();
 
     let b = world.create_entity();
-    world.add_component_to_entity(b, Position { x: 0.0, y: 0.1 });
+    world.add_component_to_entity(b, Dynamic::new(Position { x: 0.0, y: 0.1 }));
 
     world.assert_coherent::<false>();
 
     let c = world.create_entity();
-    world.add_component_to_entity(c, Size { x: 0.0 });
+    world.add_component_to_entity(c, Dynamic::new(Size { x: 0.0 }));
 
     world.assert_coherent::<false>();
 
@@ -216,7 +217,7 @@ fn create_entity_and_add_components() {
     world.assert_coherent::<false>();
 
     let entity = world.create_entity();
-    world.add_component_to_entity(entity, Position { x: 0.0, y: 0.1 });
+    world.add_component_to_entity(entity, Dynamic::new(Position { x: 0.0, y: 0.1 }));
 
     world.assert_coherent::<false>();
 
@@ -228,7 +229,7 @@ fn create_entity_and_add_components() {
         assert_eq!(1, res.len());
     }
 
-    world.add_component_to_entity(entity, Size { x: 5.0 });
+    world.add_component_to_entity(entity, Dynamic::new(Size { x: 5.0 }));
 
     unsafe {
         let res = world.query(|id, _p: &Position| {
@@ -263,7 +264,7 @@ fn create_entity_and_remove_single_components() {
     world.assert_coherent::<false>();
 
     let entity = world.create_entity();
-    world.add_component_to_entity(entity, Position { x: 0.0, y: 0.1 });
+    world.add_component_to_entity(entity, Dynamic::new(Position { x: 0.0, y: 0.1 }));
 
     world.assert_coherent::<false>();
 
@@ -275,8 +276,8 @@ fn create_entity_and_remove_single_components() {
         assert_eq!(1, res.len());
     }
 
-    world.add_component_to_entity(entity, Size { x: 5.0 });
-    world.add_component_to_entity(entity, Velocity { x: 6.0, y: 7.0 });
+    world.add_component_to_entity(entity, Dynamic::new(Size { x: 5.0 }));
+    world.add_component_to_entity(entity, Dynamic::new(Velocity { x: 6.0, y: 7.0 }));
 
     unsafe {
         let res = world.query(|id, _components_inv: (&Position, &Size, &Velocity)| {
@@ -333,7 +334,7 @@ fn create_entity_and_remove_multiple_components() {
     world.assert_coherent::<false>();
 
     let entity = world.create_entity();
-    world.add_component_to_entity(entity, Position { x: 0.0, y: 0.1 });
+    world.add_component_to_entity(entity, Dynamic::new(Position { x: 0.0, y: 0.1 }));
 
     world.assert_coherent::<false>();
 
@@ -345,8 +346,8 @@ fn create_entity_and_remove_multiple_components() {
         assert_eq!(1, res.len());
     }
 
-    world.add_component_to_entity(entity, Size { x: 5.0 });
-    world.add_component_to_entity(entity, Velocity { x: 6.0, y: 7.0 });
+    world.add_component_to_entity(entity, Dynamic::new(Size { x: 5.0 }));
+    world.add_component_to_entity(entity, Dynamic::new(Velocity { x: 6.0, y: 7.0 }));
 
     unsafe {
         let res = world.query(|id, _components_inv: (&Position, &Size, &Velocity)| {

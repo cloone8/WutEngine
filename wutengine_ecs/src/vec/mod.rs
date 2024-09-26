@@ -5,6 +5,10 @@ use std::ptr::NonNull;
 #[cfg(test)]
 mod test;
 
+mod dynamic;
+
+pub use dynamic::*;
+
 #[derive(Debug)]
 pub struct AnyVec {
     len: usize,
@@ -24,6 +28,12 @@ pub struct AnyVecStorageDescriptor {
 
 impl AnyVecStorageDescriptor {
     pub fn new<T: Any>() -> Self {
+        debug_assert_ne!(
+            TypeId::of::<Dynamic>(),
+            TypeId::of::<T>(),
+            "Accidentally tried to create AnyVec for Dynamic"
+        );
+
         Self {
             base_layout: Layout::new::<T>(),
             actual_type: TypeId::of::<T>(),
@@ -36,6 +46,12 @@ impl AnyVecStorageDescriptor {
 
 impl AnyVec {
     pub fn new<T: Any>() -> Self {
+        debug_assert_ne!(
+            TypeId::of::<Dynamic>(),
+            TypeId::of::<T>(),
+            "Accidentally tried to create AnyVec for Dynamic"
+        );
+
         Self::from_descriptor(AnyVecStorageDescriptor::new::<T>())
     }
 
@@ -59,6 +75,12 @@ impl AnyVec {
     }
 
     pub fn with_capacity<T: Any>(num: usize) -> Self {
+        debug_assert_ne!(
+            TypeId::of::<Dynamic>(),
+            TypeId::of::<T>(),
+            "Accidentally tried to create AnyVec for Dynamic"
+        );
+
         let mut new = Self::new::<T>();
 
         new.ensure_capacity(num);

@@ -3,7 +3,7 @@ use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 
-use crate::vec::AnyVec;
+use crate::vec::{AnyVec, Dynamic};
 
 mod archetype_id;
 mod descriptorset;
@@ -57,12 +57,12 @@ impl Archetype {
         ArchetypeMapMut::new(self)
     }
 
-    pub fn new_single<T: Any>(entity: EntityId, value: T) -> Self {
-        let mut component_vec = AnyVec::new::<T>();
-        component_vec.push(value);
+    pub fn new_single(entity: EntityId, value: Dynamic) -> Self {
+        let component_type = value.inner_type();
+        let component_vec = value.add_to_new_vec();
 
         let mut components_map = HashMap::default();
-        components_map.insert(TypeId::of::<T>(), UnsafeCell::new(component_vec));
+        components_map.insert(component_type, UnsafeCell::new(component_vec));
 
         Archetype {
             entities: vec![entity],
@@ -179,7 +179,7 @@ impl Archetype {
         destination.entities.push(to_move);
     }
 
-    pub fn add_to_entity_unchecked<T: Any>(&mut self, entity: EntityId, component: T) {
+    pub fn add_to_entity_unchecked(&mut self, entity: EntityId, component: Dynamic) {
         let entity_idx = self
             .entities
             .iter()
@@ -188,7 +188,7 @@ impl Archetype {
 
         let storage = self
             .components
-            .get_mut(&TypeId::of::<T>())
+            .get_mut(&component.inner_type())
             .expect("Could not find component storage");
 
         let storage_mut = storage.get_mut();
@@ -199,7 +199,7 @@ impl Archetype {
             "Not adding to the latest entry, will result in incoherent archetype"
         );
 
-        storage_mut.push(component);
+        component.add_to_vec(storage_mut);
     }
 
     pub fn len(&self) -> usize {

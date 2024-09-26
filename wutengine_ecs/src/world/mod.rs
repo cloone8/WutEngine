@@ -1,8 +1,8 @@
-use core::any::{Any, TypeId};
+use core::any::TypeId;
 use std::collections::HashMap;
 
-use crate::archetype::{self, Archetype, ArchetypeId, TypeDescriptorSet};
-use crate::vec::AnyVecStorageDescriptor;
+use crate::archetype::{Archetype, ArchetypeId, TypeDescriptorSet};
+use crate::vec::Dynamic;
 
 #[cfg(test)]
 mod test;
@@ -12,7 +12,7 @@ mod queries;
 
 pub use queries::*;
 
-use wutengine_core::{Component, EntityId};
+use wutengine_core::EntityId;
 
 #[derive(Debug, Default)]
 pub struct World {
@@ -100,11 +100,11 @@ impl World {
         }
     }
 
-    pub fn add_component_to_entity<T: Any>(&mut self, entity: EntityId, component: T) {
+    pub fn add_component_to_entity(&mut self, entity: EntityId, component: Dynamic) {
         let current_archetype_id = *self.entities.get(&entity).expect("Entity not found");
 
         if current_archetype_id.is_none() {
-            let initial_archetype = ArchetypeId::new(&[TypeId::of::<T>()]);
+            let initial_archetype = ArchetypeId::new(&[component.inner_type()]);
 
             if !self.archetypes.contains_key(&initial_archetype) {
                 self.create_single_component_archetype(entity, component);
@@ -117,11 +117,12 @@ impl World {
                 let archetype = self.archetypes.get_mut(&initial_archetype).unwrap();
 
                 let mut component_map = archetype.get_components_for_add(entity);
-                component_map
-                    .get_mut(&TypeId::of::<T>())
+                let component_map_mut = component_map
+                    .get_mut(&component.inner_type())
                     .expect("AnyVec could not be found")
-                    .get_mut()
-                    .push(component);
+                    .get_mut();
+
+                component.add_to_vec(component_map_mut);
             }
 
             self.entities.insert(entity, Some(initial_archetype));
@@ -137,7 +138,7 @@ impl World {
             .expect("Archetype not found");
         let mut typeid_set = Vec::from_iter(current_archetype.get_contained_types().copied());
 
-        let new_component_type = TypeId::of::<T>();
+        let new_component_type = component.inner_type();
 
         assert!(!typeid_set.contains(&new_component_type));
 
@@ -151,8 +152,11 @@ impl World {
             reason = "Clippy's solution causes borrow-checker problems"
         )]
         if !self.archetypes.contains_key(&new_archetype_id) {
-            let new_empty_archetype =
-                Archetype::new_from_template(current_archetype, TypeDescriptorSet::new::<T>(), &[]);
+            let new_empty_archetype = Archetype::new_from_template(
+                current_archetype,
+                component.add_type_to_new_descriptor(),
+                &[],
+            );
 
             for type_id in new_empty_archetype.get_contained_types() {
                 self.type_containers
@@ -296,8 +300,9 @@ impl World {
         self.assert_coherent::<true>();
     }
 
-    fn create_single_component_archetype<T: Any>(&mut self, entity: EntityId, component: T) {
-        let new_archetype_id = ArchetypeId::new(&[TypeId::of::<T>()]);
+    fn create_single_component_archetype(&mut self, entity: EntityId, component: Dynamic) {
+        let component_type = component.inner_type();
+        let new_archetype_id = ArchetypeId::new(&[component_type]);
 
         debug_assert!(
             !self.archetypes.contains_key(&new_archetype_id),
@@ -309,7 +314,7 @@ impl World {
         self.archetypes.insert(new_archetype_id, new_archetype);
 
         self.type_containers
-            .entry(TypeId::of::<T>())
+            .entry(component_type)
             .or_default()
             .push(new_archetype_id);
     }

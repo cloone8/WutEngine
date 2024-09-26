@@ -1,0 +1,69 @@
+use core::any::{Any, TypeId};
+
+use crate::archetype::TypeDescriptorSet;
+
+use super::AnyVec;
+
+pub struct Dynamic {
+    inner_type: TypeId,
+    type_descriptor_fn:
+        Box<dyn for<'a> Fn(Option<&'a mut TypeDescriptorSet>) -> Option<TypeDescriptorSet>>,
+    add_fn: Box<dyn for<'a> FnOnce(Option<&'a mut AnyVec>) -> Option<AnyVec>>,
+}
+
+impl Dynamic {
+    pub fn new<T: Any>(val: T) -> Self {
+        Self {
+            inner_type: TypeId::of::<T>(),
+            add_fn: Box::new(|anyvec| match anyvec {
+                Some(anyvec) => {
+                    anyvec.push::<T>(val);
+                    None
+                }
+                None => {
+                    let mut anyvec = AnyVec::new::<T>();
+                    anyvec.push::<T>(val);
+                    Some(anyvec)
+                }
+            }),
+            type_descriptor_fn: Box::new(|type_descriptor| match type_descriptor {
+                Some(td) => {
+                    td.add::<T>();
+                    None
+                }
+                None => Some(TypeDescriptorSet::new::<T>()),
+            }),
+        }
+    }
+
+    #[inline]
+    pub const fn inner_type(&self) -> TypeId {
+        self.inner_type
+    }
+
+    #[inline]
+    pub fn add_to_vec(self, vec: &mut AnyVec) {
+        let ret = (self.add_fn)(Some(vec));
+
+        debug_assert!(ret.is_none(), "Unexpected anyvec returned");
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn add_to_new_vec(self) -> AnyVec {
+        (self.add_fn)(None).expect("No AnyVec returned!")
+    }
+
+    #[inline]
+    pub(crate) fn add_type_to_descriptor(&self, tds: &mut TypeDescriptorSet) {
+        let ret = (self.type_descriptor_fn)(Some(tds));
+
+        debug_assert!(ret.is_none(), "Unexpected typedescriptorset returned");
+    }
+
+    #[inline]
+    #[must_use]
+    pub(crate) fn add_type_to_new_descriptor(&self) -> TypeDescriptorSet {
+        (self.type_descriptor_fn)(None).expect("No TypeDescriptorSet returned!")
+    }
+}
