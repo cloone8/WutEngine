@@ -5,6 +5,10 @@ use crate::EngineCommand;
 
 use super::Command;
 
+mod builder;
+
+pub use builder::*;
+
 #[repr(transparent)]
 pub struct EntityCommand<'a> {
     cmd: &'a mut Command,
@@ -17,7 +21,7 @@ impl<'a> EntityCommand<'a> {
 }
 
 impl<'a> EntityCommand<'a> {
-    pub fn spawn(&mut self, callback: for<'x> fn(EntityId, &'x mut World)) {
-        self.cmd.commands.push(EngineCommand::SpawnEntity(callback));
+    pub fn spawn(&'a mut self) -> EntityBuilder<'a> {
+        EntityBuilder::new(self)
     }
 }

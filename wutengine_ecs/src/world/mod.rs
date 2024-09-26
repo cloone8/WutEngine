@@ -100,6 +100,13 @@ impl World {
         }
     }
 
+    pub fn add_components_to_entity(&mut self, entity: EntityId, components: Vec<Dynamic>) {
+        //TODO: Make more efficient
+        for component in components {
+            self.add_component_to_entity(entity, component);
+        }
+    }
+
     pub fn add_component_to_entity(&mut self, entity: EntityId, component: Dynamic) {
         let current_archetype_id = *self.entities.get(&entity).expect("Entity not found");
 

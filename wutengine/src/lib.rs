@@ -6,6 +6,7 @@ pub use wutengine_core as core;
 #[doc(inline)]
 pub use wutengine_ecs as ecs;
 use wutengine_ecs::world::World;
+use wutengine_ecs::Dynamic;
 
 #[doc(inline)]
 pub use wutengine_graphics as graphics;
@@ -34,7 +35,7 @@ pub mod runtime;
 #[derive(Debug)]
 pub enum EngineCommand {
     AddSystem(System<World, Command>),
-    SpawnEntity(for<'a> fn(EntityId, &'a mut World)),
+    SpawnEntity(Vec<Dynamic>),
     OpenWindow(OpenWindowParams),
 }
 

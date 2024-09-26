@@ -1,13 +1,10 @@
-use std::cell::UnsafeCell;
 use std::collections::HashMap;
 
-use nohash_hasher::IntMap;
-use winit::application::ApplicationHandler;
-use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
-use wutengine_core::{Component, EntityId, System, SystemPhase};
+use winit::{application::ApplicationHandler, dpi::PhysicalSize};
+use wutengine_core::{System, SystemPhase};
 use wutengine_ecs::world::World;
 use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
 use wutengine_graphics::windowing::WindowIdentifier;
@@ -62,10 +59,9 @@ impl<R: WutEngineRenderer> Runtime<R> {
                 .eventloop
                 .send_event(WindowingEvent::OpenWindow(params))
                 .unwrap(),
-            EngineCommand::SpawnEntity(callback) => {
+            EngineCommand::SpawnEntity(components) => {
                 let new_entity = self.world.create_entity();
-
-                callback(new_entity, &mut self.world);
+                self.world.add_components_to_entity(new_entity, components);
             }
         }
     }
@@ -142,10 +138,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
                 Some(camera.to_context())
             });
 
-            for maybe_context in contexts.into_iter() {
-                if let Some(context) = maybe_context {
-                    self.renderer.render(context, &renderables);
-                }
+            for context in contexts.into_iter().flatten() {
+                self.renderer.render(context, &renderables);
             }
         }
     }

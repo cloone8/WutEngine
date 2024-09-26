@@ -1,4 +1,5 @@
 use core::any::{Any, TypeId};
+use core::fmt::{Debug, Pointer};
 
 use crate::archetype::TypeDescriptorSet;
 
@@ -9,6 +10,14 @@ pub struct Dynamic {
     type_descriptor_fn:
         Box<dyn for<'a> Fn(Option<&'a mut TypeDescriptorSet>) -> Option<TypeDescriptorSet>>,
     add_fn: Box<dyn for<'a> FnOnce(Option<&'a mut AnyVec>) -> Option<AnyVec>>,
+}
+
+impl Debug for Dynamic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Dynamic")
+            .field("inner_type", &self.inner_type)
+            .finish()
+    }
 }
 
 impl Dynamic {
