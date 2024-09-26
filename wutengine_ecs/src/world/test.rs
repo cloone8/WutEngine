@@ -387,3 +387,30 @@ fn create_entity_and_remove_multiple_components() {
         });
     }
 }
+
+#[test]
+fn query_unknown_type() {
+    let mut world = World::new();
+    world.assert_coherent::<false>();
+
+    unsafe {
+        let result: Vec<()> = world.query(|id, _components: &Position| {
+            panic!("World should be empty, found entity {:?} instead", id);
+        });
+
+        assert_eq!(0, result.len());
+    }
+
+    let entity = world.create_entity();
+
+    world.add_component_to_entity(entity, Dynamic::new(Size { x: 5.0 }));
+    world.add_component_to_entity(entity, Dynamic::new(Velocity { x: 6.0, y: 7.0 }));
+
+    unsafe {
+        let result: Vec<()> = world.query(|id, _components: (&Size, &Position, &Velocity)| {
+            panic!("Found invalid entity {:?}", id);
+        });
+
+        assert_eq!(0, result.len());
+    }
+}

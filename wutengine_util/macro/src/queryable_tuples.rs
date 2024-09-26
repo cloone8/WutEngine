@@ -39,6 +39,15 @@ pub fn make_combined_query_tuples_impl(input: proc_macro::TokenStream) -> proc_m
         quote! {::core::any::TypeId::of::<#ident::Inner>()}
     });
 
+    let descriptors = map_tokens(&idents, |ident, _| {
+        quote! {
+            ReadWriteDescriptor {
+                type_id: TypeId::of::<#ident::Inner>(),
+                read_only: #ident::READ_ONLY,
+            }
+        }
+    });
+
     let expected_cells = idents.len();
 
     let refs = map_tokens_statements(&idents, |ident, i| {
@@ -69,6 +78,12 @@ pub fn make_combined_query_tuples_impl(input: proc_macro::TokenStream) -> proc_m
             fn get_type_ids() -> Vec<::core::any::TypeId> {
                 vec![
                     #type_ids
+                ]
+            }
+    
+            fn get_descriptors() -> Vec<ReadWriteDescriptor> {
+                vec![
+                    #descriptors
                 ]
             }
 

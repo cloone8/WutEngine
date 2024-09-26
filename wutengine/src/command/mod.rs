@@ -21,7 +21,7 @@ impl Command {
         }
     }
 
-    pub(crate) fn merge_with(&mut self, other: Self) {
+    pub fn merge_with(&mut self, other: Self) {
         self.commands.extend(other.commands)
     }
 

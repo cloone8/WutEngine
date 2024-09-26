@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_ecs"
+description = "The core implementation of the WutEngine ECS"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

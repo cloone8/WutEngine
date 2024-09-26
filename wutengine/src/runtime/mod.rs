@@ -13,16 +13,13 @@ use crate::builtins::components::camera::Camera;
 use crate::builtins::components::material::Material;
 use crate::builtins::components::mesh::Mesh;
 use crate::command::Command;
-use crate::plugin::EnginePlugin;
-use crate::{EngineCommand, EngineEvent, WindowingEvent};
+use crate::{EngineCommand, WindowingEvent};
 
 mod init;
 
 pub use init::*;
 
 pub struct Runtime<R: WutEngineRenderer> {
-    plugins: Box<[Box<dyn EnginePlugin>]>,
-
     world: World,
     systems: Vec<System<World, Command>>,
 
@@ -72,19 +69,6 @@ impl<R: WutEngineRenderer> Runtime<R> {
         }
     }
 
-    fn send_engine_event(&mut self, event: EngineEvent) {
-        log::debug!("Sending engine event:\n{:#?}", event);
-
-        let mut response_commands: Vec<EngineCommand> = Vec::new();
-
-        for plugin in self.plugins.iter_mut() {
-            let response = plugin.on_event(&event);
-            response_commands.extend(response.into_iter());
-        }
-
-        self.exec_engine_commands(response_commands);
-    }
-
     fn run_systems_for_phase(&mut self, phase: SystemPhase) {
         let mut commands = Command::empty();
 
@@ -97,9 +81,6 @@ impl<R: WutEngineRenderer> Runtime<R> {
     }
 
     fn start(&mut self) {
-        self.send_engine_event(EngineEvent::RuntimeStart);
-        // self.run_systems_for_phase(SystemPhase::RuntimeStart);
-
         self.started = true;
     }
 }

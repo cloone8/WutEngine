@@ -3,8 +3,6 @@ use command::{Command, OpenWindowParams};
 #[doc(inline)]
 pub use wutengine_core as core;
 
-#[doc(inline)]
-pub use wutengine_ecs as ecs;
 use wutengine_ecs::world::World;
 use wutengine_ecs::Dynamic;
 
@@ -24,9 +22,10 @@ mod embedded {
 
 pub mod builtins;
 pub mod command;
+pub mod ecs;
 pub mod log;
 pub mod math;
-pub mod plugin;
+pub mod plugins;
 pub mod renderer;
 pub mod runtime;
 
@@ -40,11 +39,6 @@ pub enum EngineCommand {
 }
 
 #[derive(Debug)]
-pub enum WindowingEvent {
+enum WindowingEvent {
     OpenWindow(OpenWindowParams),
-}
-
-#[derive(Debug)]
-pub enum EngineEvent {
-    RuntimeStart,
 }

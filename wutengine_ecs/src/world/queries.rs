@@ -1,7 +1,7 @@
 use core::any::{Any, TypeId};
 use core::cell::UnsafeCell;
 
-use wutengine_core::EntityId;
+use wutengine_core::{EntityId, ReadWriteDescriptor};
 use wutengine_util_macro::make_combined_query_tuples;
 
 use crate::archetype::ArchetypeId;
@@ -48,16 +48,23 @@ impl World {
     }
 
     fn archetype_ids_for(&self, type_ids: &[TypeId]) -> Vec<ArchetypeId> {
-        let mut init_archetypes = self
-            .type_containers
-            .get(&type_ids[0])
-            .expect("Unknown TypeId")
-            .clone();
+        let mut init_archetypes = match self.type_containers.get(&type_ids[0]) {
+            Some(archetypes) => archetypes.clone(),
+            None => return Vec::new(),
+        };
 
         for type_id in &type_ids[1..] {
-            let containing_archetypes = self.type_containers.get(type_id).expect("Unknown TypeId");
+            let containing_archetypes = match self.type_containers.get(type_id) {
+                Some(archetypes) => archetypes,
+                None => return Vec::new(),
+            };
 
             init_archetypes.retain(|e| containing_archetypes.contains(e));
+
+            if init_archetypes.is_empty() {
+                // Short-circuit
+                return Vec::new();
+            }
         }
 
         init_archetypes
@@ -89,6 +96,7 @@ pub fn get_first_duplicate_type_id(ids: &[TypeId]) -> Option<TypeId> {
 
 pub trait Queryable<'q>: Sized {
     type Inner: Any;
+    const READ_ONLY: bool;
 
     fn from_anyvec<'a: 'q>(cell: &'a UnsafeCell<AnyVec>) -> Vec<Self>;
 }
@@ -98,6 +106,7 @@ where
     T: 'static,
 {
     type Inner = T;
+    const READ_ONLY: bool = true;
 
     fn from_anyvec<'a: 'q>(cell: &'a UnsafeCell<AnyVec>) -> Vec<Self> {
         let cell_ref = unsafe {
@@ -121,6 +130,7 @@ where
     T: 'static,
 {
     type Inner = T;
+    const READ_ONLY: bool = false;
 
     fn from_anyvec<'a: 'q>(cell: &'a UnsafeCell<AnyVec>) -> Vec<Self> {
         let cell_ref = unsafe {
@@ -141,6 +151,7 @@ where
 
 pub trait CombinedQuery<'q>: Sized {
     fn get_type_ids() -> Vec<TypeId>;
+    fn get_descriptors() -> Vec<ReadWriteDescriptor>;
     fn do_callback<F, O>(
         entities: &[EntityId],
         cells: Vec<&'q UnsafeCell<AnyVec>>,
@@ -156,6 +167,13 @@ where
 {
     fn get_type_ids() -> Vec<TypeId> {
         vec![TypeId::of::<T::Inner>()]
+    }
+
+    fn get_descriptors() -> Vec<ReadWriteDescriptor> {
+        vec![ReadWriteDescriptor {
+            type_id: TypeId::of::<T::Inner>(),
+            read_only: T::READ_ONLY,
+        }]
     }
 
     fn do_callback<F, O>(
