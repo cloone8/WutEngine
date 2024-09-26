@@ -4,5 +4,5 @@ use wutengine::runtime::RuntimeInitializer;
 fn main() {
     let runtime = RuntimeInitializer::new();
 
-    runtime.run::<OpenGLRenderer>().unwrap();
+    runtime.run::<OpenGLRenderer>();
 }

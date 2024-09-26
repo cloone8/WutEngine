@@ -13,9 +13,9 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.5"
+version = "0.0.6"
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.81"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
 repository = "https://github.com/cloone8/WutEngine"
@@ -25,13 +25,13 @@ categories = ["game-engines"]
 
 [workspace.dependencies]
 # Workspace dependencies
-wutengine = { path = "wutengine", version = "0.0.5" }
-wutengine_macro = { path = "wutengine/macro", version = "0.0.5" }
-wutengine_core = { path = "wutengine_core", version = "0.0.5" }
-wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.5" }
-wutengine_graphics = { path = "wutengine_graphics", version = "0.0.5" }
-wutengine_opengl = { path = "wutengine_opengl", version = "0.0.5" }
-wutengine_ecs = { path = "wutengine_ecs", version = "0.0.5" }
+wutengine = { path = "wutengine", version = "0.0.6" }
+wutengine_macro = { path = "wutengine/macro", version = "0.0.6" }
+wutengine_core = { path = "wutengine_core", version = "0.0.6" }
+wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.6" }
+wutengine_graphics = { path = "wutengine_graphics", version = "0.0.6" }
+wutengine_opengl = { path = "wutengine_opengl", version = "0.0.6" }
+wutengine_ecs = { path = "wutengine_ecs", version = "0.0.6" }
 
 # External dependencies
 winit = { version = "0.30.3" }
@@ -60,7 +60,12 @@ ci = "github"
 # The installers to generate for each app
 installers = []
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+]
 # Which actions to run on pull requests
 pr-run-mode = "plan"
 

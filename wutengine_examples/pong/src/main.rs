@@ -13,5 +13,5 @@ fn main() {
         ..Default::default()
     });
 
-    runtime.run::<OpenGLRenderer>().unwrap();
+    runtime.run::<OpenGLRenderer>();
 }

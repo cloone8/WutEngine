@@ -2,6 +2,12 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.0.6]
+- Complete refactor of core ECS system. We now use archetypes. It was a lot of work.
+- Complete user-side API refactor.
+- Updated Rust version
+- So many changes, just look at the changelog
+
 ## [v0.0.5]
 - Initial support for material parameters (and the corresponding uniforms in the rendering backends)
 - Initial support for logging and granular logging configuration

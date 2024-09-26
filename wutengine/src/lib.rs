@@ -14,7 +14,7 @@ pub use wutengine_graphics as graphics;
 #[doc(inline)]
 pub use wutengine_macro as macros;
 
-use wutengine_core::{EntityId, System};
+use wutengine_core::System;
 
 mod embedded {
     use include_dir::{include_dir, Dir};

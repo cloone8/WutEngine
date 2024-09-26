@@ -31,7 +31,7 @@ impl WutEngineRenderer for HeadlessRenderer {
     ) {
     }
 
-    fn build<R: wutengine_graphics::shader::resolver::ShaderResolver>(shaders: R) -> Self {
+    fn build<R: wutengine_graphics::shader::resolver::ShaderResolver>(_shaders: R) -> Self {
         Self
     }
 }

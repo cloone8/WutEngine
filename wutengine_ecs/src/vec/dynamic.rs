@@ -5,11 +5,15 @@ use crate::archetype::TypeDescriptorSet;
 
 use super::AnyVec;
 
+type ModTypeDescriptorFunc =
+    dyn for<'a> Fn(Option<&'a mut TypeDescriptorSet>) -> Option<TypeDescriptorSet>;
+
+type AddToAnyVecFunc = dyn for<'a> FnOnce(Option<&'a mut AnyVec>) -> Option<AnyVec>;
+
 pub struct Dynamic {
     inner_type: TypeId,
-    type_descriptor_fn:
-        Box<dyn for<'a> Fn(Option<&'a mut TypeDescriptorSet>) -> Option<TypeDescriptorSet>>,
-    add_fn: Box<dyn for<'a> FnOnce(Option<&'a mut AnyVec>) -> Option<AnyVec>>,
+    type_descriptor_fn: Box<ModTypeDescriptorFunc>,
+    add_fn: Box<AddToAnyVecFunc>,
 }
 
 impl Debug for Dynamic {
@@ -46,12 +50,12 @@ impl Dynamic {
     }
 
     #[inline]
-    pub const fn inner_type(&self) -> TypeId {
+    pub(crate) const fn inner_type(&self) -> TypeId {
         self.inner_type
     }
 
     #[inline]
-    pub fn add_to_vec(self, vec: &mut AnyVec) {
+    pub(crate) fn add_to_vec(self, vec: &mut AnyVec) {
         let ret = (self.add_fn)(Some(vec));
 
         debug_assert!(ret.is_none(), "Unexpected anyvec returned");
@@ -59,7 +63,7 @@ impl Dynamic {
 
     #[inline]
     #[must_use]
-    pub fn add_to_new_vec(self) -> AnyVec {
+    pub(crate) fn add_to_new_vec(self) -> AnyVec {
         (self.add_fn)(None).expect("No AnyVec returned!")
     }
 

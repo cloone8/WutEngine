@@ -31,7 +31,7 @@ impl RuntimeInitializer {
         self
     }
 
-    pub fn run<R: WutEngineRenderer>(self) -> Result<(), ()> {
+    pub fn run<R: WutEngineRenderer>(self) {
         crate::log::initialize_loggers(&self.log_config);
 
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
@@ -52,7 +52,5 @@ impl RuntimeInitializer {
         };
 
         event_loop.run_app(&mut runtime).unwrap();
-
-        Ok(())
     }
 }
