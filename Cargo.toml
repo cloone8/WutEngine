@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.6"
+version = "0.0.7"
 edition = "2021"
 rust-version = "1.81"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
@@ -25,13 +25,13 @@ categories = ["game-engines"]
 
 [workspace.dependencies]
 ### Workspace dependencies ###
-wutengine = { path = "wutengine", version = "0.0.6" }
-wutengine_macro = { path = "wutengine/macro", version = "0.0.6" }
-wutengine_core = { path = "wutengine_core", version = "0.0.6" }
-wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.6" }
-wutengine_graphics = { path = "wutengine_graphics", version = "0.0.6" }
-wutengine_opengl = { path = "wutengine_opengl", version = "0.0.6" }
-wutengine_ecs = { path = "wutengine_ecs", version = "0.0.6" }
+wutengine = { path = "wutengine", version = "0.0.7" }
+wutengine_macro = { path = "wutengine/macro", version = "0.0.7" }
+wutengine_core = { path = "wutengine_core", version = "0.0.7" }
+wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.7" }
+wutengine_graphics = { path = "wutengine_graphics", version = "0.0.7" }
+wutengine_opengl = { path = "wutengine_opengl", version = "0.0.7" }
+wutengine_ecs = { path = "wutengine_ecs", version = "0.0.7" }
 
 ### External dependencies ###
 # Windowing 

@@ -2,6 +2,8 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.0.7]
+
 ## [v0.0.6]
 - Complete refactor of core ECS system. We now use archetypes. It was a lot of work.
 - Complete user-side API refactor.
