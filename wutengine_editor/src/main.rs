@@ -24,7 +24,7 @@ fn main() {
 struct WutEngineEditorPlugin;
 
 impl WutEngineEditorPlugin {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {}
     }
 }

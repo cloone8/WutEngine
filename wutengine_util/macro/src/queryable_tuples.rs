@@ -80,7 +80,7 @@ pub fn make_combined_query_tuples_impl(input: proc_macro::TokenStream) -> proc_m
                     #type_ids
                 ]
             }
-    
+
             fn get_descriptors() -> Vec<ReadWriteDescriptor> {
                 vec![
                     #descriptors
