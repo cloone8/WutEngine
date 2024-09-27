@@ -3,6 +3,7 @@
 use std::time::Instant;
 
 use spawn::PongStarterPlugin;
+use wutengine::builtins::components::util::framerate_counter_system;
 use wutengine::builtins::components::Transform;
 use wutengine::command::Command;
 use wutengine::core::{EntityId, SystemPhase};
@@ -27,6 +28,7 @@ fn main() {
 
     runtime.with_plugin(PongStarterPlugin {});
     runtime.with_system::<ball_mover>(SystemPhase::Update);
+    runtime.with_system::<framerate_counter_system>(SystemPhase::Update);
     runtime.run::<OpenGLRenderer>();
 }
 
@@ -43,6 +45,5 @@ fn ball_mover(
     transform: &mut Transform,
 ) {
     let time = Instant::now().duration_since(ball.start).as_secs_f32();
-
     transform.set_local_pos(vec3(time.sin() * 0.6, 0.0, 0.0));
 }

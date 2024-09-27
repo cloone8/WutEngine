@@ -2,6 +2,7 @@
 
 use std::time::Instant;
 
+use wutengine::builtins::components::util::FramerateCounter;
 use wutengine::builtins::components::{Camera, Material, Mesh, Name, Transform};
 use wutengine::command::{Command, FullscreenType, OpenWindowParams};
 use wutengine::graphics::color::Color;
@@ -121,6 +122,7 @@ fn make_camera(commands: &mut Command) {
         .entity()
         .spawn()
         .with_component(Name::new("Camera"))
+        .with_component(FramerateCounter::new())
         .with_component(Transform::with_pos(Vec3::new(0.0, 0.0, -1.0)))
         .with_component(Camera {
             display: WindowIdentifier::new("main"),

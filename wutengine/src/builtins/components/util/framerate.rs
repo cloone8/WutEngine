@@ -1,3 +1,4 @@
+use core::num::{Saturating, Wrapping};
 use std::time::Instant;
 
 use wutengine_core::{Component, EntityId};
@@ -6,18 +7,24 @@ use wutengine_macro::system;
 use crate::command::Command;
 use crate::log;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct FramerateCounter {
-    prev_time: Option<Instant>,
-    num_frames: usize,
+    prev_time: Instant,
+    num_frames: Saturating<usize>,
 }
 
 impl FramerateCounter {
     pub fn new() -> Self {
         Self {
-            prev_time: None,
-            num_frames: 0,
+            prev_time: Instant::now(),
+            num_frames: Saturating(0),
         }
+    }
+}
+
+impl Default for FramerateCounter {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -29,21 +36,18 @@ pub fn framerate_counter_system(
     _entity: EntityId,
     counter: &mut FramerateCounter,
 ) {
+    counter.num_frames += 1;
+
     let cur_time = Instant::now();
 
-    if let Some(prev_time) = &mut counter.prev_time {
-        let diff = cur_time.duration_since(*prev_time);
-        let as_secs = diff.as_secs_f64();
-        let as_fps = 1.0 / as_secs;
+    let duration_since_last_report = cur_time.duration_since(counter.prev_time).as_secs_f64();
 
-        if counter.num_frames % 1000 == 0 {
-            log::info!("Frametime: {}s - FPS: {}", as_secs, as_fps);
-        }
+    if duration_since_last_report >= 1.0 {
+        let fps = counter.num_frames.0 as f64 / duration_since_last_report;
 
-        *prev_time = cur_time;
-    } else {
-        counter.prev_time = Some(cur_time);
+        log::info!("FPS: {}, avg. frametime: {}ms", fps, (1.0 / fps) * 1000.0);
+
+        counter.num_frames = Saturating(0);
+        counter.prev_time = cur_time;
     }
-
-    counter.num_frames = counter.num_frames.wrapping_add(1);
 }

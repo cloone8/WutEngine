@@ -123,8 +123,6 @@ pub fn system(
         Err(e) => return e.into(),
     };
 
-    dbg!(&macro_args);
-
     let system_args: Punctuated<Type, Token![,]> =
         gather_args(&input).into_iter().skip(2).collect();
     let (system_struct_name, system_struct_def) = make_system_struct(&input);
