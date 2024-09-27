@@ -1,9 +1,10 @@
+use core::ptr::null;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
 use nohash_hasher::IntMap;
-use wutengine_graphics::mesh::{MeshData, MeshDataId};
+use wutengine_graphics::mesh::{IndexBuffer, MeshData, MeshDataId};
 use wutengine_graphics::shader::resolver::ShaderResolver;
 use wutengine_graphics::shader::ShaderSetId;
 use wutengine_graphics::{
@@ -172,6 +173,7 @@ impl Window {
         vao.bind(gl);
 
         mesh_buffers.vertex.bind(gl);
+        mesh_buffers.index.bind(gl);
         vao.set_vertex_attrs_for(gl, mesh_buffers, program);
 
         vao.unbind(gl);
@@ -208,10 +210,14 @@ impl Window {
 
             unsafe {
                 //TODO: Dirty hack until I can get the amount of triangles properly from the VAO or soemthing
-                gl.DrawArrays(
+                gl.DrawElements(
                     opengl::TRIANGLES,
-                    0,
-                    object.mesh.positions.len().try_into().unwrap(),
+                    match &object.mesh.indices {
+                        IndexBuffer::U16(vec) => vec.len().try_into().unwrap(),
+                        IndexBuffer::U32(vec) => vec.len().try_into().unwrap(),
+                    },
+                    opengl::UNSIGNED_INT,
+                    null(),
                 );
             }
         }

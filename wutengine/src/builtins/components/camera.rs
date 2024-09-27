@@ -1,3 +1,4 @@
+use glam::Mat4;
 use wutengine_core::Component;
 use wutengine_graphics::{color::Color, renderer::RenderContext, windowing::WindowIdentifier};
 
@@ -14,6 +15,8 @@ impl Camera {
         RenderContext {
             window: self.display.clone(),
             clear_color: self.clear_color,
+            view_mat: Mat4::IDENTITY,
+            projection_mat: Mat4::IDENTITY,
         }
     }
 }

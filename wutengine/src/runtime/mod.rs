@@ -9,9 +9,9 @@ use wutengine_ecs::world::World;
 use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
 use wutengine_graphics::windowing::WindowIdentifier;
 
-use crate::builtins::components::camera::Camera;
-use crate::builtins::components::material::Material;
-use crate::builtins::components::mesh::Mesh;
+use crate::builtins::components::Material;
+use crate::builtins::components::Mesh;
+use crate::builtins::components::{Camera, Transform};
 use crate::command::Command;
 use crate::plugins::WutEnginePlugin;
 use crate::{EngineCommand, WindowingEvent};
@@ -37,17 +37,23 @@ pub struct Runtime<R: WutEngineRenderer> {
 
 impl<R: WutEngineRenderer> Runtime<R> {
     unsafe fn get_renderables(&self) -> Vec<Renderable> {
-        self.world.query(|_, args: (&Mesh, &Material)| {
+        self.world.query(|_, args: (&Mesh, &Material, &Transform)| {
             let mesh = args.0.data.clone();
             let material = args.1.data.clone();
+            let transform = args.2.local_to_world();
 
             log::trace!(
-                "Pushing renderable mesh {:#?} with material {:#?}",
+                "Pushing renderable mesh {:#?} with material {:#?} and transform {}",
                 mesh,
-                material
+                material,
+                transform
             );
 
-            Renderable { mesh, material }
+            Renderable {
+                mesh,
+                material,
+                object_to_world: transform,
+            }
         })
     }
 

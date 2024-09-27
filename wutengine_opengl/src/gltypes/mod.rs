@@ -1,12 +1,12 @@
 use core::ffi::c_void;
 
 use glam::Vec3;
-use wutengine_graphics::mesh::MeshData;
+use wutengine_graphics::mesh::{IndexBuffer, MeshData};
 
+use crate::buffer::{ArrayBuffer, CreateErr, ElementArrayBuffer, GlBuffer};
 use crate::opengl::types::{GLenum, GLint, GLsizei};
 use crate::opengl::Gl;
 use crate::shader::attribute::ShaderAttribute;
-use crate::vbo::{CreateErr, Vbo};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -29,7 +29,8 @@ impl From<Vec3> for GlPosition {
 #[derive(Debug)]
 pub struct GlMeshBuffers {
     pub layout: LayoutDescriptor,
-    pub vertex: Vbo,
+    pub vertex: GlBuffer<ArrayBuffer>,
+    pub index: GlBuffer<ElementArrayBuffer>,
 }
 
 #[derive(Debug)]
@@ -114,20 +115,40 @@ impl GlMeshBuffers {
     pub fn new(gl: &Gl, mesh: &MeshData) -> Result<Self, CreateErr> {
         let mut buf = Self {
             layout: LayoutDescriptor { position: 0 },
-            vertex: Vbo::new(gl)?,
+            vertex: GlBuffer::new(gl)?,
+            index: GlBuffer::new(gl)?,
         };
 
-        let mut data_buf: Vec<f32> = Vec::new();
+        let mut vertex_buf: Vec<f32> = Vec::with_capacity(mesh.positions.len() * 3);
 
         for position in mesh.positions.iter().copied() {
-            data_buf.push(position.x);
-            data_buf.push(position.y);
-            data_buf.push(position.z);
+            vertex_buf.push(position.x);
+            vertex_buf.push(position.y);
+            vertex_buf.push(position.z);
         }
 
         buf.vertex.bind(gl);
-        buf.vertex.buffer_data(gl, &data_buf);
+        buf.vertex.buffer_data(gl, &vertex_buf);
         buf.vertex.unbind(gl);
+
+        let mut index_buf: Vec<u32> = Vec::new();
+
+        match &mesh.indices {
+            IndexBuffer::U16(vec) => {
+                for index in vec.iter().copied() {
+                    index_buf.push(index as u32);
+                }
+            }
+            IndexBuffer::U32(vec) => {
+                for index in vec.iter().copied() {
+                    index_buf.push(index);
+                }
+            }
+        }
+
+        buf.index.bind(gl);
+        buf.index.buffer_data(gl, &index_buf);
+        buf.index.unbind(gl);
 
         Ok(buf)
     }

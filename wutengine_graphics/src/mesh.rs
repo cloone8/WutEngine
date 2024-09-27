@@ -10,6 +10,13 @@ pub struct MeshData {
     /// Unique mesh identifier
     id: MeshDataId,
     pub positions: Vec<Vec3>,
+    pub indices: IndexBuffer,
+}
+
+#[derive(Debug, Clone)]
+pub enum IndexBuffer {
+    U16(Vec<u16>),
+    U32(Vec<u32>),
 }
 
 impl Default for MeshData {
@@ -17,6 +24,7 @@ impl Default for MeshData {
         Self {
             id: MeshDataId::random(),
             positions: Vec::new(),
+            indices: IndexBuffer::U16(Vec::new()),
         }
     }
 }
@@ -26,6 +34,7 @@ impl Clone for MeshData {
         Self {
             id: MeshDataId::random(),
             positions: self.positions.clone(),
+            indices: self.indices.clone(),
         }
     }
 }

@@ -1,13 +1,34 @@
-use core::{ffi::c_void, num::NonZero};
+use core::ffi::c_void;
+use core::marker::PhantomData;
+use core::num::NonZero;
 
 use thiserror::Error;
 
-use crate::opengl::{self, types::GLuint, Gl};
+use crate::opengl::types::{GLenum, GLuint};
+use crate::opengl::{self, Gl};
 
-//TODO: Type-state? Vbo<Unbound> -> Vbo<Bound> etc.
+pub trait GlBufferType {
+    const GL_BUFTYPE: GLenum;
+}
+
 #[derive(Debug)]
-pub struct Vbo {
+pub struct ArrayBuffer;
+
+impl GlBufferType for ArrayBuffer {
+    const GL_BUFTYPE: GLenum = opengl::ARRAY_BUFFER;
+}
+
+#[derive(Debug)]
+pub struct ElementArrayBuffer;
+
+impl GlBufferType for ElementArrayBuffer {
+    const GL_BUFTYPE: GLenum = opengl::ELEMENT_ARRAY_BUFFER;
+}
+
+#[derive(Debug)]
+pub struct GlBuffer<T> {
     handle: Option<NonZero<GLuint>>,
+    phantom: PhantomData<T>,
 }
 
 #[derive(Debug, Clone, Copy, Error)]
@@ -16,7 +37,7 @@ pub enum CreateErr {
     Zero,
 }
 
-impl Vbo {
+impl<B: GlBufferType> GlBuffer<B> {
     pub fn new(gl: &Gl) -> Result<Self, CreateErr> {
         let mut handle = 0;
 
@@ -28,6 +49,7 @@ impl Vbo {
 
         Ok(Self {
             handle: Some(handle),
+            phantom: PhantomData,
         })
     }
 
@@ -35,20 +57,20 @@ impl Vbo {
         unsafe {
             let handle_int = self.handle.unwrap().get();
 
-            gl.BindBuffer(opengl::ARRAY_BUFFER, handle_int);
+            gl.BindBuffer(B::GL_BUFTYPE, handle_int);
         }
     }
 
     pub fn unbind(&mut self, gl: &Gl) {
         unsafe {
-            gl.BindBuffer(opengl::ARRAY_BUFFER, 0);
+            gl.BindBuffer(B::GL_BUFTYPE, 0);
         }
     }
 
     pub fn buffer_data<T: Copy>(&mut self, gl: &Gl, data: &[T]) {
         unsafe {
             gl.BufferData(
-                opengl::ARRAY_BUFFER,
+                B::GL_BUFTYPE,
                 std::mem::size_of_val(data) as isize,
                 data.as_ptr() as *const c_void,
                 opengl::STATIC_DRAW,
@@ -68,10 +90,13 @@ impl Vbo {
 }
 
 #[cfg(debug_assertions)]
-impl Drop for Vbo {
+impl<B> Drop for GlBuffer<B> {
     fn drop(&mut self) {
         if self.handle.is_some() {
-            log::warn!("VBO dropped without being destroyed!");
+            log::warn!(
+                "GL buffer of type {} dropped without being destroyed!",
+                std::any::type_name::<B>()
+            );
         }
     }
 }

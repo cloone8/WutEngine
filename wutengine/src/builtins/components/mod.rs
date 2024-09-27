@@ -1,4 +1,13 @@
-pub mod camera;
-pub mod material;
-pub mod mesh;
-pub mod name;
+mod camera;
+mod material;
+mod mesh;
+mod name;
+mod transform;
+
+pub use camera::*;
+pub use material::*;
+pub use mesh::*;
+pub use name::*;
+pub use transform::*;
+
+pub mod util;

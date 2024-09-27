@@ -9,9 +9,6 @@ use wutengine_ecs::Dynamic;
 #[doc(inline)]
 pub use wutengine_graphics as graphics;
 
-#[doc(inline)]
-pub use wutengine_macro as macros;
-
 use wutengine_core::{EntityId, System};
 
 mod embedded {
@@ -24,6 +21,7 @@ pub mod builtins;
 pub mod command;
 pub mod ecs;
 pub mod log;
+pub mod macros;
 pub mod math;
 pub mod plugins;
 pub mod renderer;

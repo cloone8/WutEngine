@@ -12,10 +12,10 @@ mod opengl {
     include!(concat!(env!("OUT_DIR"), "/gl_generated_bindings.rs"));
 }
 
+mod buffer;
 mod gltypes;
 mod shader;
 mod vao;
-mod vbo;
 mod window;
 
 pub struct OpenGLRenderer {

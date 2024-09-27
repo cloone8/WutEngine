@@ -1,5 +1,5 @@
 use core::any::{Any, TypeId};
-use core::fmt::{Debug, Pointer};
+use core::fmt::Debug;
 
 use crate::archetype::TypeDescriptorSet;
 

@@ -86,7 +86,7 @@ impl Vao {
             let as_int = handle.get();
 
             unsafe {
-                gl.DeleteBuffers(1, &as_int);
+                gl.DeleteVertexArrays(1, &as_int);
             }
         }
     }

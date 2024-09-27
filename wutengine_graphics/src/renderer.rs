@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use glam::Mat4;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use crate::color::Color;
@@ -12,12 +13,15 @@ use crate::windowing::WindowIdentifier;
 pub struct RenderContext {
     pub window: WindowIdentifier,
     pub clear_color: Color,
+    pub view_mat: Mat4,
+    pub projection_mat: Mat4,
 }
 
 #[derive(Debug)]
 pub struct Renderable {
     pub mesh: Rc<MeshData>,
     pub material: Rc<MaterialData>,
+    pub object_to_world: Mat4,
 }
 
 pub trait WutEngineRenderer {

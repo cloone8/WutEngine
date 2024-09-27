@@ -24,7 +24,7 @@ keywords = []
 categories = ["game-engines"]
 
 [workspace.dependencies]
-# Workspace dependencies
+### Workspace dependencies ###
 wutengine = { path = "wutengine", version = "0.0.6" }
 wutengine_macro = { path = "wutengine/macro", version = "0.0.6" }
 wutengine_core = { path = "wutengine_core", version = "0.0.6" }
@@ -33,22 +33,32 @@ wutengine_graphics = { path = "wutengine_graphics", version = "0.0.6" }
 wutengine_opengl = { path = "wutengine_opengl", version = "0.0.6" }
 wutengine_ecs = { path = "wutengine_ecs", version = "0.0.6" }
 
-# External dependencies
+### External dependencies ###
+# Windowing 
 winit = { version = "0.30.5" }
-nohash-hasher = { version = "0.2.0" }
-log = "0.4.22"
-rand = { version = "0.8.5", features = ["std", "std_rng", "small_rng"] }
-static_assertions = "1.1.0"
-thiserror = "1.0.64"
-itertools = "0.13.0"
-syn = { version = "2.0.77", features = ["full", "parsing"] }
-quote = "1.0.37"
-proc-macro2 = "1.0.86"
 gl-from-raw-window-handle = { version = "0.1.1" }
 gl_generator = "0.14.0"
 raw-window-handle = "0.6.2"
-glam = { version = "0.28.0", features = ["std", "debug-glam-assert"] }
+
+# Logging and errors
+log = "0.4.22"
 simplelog = "0.12.2"
+thiserror = "1.0.64"
+
+# Math and algorithms
+nohash-hasher = { version = "0.2.0" }
+rand = { version = "0.8.5", features = ["std", "std_rng", "small_rng"] }
+itertools = "0.13.0"
+glam = { version = "0.28.0", features = ["std", "debug-glam-assert"] }
+
+# Macro utilities
+syn = { version = "2.0.77", features = ["full", "parsing"] }
+quote = "1.0.37"
+proc-macro2 = "1.0.86"
+darling = "0.20.10"
+
+# Others
+static_assertions = "1.1.0"
 include_dir = "0.7.4"
 
 # Config for 'cargo dist'

@@ -9,11 +9,17 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn rgb(r: f32, g: f32, b: f32) -> Self {
+    pub const BLACK: Self = Color::rgb(0.0, 0.0, 0.0);
+    pub const WHITE: Self = Color::rgb(1.0, 1.0, 1.0);
+    pub const RED: Self = Color::rgb(1.0, 0.0, 0.0);
+    pub const GREEN: Self = Color::rgb(0.0, 1.0, 0.0);
+    pub const BLUE: Self = Color::rgb(0.0, 0.0, 1.0);
+
+    pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self { r, g, b, a: 1.0 }
     }
 
-    pub fn rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+    pub const fn rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
     }
 }
