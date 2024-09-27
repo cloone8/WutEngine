@@ -133,7 +133,10 @@ impl Archetype {
         self.mutmap()
     }
 
-    pub(crate) fn get_components_for_remove(&mut self, to_remove: EntityId) -> (usize, ArchetypeMapMut) {
+    pub(crate) fn get_components_for_remove(
+        &mut self,
+        to_remove: EntityId,
+    ) -> (usize, ArchetypeMapMut) {
         let entity_idx = self
             .entities
             .iter()

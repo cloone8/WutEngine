@@ -28,7 +28,9 @@ fn map_tokens_punctuated<'a, T: Clone + 'static, P: Default>(
         .collect()
 }
 
-pub(crate) fn make_combined_query_tuples_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub(crate) fn make_combined_query_tuples_impl(
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
     let idents = parse_macro_input!(input with Punctuated::<Ident, Token![,]>::parse_terminated);
 
     let wheres = map_tokens(&idents, |ident, _| {

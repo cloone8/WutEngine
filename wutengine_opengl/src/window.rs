@@ -148,7 +148,10 @@ impl Window {
         meshes.get_mut(&mesh.get_id()).unwrap()
     }
 
-    pub(crate) fn get_object_data(&mut self, object: &Renderable) -> (&mut Vao, &mut ShaderProgram) {
+    pub(crate) fn get_object_data(
+        &mut self,
+        object: &Renderable,
+    ) -> (&mut Vao, &mut ShaderProgram) {
         let mesh = &object.mesh;
         let shader = object.material.shader.clone();
         let vao_key = (mesh.get_id(), shader.clone());

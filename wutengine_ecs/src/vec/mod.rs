@@ -219,19 +219,21 @@ impl AnyVec {
     /// its drop function and _without_ modifying the length of `self`.
     ///
     /// If the given index _is_ the tail, does nothing.
-    unsafe fn overwrite_with_tail(&mut self, index: usize) { unsafe {
-        let elem_size = self.base_layout.size();
-        let storage_ptr = self.storage.expect("Len > 0 but no storage").as_ptr();
-        let to_overwrite_ptr: *mut u8 = storage_ptr.byte_add(elem_size * index);
+    unsafe fn overwrite_with_tail(&mut self, index: usize) {
+        unsafe {
+            let elem_size = self.base_layout.size();
+            let storage_ptr = self.storage.expect("Len > 0 but no storage").as_ptr();
+            let to_overwrite_ptr: *mut u8 = storage_ptr.byte_add(elem_size * index);
 
-        if index != (self.len() - 1) {
-            let tail_elem_ptr: *mut u8 = storage_ptr.byte_add(elem_size * (self.len() - 1));
+            if index != (self.len() - 1) {
+                let tail_elem_ptr: *mut u8 = storage_ptr.byte_add(elem_size * (self.len() - 1));
 
-            debug_assert_ne!(to_overwrite_ptr, tail_elem_ptr);
+                debug_assert_ne!(to_overwrite_ptr, tail_elem_ptr);
 
-            to_overwrite_ptr.copy_from_nonoverlapping(tail_elem_ptr, elem_size);
+                to_overwrite_ptr.copy_from_nonoverlapping(tail_elem_ptr, elem_size);
+            }
         }
-    }}
+    }
 
     pub fn clear(&mut self) {
         if self.capacity > 0 {

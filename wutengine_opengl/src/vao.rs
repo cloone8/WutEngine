@@ -47,7 +47,12 @@ impl Vao {
         }
     }
 
-    pub(crate) fn set_vertex_attrs_for(&mut self, gl: &Gl, mesh: &GlMeshBuffers, program: &ShaderProgram) {
+    pub(crate) fn set_vertex_attrs_for(
+        &mut self,
+        gl: &Gl,
+        mesh: &GlMeshBuffers,
+        program: &ShaderProgram,
+    ) {
         for attribute in mesh.layout.get_present_attributes() {
             log::trace!("Checking attribute presence: {:?}", attribute);
 
