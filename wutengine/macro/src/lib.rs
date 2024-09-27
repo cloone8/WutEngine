@@ -1,15 +1,25 @@
+//! Macros for users of WutEngine
+
+#![allow(clippy::missing_docs_in_private_items)]
+
 use darling::ast::NestedMeta;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::punctuated::Punctuated;
-use syn::{parse_macro_input, DeriveInput, Ident, ItemFn, Token, Type, Visibility};
+use syn::{
+    parse_macro_input, Attribute, DeriveInput, Ident, ItemFn, Meta, Token, Type, Visibility,
+};
 
 fn make_system_struct(func: &ItemFn) -> (Ident, TokenStream) {
     let input_name = &func.sig.ident;
     let input_vis = &func.vis;
-
+    let input_docs: Vec<TokenStream> = get_doc_attrs(&func.attrs)
+        .into_iter()
+        .map(|a| a.into_token_stream())
+        .collect();
     let tokens = quote! {
+        #(#input_docs)*
         #[allow(non_camel_case_types)]
         #input_vis struct #input_name {}
     };
@@ -38,6 +48,14 @@ fn gather_args(func: &ItemFn) -> Vec<Type> {
         }
     }
     ret
+}
+
+fn get_doc_attrs(attrs: &[Attribute]) -> Vec<&Attribute> {
+    attrs
+        .iter()
+        .filter(|x| x.path().is_ident("doc"))
+        .filter(|x| matches!(x.meta, Meta::NameValue(_)))
+        .collect()
 }
 
 fn make_outer_system_func(
@@ -110,6 +128,9 @@ fn make_description_impl(
     }
 }
 
+/// Transforms a compatible function into a system with description, for use
+/// in WutEngine.
+///
 ///TODO: Give better error if first two arguments are not command and entity
 #[proc_macro_attribute]
 pub fn system(
@@ -177,6 +198,7 @@ fn parse_macro_args<T: FromMeta>(args: TokenStream) -> Result<T, TokenStream> {
     Ok(parsed)
 }
 
+/// Derives the `Component` trait for a type
 #[proc_macro_derive(Component)]
 pub fn derive_component(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

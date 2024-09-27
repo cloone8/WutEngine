@@ -7,6 +7,9 @@ use wutengine_macro::system;
 use crate::command::Command;
 use crate::log;
 
+/// Framerate counter component. Requires [framerate_counter_system] to be present.
+///
+/// Every second, logs the average FPS and frametime of the last second with level `info`
 #[derive(Debug)]
 pub struct FramerateCounter {
     prev_time: Instant,
@@ -14,6 +17,7 @@ pub struct FramerateCounter {
 }
 
 impl FramerateCounter {
+    /// Creates a new [FramerateCounter]
     pub fn new() -> Self {
         Self {
             prev_time: Instant::now(),
@@ -30,6 +34,7 @@ impl Default for FramerateCounter {
 
 impl Component for FramerateCounter {}
 
+/// The framerate counter system required for the [FramerateCounter] component to function
 #[system(root_wutengine_crate = crate)]
 pub fn framerate_counter_system(
     _commands: &mut Command,
