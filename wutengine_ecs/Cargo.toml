@@ -12,6 +12,9 @@ keywords.workspace = true
 categories.workspace = true
 readme = "../README.md"
 
+[lints]
+workspace = true
+
 [dependencies]
 wutengine_core.workspace = true
 wutengine_util_macro.workspace = true

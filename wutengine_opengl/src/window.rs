@@ -4,15 +4,17 @@ use std::rc::Rc;
 
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
 use nohash_hasher::IntMap;
+use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::mesh::{IndexBuffer, MeshData, MeshDataId};
 use wutengine_graphics::shader::resolver::ShaderResolver;
+use wutengine_graphics::shader::uniforms::SharedShaderUniform;
 use wutengine_graphics::shader::ShaderSetId;
 use wutengine_graphics::{
     renderer::{RenderContext, Renderable},
     windowing::{HasDisplayHandle, HasWindowHandle},
 };
 
-use crate::gltypes::GlMeshBuffers;
+use crate::mesh::GlMeshBuffers;
 use crate::opengl::{self, Gl};
 use crate::shader::program::ShaderProgram;
 use crate::shader::set::GlShaderSet;
@@ -202,7 +204,32 @@ impl Window {
 
             vao.bind(gl);
             program.use_program(gl).unwrap();
+
             unsafe {
+                program
+                    .set_uniform(
+                        gl,
+                        SharedShaderUniform::ModelMat.as_str(),
+                        &MaterialParameter::Mat4(object.object_to_world),
+                    )
+                    .expect("Could not set model matrix");
+
+                program
+                    .set_uniform(
+                        gl,
+                        SharedShaderUniform::ViewMat.as_str(),
+                        &MaterialParameter::Mat4(render_context.view_mat),
+                    )
+                    .expect("Could not set view matrix");
+
+                program
+                    .set_uniform(
+                        gl,
+                        SharedShaderUniform::ProjectionMat.as_str(),
+                        &MaterialParameter::Mat4(render_context.projection_mat),
+                    )
+                    .expect("Could not set projection matrix");
+
                 program
                     .set_uniforms(gl, &object.material.parameters)
                     .unwrap();

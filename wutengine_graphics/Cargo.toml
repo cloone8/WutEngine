@@ -12,6 +12,9 @@ keywords.workspace = true
 categories.workspace = true
 readme = "../README.md"
 
+[lints]
+workspace = true
+
 [dependencies]
 glam.workspace = true
 raw-window-handle.workspace = true

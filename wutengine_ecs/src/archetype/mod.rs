@@ -1,4 +1,4 @@
-use core::any::{Any, TypeId};
+use core::any::TypeId;
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
 use std::collections::HashMap;

@@ -12,6 +12,9 @@ categories.workspace = true
 rust-version.workspace = true
 readme = "../README.md"
 
+[lints]
+workspace = true
+
 [build-dependencies]
 gl_generator.workspace = true
 

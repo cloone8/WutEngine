@@ -12,7 +12,7 @@ use crate::opengl::{self, Gl};
 use crate::shader::CompileErr;
 
 use super::set::GlShaderSet;
-use super::uniform::{GlUniformConversionError, UniformDescriptor};
+use super::uniform::UniformDescriptor;
 
 #[derive(Debug)]
 pub struct ShaderProgram {
@@ -210,17 +210,34 @@ impl ShaderProgram {
     pub unsafe fn set_uniforms(
         &mut self,
         gl: &Gl,
-        parameters: &HashMap<String, MaterialParameter>,
+        parameters: &HashMap<impl AsRef<str>, MaterialParameter>,
     ) -> Result<(), SetUniformErr> {
         _ = self.assert_linked();
 
         for (name, value) in parameters {
-            let uniform_descriptor = self
-                .uniforms
-                .get_mut(name)
-                .ok_or_else(|| SetUniformErr::UnknownParam(name.clone()))?;
+            unsafe {
+                self.set_uniform(gl, name, value)?;
+            }
+        }
 
-            unsafe { uniform_descriptor.set_with(gl, value)? };
+        Ok(())
+    }
+
+    pub unsafe fn set_uniform(
+        &mut self,
+        gl: &Gl,
+        name: impl AsRef<str>,
+        value: &MaterialParameter,
+    ) -> Result<(), SetUniformErr> {
+        let uniform_descriptor = self
+            .uniforms
+            .get_mut(name.as_ref())
+            .ok_or_else(|| SetUniformErr::UnknownParam(name.as_ref().to_owned()))?;
+
+        let ok = unsafe { uniform_descriptor.set_with(gl, value) };
+
+        if !ok {
+            return Err(SetUniformErr::InvalidParam(name.as_ref().to_owned()));
         }
 
         Ok(())
@@ -232,8 +249,8 @@ pub enum SetUniformErr {
     #[error("Unknown parameter: {}", 0)]
     UnknownParam(String),
 
-    #[error("Parameter had an invalid value")]
-    InvalidParam(#[from] GlUniformConversionError),
+    #[error("Parameter {} had an invalid value", 0)]
+    InvalidParam(String),
 }
 
 #[cfg(debug_assertions)]

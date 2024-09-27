@@ -3,12 +3,11 @@ use core::ffi::CStr;
 use core::num::NonZero;
 
 use thiserror::Error;
+use wutengine_graphics::material::MaterialParameter;
 
+use crate::gltypes::GlMat4f;
 use crate::opengl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
 use crate::opengl::{self, Gl};
-mod conversions;
-
-pub use conversions::GlUniformConversionError;
 
 #[derive(Debug, Clone, Copy)]
 pub struct UniformDescriptor {
@@ -19,10 +18,11 @@ pub struct UniformDescriptor {
 
 #[derive(Debug, Clone, Copy)]
 enum UniformType {
-    Float { count: u8 },
-    Int { count: u8 },
-    Uint { count: u8 },
-    Matrix { rows: u8, cols: u8 },
+    Float,
+    Vec2f,
+    Vec3f,
+    Vec4f,
+    Mat4,
 }
 
 impl UniformDescriptor {
@@ -99,39 +99,57 @@ impl UniformDescriptor {
         output
     }
 
-    pub unsafe fn set_with<T: IntoGlUniformData>(self, gl: &Gl, data: T) -> Result<(), T::Error> {
-        match self.uniform_type {
-            UniformType::Float { count } => {
-                let as_float_buf = data.as_float_buf(count, self.uniform_count as usize)?;
-
-                debug_assert_eq!(
-                    (self.uniform_count as usize) * (count as usize),
-                    as_float_buf.len(),
-                    "Buffer with invalid length returned"
-                );
-
-                match count {
-                    0 => unreachable!("Float vectors of length 0 are not possible"),
-                    1 => gl.Uniform1fv(self.location, self.uniform_count, as_float_buf.as_ptr()),
-                    2 => gl.Uniform2fv(self.location, self.uniform_count, as_float_buf.as_ptr()),
-                    3 => gl.Uniform3fv(self.location, self.uniform_count, as_float_buf.as_ptr()),
-                    4 => gl.Uniform4fv(self.location, self.uniform_count, as_float_buf.as_ptr()),
-                    _ => unreachable!("Float vectors larger than 4 are not possible"),
-                }
-            }
-            UniformType::Int { count } => todo!(),
-            UniformType::Uint { count } => todo!(),
-            UniformType::Matrix { rows, cols } => todo!(),
+    /// Sets this uniform to the value contained in the
+    /// given parameter, if it contains data that is able
+    /// to be mapped to the type of the uniform.
+    ///
+    /// Returns whether the uniform has been set successfully
+    pub fn set_with(self, gl: &Gl, data: &MaterialParameter) -> bool {
+        if self.uniform_count != 1 {
+            todo!("Arrays not yet handled");
         }
 
-        Ok(())
+        match self.uniform_type {
+            UniformType::Float => {
+                todo!("Not yet supported");
+            }
+            UniformType::Vec2f => {
+                todo!("Not yet supported");
+            }
+            UniformType::Vec3f => {
+                todo!("Not yet supported");
+            }
+            UniformType::Vec4f => match data {
+                MaterialParameter::Color(color) => {
+                    let color = *color;
+                    unsafe {
+                        gl.Uniform4f(self.location, color.r, color.g, color.b, color.a);
+                    }
+                }
+                _ => {
+                    return false;
+                }
+            },
+            UniformType::Mat4 => match data {
+                MaterialParameter::Mat4(mat4) => {
+                    let mat = GlMat4f::from(*mat4);
+                    unsafe {
+                        gl.UniformMatrix4fv(
+                            self.location,
+                            1,
+                            opengl::FALSE,
+                            (&mat as *const GlMat4f) as *const f32,
+                        );
+                    }
+                }
+                _ => {
+                    return false;
+                }
+            },
+        }
+
+        true
     }
-}
-
-pub trait IntoGlUniformData {
-    type Error;
-
-    fn as_float_buf(&self, float_vec_size: u8, array_len: usize) -> Result<Vec<f32>, Self::Error>;
 }
 
 #[derive(Debug, Clone, Copy, Error)]
@@ -145,18 +163,11 @@ impl TryFrom<GLenum> for UniformType {
 
     fn try_from(value: GLenum) -> Result<Self, Self::Error> {
         let parsed = match value {
-            opengl::FLOAT => UniformType::Float { count: 1 },
-            opengl::FLOAT_VEC2 => UniformType::Float { count: 2 },
-            opengl::FLOAT_VEC3 => UniformType::Float { count: 3 },
-            opengl::FLOAT_VEC4 => UniformType::Float { count: 4 },
-            opengl::INT => UniformType::Int { count: 1 },
-            opengl::INT_VEC2 => UniformType::Int { count: 2 },
-            opengl::INT_VEC3 => UniformType::Int { count: 3 },
-            opengl::INT_VEC4 => UniformType::Int { count: 4 },
-            opengl::UNSIGNED_INT => UniformType::Uint { count: 1 },
-            opengl::UNSIGNED_INT_VEC2 => UniformType::Uint { count: 2 },
-            opengl::UNSIGNED_INT_VEC3 => UniformType::Uint { count: 3 },
-            opengl::UNSIGNED_INT_VEC4 => UniformType::Uint { count: 4 },
+            opengl::FLOAT => UniformType::Float,
+            opengl::FLOAT_VEC2 => UniformType::Vec2f,
+            opengl::FLOAT_VEC3 => UniformType::Vec3f,
+            opengl::FLOAT_VEC4 => UniformType::Vec4f,
+            opengl::FLOAT_MAT4 => UniformType::Mat4,
             _ => return Err(UniformTypeParsingError::UnknownType(value)),
         };
 

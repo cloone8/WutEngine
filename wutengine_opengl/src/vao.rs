@@ -2,7 +2,7 @@ use core::num::NonZero;
 
 use thiserror::Error;
 
-use crate::gltypes::GlMeshBuffers;
+use crate::mesh::GlMeshBuffers;
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
 use crate::shader::program::ShaderProgram;

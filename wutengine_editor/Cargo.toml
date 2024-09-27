@@ -12,5 +12,8 @@ categories.workspace = true
 rust-version.workspace = true
 readme = "../README.md"
 
+[lints]
+workspace = true
+
 [dependencies]
 wutengine.workspace = true

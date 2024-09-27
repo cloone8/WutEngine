@@ -2,9 +2,11 @@
 
 in vec3 wuteng_Position;
 
-uniform mat4 wuteng_objectToWorld;
+uniform mat4 wuteng_ModelMat;
+uniform mat4 wuteng_ViewMat;
+uniform mat4 wuteng_ProjectionMat;
 
 void main()
 {
-    gl_Position = vec4(wuteng_Position, 1.0);
+    gl_Position = wuteng_ProjectionMat * wuteng_ViewMat * wuteng_ModelMat * vec4(wuteng_Position, 1.0);
 }

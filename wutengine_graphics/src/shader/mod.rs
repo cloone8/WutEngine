@@ -3,7 +3,9 @@ use core::hash::Hash;
 
 use nohash_hasher::IsEnabled;
 
+pub mod attributes;
 pub mod resolver;
+pub mod uniforms;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShaderStage {

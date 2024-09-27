@@ -96,3 +96,11 @@ panic = "unwind"
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+missing_docs_in_private_items = "warn"

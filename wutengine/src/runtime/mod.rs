@@ -37,24 +37,26 @@ pub struct Runtime<R: WutEngineRenderer> {
 
 impl<R: WutEngineRenderer> Runtime<R> {
     unsafe fn get_renderables(&self) -> Vec<Renderable> {
-        self.world.query(|_, args: (&Mesh, &Material, &Transform)| {
-            let mesh = args.0.data.clone();
-            let material = args.1.data.clone();
-            let transform = args.2.local_to_world();
+        unsafe {
+            self.world.query(|_, args: (&Mesh, &Material, &Transform)| {
+                let mesh = args.0.data.clone();
+                let material = args.1.data.clone();
+                let transform = args.2.local_to_world();
 
-            log::trace!(
-                "Pushing renderable mesh {:#?} with material {:#?} and transform {}",
-                mesh,
-                material,
-                transform
-            );
+                log::trace!(
+                    "Pushing renderable mesh {:#?} with material {:#?} and transform {}",
+                    mesh,
+                    material,
+                    transform
+                );
 
-            Renderable {
-                mesh,
-                material,
-                object_to_world: transform,
-            }
-        })
+                Renderable {
+                    mesh,
+                    material,
+                    object_to_world: transform,
+                }
+            })
+        }
     }
 
     fn exec_engine_command(&mut self, command: EngineCommand) {

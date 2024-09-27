@@ -68,6 +68,10 @@ impl Dynamic {
     }
 
     #[inline]
+    #[expect(
+        dead_code,
+        reason = "Will be used later when I de-crappify the ECS multi-component-add code"
+    )]
     pub(crate) fn add_type_to_descriptor(&self, tds: &mut TypeDescriptorSet) {
         let ret = (self.type_descriptor_fn)(Some(tds));
 

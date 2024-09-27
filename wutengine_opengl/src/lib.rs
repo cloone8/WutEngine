@@ -1,3 +1,6 @@
+//! The OpenGL rendering backend for WutEngine
+//! The basic cross-platform rendering backend
+
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -9,11 +12,13 @@ use wutengine_graphics::{
 };
 
 mod opengl {
+    //! The raw OpenGL generated bindings
     include!(concat!(env!("OUT_DIR"), "/gl_generated_bindings.rs"));
 }
 
 mod buffer;
 mod gltypes;
+mod mesh;
 mod shader;
 mod vao;
 mod window;

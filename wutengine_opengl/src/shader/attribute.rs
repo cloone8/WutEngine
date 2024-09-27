@@ -1,6 +1,8 @@
+//! TODO: Migrate to shared [wutengine_graphics::shader::attributes] module
+
 use core::ffi::CStr;
 
-use crate::gltypes::GlPosition;
+use crate::gltypes::GlVec3f;
 use crate::opengl;
 use crate::opengl::types::{GLenum, GLint};
 
@@ -22,7 +24,7 @@ impl ShaderAttribute {
     #[inline]
     pub fn num_components(self) -> GLint {
         GLint::try_from(match self {
-            ShaderAttribute::Position => size_of::<GlPosition>() / size_of::<f32>(),
+            ShaderAttribute::Position => size_of::<GlVec3f>() / size_of::<f32>(),
         })
         .unwrap()
     }
