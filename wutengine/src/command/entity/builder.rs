@@ -3,7 +3,7 @@ use wutengine_ecs::Dynamic;
 
 use super::EntityCommand;
 
-#[must_use = "The entity is not build until `.build()` is called"]
+#[must_use = "The entity is not built until `.build()` is called"]
 pub struct EntityBuilder<'a> {
     entity_cmd: &'a mut EntityCommand<'a>,
     components: Vec<Dynamic>,
@@ -17,7 +17,7 @@ impl<'a> EntityBuilder<'a> {
         }
     }
 
-    pub fn with_component<T: Component>(&mut self, component: T) -> &mut Self {
+    pub fn with_component<T: Component>(mut self, component: T) -> Self {
         self.components.push(Dynamic::new(component));
 
         self

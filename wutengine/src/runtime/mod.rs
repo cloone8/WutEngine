@@ -13,6 +13,7 @@ use crate::builtins::components::camera::Camera;
 use crate::builtins::components::material::Material;
 use crate::builtins::components::mesh::Mesh;
 use crate::command::Command;
+use crate::plugins::WutEnginePlugin;
 use crate::{EngineCommand, WindowingEvent};
 
 mod init;
@@ -30,6 +31,7 @@ pub struct Runtime<R: WutEngineRenderer> {
 
     started: bool,
 
+    plugins: Vec<Box<dyn WutEnginePlugin>>,
     renderer: R,
 }
 
@@ -60,6 +62,9 @@ impl<R: WutEngineRenderer> Runtime<R> {
                 let new_entity = self.world.create_entity();
                 self.world.add_components_to_entity(new_entity, components);
             }
+            EngineCommand::DestroyEntity(id) => {
+                self.world.remove_entity(id);
+            }
         }
     }
 
@@ -81,6 +86,14 @@ impl<R: WutEngineRenderer> Runtime<R> {
     }
 
     fn start(&mut self) {
+        let mut commands = Command::empty();
+
+        for plugin in &mut self.plugins {
+            plugin.on_start(&mut commands);
+        }
+
+        self.exec_engine_commands(commands.consume());
+
         self.started = true;
     }
 }

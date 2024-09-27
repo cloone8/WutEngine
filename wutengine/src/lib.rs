@@ -12,7 +12,7 @@ pub use wutengine_graphics as graphics;
 #[doc(inline)]
 pub use wutengine_macro as macros;
 
-use wutengine_core::System;
+use wutengine_core::{EntityId, System};
 
 mod embedded {
     use include_dir::{include_dir, Dir};
@@ -35,6 +35,7 @@ pub mod runtime;
 pub enum EngineCommand {
     AddSystem(System<World, Command>),
     SpawnEntity(Vec<Dynamic>),
+    DestroyEntity(EntityId),
     OpenWindow(OpenWindowParams),
 }
 

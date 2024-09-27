@@ -65,6 +65,7 @@ impl RuntimeInitializer {
         }
 
         self.plugins.append(&mut all_plugins);
+        self.plugins.shrink_to_fit();
     }
 
     pub fn run<R: WutEngineRenderer>(mut self) {
@@ -85,6 +86,7 @@ impl RuntimeInitializer {
             windows: HashMap::new(),
             eventloop: event_loop.create_proxy(),
             started: false,
+            plugins: self.plugins,
             renderer: R::build(EmbeddedShaderResolver),
         };
 

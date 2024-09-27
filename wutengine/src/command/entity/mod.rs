@@ -3,6 +3,7 @@ use super::Command;
 mod builder;
 
 pub use builder::*;
+use wutengine_core::EntityId;
 
 #[repr(transparent)]
 pub struct EntityCommand<'a> {
@@ -18,5 +19,11 @@ impl<'a> EntityCommand<'a> {
 impl<'a> EntityCommand<'a> {
     pub fn spawn(&'a mut self) -> EntityBuilder<'a> {
         EntityBuilder::new(self)
+    }
+
+    pub fn destroy(&'a mut self, id: EntityId) {
+        self.cmd
+            .commands
+            .push(crate::EngineCommand::DestroyEntity(id));
     }
 }
