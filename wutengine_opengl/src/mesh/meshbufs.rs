@@ -6,14 +6,14 @@ use crate::opengl::Gl;
 use super::LayoutDescriptor;
 
 #[derive(Debug)]
-pub struct GlMeshBuffers {
+pub(crate) struct GlMeshBuffers {
     pub layout: LayoutDescriptor,
     pub vertex: GlBuffer<ArrayBuffer>,
     pub index: GlBuffer<ElementArrayBuffer>,
 }
 
 impl GlMeshBuffers {
-    pub fn new(gl: &Gl, mesh: &MeshData) -> Result<Self, CreateErr> {
+    pub(crate) fn new(gl: &Gl, mesh: &MeshData) -> Result<Self, CreateErr> {
         let mut buf = Self {
             layout: LayoutDescriptor { position: 0 },
             vertex: GlBuffer::new(gl)?,

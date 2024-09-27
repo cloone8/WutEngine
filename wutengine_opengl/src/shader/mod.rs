@@ -10,20 +10,20 @@ use thiserror::Error;
 use crate::opengl::types::GLint;
 use crate::opengl::{self, types::GLuint, Gl};
 
-pub mod attribute;
-pub mod program;
-pub mod set;
-pub mod uniform;
+pub(crate) mod attribute;
+pub(crate) mod program;
+pub(crate) mod set;
+pub(crate) mod uniform;
 
-pub unsafe trait ShaderType: Debug {
+pub(crate) unsafe trait ShaderType: Debug {
     const GL_SHADER_TYPE: GLuint;
 }
 
 #[derive(Debug)]
-pub struct Vertex;
+pub(crate) struct Vertex;
 
 #[derive(Debug)]
-pub struct Fragment;
+pub(crate) struct Fragment;
 
 unsafe impl ShaderType for Vertex {
     const GL_SHADER_TYPE: GLuint = opengl::VERTEX_SHADER;
@@ -33,13 +33,13 @@ unsafe impl ShaderType for Fragment {
 }
 
 #[derive(Debug, Error)]
-pub enum CreateErr {
+pub(crate) enum CreateErr {
     #[error("OpenGL returned 0")]
     Zero,
 }
 
 #[derive(Debug, Error)]
-pub enum CompileErr {
+pub(crate) enum CompileErr {
     #[error("OpenGL returned error message during shader compilation: {}", 0)]
     Gl(String),
 
@@ -48,20 +48,20 @@ pub enum CompileErr {
 }
 
 #[derive(Debug)]
-pub struct Shader<T: ShaderType> {
+pub(crate) struct Shader<T: ShaderType> {
     data: ShaderData,
     phantom: PhantomData<T>,
 }
 
 impl<T: ShaderType> Shader<T> {
-    pub fn new(gl: &Gl, source: &str) -> Result<Self, CreateErr> {
+    pub(crate) fn new(gl: &Gl, source: &str) -> Result<Self, CreateErr> {
         Ok(Self {
             data: ShaderData::new::<T>(gl, source)?,
             phantom: PhantomData,
         })
     }
 
-    pub fn get_compiled(&mut self, gl: &Gl) -> Result<NonZero<GLuint>, CompileErr> {
+    pub(crate) fn get_compiled(&mut self, gl: &Gl) -> Result<NonZero<GLuint>, CompileErr> {
         if !self.data.is_compiled() {
             self.data.do_compile(gl)?;
 
@@ -71,12 +71,12 @@ impl<T: ShaderType> Shader<T> {
         Ok(self.data.get_handle())
     }
 
-    pub fn assert_compiled(&self) -> NonZero<GLuint> {
+    pub(crate) fn assert_compiled(&self) -> NonZero<GLuint> {
         assert!(self.data.is_compiled());
 
         self.data.get_handle()
     }
-    pub fn destroy(&mut self, gl: &Gl) {
+    pub(crate) fn destroy(&mut self, gl: &Gl) {
         log::trace!("Destroying shader: {:?}", self);
 
         let handle = match self.data {

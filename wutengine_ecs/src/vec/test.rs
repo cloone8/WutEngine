@@ -132,7 +132,7 @@ struct WeirdStruct {
 }
 
 impl WeirdStruct {
-    pub fn random(rng: &mut impl Rng) -> Self {
+    pub(crate) fn random(rng: &mut impl Rng) -> Self {
         Self {
             a: rng.gen(),
             b: rng.gen(),

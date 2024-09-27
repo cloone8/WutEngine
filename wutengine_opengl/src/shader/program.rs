@@ -15,7 +15,7 @@ use super::set::GlShaderSet;
 use super::uniform::UniformDescriptor;
 
 #[derive(Debug)]
-pub struct ShaderProgram {
+pub(crate) struct ShaderProgram {
     data: ShaderProgramData,
     uniforms: HashMap<String, UniformDescriptor>,
 }
@@ -33,13 +33,13 @@ enum ShaderProgramData {
 }
 
 #[derive(Debug, Error)]
-pub enum CreateErr {
+pub(crate) enum CreateErr {
     #[error("OpenGL returned zero")]
     Zero,
 }
 
 #[derive(Debug, Error)]
-pub enum LinkErr {
+pub(crate) enum LinkErr {
     #[error("Shader failed to compile")]
     ShaderCompile(#[from] CompileErr),
 
@@ -48,7 +48,7 @@ pub enum LinkErr {
 }
 
 impl ShaderProgram {
-    pub fn new(gl: &Gl, stages: GlShaderSet) -> Result<Self, CreateErr> {
+    pub(crate) fn new(gl: &Gl, stages: GlShaderSet) -> Result<Self, CreateErr> {
         let handle = unsafe { gl.CreateProgram() };
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
@@ -61,7 +61,7 @@ impl ShaderProgram {
         })
     }
 
-    pub fn destroy(mut self, gl: &Gl) {
+    pub(crate) fn destroy(mut self, gl: &Gl) {
         log::debug!("Destroying ShaderProgram");
 
         if matches!(self.data, ShaderProgramData::Destroyed) {
@@ -169,7 +169,7 @@ impl ShaderProgram {
         }
     }
 
-    pub fn ensure_linked(&mut self, gl: &Gl) -> Result<(), LinkErr> {
+    pub(crate) fn ensure_linked(&mut self, gl: &Gl) -> Result<(), LinkErr> {
         if matches!(self.data, ShaderProgramData::Destroyed) {
             panic!("Trying to use a destroyed shader program");
         }
@@ -181,7 +181,7 @@ impl ShaderProgram {
         }
     }
 
-    pub fn assert_linked(&self) -> NonZero<GLuint> {
+    pub(crate) fn assert_linked(&self) -> NonZero<GLuint> {
         if let ShaderProgramData::Linked { handle } = self.data {
             handle
         } else {
@@ -189,7 +189,7 @@ impl ShaderProgram {
         }
     }
 
-    pub fn use_program(&mut self, gl: &Gl) -> Result<(), LinkErr> {
+    pub(crate) fn use_program(&mut self, gl: &Gl) -> Result<(), LinkErr> {
         if matches!(self.data, ShaderProgramData::Destroyed) {
             panic!("Trying to use a destroyed shader program");
         }
@@ -207,7 +207,7 @@ impl ShaderProgram {
         Ok(())
     }
 
-    pub unsafe fn set_uniforms(
+    pub(crate) unsafe fn set_uniforms(
         &mut self,
         gl: &Gl,
         parameters: &HashMap<impl AsRef<str>, MaterialParameter>,
@@ -223,7 +223,7 @@ impl ShaderProgram {
         Ok(())
     }
 
-    pub unsafe fn set_uniform(
+    pub(crate) unsafe fn set_uniform(
         &mut self,
         gl: &Gl,
         name: impl AsRef<str>,
@@ -245,7 +245,7 @@ impl ShaderProgram {
 }
 
 #[derive(Debug, Error)]
-pub enum SetUniformErr {
+pub(crate) enum SetUniformErr {
     #[error("Unknown parameter: {}", 0)]
     UnknownParam(String),
 

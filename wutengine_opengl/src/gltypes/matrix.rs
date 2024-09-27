@@ -4,7 +4,7 @@ use super::GlVec4f;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct GlMat4f {
+pub(crate) struct GlMat4f {
     pub x_col: GlVec4f,
     pub y_col: GlVec4f,
     pub z_col: GlVec4f,

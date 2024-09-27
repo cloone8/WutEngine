@@ -7,22 +7,22 @@ use crate::opengl;
 use crate::opengl::types::{GLenum, GLint};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShaderAttribute {
+pub(crate) enum ShaderAttribute {
     Position,
 }
 
 impl ShaderAttribute {
-    pub const ALL: [ShaderAttribute; 1] = [ShaderAttribute::Position];
+    pub(crate) const ALL: [ShaderAttribute; 1] = [ShaderAttribute::Position];
 
     #[inline]
-    pub const fn as_c_str(self) -> &'static CStr {
+    pub(crate) const fn as_c_str(self) -> &'static CStr {
         match self {
             ShaderAttribute::Position => c"wuteng_Position",
         }
     }
 
     #[inline]
-    pub fn num_components(self) -> GLint {
+    pub(crate) fn num_components(self) -> GLint {
         GLint::try_from(match self {
             ShaderAttribute::Position => size_of::<GlVec3f>() / size_of::<f32>(),
         })
@@ -30,7 +30,7 @@ impl ShaderAttribute {
     }
 
     #[inline]
-    pub fn size_bytes(self) -> GLint {
+    pub(crate) fn size_bytes(self) -> GLint {
         let base_size = GLint::try_from(match self.component_type() {
             opengl::FLOAT => size_of::<f32>(),
             _ => panic!("Unknown componenet type"),
@@ -41,7 +41,7 @@ impl ShaderAttribute {
     }
 
     #[inline]
-    pub const fn component_type(self) -> GLenum {
+    pub(crate) const fn component_type(self) -> GLenum {
         match self {
             ShaderAttribute::Position => opengl::FLOAT,
         }

@@ -20,7 +20,7 @@ use crate::shader::program::ShaderProgram;
 use crate::shader::set::GlShaderSet;
 use crate::vao::Vao;
 
-pub struct Window {
+pub(crate) struct Window {
     shader_resolver: Rc<dyn ShaderResolver>,
     context: GlContext,
     bindings: Gl,
@@ -30,7 +30,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new(
+    pub(crate) fn new(
         shader_resolver: Rc<dyn ShaderResolver>,
         handles: impl HasDisplayHandle + HasWindowHandle,
         size: (u32, u32),
@@ -74,7 +74,7 @@ impl Window {
         }
     }
 
-    pub fn size_changed(&mut self, size: (u32, u32)) {
+    pub(crate) fn size_changed(&mut self, size: (u32, u32)) {
         unsafe {
             self.context.make_current();
             self.bindings
@@ -148,7 +148,7 @@ impl Window {
         meshes.get_mut(&mesh.get_id()).unwrap()
     }
 
-    pub fn get_object_data(&mut self, object: &Renderable) -> (&mut Vao, &mut ShaderProgram) {
+    pub(crate) fn get_object_data(&mut self, object: &Renderable) -> (&mut Vao, &mut ShaderProgram) {
         let mesh = &object.mesh;
         let shader = object.material.shader.clone();
         let vao_key = (mesh.get_id(), shader.clone());
@@ -185,7 +185,7 @@ impl Window {
         (self.attributes.get_mut(&vao_key).unwrap(), program)
     }
 
-    pub fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
+    pub(crate) fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
         unsafe {
             self.context.make_current();
         }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use glam::{Mat4, Vec2, Vec3, Vec4};
+use glam::Mat4;
 
 use crate::color::Color;
 use crate::shader::ShaderSetId;

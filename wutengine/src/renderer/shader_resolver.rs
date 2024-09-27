@@ -6,7 +6,7 @@ use wutengine_graphics::shader::{ShaderSet, ShaderSetId};
 
 use crate::embedded;
 
-pub struct EmbeddedShaderResolver;
+pub(crate) struct EmbeddedShaderResolver;
 
 impl ShaderResolver for EmbeddedShaderResolver {
     fn find_set(&self, id: &ShaderSetId) -> Option<ShaderSet> {

@@ -14,7 +14,7 @@ use wutengine_core::{EntityId, System};
 mod embedded {
     use include_dir::{include_dir, Dir};
 
-    pub static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
+    pub(crate) static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
 }
 
 pub mod builtins;

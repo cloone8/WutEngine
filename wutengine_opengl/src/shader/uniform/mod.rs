@@ -10,7 +10,7 @@ use crate::opengl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
 use crate::opengl::{self, Gl};
 
 #[derive(Debug, Clone, Copy)]
-pub struct UniformDescriptor {
+pub(crate) struct UniformDescriptor {
     location: GLint,
     uniform_type: UniformType,
     uniform_count: GLsizei,
@@ -26,7 +26,7 @@ enum UniformType {
 }
 
 impl UniformDescriptor {
-    pub unsafe fn get_for(gl: &Gl, program: NonZero<GLuint>) -> Vec<(String, Self)> {
+    pub(crate) unsafe fn get_for(gl: &Gl, program: NonZero<GLuint>) -> Vec<(String, Self)> {
         let handle = program.get();
         let mut output: Vec<(String, Self)> = Vec::new();
 
@@ -104,7 +104,7 @@ impl UniformDescriptor {
     /// to be mapped to the type of the uniform.
     ///
     /// Returns whether the uniform has been set successfully
-    pub fn set_with(self, gl: &Gl, data: &MaterialParameter) -> bool {
+    pub(crate) fn set_with(self, gl: &Gl, data: &MaterialParameter) -> bool {
         if self.uniform_count != 1 {
             todo!("Arrays not yet handled");
         }
@@ -153,7 +153,7 @@ impl UniformDescriptor {
 }
 
 #[derive(Debug, Clone, Copy, Error)]
-pub enum UniformTypeParsingError {
+pub(crate) enum UniformTypeParsingError {
     #[error("Unknown GLenum type: 0x{:x}", 0)]
     UnknownType(GLenum),
 }

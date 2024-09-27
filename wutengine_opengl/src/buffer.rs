@@ -7,38 +7,38 @@ use thiserror::Error;
 use crate::opengl::types::{GLenum, GLuint};
 use crate::opengl::{self, Gl};
 
-pub trait GlBufferType {
+pub(crate) trait GlBufferType {
     const GL_BUFTYPE: GLenum;
 }
 
 #[derive(Debug)]
-pub struct ArrayBuffer;
+pub(crate) struct ArrayBuffer;
 
 impl GlBufferType for ArrayBuffer {
     const GL_BUFTYPE: GLenum = opengl::ARRAY_BUFFER;
 }
 
 #[derive(Debug)]
-pub struct ElementArrayBuffer;
+pub(crate) struct ElementArrayBuffer;
 
 impl GlBufferType for ElementArrayBuffer {
     const GL_BUFTYPE: GLenum = opengl::ELEMENT_ARRAY_BUFFER;
 }
 
 #[derive(Debug)]
-pub struct GlBuffer<T> {
+pub(crate) struct GlBuffer<T> {
     handle: Option<NonZero<GLuint>>,
     phantom: PhantomData<T>,
 }
 
 #[derive(Debug, Clone, Copy, Error)]
-pub enum CreateErr {
+pub(crate) enum CreateErr {
     #[error("OpenGL returned 0")]
     Zero,
 }
 
 impl<B: GlBufferType> GlBuffer<B> {
-    pub fn new(gl: &Gl) -> Result<Self, CreateErr> {
+    pub(crate) fn new(gl: &Gl) -> Result<Self, CreateErr> {
         let mut handle = 0;
 
         unsafe {
@@ -53,7 +53,7 @@ impl<B: GlBufferType> GlBuffer<B> {
         })
     }
 
-    pub fn bind(&mut self, gl: &Gl) {
+    pub(crate) fn bind(&mut self, gl: &Gl) {
         unsafe {
             let handle_int = self.handle.unwrap().get();
 
@@ -61,13 +61,13 @@ impl<B: GlBufferType> GlBuffer<B> {
         }
     }
 
-    pub fn unbind(&mut self, gl: &Gl) {
+    pub(crate) fn unbind(&mut self, gl: &Gl) {
         unsafe {
             gl.BindBuffer(B::GL_BUFTYPE, 0);
         }
     }
 
-    pub fn buffer_data<T: Copy>(&mut self, gl: &Gl, data: &[T]) {
+    pub(crate) fn buffer_data<T: Copy>(&mut self, gl: &Gl, data: &[T]) {
         unsafe {
             gl.BufferData(
                 B::GL_BUFTYPE,
@@ -78,7 +78,7 @@ impl<B: GlBufferType> GlBuffer<B> {
         }
     }
 
-    pub fn destroy(mut self, gl: &Gl) {
+    pub(crate) fn destroy(mut self, gl: &Gl) {
         if let Some(handle) = self.handle.take() {
             let as_int = handle.get();
 

@@ -8,13 +8,13 @@ use crate::opengl::Gl;
 use super::{CompileErr, CreateErr, Fragment, Shader, ShaderType, Vertex};
 
 #[derive(Debug)]
-pub struct GlShaderSet {
+pub(crate) struct GlShaderSet {
     pub vertex: Option<Shader<Vertex>>,
     pub fragment: Option<Shader<Fragment>>,
 }
 
 impl GlShaderSet {
-    pub fn compile_all(&mut self, gl: &Gl) -> Result<(), CompileErr> {
+    pub(crate) fn compile_all(&mut self, gl: &Gl) -> Result<(), CompileErr> {
         if let Some(vtx) = &mut self.vertex {
             _ = vtx.get_compiled(gl)?;
         };
@@ -26,7 +26,7 @@ impl GlShaderSet {
         Ok(())
     }
 
-    pub fn attach_all(&mut self, gl: &Gl, program: NonZero<GLuint>) {
+    pub(crate) fn attach_all(&mut self, gl: &Gl, program: NonZero<GLuint>) {
         unsafe {
             if let Some(sh) = self.vertex.as_mut() {
                 gl.AttachShader(program.get(), sh.assert_compiled().get())
@@ -37,7 +37,7 @@ impl GlShaderSet {
         }
     }
 
-    pub fn detach_all(&mut self, gl: &Gl, program: NonZero<GLuint>) {
+    pub(crate) fn detach_all(&mut self, gl: &Gl, program: NonZero<GLuint>) {
         unsafe {
             if let Some(sh) = self.vertex.as_mut() {
                 gl.DetachShader(program.get(), sh.assert_compiled().get())
@@ -48,7 +48,7 @@ impl GlShaderSet {
         }
     }
 
-    pub fn destroy_all(&mut self, gl: &Gl) {
+    pub(crate) fn destroy_all(&mut self, gl: &Gl) {
         if let Some(mut sh) = self.vertex.take() {
             sh.destroy(gl)
         }
@@ -57,7 +57,7 @@ impl GlShaderSet {
         }
     }
 
-    pub fn from_sources(gl: &Gl, sources: &ShaderSet) -> Result<Self, CreateErr> {
+    pub(crate) fn from_sources(gl: &Gl, sources: &ShaderSet) -> Result<Self, CreateErr> {
         Ok(Self {
             vertex: to_gl_shader(gl, sources.get_stage(ShaderStage::Vertex))?,
             fragment: to_gl_shader(gl, sources.get_stage(ShaderStage::Fragment))?,

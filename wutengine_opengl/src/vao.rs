@@ -8,18 +8,18 @@ use crate::opengl::{self, Gl};
 use crate::shader::program::ShaderProgram;
 
 #[derive(Debug)]
-pub struct Vao {
+pub(crate) struct Vao {
     handle: Option<NonZero<GLuint>>,
 }
 
 #[derive(Debug, Error)]
-pub enum CreateErr {
+pub(crate) enum CreateErr {
     #[error("OpenGL returned 0")]
     Zero,
 }
 
 impl Vao {
-    pub fn new(gl: &Gl) -> Result<Self, CreateErr> {
+    pub(crate) fn new(gl: &Gl) -> Result<Self, CreateErr> {
         let mut handle = 0;
 
         unsafe {
@@ -33,7 +33,7 @@ impl Vao {
         })
     }
 
-    pub fn bind(&mut self, gl: &Gl) {
+    pub(crate) fn bind(&mut self, gl: &Gl) {
         unsafe {
             let handle_int = self.handle.unwrap().get();
 
@@ -41,13 +41,13 @@ impl Vao {
         }
     }
 
-    pub fn unbind(&mut self, gl: &Gl) {
+    pub(crate) fn unbind(&mut self, gl: &Gl) {
         unsafe {
             gl.BindVertexArray(0);
         }
     }
 
-    pub fn set_vertex_attrs_for(&mut self, gl: &Gl, mesh: &GlMeshBuffers, program: &ShaderProgram) {
+    pub(crate) fn set_vertex_attrs_for(&mut self, gl: &Gl, mesh: &GlMeshBuffers, program: &ShaderProgram) {
         for attribute in mesh.layout.get_present_attributes() {
             log::trace!("Checking attribute presence: {:?}", attribute);
 
@@ -81,7 +81,7 @@ impl Vao {
         }
     }
 
-    pub fn destroy(mut self, gl: &Gl) {
+    pub(crate) fn destroy(mut self, gl: &Gl) {
         if let Some(handle) = self.handle.take() {
             let as_int = handle.get();
 

@@ -8,23 +8,23 @@ use crate::vec::{AnyVec, Dynamic};
 mod archetype_id;
 mod descriptorset;
 
-pub use archetype_id::*;
+pub(crate) use archetype_id::*;
 pub(crate) use descriptorset::*;
 use wutengine_core::EntityId;
 
 #[derive(Debug)]
-pub struct Archetype {
+pub(crate) struct Archetype {
     entities: Vec<EntityId>,
     components: HashMap<TypeId, UnsafeCell<AnyVec>>,
 }
 
 #[derive(Debug)]
-pub struct ArchetypeMapMut<'a> {
+pub(crate) struct ArchetypeMapMut<'a> {
     inner: &'a mut Archetype,
 }
 
 impl<'a> ArchetypeMapMut<'a> {
-    pub fn new(archetype: &'a mut Archetype) -> Self {
+    pub(crate) fn new(archetype: &'a mut Archetype) -> Self {
         Self { inner: archetype }
     }
 }
@@ -57,7 +57,7 @@ impl Archetype {
         ArchetypeMapMut::new(self)
     }
 
-    pub fn new_single(entity: EntityId, value: Dynamic) -> Self {
+    pub(crate) fn new_single(entity: EntityId, value: Dynamic) -> Self {
         let component_type = value.inner_type();
         let component_vec = value.add_to_new_vec();
 
@@ -70,7 +70,7 @@ impl Archetype {
         }
     }
 
-    pub fn new_from_template(
+    pub(crate) fn new_from_template(
         template: &Archetype,
         extra_types: TypeDescriptorSet,
         filtered_types: &[TypeId],
@@ -106,22 +106,22 @@ impl Archetype {
         }
     }
 
-    pub fn get_contained_entities(&self) -> &[EntityId] {
+    pub(crate) fn get_contained_entities(&self) -> &[EntityId] {
         &self.entities
     }
 
-    pub fn get_contained_types(&self) -> impl Iterator<Item = &TypeId> {
+    pub(crate) fn get_contained_types(&self) -> impl Iterator<Item = &TypeId> {
         self.components.keys()
     }
 
-    pub fn get_components_for_read(&self, types: &[TypeId]) -> Vec<&UnsafeCell<AnyVec>> {
+    pub(crate) fn get_components_for_read(&self, types: &[TypeId]) -> Vec<&UnsafeCell<AnyVec>> {
         types
             .iter()
             .map(|t| self.components.get(t).expect("Unknown TypeId"))
             .collect()
     }
 
-    pub fn get_components_for_add(&mut self, to_add: EntityId) -> ArchetypeMapMut {
+    pub(crate) fn get_components_for_add(&mut self, to_add: EntityId) -> ArchetypeMapMut {
         debug_assert!(
             !self.entities.contains(&to_add),
             "Entity already present in archetype: {:?}",
@@ -133,7 +133,7 @@ impl Archetype {
         self.mutmap()
     }
 
-    pub fn get_components_for_remove(&mut self, to_remove: EntityId) -> (usize, ArchetypeMapMut) {
+    pub(crate) fn get_components_for_remove(&mut self, to_remove: EntityId) -> (usize, ArchetypeMapMut) {
         let entity_idx = self
             .entities
             .iter()
@@ -145,7 +145,7 @@ impl Archetype {
         (entity_idx, self.mutmap())
     }
 
-    pub fn move_entity_to<const ALLOW_REMOVAL: bool>(
+    pub(crate) fn move_entity_to<const ALLOW_REMOVAL: bool>(
         &mut self,
         to_move: EntityId,
         destination: &mut Self,
@@ -179,7 +179,7 @@ impl Archetype {
         destination.entities.push(to_move);
     }
 
-    pub fn add_to_entity_unchecked(&mut self, entity: EntityId, component: Dynamic) {
+    pub(crate) fn add_to_entity_unchecked(&mut self, entity: EntityId, component: Dynamic) {
         let entity_idx = self
             .entities
             .iter()
@@ -202,16 +202,16 @@ impl Archetype {
         component.add_to_vec(storage_mut);
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.entities.len()
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.entities.is_empty()
     }
 
     #[track_caller]
-    pub fn assert_coherent<const DEBUG_ONLY: bool>(&self) {
+    pub(crate) fn assert_coherent<const DEBUG_ONLY: bool>(&self) {
         if DEBUG_ONLY && !cfg!(debug_assertions) {
             return;
         }

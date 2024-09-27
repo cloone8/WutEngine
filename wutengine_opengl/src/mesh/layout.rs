@@ -4,30 +4,30 @@ use crate::opengl::types::{GLenum, GLint, GLsizei};
 use crate::shader::attribute::ShaderAttribute;
 
 #[derive(Debug)]
-pub struct LayoutDescriptor {
+pub(crate) struct LayoutDescriptor {
     /// The layout index of the position data, if any
     pub position: usize,
 }
 
 impl LayoutDescriptor {
-    pub fn get_present_attributes(&self) -> Vec<ShaderAttribute> {
+    pub(crate) fn get_present_attributes(&self) -> Vec<ShaderAttribute> {
         ShaderAttribute::ALL
             .into_iter()
             .filter(|attr| self.get_attribute_index(*attr).is_some())
             .collect()
     }
 
-    pub fn total_size(&self) -> GLsizei {
+    pub(crate) fn total_size(&self) -> GLsizei {
         ShaderAttribute::Position.size_bytes()
     }
 
-    pub fn get_attribute_index(&self, attribute: ShaderAttribute) -> Option<usize> {
+    pub(crate) fn get_attribute_index(&self, attribute: ShaderAttribute) -> Option<usize> {
         match attribute {
             ShaderAttribute::Position => Some(self.position),
         }
     }
 
-    pub fn get_attributes_before(&self, attribute: ShaderAttribute) -> Vec<ShaderAttribute> {
+    pub(crate) fn get_attributes_before(&self, attribute: ShaderAttribute) -> Vec<ShaderAttribute> {
         let attr_index = self.get_attribute_index(attribute).unwrap();
 
         self.get_present_attributes()
@@ -41,7 +41,7 @@ impl LayoutDescriptor {
             .collect()
     }
 
-    pub fn get_for_attribute(&self, attribute: ShaderAttribute) -> Option<AttributeLayout> {
+    pub(crate) fn get_for_attribute(&self, attribute: ShaderAttribute) -> Option<AttributeLayout> {
         // Check if it exists at all
         let exists = self.get_attribute_index(attribute).is_some();
 
@@ -73,7 +73,7 @@ impl LayoutDescriptor {
 }
 
 #[derive(Debug)]
-pub struct AttributeLayout {
+pub(crate) struct AttributeLayout {
     /// In number of elements
     pub size: GLint,
     pub gltype: GLenum,
