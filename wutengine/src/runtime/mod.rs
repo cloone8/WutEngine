@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use glam::Mat4;
-use winit::event::WindowEvent;
+use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
 use winit::{application::ApplicationHandler, dpi::PhysicalSize};
@@ -106,14 +106,21 @@ impl<R: WutEngineRenderer> Runtime<R> {
         self.exec_engine_commands(commands.consume());
     }
 
-    fn start(&mut self) {
+    fn for_each_plugin_mut(
+        &mut self,
+        mut func: impl FnMut(&mut Command, &mut Box<dyn WutEnginePlugin>),
+    ) {
         let mut commands = Command::empty();
 
         for plugin in &mut self.plugins {
-            plugin.on_start(&mut commands);
+            func(&mut commands, plugin);
         }
 
         self.exec_engine_commands(commands.consume());
+    }
+
+    fn start(&mut self) {
+        self.for_each_plugin_mut(|commands, plugin| plugin.on_start(commands));
 
         self.started = true;
     }
@@ -176,11 +183,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         match event {
             WindowingEvent::OpenWindow(params) => {
-                if self.windows.contains_key(&params.id) {
-                    if params.ignore_existing {
-                    } else {
-                        panic!("Window {} already exists!", params.id);
-                    }
+                if self.windows.contains_key(&params.id) && !params.ignore_existing {
+                    panic!("Window {} already exists!", params.id);
                 }
 
                 let attrs = Window::default_attributes()
@@ -212,6 +216,10 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     ) {
         let identifier = self.window_id_map.get(&window_id).unwrap().clone();
 
+        self.for_each_plugin_mut(|commands, plugin| {
+            plugin.on_window_event(&identifier, &event, commands)
+        });
+
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => {
@@ -231,5 +239,16 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             }
             _ => (),
         }
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        self.for_each_plugin_mut(|commands, plugin| {
+            plugin.on_device_event(device_id, &event, commands)
+        });
     }
 }
