@@ -4,6 +4,7 @@ This file documents the most important changes for each released version.
 
 ## [v0.0.7]
 - Initial support for optional components in ECS queries
+- Camera component now influences rendering through its position (as determined by its Transform component) and its perspective settings
 
 ## [v0.0.6]
 - Complete refactor of core ECS system. We now use archetypes. It was a lot of work.

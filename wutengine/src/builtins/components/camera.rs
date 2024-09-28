@@ -11,6 +11,21 @@ pub struct Camera {
 
     /// The background color of the camera for any unset pixel
     pub clear_color: Color,
+
+    /// The type of projection this camera draws, and the specific
+    /// parameters of that projection
+    pub camera_type: CameraType,
+}
+
+/// The different types of possible camera projections.
+#[derive(Debug, Clone, Copy)]
+pub enum CameraType {
+    /// Perspective-projecting camera. Value defines vertical FOV in degrees
+    Perspective(f64),
+
+    /// Orthographic-projecting camera. Value defines vertical viewing volume.
+    /// Horizontal volume is determined through aspect ratio
+    Orthographic(f64),
 }
 
 impl Component for Camera {}
@@ -18,12 +33,36 @@ impl Component for Camera {}
 impl Camera {
     /// Gets the [RenderContext] for this camera, for submission
     /// to a rendering backend
-    pub(crate) fn to_context(&self) -> RenderContext {
+    pub(crate) fn to_context(&self, view_mat: Mat4, phys_window_size: (u32, u32)) -> RenderContext {
+        let aspect_ratio: f64 = phys_window_size.0 as f64 / phys_window_size.1 as f64;
+
+        let projection_mat = match self.camera_type {
+            CameraType::Perspective(vertical_fov) => Mat4::perspective_rh_gl(
+                vertical_fov.to_radians() as f32,
+                aspect_ratio as f32,
+                0.1,
+                100.0,
+            ),
+            CameraType::Orthographic(size) => {
+                let half_size = size / 2.0;
+                let half_horizontal_size = half_size * aspect_ratio;
+
+                Mat4::orthographic_rh_gl(
+                    -half_horizontal_size as f32,
+                    half_horizontal_size as f32,
+                    -half_size as f32,
+                    half_size as f32,
+                    0.1,
+                    100.0,
+                )
+            }
+        };
+
         RenderContext {
             window: self.display.clone(),
             clear_color: self.clear_color,
-            view_mat: Mat4::IDENTITY,
-            projection_mat: Mat4::IDENTITY,
+            view_mat,
+            projection_mat,
         }
     }
 }

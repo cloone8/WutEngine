@@ -140,18 +140,30 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         let renderables = unsafe { self.get_renderables() };
 
         unsafe {
-            let contexts = self.world.query(|_id, camera: &Camera| {
-                if !self.windows.contains_key(&camera.display) {
-                    log::warn!(
-                        "Camera trying to render to non-existing window {}",
-                        &camera.display
-                    );
+            let contexts = self
+                .world
+                .query(|_id, args: (&Camera, Option<&Transform>)| {
+                    let (camera, transform) = args;
 
-                    return None;
-                }
+                    let window = match self.windows.get(&camera.display) {
+                        Some(window) => window,
+                        None => {
+                            log::warn!(
+                                "Camera trying to render to non-existing window {}",
+                                &camera.display
+                            );
 
-                Some(camera.to_context())
-            });
+                            return None;
+                        }
+                    };
+
+                    let view_mat = transform
+                        .map(|t| t.local_to_world())
+                        .unwrap_or(Mat4::IDENTITY);
+                    let window_size: (u32, u32) = window.inner_size().into();
+
+                    Some(camera.to_context(view_mat, window_size))
+                });
 
             for context in contexts.into_iter().flatten() {
                 self.renderer.render(context, &renderables);
