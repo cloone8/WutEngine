@@ -120,7 +120,7 @@ fn make_description_impl(
         impl #root::ecs::FunctionDescription for #struct_ident {
             fn describe() -> #root::ecs::SystemFunctionDescriptor {
                 #root::ecs::SystemFunctionDescriptor {
-                    read_writes: <(#component_types) as #root::ecs::world::CombinedQuery>::get_descriptors(),
+                    read_writes: <(#component_types) as #root::ecs::world::CombinedQuery>::get_read_write_descriptors(),
                     func: #func_ident,
                 }
             }

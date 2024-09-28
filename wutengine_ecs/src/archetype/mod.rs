@@ -114,11 +114,11 @@ impl Archetype {
         self.components.keys()
     }
 
-    pub(crate) fn get_components_for_read(&self, types: &[TypeId]) -> Vec<&UnsafeCell<AnyVec>> {
-        types
-            .iter()
-            .map(|t| self.components.get(t).expect("Unknown TypeId"))
-            .collect()
+    pub(crate) fn get_components_for_read(
+        &self,
+        types: &[TypeId],
+    ) -> Vec<Option<&UnsafeCell<AnyVec>>> {
+        types.iter().map(|t| self.components.get(t)).collect()
     }
 
     pub(crate) fn get_components_for_add(&mut self, to_add: EntityId) -> ArchetypeMapMut {

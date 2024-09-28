@@ -28,6 +28,8 @@ fn map_tokens_punctuated<'a, T: Clone + 'static, P: Default>(
         .collect()
 }
 
+/// Macro for generating implementations of the CombinedQuery trait for tuples of
+/// query parameters
 pub(crate) fn make_combined_query_tuples_impl(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -37,11 +39,16 @@ pub(crate) fn make_combined_query_tuples_impl(
         quote! {#ident: Queryable<'q>}
     });
 
-    let type_ids = map_tokens(&idents, |ident, _| {
-        quote! {::core::any::TypeId::of::<#ident::Inner>()}
+    let query_descriptors = map_tokens(&idents, |ident, _| {
+        quote! {
+            QueryDescriptor {
+                type_id: ::core::any::TypeId::of::<#ident::Inner>(),
+                query_type: #ident::QUERY_TYPE
+            }
+        }
     });
 
-    let descriptors = map_tokens(&idents, |ident, _| {
+    let read_write_descriptors = map_tokens(&idents, |ident, _| {
         quote! {
             ReadWriteDescriptor {
                 type_id: TypeId::of::<#ident::Inner>(),
@@ -54,7 +61,7 @@ pub(crate) fn make_combined_query_tuples_impl(
 
     let refs = map_tokens_statements(&idents, |ident, i| {
         let ident_ref = format_ident!("refs_{}", ident.to_string().to_lowercase());
-        quote! {let mut #ident_ref = #ident::from_anyvec(cells[#i])}
+        quote! {let mut #ident_ref = #ident::from_anyvec(num_entities, cells[#i])}
     });
 
     let first_ref_ident = format_ident!(
@@ -77,20 +84,21 @@ pub(crate) fn make_combined_query_tuples_impl(
         where
             #wheres
         {
-            fn get_type_ids() -> Vec<::core::any::TypeId> {
+            fn get_query_descriptors() -> Vec<QueryDescriptor> {
                 vec![
-                    #type_ids
+                    #query_descriptors
                 ]
             }
 
-            fn get_descriptors() -> Vec<ReadWriteDescriptor> {
+            fn get_read_write_descriptors() -> Vec<ReadWriteDescriptor> {
                 vec![
-                    #descriptors
+                    #read_write_descriptors
                 ]
             }
 
-            fn do_callback<Func, Out>(entities: &[EntityId], cells: Vec<&'q ::core::cell::UnsafeCell<AnyVec>>, callback: Func) -> Vec<Out> where Func: Fn(EntityId, Self) -> Out {
+            fn do_callback<Func, Out>(entities: &[EntityId], cells: Vec<Option<&'q ::core::cell::UnsafeCell<AnyVec>>>, callback: Func) -> Vec<Out> where Func: Fn(EntityId, Self) -> Out {
                 assert_eq!(#expected_cells, cells.len());
+                let num_entities = entities.len();
 
                 #refs;
 
