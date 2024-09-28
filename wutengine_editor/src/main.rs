@@ -1,6 +1,7 @@
 //! The WutEngine Editor
 
 use wutengine::command::{Command, FullscreenType, OpenWindowParams};
+use wutengine::ecs::world::World;
 use wutengine::graphics::windowing::WindowIdentifier;
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::plugins::WutEnginePlugin;
@@ -32,7 +33,7 @@ impl WutEngineEditorPlugin {
 }
 
 impl WutEnginePlugin for WutEngineEditorPlugin {
-    fn on_start(&mut self, commands: &mut Command) {
+    fn on_start(&mut self, _world: &mut World, commands: &mut Command) {
         commands.window().open(OpenWindowParams {
             id: WindowIdentifier::new("Main"),
             title: "WutEngine".to_string(),

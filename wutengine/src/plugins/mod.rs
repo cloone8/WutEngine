@@ -1,4 +1,5 @@
 use crate::windowing::winit::event::{DeviceEvent, DeviceId, WindowEvent};
+use wutengine_ecs::world::World;
 use wutengine_graphics::windowing::WindowIdentifier;
 
 use crate::command::Command;
@@ -13,14 +14,15 @@ pub trait WutEnginePlugin: 'static {
     fn on_build(&mut self, _initializer: &mut RuntimeInitializer) {}
 
     /// Called once when the runtime has just been built, and is starting
-    fn on_start(&mut self, _commands: &mut Command) {}
+    fn on_start(&mut self, _world: &mut World, _commands: &mut Command) {}
 
     /// Called before starting each update tick
-    fn pre_update(&mut self, _commands: &mut Command) {}
+    fn pre_update(&mut self, _world: &mut World, _commands: &mut Command) {}
 
     /// Called once for each raw window event returned by the windowing system (currently [winit])
     fn on_window_event(
         &mut self,
+        _world: &mut World,
         _window: &WindowIdentifier,
         _event: &WindowEvent,
         _commands: &mut Command,
@@ -30,6 +32,7 @@ pub trait WutEnginePlugin: 'static {
     /// Called once for each raw device event returned by the windowing system (currently [winit])
     fn on_device_event(
         &mut self,
+        _world: &mut World,
         _device: DeviceId,
         _event: &DeviceEvent,
         _commands: &mut Command,

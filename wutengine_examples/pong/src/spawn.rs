@@ -4,8 +4,9 @@ use std::time::Instant;
 
 use wutengine::builtins::components::util::FramerateCounter;
 use wutengine::builtins::components::CameraType::{self};
-use wutengine::builtins::components::{Camera, Material, Mesh, Name, Transform};
+use wutengine::builtins::components::{Camera, InputHandler, Material, Mesh, Name, Transform};
 use wutengine::command::{Command, FullscreenType, OpenWindowParams};
+use wutengine::ecs::world::World;
 use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::{IndexBuffer, MeshData};
@@ -15,13 +16,13 @@ use wutengine::map;
 use wutengine::math::{vec3, Quat, Vec3};
 use wutengine::plugins::WutEnginePlugin;
 
-use crate::BallData;
+use crate::{BallData, PlayerMovement};
 
 /// Plugin that only injects the initial components to get the game started
 pub(crate) struct PongStarterPlugin;
 
 impl WutEnginePlugin for PongStarterPlugin {
-    fn on_start(&mut self, commands: &mut Command) {
+    fn on_start(&mut self, _world: &mut World, commands: &mut Command) {
         let mut rectangle_mesh_data = MeshData::new();
         rectangle_mesh_data.positions = vec![
             Vec3::new(0.5, 0.5, 0.0),
@@ -57,6 +58,8 @@ fn make_player(commands: &mut Command, mesh: Mesh) {
         .entity()
         .spawn()
         .with_component(Name::new("Player"))
+        .with_component(InputHandler::new())
+        .with_component(PlayerMovement::new())
         .with_component(Transform::with_pos_rot_scale(
             vec3(-1.1, 0.0, 0.0),
             Quat::IDENTITY,

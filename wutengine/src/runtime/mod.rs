@@ -108,19 +108,19 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
     fn for_each_plugin_mut(
         &mut self,
-        mut func: impl FnMut(&mut Command, &mut Box<dyn WutEnginePlugin>),
+        mut func: impl FnMut(&mut World, &mut Command, &mut Box<dyn WutEnginePlugin>),
     ) {
         let mut commands = Command::empty();
 
         self.plugins
             .iter_mut()
-            .for_each(|plugin| func(&mut commands, plugin));
+            .for_each(|plugin| func(&mut self.world, &mut commands, plugin));
 
         self.exec_engine_commands(commands.consume());
     }
 
     fn start(&mut self) {
-        self.for_each_plugin_mut(|commands, plugin| plugin.on_start(commands));
+        self.for_each_plugin_mut(|world, commands, plugin| plugin.on_start(world, commands));
 
         self.started = true;
     }
@@ -142,7 +142,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         log::trace!("Calling plugin pre_update hooks");
 
-        self.for_each_plugin_mut(|commands, plugin| plugin.pre_update(commands));
+        self.for_each_plugin_mut(|world, commands, plugin| plugin.pre_update(world, commands));
 
         log::trace!("Starting frame");
 
@@ -220,8 +220,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     ) {
         let identifier = self.window_id_map.get(&window_id).unwrap().clone();
 
-        self.for_each_plugin_mut(|commands, plugin| {
-            plugin.on_window_event(&identifier, &event, commands)
+        self.for_each_plugin_mut(|world, commands, plugin| {
+            plugin.on_window_event(world, &identifier, &event, commands)
         });
 
         match event {
@@ -251,8 +251,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         device_id: DeviceId,
         event: DeviceEvent,
     ) {
-        self.for_each_plugin_mut(|commands, plugin| {
-            plugin.on_device_event(device_id, &event, commands)
+        self.for_each_plugin_mut(|world, commands, plugin| {
+            plugin.on_device_event(world, device_id, &event, commands)
         });
     }
 }
