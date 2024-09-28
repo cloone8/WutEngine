@@ -146,6 +146,12 @@ pub fn system(
 
     let system_args: Punctuated<Type, Token![,]> =
         gather_args(&input).into_iter().skip(2).collect();
+
+    assert!(
+        !system_args.is_empty(),
+        "Need to query at least one component"
+    );
+
     let (system_struct_name, system_struct_def) = make_system_struct(&input);
     let (outer_system_func_ident, outer_system_func_def) =
         make_outer_system_func(&input, &system_args, &macro_args);

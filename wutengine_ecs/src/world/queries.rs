@@ -66,7 +66,11 @@ impl World {
     ) -> Vec<ArchetypeId> {
         let mut archetype_set: Option<Vec<ArchetypeId>> = None;
 
+        let mut any_required = false;
+
         for queried_component in queried_components {
+            any_required = true;
+
             let component_archetypes = match self.type_containers.get(&queried_component.type_id) {
                 Some(archetype) => archetype,
                 None => return Vec::new(),
@@ -81,6 +85,10 @@ impl World {
             if archetype_set.as_ref().unwrap().is_empty() {
                 return Vec::new();
             }
+        }
+
+        if !any_required {
+            log::warn!("Query was made without any required components. Will always return empty.");
         }
 
         archetype_set.unwrap_or_default()

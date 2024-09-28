@@ -402,7 +402,6 @@ fn query_unknown_type() {
     }
 
     let entity = world.create_entity();
-
     world.add_component_to_entity(entity, Dynamic::new(Size { x: 5.0 }));
     world.add_component_to_entity(entity, Dynamic::new(Velocity { x: 6.0, y: 7.0 }));
 
@@ -412,5 +411,82 @@ fn query_unknown_type() {
         });
 
         assert_eq!(0, result.len());
+    }
+}
+
+#[test]
+fn query_optional() {
+    let mut world = World::new();
+    world.assert_coherent::<false>();
+
+    let entity_a = world.create_entity();
+    world.add_component_to_entity(entity_a, Dynamic::new(Size { x: 5.0 }));
+
+    let entity_b = world.create_entity();
+    world.add_component_to_entity(entity_b, Dynamic::new(Size { x: 5.0 }));
+    world.add_component_to_entity(entity_b, Dynamic::new(Velocity { x: 6.0, y: 7.0 }));
+
+    let entity_c = world.create_entity();
+    world.add_component_to_entity(entity_c, Dynamic::new(Size { x: 5.0 }));
+    world.add_component_to_entity(entity_c, Dynamic::new(Velocity { x: 6.0, y: 7.0 }));
+
+    let entity_d = world.create_entity();
+    world.add_component_to_entity(entity_d, Dynamic::new(Size { x: 5.0 }));
+    world.add_component_to_entity(entity_d, Dynamic::new(Position { x: 0.0, y: 0.1 }));
+
+    unsafe {
+        let result: Vec<()> = world.query(|_id, _components: &Size| {});
+
+        assert_eq!(4, result.len());
+    }
+
+    unsafe {
+        let result: Vec<()> = world.query(|id, components: (&Size, Option<&Velocity>)| {
+            let (_size, vel) = components;
+
+            if vel.is_some() {
+                assert!(id == entity_b || id == entity_c);
+            } else {
+                assert!(id == entity_a || id == entity_d);
+            }
+        });
+
+        assert_eq!(4, result.len());
+    }
+
+    unsafe {
+        let result: Vec<()> = world.query(|id, components: (&Size, Option<&Position>)| {
+            let (_size, pos) = components;
+
+            if pos.is_some() {
+                assert_eq!(entity_d, id);
+            } else {
+                assert_ne!(entity_d, id);
+            }
+        });
+
+        assert_eq!(4, result.len());
+    }
+
+    unsafe {
+        let result: Vec<()> = world.query(
+            |id, components: (&Size, Option<&Position>, Option<&Velocity>)| {
+                let (_size, pos, vel) = components;
+                if id == entity_a {
+                    assert!(pos.is_none());
+                    assert!(vel.is_none());
+                } else if id == entity_b || id == entity_c {
+                    assert!(pos.is_none());
+                    assert!(vel.is_some());
+                } else if id == entity_d {
+                    assert!(pos.is_some());
+                    assert!(vel.is_none());
+                } else {
+                    panic!("Unknown entity: {}", id);
+                }
+            },
+        );
+
+        assert_eq!(4, result.len());
     }
 }

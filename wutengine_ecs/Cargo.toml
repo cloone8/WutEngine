@@ -22,3 +22,4 @@ wutengine_util_macro.workspace = true
 rand.workspace = true
 thiserror.workspace = true
 itertools.workspace = true
+log.workspace = true

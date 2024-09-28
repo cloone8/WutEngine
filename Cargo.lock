@@ -1954,6 +1954,7 @@ name = "wutengine_ecs"
 version = "0.0.7"
 dependencies = [
  "itertools",
+ "log",
  "rand",
  "thiserror",
  "wutengine_core",
