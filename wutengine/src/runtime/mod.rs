@@ -112,9 +112,9 @@ impl<R: WutEngineRenderer> Runtime<R> {
     ) {
         let mut commands = Command::empty();
 
-        for plugin in &mut self.plugins {
-            func(&mut commands, plugin);
-        }
+        self.plugins
+            .iter_mut()
+            .for_each(|plugin| func(&mut commands, plugin));
 
         self.exec_engine_commands(commands.consume());
     }
@@ -139,6 +139,10 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             log::trace!("about_to_wait fired but engine not yet initialized");
             return;
         }
+
+        log::trace!("Calling plugin pre_update hooks");
+
+        self.for_each_plugin_mut(|commands, plugin| plugin.pre_update(commands));
 
         log::trace!("Starting frame");
 

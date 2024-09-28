@@ -1,3 +1,5 @@
+//! The WutEngine Editor
+
 use wutengine::command::{Command, FullscreenType, OpenWindowParams};
 use wutengine::graphics::windowing::WindowIdentifier;
 use wutengine::log::{self, ComponentLogConfig, LogConfig};

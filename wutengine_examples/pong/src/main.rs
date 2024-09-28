@@ -7,9 +7,10 @@ use wutengine::builtins::components::util::framerate_counter_system;
 use wutengine::builtins::components::Transform;
 use wutengine::command::Command;
 use wutengine::core::{EntityId, SystemPhase};
+use wutengine::input::keyboard::KeyboardInputPlugin;
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::macros::{system, Component};
-use wutengine::math::{vec3, Vec3};
+use wutengine::math::vec3;
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::RuntimeInitializer;
 
@@ -27,6 +28,7 @@ fn main() {
     });
 
     runtime.with_plugin(PongStarterPlugin {});
+    runtime.with_plugin(KeyboardInputPlugin::new());
     runtime.with_system::<ball_mover>(SystemPhase::Update);
     runtime.with_system::<framerate_counter_system>(SystemPhase::Update);
     runtime.run::<OpenGLRenderer>();

@@ -26,12 +26,14 @@ mod embedded {
 pub mod builtins;
 pub mod command;
 pub mod ecs;
+pub mod input;
 pub mod log;
 pub mod macros;
 pub mod math;
 pub mod plugins;
 pub mod renderer;
 pub mod runtime;
+pub mod windowing;
 
 //NOTE: This top-level module will _not_ be logged due to level filtering difficulties. Put any logic in a submodule.
 
