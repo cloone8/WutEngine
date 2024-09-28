@@ -188,6 +188,10 @@ impl Window {
         (self.attributes.get_mut(&vao_key).unwrap(), program)
     }
 
+    /// Renders the given objects with the provided rendering context.
+    /// The context holds the base view and projection matrices, as well as the
+    /// viewport configuration. The objects represent the meshes to render, as well as which
+    /// shaders and model matrices to use for rendering them.
     pub(crate) fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
         unsafe {
             self.context.make_current();

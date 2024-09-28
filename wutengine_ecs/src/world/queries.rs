@@ -1,10 +1,10 @@
 use core::any::{Any, TypeId};
 use core::cell::UnsafeCell;
 
-use wutengine_core::{EntityId, ReadWriteDescriptor};
+use wutengine_core::{Component, EntityId, ReadWriteDescriptor};
 use wutengine_util_macro::make_combined_query_tuples;
 
-use crate::archetype::{self, ArchetypeId};
+use crate::archetype::ArchetypeId;
 use crate::vec::AnyVec;
 
 use super::World;
@@ -96,7 +96,7 @@ impl World {
 }
 
 #[track_caller]
-pub fn assert_unique_type_ids(ids: &[QueryDescriptor]) {
+fn assert_unique_type_ids(ids: &[QueryDescriptor]) {
     let duplicate = get_first_duplicate_type_id(ids);
 
     if let Some(duplicate) = duplicate {
@@ -104,7 +104,7 @@ pub fn assert_unique_type_ids(ids: &[QueryDescriptor]) {
     }
 }
 
-pub fn get_first_duplicate_type_id(ids: &[QueryDescriptor]) -> Option<TypeId> {
+fn get_first_duplicate_type_id(ids: &[QueryDescriptor]) -> Option<TypeId> {
     for i in 0..ids.len() {
         for j in (i + 1)..ids.len() {
             debug_assert_ne!(i, j);
@@ -128,7 +128,7 @@ pub trait Queryable<'q>: Sized {
 
 impl<'q, T> Queryable<'q> for &'q T
 where
-    T: 'static,
+    T: Component,
 {
     type Inner = T;
     const READ_ONLY: bool = true;
@@ -160,7 +160,7 @@ where
 
 impl<'q, T> Queryable<'q> for &'q mut T
 where
-    T: 'static,
+    T: Component,
 {
     type Inner = T;
     const READ_ONLY: bool = false;

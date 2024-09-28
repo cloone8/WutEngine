@@ -12,6 +12,7 @@ use wutengine_graphics::{
 };
 
 mod opengl {
+    #![allow(warnings)]
     //! The raw OpenGL generated bindings
     include!(concat!(env!("OUT_DIR"), "/gl_generated_bindings.rs"));
 }

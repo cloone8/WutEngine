@@ -1,3 +1,6 @@
+//! The root of the WutEngine game engine. Use this crate as a dependency when building WutEngine games, at it
+//! re-exports all relevant subcrates.
+
 use command::{Command, OpenWindowParams};
 
 #[doc(inline)]
@@ -12,8 +15,11 @@ pub use wutengine_graphics as graphics;
 use wutengine_core::{EntityId, System};
 
 mod embedded {
+    //! Embedded resources. Will probably be replaced with something more intelligent later
+
     use include_dir::{include_dir, Dir};
 
+    /// Embedded shader sources. Will be replaced with a more sophisticated shader loading system later.
     pub(crate) static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
 }
 

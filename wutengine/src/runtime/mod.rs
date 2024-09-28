@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use glam::Mat4;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
@@ -20,6 +21,8 @@ mod init;
 
 pub use init::*;
 
+/// The main runtime for WutEngine. Cannot be constructed directly. Instead,
+/// construct a runtime with a [RuntimeInitializer]
 pub struct Runtime<R: WutEngineRenderer> {
     world: World,
     systems: Vec<System<World, Command>>,
@@ -38,24 +41,34 @@ pub struct Runtime<R: WutEngineRenderer> {
 impl<R: WutEngineRenderer> Runtime<R> {
     unsafe fn get_renderables(&self) -> Vec<Renderable> {
         unsafe {
-            self.world.query(|_, args: (&Mesh, &Material, &Transform)| {
-                let mesh = args.0.data.clone();
-                let material = args.1.data.clone();
-                let transform = args.2.local_to_world();
+            self.world
+                .query(|id, args: (&Mesh, &Material, Option<&Transform>)| {
+                    let mesh = args.0.data.clone();
+                    let material = args.1.data.clone();
 
-                log::trace!(
-                    "Pushing renderable mesh {:#?} with material {:#?} and transform {}",
-                    mesh,
-                    material,
-                    transform
-                );
+                    let transform = if let Some(transform) = args.2 {
+                        transform.local_to_world()
+                    } else {
+                        log::trace!(
+                            "Transformless renderable entity found ({}), rendering at origin",
+                            id
+                        );
+                        Mat4::IDENTITY
+                    };
 
-                Renderable {
-                    mesh,
-                    material,
-                    object_to_world: transform,
-                }
-            })
+                    log::trace!(
+                        "Pushing renderable mesh {:#?} with material {:#?} and transform {}",
+                        mesh,
+                        material,
+                        transform
+                    );
+
+                    Renderable {
+                        mesh,
+                        material,
+                        object_to_world: transform,
+                    }
+                })
         }
     }
 

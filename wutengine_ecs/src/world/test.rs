@@ -1,5 +1,7 @@
 use core::any::TypeId;
 
+use wutengine_core::Component;
+
 use crate::vec::Dynamic;
 use crate::world::World;
 
@@ -9,16 +11,22 @@ struct Position {
     y: f32,
 }
 
+impl Component for Position {}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Velocity {
     x: f32,
     y: f32,
 }
 
+impl Component for Velocity {}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Size {
     x: f32,
 }
+
+impl Component for Size {}
 
 #[test]
 fn simple_create() {
