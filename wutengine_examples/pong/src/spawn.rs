@@ -15,7 +15,7 @@ use wutengine::map;
 use wutengine::math::{vec3, Quat, Vec3};
 use wutengine::plugins::WutEnginePlugin;
 
-use crate::{BallData, CameraData};
+use crate::BallData;
 
 /// Plugin that only injects the initial components to get the game started
 pub(crate) struct PongStarterPlugin;
@@ -58,9 +58,9 @@ fn make_player(commands: &mut Command, mesh: Mesh) {
         .spawn()
         .with_component(Name::new("Player"))
         .with_component(Transform::with_pos_rot_scale(
-            vec3(-0.8, 0.0, 0.0),
+            vec3(-1.1, 0.0, 0.0),
             Quat::IDENTITY,
-            vec3(0.25, 1.0, 1.0),
+            vec3(0.125, 0.4, 1.0),
         ))
         .with_component(mesh)
         .with_component(Material::new(MaterialData {
@@ -79,9 +79,9 @@ fn make_enemy(commands: &mut Command, mesh: Mesh) {
         .spawn()
         .with_component(Name::new("Enemy"))
         .with_component(Transform::with_pos_rot_scale(
-            vec3(0.8, 0.0, 0.0),
+            vec3(1.1, 0.0, 0.0),
             Quat::IDENTITY,
-            vec3(0.25, 1.0, 1.0),
+            vec3(0.125, 0.4, 1.0),
         ))
         .with_component(mesh)
         .with_component(Material::new(MaterialData {
@@ -105,7 +105,7 @@ fn make_ball(commands: &mut Command, mesh: Mesh) {
         .with_component(Transform::with_pos_rot_scale(
             Vec3::ZERO,
             Quat::IDENTITY,
-            vec3(0.1, 0.1, 0.1),
+            vec3(0.07, 0.07, 0.07),
         ))
         .with_component(mesh)
         .with_component(Material::new(MaterialData {
@@ -123,15 +123,12 @@ fn make_camera(commands: &mut Command) {
         .entity()
         .spawn()
         .with_component(Name::new("Camera"))
-        .with_component(CameraData {
-            start: Instant::now(),
-        })
         .with_component(FramerateCounter::new())
         .with_component(Transform::with_pos(Vec3::new(0.0, 0.0, -3.0)))
         .with_component(Camera {
             display: WindowIdentifier::new("main"),
             clear_color: Color::BLACK,
-            camera_type: CameraType::Perspective(75.0),
+            camera_type: CameraType::Orthographic(2.0),
         })
         .build();
 }

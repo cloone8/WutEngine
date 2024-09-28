@@ -28,18 +28,12 @@ fn main() {
 
     runtime.with_plugin(PongStarterPlugin {});
     runtime.with_system::<ball_mover>(SystemPhase::Update);
-    runtime.with_system::<cam_mover>(SystemPhase::Update);
     runtime.with_system::<framerate_counter_system>(SystemPhase::Update);
     runtime.run::<OpenGLRenderer>();
 }
 
 #[derive(Component)]
 struct BallData {
-    start: Instant,
-}
-
-#[derive(Component)]
-struct CameraData {
     start: Instant,
 }
 
@@ -52,18 +46,4 @@ fn ball_mover(
 ) {
     let time = Instant::now().duration_since(ball.start).as_secs_f32() * 3.0;
     transform.set_local_pos(vec3(time.sin() * 0.6, 0.0, 0.0));
-}
-
-#[system]
-fn cam_mover(
-    _commands: &mut Command,
-    _entity: EntityId,
-    cam: &CameraData,
-    transform: &mut Transform,
-) {
-    let time = Instant::now().duration_since(cam.start).as_secs_f32();
-    let time_lerp = (1.0 + time.sin()) / 2.0;
-    let pos = Vec3::lerp(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, -3.0), time_lerp);
-
-    transform.set_local_pos(pos);
 }
