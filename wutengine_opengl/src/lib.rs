@@ -18,6 +18,7 @@ mod opengl {
 }
 
 mod buffer;
+mod error;
 mod gltypes;
 mod mesh;
 mod shader;

@@ -7,6 +7,7 @@ use std::ptr::{null, null_mut};
 
 use thiserror::Error;
 
+use crate::error::check_gl_err;
 use crate::opengl::types::GLint;
 use crate::opengl::{self, types::GLuint, Gl};
 
@@ -91,6 +92,8 @@ impl<T: ShaderType> Shader<T> {
             gl.DeleteShader(as_int);
         }
 
+        check_gl_err!(gl);
+
         self.data = ShaderData::Destroyed;
     }
 }
@@ -110,6 +113,9 @@ enum ShaderData {
 impl ShaderData {
     fn new<T: ShaderType>(gl: &Gl, src: &str) -> Result<Self, CreateErr> {
         let handle = unsafe { gl.CreateShader(T::GL_SHADER_TYPE) };
+
+        check_gl_err!(gl);
+
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
         Ok(Self::Uncompiled {
@@ -154,16 +160,21 @@ impl ShaderData {
 
         unsafe {
             gl.ShaderSource(handle.get(), 1, &source.as_ptr(), null());
+            check_gl_err!(gl);
+
             gl.CompileShader(handle.get());
+            check_gl_err!(gl);
 
             let mut success: GLint = opengl::FALSE as GLint;
 
             gl.GetShaderiv(handle.get(), opengl::COMPILE_STATUS, &mut success);
+            check_gl_err!(gl);
 
             if success != (opengl::TRUE as GLint) {
                 let mut buflen: GLint = 512;
 
                 gl.GetShaderiv(handle.get(), opengl::INFO_LOG_LENGTH, &mut buflen);
+                check_gl_err!(gl);
 
                 let mut logbuf: Vec<u8> = vec![0; buflen as usize];
 
@@ -173,6 +184,7 @@ impl ShaderData {
                     null_mut(),
                     logbuf.as_mut_ptr() as *mut c_char,
                 );
+                check_gl_err!(gl);
 
                 let logstr = CString::from_vec_with_nul(logbuf).unwrap();
 

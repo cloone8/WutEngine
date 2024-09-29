@@ -7,6 +7,7 @@ use std::ptr::null_mut;
 use thiserror::Error;
 use wutengine_graphics::material::MaterialParameter;
 
+use crate::error::check_gl_err;
 use crate::opengl::types::{GLint, GLuint};
 use crate::opengl::{self, Gl};
 use crate::shader::CompileErr;
@@ -50,6 +51,8 @@ pub(crate) enum LinkErr {
 impl ShaderProgram {
     pub(crate) fn new(gl: &Gl, stages: GlShaderSet) -> Result<Self, CreateErr> {
         let handle = unsafe { gl.CreateProgram() };
+        check_gl_err!(gl);
+
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
         Ok(Self {
@@ -81,6 +84,8 @@ impl ShaderProgram {
         unsafe {
             gl.DeleteProgram(handle.get());
         }
+
+        check_gl_err!(gl);
 
         self.data = ShaderProgramData::Destroyed;
     }
@@ -118,15 +123,18 @@ impl ShaderProgram {
 
         unsafe {
             gl.LinkProgram(handle.get());
+            check_gl_err!(gl);
 
             let mut success: GLint = opengl::FALSE as GLint;
 
             gl.GetProgramiv(handle.get(), opengl::LINK_STATUS, &mut success);
+            check_gl_err!(gl);
 
             if success != (opengl::TRUE as GLint) {
                 let mut buflen: GLint = 512;
 
                 gl.GetProgramiv(handle.get(), opengl::INFO_LOG_LENGTH, &mut buflen);
+                check_gl_err!(gl);
 
                 let mut logbuf: Vec<u8> = vec![0; buflen as usize];
 
@@ -136,6 +144,7 @@ impl ShaderProgram {
                     null_mut(),
                     logbuf.as_mut_ptr() as *mut c_char,
                 );
+                check_gl_err!(gl);
 
                 let logstr = CString::new(logbuf).unwrap();
 
@@ -203,6 +212,7 @@ impl ShaderProgram {
         unsafe {
             gl.UseProgram(handle.get());
         }
+        check_gl_err!(gl);
 
         Ok(())
     }

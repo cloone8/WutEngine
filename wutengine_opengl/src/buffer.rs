@@ -4,6 +4,7 @@ use core::num::NonZero;
 
 use thiserror::Error;
 
+use crate::error::check_gl_err;
 use crate::opengl::types::{GLenum, GLuint};
 use crate::opengl::{self, Gl};
 
@@ -44,6 +45,7 @@ impl<B: GlBufferType> GlBuffer<B> {
         unsafe {
             gl.GenBuffers(1, &mut handle);
         }
+        check_gl_err!(gl);
 
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
@@ -59,12 +61,14 @@ impl<B: GlBufferType> GlBuffer<B> {
 
             gl.BindBuffer(B::GL_BUFTYPE, handle_int);
         }
+        check_gl_err!(gl);
     }
 
     pub(crate) fn unbind(&mut self, gl: &Gl) {
         unsafe {
             gl.BindBuffer(B::GL_BUFTYPE, 0);
         }
+        check_gl_err!(gl);
     }
 
     pub(crate) fn buffer_data<T: Copy>(&mut self, gl: &Gl, data: &[T]) {
@@ -76,6 +80,7 @@ impl<B: GlBufferType> GlBuffer<B> {
                 opengl::STATIC_DRAW,
             );
         }
+        check_gl_err!(gl);
     }
 
     pub(crate) fn destroy(mut self, gl: &Gl) {
@@ -85,6 +90,7 @@ impl<B: GlBufferType> GlBuffer<B> {
             unsafe {
                 gl.DeleteBuffers(1, &as_int);
             }
+            check_gl_err!(gl);
         }
     }
 }

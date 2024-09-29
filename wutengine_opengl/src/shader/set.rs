@@ -2,6 +2,7 @@ use core::num::NonZero;
 
 use wutengine_graphics::shader::{ShaderSet, ShaderStage};
 
+use crate::error::check_gl_err;
 use crate::opengl::types::GLuint;
 use crate::opengl::Gl;
 
@@ -34,6 +35,8 @@ impl GlShaderSet {
             if let Some(sh) = self.fragment.as_mut() {
                 gl.AttachShader(program.get(), sh.assert_compiled().get())
             }
+
+            check_gl_err!(gl);
         }
     }
 
@@ -45,6 +48,8 @@ impl GlShaderSet {
             if let Some(sh) = self.fragment.as_mut() {
                 gl.DetachShader(program.get(), sh.assert_compiled().get())
             }
+
+            check_gl_err!(gl);
         }
     }
 
@@ -55,6 +60,8 @@ impl GlShaderSet {
         if let Some(mut sh) = self.fragment.take() {
             sh.destroy(gl)
         }
+
+        check_gl_err!(gl);
     }
 
     pub(crate) fn from_sources(gl: &Gl, sources: &ShaderSet) -> Result<Self, CreateErr> {

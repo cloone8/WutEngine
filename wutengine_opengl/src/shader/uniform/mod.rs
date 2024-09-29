@@ -5,6 +5,7 @@ use core::num::NonZero;
 use thiserror::Error;
 use wutengine_graphics::material::MaterialParameter;
 
+use crate::error::check_gl_err;
 use crate::gltypes::GlMat4f;
 use crate::opengl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
 use crate::opengl::{self, Gl};
@@ -39,8 +40,10 @@ impl UniformDescriptor {
                 opengl::ACTIVE_UNIFORM_MAX_LENGTH,
                 &mut uniform_max_name_len,
             );
+            check_gl_err!(gl);
 
             gl.GetProgramiv(handle, opengl::ACTIVE_UNIFORMS, &mut active_uniforms);
+            check_gl_err!(gl);
 
             if active_uniforms == 0 {
                 log::debug!("No active uniforms");
@@ -71,6 +74,7 @@ impl UniformDescriptor {
                     &mut uniform_type,
                     uniform_name_buf as *mut GLchar,
                 );
+                check_gl_err!(gl);
 
                 debug_assert!(actual_name_len < uniform_max_name_len);
                 debug_assert!(actual_name_len > 0);
@@ -125,6 +129,7 @@ impl UniformDescriptor {
                     unsafe {
                         gl.Uniform4f(self.location, color.r, color.g, color.b, color.a);
                     }
+                    check_gl_err!(gl);
                 }
                 _ => {
                     return false;
@@ -140,6 +145,7 @@ impl UniformDescriptor {
                             opengl::FALSE,
                             (&mat as *const GlMat4f) as *const f32,
                         );
+                        check_gl_err!(gl);
                     }
                 }
                 _ => {

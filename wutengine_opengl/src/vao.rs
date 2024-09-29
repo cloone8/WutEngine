@@ -2,6 +2,7 @@ use core::num::NonZero;
 
 use thiserror::Error;
 
+use crate::error::check_gl_err;
 use crate::mesh::GlMeshBuffers;
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
@@ -25,6 +26,7 @@ impl Vao {
         unsafe {
             gl.GenVertexArrays(1, &mut handle);
         }
+        check_gl_err!(gl);
 
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
@@ -39,12 +41,14 @@ impl Vao {
 
             gl.BindVertexArray(handle_int);
         }
+        check_gl_err!(gl);
     }
 
     pub(crate) fn unbind(&mut self, gl: &Gl) {
         unsafe {
             gl.BindVertexArray(0);
         }
+        check_gl_err!(gl);
     }
 
     pub(crate) fn set_vertex_attrs_for(
@@ -59,6 +63,7 @@ impl Vao {
             let location_index = unsafe {
                 gl.GetAttribLocation(program.assert_linked().get(), attribute.as_c_str().as_ptr())
             };
+            check_gl_err!(gl);
 
             if location_index == -1 {
                 log::trace!("Attribute not present");
@@ -81,7 +86,9 @@ impl Vao {
                     layout.stride,
                     layout.offset,
                 );
+                check_gl_err!(gl);
                 gl.EnableVertexAttribArray(location_index as GLuint);
+                check_gl_err!(gl);
             }
         }
     }
@@ -93,6 +100,7 @@ impl Vao {
             unsafe {
                 gl.DeleteVertexArrays(1, &as_int);
             }
+            check_gl_err!(gl);
         }
     }
 }

@@ -14,6 +14,7 @@ use wutengine_graphics::{
     windowing::{HasDisplayHandle, HasWindowHandle},
 };
 
+use crate::error::check_gl_err;
 use crate::mesh::GlMeshBuffers;
 use crate::opengl::{self, Gl};
 use crate::shader::program::ShaderProgram;
@@ -64,6 +65,8 @@ impl Window {
 
         unsafe { bindings.Viewport(0, 0, size.0.try_into().unwrap(), size.1.try_into().unwrap()) };
 
+        check_gl_err!(bindings);
+
         Self {
             shader_resolver,
             context,
@@ -79,6 +82,7 @@ impl Window {
             self.context.make_current();
             self.bindings
                 .Viewport(0, 0, size.0.try_into().unwrap(), size.1.try_into().unwrap());
+            check_gl_err!(self.bindings);
         };
     }
 
