@@ -102,7 +102,7 @@ impl UniformDescriptor {
                     .to_string();
 
                 let as_descriptor = Self {
-                    location: i,
+                    location: uniform_location,
                     uniform_type: UniformType::try_from(uniform_type)
                         .expect("Unsupported OpenGL uniform type returned"),
                     uniform_count: uniform_size,
