@@ -37,6 +37,21 @@ impl KeyboardInputPlugin {
             pressed_keys: [false; MAX_KEYCODE],
         }
     }
+
+    fn handle_physical_key(&mut self, key: PhysicalKey, state: ElementState) {
+        if let PhysicalKey::Code(code) = key {
+            let code_index = winit_keycode_to_usize(code);
+
+            match state {
+                ElementState::Pressed => {
+                    self.pressed_keys[code_index] = true;
+                }
+                ElementState::Released => {
+                    self.pressed_keys[code_index] = false;
+                }
+            }
+        }
+    }
 }
 
 impl Default for KeyboardInputPlugin {
@@ -54,18 +69,7 @@ impl WutEnginePlugin for KeyboardInputPlugin {
         _commands: &mut Command,
     ) {
         if let DeviceEvent::Key(raw_key_event) = event {
-            if let PhysicalKey::Code(code) = raw_key_event.physical_key {
-                let code_index = winit_keycode_to_usize(code);
-
-                match raw_key_event.state {
-                    ElementState::Pressed => {
-                        self.pressed_keys[code_index] = true;
-                    }
-                    ElementState::Released => {
-                        self.pressed_keys[code_index] = false;
-                    }
-                }
-            }
+            self.handle_physical_key(raw_key_event.physical_key, raw_key_event.state);
         }
     }
 
@@ -73,10 +77,17 @@ impl WutEnginePlugin for KeyboardInputPlugin {
         &mut self,
         _world: &mut World,
         _window: &WindowIdentifier,
-        _event: &WindowEvent,
+        event: &WindowEvent,
         _commands: &mut Command,
     ) {
-        // log::info!("{:?}: {:?}", _window, _event);
+        if let WindowEvent::KeyboardInput {
+            device_id: _,
+            event,
+            is_synthetic: _,
+        } = event
+        {
+            self.handle_physical_key(event.physical_key, event.state);
+        }
     }
 
     fn pre_update(&mut self, world: &mut World, _commands: &mut Command) {
