@@ -5,11 +5,15 @@ pub use wutengine_macro::*;
 ///
 /// Used like:
 /// ```
-/// let new_map = map![
+/// use wutengine::map;
+/// use std::collections::HashMap;
+///
+/// let new_map: HashMap<String, i32> = map![
 ///     "a" => 1,
 ///     "b" => 2
 /// ];
 /// ```
+
 #[macro_export]
 macro_rules! map {
     ($($key:expr => $val:expr),+) => {{
