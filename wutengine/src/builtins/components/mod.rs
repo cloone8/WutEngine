@@ -1,3 +1,5 @@
+//! WutEngine builtin components and their systems.
+
 mod camera;
 mod input;
 mod material;
