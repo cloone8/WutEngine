@@ -14,7 +14,9 @@ macro_rules! check_gl_err {
                 }
 
                 log::error!(
-                    "OpenGL error: {:#X} {}",
+                    "OpenGL error @ {}:{}: {:#X} {}",
+                    file!(),
+                    line!(),
                     __err,
                     crate::error::gl_err_to_str(__err)
                 );

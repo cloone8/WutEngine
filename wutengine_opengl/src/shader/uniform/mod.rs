@@ -27,6 +27,11 @@ enum UniformType {
 }
 
 impl UniformDescriptor {
+    /// Constructs a set of [UniformDescriptor] objects, indexed by their names, for the
+    /// given program. The returned vector consists of `(uniform_name, uniform_description)`
+    /// tuples, containing all of the uniforms in the program.
+    ///
+    /// The given program must be linked.
     pub(crate) unsafe fn get_for(gl: &Gl, program: NonZero<GLuint>) -> Vec<(String, Self)> {
         let handle = program.get();
         let mut output: Vec<(String, Self)> = Vec::new();
@@ -78,6 +83,15 @@ impl UniformDescriptor {
 
                 debug_assert!(actual_name_len < uniform_max_name_len);
                 debug_assert!(actual_name_len > 0);
+
+                let uniform_location =
+                    gl.GetUniformLocation(handle, uniform_name_buf as *const GLchar);
+                check_gl_err!(gl);
+
+                debug_assert_ne!(
+                    -1, uniform_location,
+                    "Could not successfully query uniform location"
+                );
 
                 let name_byte_slice =
                     std::slice::from_raw_parts(uniform_name_buf, (actual_name_len + 1) as usize);
