@@ -1,3 +1,5 @@
+//! The various WutEngine builtin shader resolvers.
+
 use std::path::PathBuf;
 
 use include_dir::File;
@@ -6,6 +8,8 @@ use wutengine_graphics::shader::{ShaderSet, ShaderSetId};
 
 use crate::embedded;
 
+/// The embedded shader resolver. Will use shaders from the [crate::embedded] module
+/// only.
 pub(crate) struct EmbeddedShaderResolver;
 
 impl ShaderResolver for EmbeddedShaderResolver {

@@ -9,23 +9,41 @@ use simplelog::{
     ThreadLogMode, WriteLogger,
 };
 
+/// Configuration for WutEngine logging.
 #[derive(Debug)]
 pub struct LogConfig {
+    /// The log configuration for the core runtime.
     pub runtime: Option<ComponentLogConfig>,
+
+    /// The log configuration for the rendering backend.
     pub renderer: Option<ComponentLogConfig>,
+
+    /// The log configuration for anything else.
+    /// This includes user-created code.
     pub other: Option<ComponentLogConfig>,
 }
 
+/// A log configuration for a specific WutEngine component.
 #[derive(Debug, Clone)]
 pub struct ComponentLogConfig {
+    /// The minimum level a log needs
+    /// to have before it is actually logged.
     pub min_level: LevelFilter,
+
+    /// Where the log will end up
     pub output: LogOutput,
 }
 
+/// A log output target
 #[derive(Debug, Clone)]
 pub enum LogOutput {
+    /// Logged to stdout
     StdOut,
+
+    /// Logged to stderr
     StdErr,
+
+    /// Logged to a file at a given path
     File(PathBuf),
 }
 
@@ -124,6 +142,8 @@ impl LogConfig {
     }
 }
 
+/// Initializes the global [log] crate according to the
+/// provided config.
 pub(crate) fn initialize_loggers(config: &LogConfig) {
     let mut log_init_errs: Vec<String> = Vec::new();
 

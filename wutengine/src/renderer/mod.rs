@@ -8,6 +8,9 @@ pub(crate) mod shader_resolver;
 #[cfg(feature = "opengl")]
 pub use wutengine_opengl::OpenGLRenderer;
 
+/// The no-op headless renderer.
+/// Ignores all rendering commands, and will
+/// leave any opened windows with undefined content.
 #[derive(Debug)]
 pub struct HeadlessRenderer;
 
