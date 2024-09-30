@@ -7,6 +7,7 @@ This file documents the most important changes for each released version.
 - Camera component now influences rendering through its position (as determined by its Transform component) and its perspective settings
 - Engine plugins can now listen and respond to raw window and device events
 - Basic keyboard input handling
+- Added time management functionality. For now, this only contains the frame start time and the delta time, but it might contain more information in the future
 
 ## [v0.0.6]
 - Complete refactor of core ECS system. We now use archetypes. It was a lot of work.

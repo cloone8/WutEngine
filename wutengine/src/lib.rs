@@ -33,6 +33,7 @@ pub mod math;
 pub mod plugins;
 pub mod renderer;
 pub mod runtime;
+pub mod time;
 pub mod windowing;
 
 //NOTE: This top-level module will _not_ be logged due to level filtering difficulties. Put any logic in a submodule.

@@ -1,3 +1,4 @@
+use core::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 
 use winit::event_loop::EventLoop;
@@ -11,8 +12,22 @@ use crate::log::LogConfig;
 use crate::plugins::WutEnginePlugin;
 use crate::renderer::shader_resolver::EmbeddedShaderResolver;
 use crate::runtime::Runtime;
+use crate::time::Time;
 use crate::WindowingEvent;
 
+/// We only support starting and running a single runtime per
+/// process. For that reason, we keep track of whether we've
+/// already started a runtime once, and use that
+/// to panic on trying to start a second one.
+static RUNTIME_STARTED: AtomicBool = AtomicBool::new(false);
+
+/// The main entry point for WutEngine.
+///
+/// Allows for engine configuration before actually starting the main
+/// runtime (and yielding control to it.)
+///
+/// Configured using a builder pattern. See the various struct methods for
+/// more specifics. To start, see [RuntimeInitializer::new].
 #[derive(Default)]
 pub struct RuntimeInitializer {
     log_config: LogConfig,
@@ -21,20 +36,29 @@ pub struct RuntimeInitializer {
 }
 
 impl RuntimeInitializer {
+    /// Creates a new, empty, runtime initializer
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets the log configuration. Consecutive calls overwrite eachother.
     pub fn with_log_config(&mut self, config: LogConfig) -> &mut Self {
         self.log_config = config;
         self
     }
 
+    /// Adds a new plugin to the engine. Consecutive calls add more plugins.
     pub fn with_plugin(&mut self, plugin: impl WutEnginePlugin) -> &mut Self {
         self.plugins.push(Box::new(plugin));
         self
     }
 
+    /// Adds a system to the engine. Consecutive calls add more systems.
+    ///
+    /// A system can be added multiple times, as longs as they are added to different phases.
+    ///
+    /// To construct a system descriptor that can be used with this function, see
+    /// the macro [crate::macros::system]
     pub fn with_system<T: FunctionDescription>(&mut self, phase: SystemPhase) -> &mut Self {
         let descriptor = T::describe();
 
@@ -68,10 +92,22 @@ impl RuntimeInitializer {
         self.plugins.shrink_to_fit();
     }
 
+    /// Finalizes the runtime with the current configuration, and starts the
+    /// WutEngine runtime with the given rendering backend.
     pub fn run<R: WutEngineRenderer>(mut self) {
+        let runtime_already_started = RUNTIME_STARTED.swap(true, Ordering::SeqCst);
+
+        if runtime_already_started {
+            panic!("Another runtime has already been started, and WutEngine does not support multiple runtimes in the same process");
+        }
+
         self.run_plugin_build_hooks();
 
         crate::log::initialize_loggers(&self.log_config);
+
+        unsafe {
+            Time::initialize();
+        }
 
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
             .build()

@@ -13,6 +13,7 @@ use wutengine::macros::{system, Component};
 use wutengine::math::{vec3, Vec3};
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::RuntimeInitializer;
+use wutengine::time::Time;
 
 mod spawn;
 
@@ -53,7 +54,7 @@ fn ball_mover(
 
 #[derive(Component)]
 pub struct PlayerMovement {
-    prev_time: Instant,
+    move_speed: f32,
 }
 
 impl Default for PlayerMovement {
@@ -64,9 +65,7 @@ impl Default for PlayerMovement {
 
 impl PlayerMovement {
     pub fn new() -> Self {
-        PlayerMovement {
-            prev_time: Instant::now(),
-        }
+        PlayerMovement { move_speed: 1.0 }
     }
 }
 
@@ -75,24 +74,20 @@ fn player_movement(
     _commands: &mut Command,
     _entity: EntityId,
     input: &InputHandler,
-    player: &mut PlayerMovement,
+    player: &PlayerMovement,
     transform: &mut Transform,
 ) {
-    let cur_time = Instant::now();
-    let delta = cur_time.duration_since(player.prev_time).as_secs_f64();
-    player.prev_time = cur_time;
-
-    let move_speed = 1.0;
-    let movement_this_frame = move_speed * delta;
+    let move_speed = player.move_speed;
+    let movement_this_frame = move_speed * Time::get().delta;
 
     let mut movement_vec = Vec3::ZERO;
 
     if input.is_pressed(KeyCode::ArrowUp) {
-        movement_vec += vec3(0.0, movement_this_frame as f32, 0.0);
+        movement_vec += vec3(0.0, movement_this_frame, 0.0);
     }
 
     if input.is_pressed(KeyCode::ArrowDown) {
-        movement_vec += vec3(0.0, -movement_this_frame as f32, 0.0);
+        movement_vec += vec3(0.0, -movement_this_frame, 0.0);
     }
 
     transform.set_local_pos(transform.local_pos() + movement_vec);

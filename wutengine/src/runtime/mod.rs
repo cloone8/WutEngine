@@ -1,3 +1,5 @@
+//! The main runtime and its main loop.
+
 use std::collections::HashMap;
 
 use glam::Mat4;
@@ -15,6 +17,7 @@ use crate::builtins::components::Mesh;
 use crate::builtins::components::{Camera, Transform};
 use crate::command::Command;
 use crate::plugins::WutEnginePlugin;
+use crate::time::Time;
 use crate::{EngineCommand, WindowingEvent};
 
 mod init;
@@ -140,11 +143,17 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             return;
         }
 
+        log::trace!("Starting new frame");
+
+        unsafe {
+            Time::update_to_now();
+        }
+
         log::trace!("Calling plugin pre_update hooks");
 
         self.for_each_plugin_mut(|world, commands, plugin| plugin.pre_update(world, commands));
 
-        log::trace!("Starting frame");
+        log::trace!("Running update phase systems");
 
         self.run_systems_for_phase(SystemPhase::Update);
 
