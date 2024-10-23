@@ -2,6 +2,8 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.0.8]
+
 ## [v0.0.7]
 - Initial support for optional components in ECS queries
 - Camera component now influences rendering through its position (as determined by its Transform component) and its perspective settings

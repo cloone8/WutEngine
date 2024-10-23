@@ -1,0 +1,31 @@
+[package]
+name = "gl-from-raw-window-handle"
+description = "Library for creating an OpenGL context from a RawWindowHandle"
+version = "0.1.2"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords = ["OpenGL", "Context", "GL"]
+readme = "README.md"
+license = "MIT/Apache-2.0"
+
+[lints]
+workspace = true
+
+[dependencies]
+raw-window-handle.workspace = true
+
+[target.'cfg(target_os="windows")'.dependencies]
+winapi.workspace = true
+uuid.workspace = true
+
+[target.'cfg(target_os="linux")'.dependencies]
+x11.workspace = true
+
+[target.'cfg(target_os="macos")'.dependencies]
+cocoa.workspace = true
+objc.workspace = true
+core-foundation.workspace = true
