@@ -1,8 +1,13 @@
+//! The various WutEngine renderers and rendering functionality
+
+use wutengine_graphics::renderer::{Renderable, Viewport};
+use wutengine_graphics::shader::resolver::ShaderResolver;
 use wutengine_graphics::{
     renderer::WutEngineRenderer,
     windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
 };
 
+pub(crate) mod queue;
 pub(crate) mod shader_resolver;
 
 #[cfg(feature = "opengl")]
@@ -27,14 +32,9 @@ impl WutEngineRenderer for HeadlessRenderer {
 
     fn destroy_window(&mut self, _id: &WindowIdentifier) {}
 
-    fn render(
-        &mut self,
-        _render_context: wutengine_graphics::renderer::RenderContext,
-        _objects: &[wutengine_graphics::renderer::Renderable],
-    ) {
-    }
+    fn render(&mut self, _render_context: &Viewport, _objects: &[Renderable]) {}
 
-    fn build<R: wutengine_graphics::shader::resolver::ShaderResolver>(_shaders: R) -> Self {
+    fn build<R: ShaderResolver>(_shaders: R) -> Self {
         Self
     }
 }

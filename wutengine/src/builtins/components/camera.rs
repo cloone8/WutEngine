@@ -1,6 +1,9 @@
 use glam::Mat4;
-use wutengine_core::Component;
-use wutengine_graphics::{color::Color, renderer::RenderContext, windowing::WindowIdentifier};
+use wutengine_graphics::{color::Color, renderer::Viewport, windowing::WindowIdentifier};
+
+use crate::component::{Component, Context};
+
+use super::Transform;
 
 /// A camera that renders to a viewport in a window.
 #[derive(Debug)]
@@ -28,12 +31,34 @@ pub enum CameraType {
     Orthographic(f64),
 }
 
-impl Component for Camera {}
+impl Component for Camera {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 
-impl Camera {
-    /// Gets the [RenderContext] for this camera, for submission
-    /// to a rendering backend
-    pub(crate) fn to_context(&self, view_mat: Mat4, phys_window_size: (u32, u32)) -> RenderContext {
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn pre_render(&mut self, context: &mut Context) {
+        let window = match context.window.get(&self.display) {
+            Some(w) => w,
+            None => {
+                log::warn!(
+                    "Camera trying to render to non-existing window {}",
+                    self.display
+                );
+                return;
+            }
+        };
+
+        let view_mat = match context.gameobject.get_component::<Transform>() {
+            Some(t) => t.local_to_world(),
+            None => Mat4::IDENTITY,
+        };
+
+        let phys_window_size: (u32, u32) = window.inner_size().into();
+
         let aspect_ratio: f64 = phys_window_size.0 as f64 / phys_window_size.1 as f64;
 
         let projection_mat = match self.camera_type {
@@ -58,11 +83,11 @@ impl Camera {
             }
         };
 
-        RenderContext {
+        context.viewport.render_viewport(Viewport {
             window: self.display.clone(),
             clear_color: self.clear_color,
             view_mat,
             projection_mat,
-        }
+        });
     }
 }

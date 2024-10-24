@@ -1,6 +1,6 @@
+use crate::component::Component;
 use crate::math::Vec3;
 use glam::{Mat4, Quat};
-use wutengine_core::Component;
 
 //TODO: Will probably be heavily modified once we get into transform hierarchies, 3D transformations, etc.
 /// The transform component. Contains all information about the place of an entity in 3D space.
@@ -136,4 +136,12 @@ impl Transform {
     }
 }
 
-impl Component for Transform {}
+impl Component for Transform {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}

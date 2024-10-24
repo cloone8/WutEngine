@@ -9,4 +9,8 @@ use crate::plugins::WutEnginePlugin;
 #[derive(Debug)]
 pub struct MouseInputPlugin;
 
-impl WutEnginePlugin for MouseInputPlugin {}
+impl WutEnginePlugin for MouseInputPlugin {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}

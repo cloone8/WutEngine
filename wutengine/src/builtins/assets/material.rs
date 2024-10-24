@@ -1,7 +1,8 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
-use wutengine_core::Component;
 use wutengine_graphics::material::MaterialData;
+
+use crate::asset::Asset;
 
 /// A material component, describing how to render
 /// a mesh. Works together with the [super::Mesh] component to make
@@ -10,16 +11,16 @@ use wutengine_graphics::material::MaterialData;
 pub struct Material {
     /// The actual material data, in an RC so that
     /// multiple entities can use the same data transparently.
-    pub(crate) data: Rc<MaterialData>,
+    pub(crate) data: Arc<MaterialData>,
 }
-
-impl Component for Material {}
 
 impl Material {
     /// Creates a new material component.
     pub fn new(data: MaterialData) -> Self {
         Self {
-            data: Rc::new(data),
+            data: Arc::new(data),
         }
     }
 }
+
+impl Asset for Material {}

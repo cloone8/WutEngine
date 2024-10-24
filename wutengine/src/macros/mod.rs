@@ -1,3 +1,5 @@
+//! Macros that make working with WutEngine easier
+
 pub use wutengine_macro::*;
 
 /// Creates a hashmap and inserts the given keys and values. [Into::into] is

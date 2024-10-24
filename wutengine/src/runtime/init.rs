@@ -2,18 +2,15 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 
 use winit::event_loop::EventLoop;
-use wutengine_core::{System, SystemPhase};
-use wutengine_ecs::world::World;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
-use crate::command::Command;
-use crate::ecs::FunctionDescription;
 use crate::log::LogConfig;
 use crate::plugins::WutEnginePlugin;
+use crate::renderer::queue::RenderQueue;
 use crate::renderer::shader_resolver::EmbeddedShaderResolver;
 use crate::runtime::Runtime;
 use crate::time::Time;
-use crate::WindowingEvent;
+use crate::windowing::WindowingEvent;
 
 /// We only support starting and running a single runtime per
 /// process. For that reason, we keep track of whether we've
@@ -32,7 +29,6 @@ static RUNTIME_STARTED: AtomicBool = AtomicBool::new(false);
 pub struct RuntimeInitializer {
     log_config: LogConfig,
     plugins: Vec<Box<dyn WutEnginePlugin>>,
-    systems: Vec<System<World, Command>>,
 }
 
 impl RuntimeInitializer {
@@ -50,24 +46,6 @@ impl RuntimeInitializer {
     /// Adds a new plugin to the engine. Consecutive calls add more plugins.
     pub fn with_plugin(&mut self, plugin: impl WutEnginePlugin) -> &mut Self {
         self.plugins.push(Box::new(plugin));
-        self
-    }
-
-    /// Adds a system to the engine. Consecutive calls add more systems.
-    ///
-    /// A system can be added multiple times, as longs as they are added to different phases.
-    ///
-    /// To construct a system descriptor that can be used with this function, see
-    /// the macro [crate::macros::system]
-    pub fn with_system<T: FunctionDescription>(&mut self, phase: SystemPhase) -> &mut Self {
-        let descriptor = T::describe();
-
-        self.systems.push(System {
-            phase,
-            read_writes: descriptor.read_writes,
-            func: descriptor.func,
-        });
-
         self
     }
 
@@ -116,8 +94,9 @@ impl RuntimeInitializer {
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         let mut runtime = Runtime {
-            world: World::default(),
-            systems: self.systems,
+            identmap: HashMap::default(),
+            objects: Vec::new(),
+            render_queue: RenderQueue::new(),
             window_id_map: HashMap::new(),
             windows: HashMap::new(),
             eventloop: event_loop.create_proxy(),

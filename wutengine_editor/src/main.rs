@@ -1,12 +1,13 @@
 //! The WutEngine Editor
 
-use wutengine::command::{Command, FullscreenType, OpenWindowParams};
-use wutengine::ecs::world::World;
+#![allow(clippy::missing_docs_in_private_items)]
+
 use wutengine::graphics::windowing::WindowIdentifier;
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
-use wutengine::plugins::WutEnginePlugin;
+use wutengine::plugins::{self, WutEnginePlugin};
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::RuntimeInitializer;
+use wutengine::windowing::{FullscreenType, OpenWindowParams};
 
 fn main() {
     let mut runtime = RuntimeInitializer::new();
@@ -33,12 +34,16 @@ impl WutEngineEditorPlugin {
 }
 
 impl WutEnginePlugin for WutEngineEditorPlugin {
-    fn on_start(&mut self, _world: &mut World, commands: &mut Command) {
-        commands.window().open(OpenWindowParams {
+    fn on_start(&mut self, context: &mut plugins::Context) {
+        context.windows.open(OpenWindowParams {
             id: WindowIdentifier::new("Main"),
             title: "WutEngine".to_string(),
             mode: FullscreenType::Windowed,
             ignore_existing: false,
         });
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }

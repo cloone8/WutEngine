@@ -65,7 +65,7 @@ const WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB: i32 = 0x20A9;
 
 type WglSwapIntervalEXT = extern "system" fn(i32) -> i32;
 
-pub struct GlContext {
+pub(crate) struct GlContext {
     hwnd: HWND,
     hdc: HDC,
     hglrc: HGLRC,
@@ -77,7 +77,7 @@ extern "C" {
 }
 
 impl GlContext {
-    pub unsafe fn create(
+    pub(crate) unsafe fn create(
         window: WindowHandle,
         _display: DisplayHandle,
         config: GlConfig,
@@ -271,15 +271,15 @@ impl GlContext {
         })
     }
 
-    pub unsafe fn make_current(&self) {
+    pub(crate) unsafe fn make_current(&self) {
         wglMakeCurrent(self.hdc, self.hglrc);
     }
 
-    pub unsafe fn make_not_current(&self) {
+    pub(crate) unsafe fn make_not_current(&self) {
         wglMakeCurrent(self.hdc, std::ptr::null_mut());
     }
 
-    pub fn get_proc_address(&self, symbol: &str) -> *const c_void {
+    pub(crate) fn get_proc_address(&self, symbol: &str) -> *const c_void {
         let symbol = CString::new(symbol).unwrap();
         let addr = unsafe { wglGetProcAddress(symbol.as_ptr()) as *const c_void };
         if !addr.is_null() {
@@ -289,7 +289,7 @@ impl GlContext {
         }
     }
 
-    pub fn swap_buffers(&self) {
+    pub(crate) fn swap_buffers(&self) {
         unsafe {
             SwapBuffers(self.hdc);
         }

@@ -10,7 +10,7 @@ use wutengine_graphics::shader::resolver::ShaderResolver;
 use wutengine_graphics::shader::uniforms::SharedShaderUniform;
 use wutengine_graphics::shader::ShaderSetId;
 use wutengine_graphics::{
-    renderer::{RenderContext, Renderable},
+    renderer::{Renderable, Viewport},
     windowing::{HasDisplayHandle, HasWindowHandle},
 };
 
@@ -196,14 +196,14 @@ impl Window {
     /// The context holds the base view and projection matrices, as well as the
     /// viewport configuration. The objects represent the meshes to render, as well as which
     /// shaders and model matrices to use for rendering them.
-    pub(crate) fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
+    pub(crate) fn render(&mut self, viewport_context: &Viewport, objects: &[Renderable]) {
         unsafe {
             self.context.make_current();
         }
 
         let gl = &self.bindings.clone();
 
-        let clear_color = render_context.clear_color;
+        let clear_color = viewport_context.clear_color;
 
         unsafe {
             gl.ClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
@@ -229,7 +229,7 @@ impl Window {
                     .set_uniform(
                         gl,
                         SharedShaderUniform::ViewMat.as_str(),
-                        &MaterialParameter::Mat4(render_context.view_mat),
+                        &MaterialParameter::Mat4(viewport_context.view_mat),
                     )
                     .expect("Could not set view matrix");
 
@@ -237,7 +237,7 @@ impl Window {
                     .set_uniform(
                         gl,
                         SharedShaderUniform::ProjectionMat.as_str(),
-                        &MaterialParameter::Mat4(render_context.projection_mat),
+                        &MaterialParameter::Mat4(viewport_context.projection_mat),
                     )
                     .expect("Could not set projection matrix");
 

@@ -1,8 +1,9 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use glam::Vec3;
-use wutengine_core::Component;
 use wutengine_graphics::mesh::MeshData;
+
+use crate::asset::Asset;
 
 /// A renderable mesh. Works together with the [super::Material] component
 /// to enable an entity to be rendered.
@@ -10,7 +11,7 @@ use wutengine_graphics::mesh::MeshData;
 pub struct Mesh {
     /// The actual mesh data.
     /// Allows multiple meshes to use the same data transparently
-    pub(crate) data: Rc<MeshData>,
+    pub(crate) data: Arc<MeshData>,
 }
 
 impl Mesh {
@@ -22,9 +23,9 @@ impl Mesh {
     /// Creates a new [Mesh]
     pub fn new(data: MeshData) -> Self {
         Self {
-            data: Rc::new(data),
+            data: Arc::new(data),
         }
     }
 }
 
-impl Component for Mesh {}
+impl Asset for Mesh {}

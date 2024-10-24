@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::Arc;
 
 use glam::Mat4;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
@@ -10,7 +11,7 @@ use crate::shader::resolver::ShaderResolver;
 use crate::windowing::WindowIdentifier;
 
 #[derive(Debug)]
-pub struct RenderContext {
+pub struct Viewport {
     pub window: WindowIdentifier,
     pub clear_color: Color,
     pub view_mat: Mat4,
@@ -19,8 +20,8 @@ pub struct RenderContext {
 
 #[derive(Debug)]
 pub struct Renderable {
-    pub mesh: Rc<MeshData>,
-    pub material: Rc<MaterialData>,
+    pub mesh: Arc<MeshData>,
+    pub material: Arc<MaterialData>,
     pub object_to_world: Mat4,
 }
 
@@ -38,5 +39,5 @@ pub trait WutEngineRenderer {
 
     fn size_changed(&mut self, id: &WindowIdentifier, phys_size: (u32, u32));
 
-    fn render(&mut self, render_context: RenderContext, objects: &[Renderable]);
+    fn render(&mut self, viewport_context: &Viewport, objects: &[Renderable]);
 }

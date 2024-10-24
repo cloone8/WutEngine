@@ -3,14 +3,11 @@
 
 use winit::event::ElementState;
 use winit::keyboard::PhysicalKey;
-use wutengine_ecs::world::World;
 use wutengine_graphics::windowing::WindowIdentifier;
 
-use crate::builtins::components::InputHandler;
-use crate::command::Command;
 use crate::windowing::winit::event::{DeviceEvent, DeviceId, WindowEvent};
 
-use crate::plugins::WutEnginePlugin;
+use crate::plugins::{Context, WutEnginePlugin};
 
 pub use crate::windowing::winit::keyboard::KeyCode;
 
@@ -27,7 +24,8 @@ pub(crate) const MAX_KEYCODE: usize = 2usize.pow((size_of::<KeyCode>() * 8usize)
 /// and delivers it to the InputHandler components in the world.
 #[derive(Debug)]
 pub struct KeyboardInputPlugin {
-    pressed_keys: [bool; MAX_KEYCODE],
+    /// The most up-to-date list of currently pressed keys
+    pub(crate) pressed_keys: [bool; MAX_KEYCODE],
 }
 
 impl KeyboardInputPlugin {
@@ -61,13 +59,11 @@ impl Default for KeyboardInputPlugin {
 }
 
 impl WutEnginePlugin for KeyboardInputPlugin {
-    fn on_device_event(
-        &mut self,
-        _world: &mut World,
-        _device: DeviceId,
-        event: &DeviceEvent,
-        _commands: &mut Command,
-    ) {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn on_device_event(&mut self, _device: DeviceId, event: &DeviceEvent, _context: &mut Context) {
         if let DeviceEvent::Key(raw_key_event) = event {
             self.handle_physical_key(raw_key_event.physical_key, raw_key_event.state);
         }
@@ -75,10 +71,9 @@ impl WutEnginePlugin for KeyboardInputPlugin {
 
     fn on_window_event(
         &mut self,
-        _world: &mut World,
         _window: &WindowIdentifier,
         event: &WindowEvent,
-        _commands: &mut Command,
+        _context: &mut Context,
     ) {
         if let WindowEvent::KeyboardInput {
             device_id: _,
@@ -87,16 +82,6 @@ impl WutEnginePlugin for KeyboardInputPlugin {
         } = event
         {
             self.handle_physical_key(event.physical_key, event.state);
-        }
-    }
-
-    fn pre_update(&mut self, world: &mut World, _commands: &mut Command) {
-        unsafe {
-            world.query(|_id, handler: &mut InputHandler| {
-                handler
-                    .keyboard_pressed_keys
-                    .copy_from_slice(&self.pressed_keys);
-            });
         }
     }
 }

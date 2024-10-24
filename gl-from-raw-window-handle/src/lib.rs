@@ -1,3 +1,7 @@
+//! # gl-from-raw-window-handle
+//!
+//! A crate for generating an OpenGL context for an instance of [raw_window_handle]
+
 use raw_window_handle::{
     DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle,
 };
@@ -20,6 +24,7 @@ mod macos;
 #[cfg(target_os = "macos")]
 use macos as platform;
 
+/// The config for the context to generate
 #[derive(Clone, Debug)]
 pub struct GlConfig {
     pub version: (u8, u8),

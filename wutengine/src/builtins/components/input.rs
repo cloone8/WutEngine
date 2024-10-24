@@ -1,8 +1,8 @@
 use winit::keyboard::KeyCode;
-use wutengine_core::Component;
 
-use crate::input::keyboard::winit_keycode_to_usize;
+use crate::component::{Component, Context};
 use crate::input::keyboard::MAX_KEYCODE;
+use crate::input::keyboard::{winit_keycode_to_usize, KeyboardInputPlugin};
 
 /// The main input handler component. The various input-reading engine plugins will
 /// inject their read inputs into each of these components before each Update iteration.
@@ -32,4 +32,19 @@ impl InputHandler {
     }
 }
 
-impl Component for InputHandler {}
+impl Component for InputHandler {
+    fn pre_update(&mut self, context: &mut Context) {
+        if let Some(input_plugin) = context.plugin.get::<KeyboardInputPlugin>() {
+            self.keyboard_pressed_keys
+                .copy_from_slice(&input_plugin.pressed_keys);
+        }
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}

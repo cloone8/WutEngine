@@ -7,7 +7,7 @@ use std::rc::Rc;
 use window::Window;
 use wutengine_graphics::shader::resolver::ShaderResolver;
 use wutengine_graphics::{
-    renderer::{RenderContext, Renderable, WutEngineRenderer},
+    renderer::{Renderable, Viewport, WutEngineRenderer},
     windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
 };
 
@@ -80,7 +80,7 @@ impl WutEngineRenderer for OpenGLRenderer {
         }
     }
 
-    fn render(&mut self, render_context: RenderContext, objects: &[Renderable]) {
+    fn render(&mut self, render_context: &Viewport, objects: &[Renderable]) {
         log::trace!(
             "Rendering context {:#?} with {} objects",
             render_context,

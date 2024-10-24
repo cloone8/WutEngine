@@ -2,23 +2,23 @@
 
 use std::collections::HashMap;
 
-use glam::Mat4;
+use rayon::prelude::*;
 use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
 use winit::{application::ApplicationHandler, dpi::PhysicalSize};
-use wutengine_core::{System, SystemPhase};
-use wutengine_ecs::world::World;
-use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
+use wutengine_graphics::renderer::WutEngineRenderer;
 use wutengine_graphics::windowing::WindowIdentifier;
 
-use crate::builtins::components::Material;
-use crate::builtins::components::Mesh;
-use crate::builtins::components::{Camera, Transform};
-use crate::command::Command;
-use crate::plugins::WutEnginePlugin;
+use crate::component;
+use crate::component::Component;
+use crate::context::{EngineContext, GameObjectContext, ViewportContext, WindowContext};
+use crate::context::{GraphicsContext, PluginContext};
+use crate::gameobject::GameObject;
+use crate::plugins::{self, WutEnginePlugin};
+use crate::renderer::queue::RenderQueue;
 use crate::time::Time;
-use crate::{EngineCommand, WindowingEvent};
+use crate::windowing::WindowingEvent;
 
 mod init;
 
@@ -27,8 +27,10 @@ pub use init::*;
 /// The main runtime for WutEngine. Cannot be constructed directly. Instead,
 /// construct a runtime with a [RuntimeInitializer]
 pub struct Runtime<R: WutEngineRenderer> {
-    world: World,
-    systems: Vec<System<World, Command>>,
+    identmap: HashMap<u64, usize>,
+    objects: Vec<GameObject>,
+
+    render_queue: RenderQueue,
 
     eventloop: EventLoopProxy<WindowingEvent>,
 
@@ -42,90 +44,124 @@ pub struct Runtime<R: WutEngineRenderer> {
 }
 
 impl<R: WutEngineRenderer> Runtime<R> {
-    unsafe fn get_renderables(&self) -> Vec<Renderable> {
-        unsafe {
-            self.world
-                .query(|id, args: (&Mesh, &Material, Option<&Transform>)| {
-                    let mesh = args.0.data.clone();
-                    let material = args.1.data.clone();
-
-                    let transform = if let Some(transform) = args.2 {
-                        transform.local_to_world()
-                    } else {
-                        log::trace!(
-                            "Transformless renderable entity found ({}), rendering at origin",
-                            id
-                        );
-                        Mat4::IDENTITY
-                    };
-
-                    log::trace!(
-                        "Pushing renderable mesh {:#?} with material {:#?} and transform {}",
-                        mesh,
-                        material,
-                        transform
-                    );
-
-                    Renderable {
-                        mesh,
-                        material,
-                        object_to_world: transform,
-                    }
-                })
-        }
-    }
-
-    fn exec_engine_command(&mut self, command: EngineCommand) {
-        match command {
-            EngineCommand::AddSystem(system) => self.systems.push(system),
-            EngineCommand::OpenWindow(params) => self
-                .eventloop
-                .send_event(WindowingEvent::OpenWindow(params))
-                .unwrap(),
-            EngineCommand::SpawnEntity(components) => {
-                let new_entity = self.world.create_entity();
-                self.world.add_components_to_entity(new_entity, components);
-            }
-            EngineCommand::DestroyEntity(id) => {
-                self.world.remove_entity(id);
-            }
-        }
-    }
-
-    fn exec_engine_commands(&mut self, commands: impl IntoIterator<Item = EngineCommand>) {
-        for command in commands {
-            self.exec_engine_command(command);
-        }
-    }
-
-    fn run_systems_for_phase(&mut self, phase: SystemPhase) {
-        let mut commands = Command::empty();
-
-        for system in self.systems.iter_mut().filter(|sys| sys.phase == phase) {
-            let ret = (system.func)(&mut self.world);
-            commands.merge_with(ret);
-        }
-
-        self.exec_engine_commands(commands.consume());
-    }
-
-    fn for_each_plugin_mut(
-        &mut self,
-        mut func: impl FnMut(&mut World, &mut Command, &mut Box<dyn WutEnginePlugin>),
-    ) {
-        let mut commands = Command::empty();
-
-        self.plugins
-            .iter_mut()
-            .for_each(|plugin| func(&mut self.world, &mut commands, plugin));
-
-        self.exec_engine_commands(commands.consume());
-    }
-
     fn start(&mut self) {
-        self.for_each_plugin_mut(|world, commands, plugin| plugin.on_start(world, commands));
+        self.run_plugin_hooks(|plugin, context| {
+            plugin.on_start(context);
+        });
 
         self.started = true;
+    }
+
+    fn run_component_hooks(
+        &mut self,
+        func: impl Fn(&mut Box<dyn Component>, &mut component::Context) + Send + Sync,
+    ) {
+        let engine_context = EngineContext::new();
+        let plugin_context = PluginContext::new(&self.plugins);
+        let viewport_context = ViewportContext::new();
+        let graphics_context = GraphicsContext::new();
+        let window_context = WindowContext::new(&self.windows);
+
+        self.objects.par_iter_mut().for_each(|gameobject| {
+            let mut new_components = Vec::new();
+
+            for i in 0..gameobject.components.len() {
+                let (component, go_context) = GameObjectContext::new(gameobject, i);
+
+                let mut context = component::Context {
+                    gameobject: go_context,
+                    engine: &engine_context,
+                    plugin: &plugin_context,
+                    viewport: &viewport_context,
+                    graphics: &graphics_context,
+                    window: &window_context,
+                };
+
+                func(component, &mut context);
+
+                new_components.extend(context.gameobject.consume());
+            }
+
+            gameobject.components.extend(new_components);
+        });
+
+        for new_gameobject in engine_context.consume() {
+            match self.identmap.contains_key(&new_gameobject.id) {
+                true => log::error!(
+                    "Tried to add an already existing GameObject, ignoring : {}",
+                    new_gameobject.id
+                ),
+                false => {
+                    let go_id = new_gameobject.id;
+                    let new_idx = self.objects.len();
+
+                    self.identmap.insert(go_id, new_idx);
+                    self.objects.push(new_gameobject);
+
+                    log::debug!(
+                        "Added new GameObject with ID {} at index {}",
+                        go_id,
+                        new_idx
+                    );
+                }
+            }
+        }
+
+        self.render_queue.add_viewports(viewport_context);
+        self.render_queue.add_renderables(graphics_context);
+
+        for new_window_params in window_context.consume() {
+            self.eventloop
+                .send_event(WindowingEvent::OpenWindow(new_window_params))
+                .unwrap();
+        }
+    }
+
+    fn run_plugin_hooks(
+        &mut self,
+        func: impl Fn(&mut Box<dyn WutEnginePlugin>, &mut plugins::Context),
+    ) {
+        let mut context = plugins::Context::new(&self.windows);
+
+        for plugin in &mut self.plugins {
+            func(plugin, &mut context);
+        }
+
+        let engine_context = context.engine;
+        let viewport_context = context.viewport;
+        let graphics_context = context.graphics;
+        let window_context = context.windows;
+
+        for new_gameobject in engine_context.consume() {
+            match self.identmap.contains_key(&new_gameobject.id) {
+                true => log::error!(
+                    "Tried to add an already existing GameObject, ignoring : {}",
+                    new_gameobject.id
+                ),
+                false => {
+                    let go_id = new_gameobject.id;
+                    let new_idx = self.objects.len();
+
+                    self.identmap.insert(go_id, new_idx);
+                    self.objects.push(new_gameobject);
+
+                    log::debug!(
+                        "Added new GameObject with ID {} at index {}",
+                        go_id,
+                        new_idx
+                    );
+                }
+            }
+        }
+
+        self.render_queue.add_viewports(viewport_context);
+        self.render_queue.add_renderables(graphics_context);
+
+        for new_window_params in window_context.consume() {
+            self.eventloop
+                .send_event(WindowingEvent::OpenWindow(new_window_params))
+                .unwrap();
+        }
     }
 }
 
@@ -149,46 +185,37 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             Time::update_to_now();
         }
 
-        log::trace!("Calling plugin pre_update hooks");
+        log::trace!("Running pre-update for plugins");
 
-        self.for_each_plugin_mut(|world, commands, plugin| plugin.pre_update(world, commands));
+        self.run_plugin_hooks(|plugin, context| plugin.pre_update(context));
 
-        log::trace!("Running update phase systems");
+        log::trace!("Running pre-update for components");
 
-        self.run_systems_for_phase(SystemPhase::Update);
+        self.run_component_hooks(|component, context| {
+            component.pre_update(context);
+        });
 
-        let renderables = unsafe { self.get_renderables() };
+        log::trace!("Running update for components");
 
-        unsafe {
-            let contexts = self
-                .world
-                .query(|_id, args: (&Camera, Option<&Transform>)| {
-                    let (camera, transform) = args;
+        self.run_component_hooks(|component, context| {
+            component.update(context);
+        });
 
-                    let window = match self.windows.get(&camera.display) {
-                        Some(window) => window,
-                        None => {
-                            log::warn!(
-                                "Camera trying to render to non-existing window {}",
-                                &camera.display
-                            );
+        log::trace!("Running pre-render for components");
 
-                            return None;
-                        }
-                    };
+        self.run_component_hooks(|component, context| {
+            component.pre_render(context);
+        });
 
-                    let view_mat = transform
-                        .map(|t| t.local_to_world())
-                        .unwrap_or(Mat4::IDENTITY);
-                    let window_size: (u32, u32) = window.inner_size().into();
+        log::trace!("Doing rendering");
 
-                    Some(camera.to_context(view_mat, window_size))
-                });
-
-            for context in contexts.into_iter().flatten() {
-                self.renderer.render(context, &renderables);
-            }
+        for viewport in &self.render_queue.viewports {
+            self.renderer
+                .render(viewport, &self.render_queue.renderables);
         }
+
+        self.render_queue.viewports.clear();
+        self.render_queue.renderables.clear();
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WindowingEvent) {
@@ -229,8 +256,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     ) {
         let identifier = self.window_id_map.get(&window_id).unwrap().clone();
 
-        self.for_each_plugin_mut(|world, commands, plugin| {
-            plugin.on_window_event(world, &identifier, &event, commands)
+        self.run_plugin_hooks(|plugin, context| {
+            plugin.on_window_event(&identifier, &event, context)
         });
 
         match event {
@@ -260,8 +287,6 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         device_id: DeviceId,
         event: DeviceEvent,
     ) {
-        self.for_each_plugin_mut(|world, commands, plugin| {
-            plugin.on_device_event(world, device_id, &event, commands)
-        });
+        self.run_plugin_hooks(|plugin, context| plugin.on_device_event(device_id, &event, context));
     }
 }
