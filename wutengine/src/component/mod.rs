@@ -1,12 +1,16 @@
 //! Component related functionality and data
 
 use core::any::Any;
+use core::fmt::Debug;
 
-use crate::context::{EngineContext, GameObjectContext, GraphicsContext, ViewportContext};
+use crate::context::{
+    EngineContext, GameObjectContext, GraphicsContext, MessageContext, ViewportContext,
+};
 use crate::context::{PluginContext, WindowContext};
+use crate::runtime::messaging::Message;
 
 /// A component, the core programmable unit in WutEngine.
-pub trait Component: Any + Send + Sync {
+pub trait Component: Any + Send + Sync + Debug {
     /// The pre-update hook. Runs before all the update hooks
     fn pre_update(&mut self, _context: &mut Context) {}
 
@@ -16,6 +20,9 @@ pub trait Component: Any + Send + Sync {
     /// The pre-render hook. Runs after the update phase. Use this for submitting
     /// rendering commands
     fn pre_render(&mut self, _context: &mut Context) {}
+
+    /// Called for each message that might be relevant for this component.
+    fn on_message(&mut self, _context: &mut Context, _message: &Message) {}
 
     /// Converts the component reference to a dyn [Any] reference.
     fn as_any(&self) -> &dyn Any;
@@ -31,6 +38,9 @@ pub struct Context<'a> {
 
     /// Information and APIs related to the gameobject this component is on
     pub gameobject: GameObjectContext<'a>,
+
+    /// The message context
+    pub message: &'a MessageContext<'a>,
 
     /// The loaded plugins
     pub plugin: &'a PluginContext<'a>,

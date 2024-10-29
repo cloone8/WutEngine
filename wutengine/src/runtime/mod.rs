@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use messaging::MessageQueue;
 use rayon::prelude::*;
 use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
@@ -11,9 +12,11 @@ use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
 use crate::component::Component;
-use crate::context::{EngineContext, GameObjectContext, ViewportContext, WindowContext};
+use crate::context::{
+    EngineContext, GameObjectContext, MessageContext, ViewportContext, WindowContext,
+};
 use crate::context::{GraphicsContext, PluginContext};
-use crate::gameobject::GameObject;
+use crate::gameobject::{GameObject, GameObjectId};
 use crate::plugins::{self, WutEnginePlugin};
 use crate::renderer::queue::RenderQueue;
 use crate::time::Time;
@@ -21,14 +24,17 @@ use crate::windowing::WindowingEvent;
 use crate::{component, windowing};
 
 mod init;
+pub mod messaging;
 mod threadpool;
 
 pub use init::*;
 
 /// The main runtime for WutEngine. Cannot be constructed directly. Instead,
 /// construct a runtime with a [RuntimeInitializer]
+/// TODO: Split up runtime object into multiple smaller structs
+/// for cleaner code
 pub struct Runtime<R: WutEngineRenderer> {
-    identmap: HashMap<u64, usize>,
+    identmap: HashMap<GameObjectId, usize>,
     objects: Vec<GameObject>,
 
     render_queue: RenderQueue,
@@ -53,17 +59,42 @@ impl<R: WutEngineRenderer> Runtime<R> {
         self.started = true;
     }
 
-    fn run_component_hooks(
+    fn run_component_hook(
         &mut self,
         func: impl Fn(&mut Box<dyn Component>, &mut component::Context) + Send + Sync,
     ) {
+        let message_queue = MessageQueue::new();
+
+        // Run the main user-provided hook
+        self.run_component_func_with_context(
+            &message_queue,
+            |_| (),
+            |_, comp, context| func(comp, context),
+        );
+
+        // Now handle any messages that resulted from the calls to the hook
+        self.run_message_queue(message_queue);
+    }
+
+    fn run_component_func_with_context<F, Fm, M>(
+        &mut self,
+        message_queue: &MessageQueue,
+        meta_func: Fm,
+        func: F,
+    ) where
+        Fm: Fn(GameObjectId) -> M + Send + Sync,
+        F: Fn(&M, &mut Box<dyn Component>, &mut component::Context) + Send + Sync,
+    {
         let engine_context = EngineContext::new();
+        let message_context = MessageContext::new(message_queue);
         let plugin_context = PluginContext::new(&self.plugins);
         let viewport_context = ViewportContext::new();
         let graphics_context = GraphicsContext::new();
         let window_context = WindowContext::new(&self.windows);
 
         self.objects.par_iter_mut().for_each(|gameobject| {
+            let meta = meta_func(gameobject.id);
+
             let mut new_components = Vec::new();
 
             for i in 0..gameobject.components.len() {
@@ -71,6 +102,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
                 let mut context = component::Context {
                     gameobject: go_context,
+                    message: &message_context,
                     engine: &engine_context,
                     plugin: &plugin_context,
                     viewport: &viewport_context,
@@ -78,7 +110,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
                     window: &window_context,
                 };
 
-                func(component, &mut context);
+                func(&meta, component, &mut context);
 
                 new_components.extend(context.gameobject.consume());
             }
@@ -122,7 +154,8 @@ impl<R: WutEngineRenderer> Runtime<R> {
         &mut self,
         func: impl Fn(&mut Box<dyn WutEnginePlugin>, &mut plugins::Context),
     ) {
-        let mut context = plugins::Context::new(&self.windows);
+        let message_queue = MessageQueue::new();
+        let mut context = plugins::Context::new(&self.windows, &message_queue);
 
         for plugin in &mut self.plugins {
             func(plugin, &mut context);
@@ -163,6 +196,45 @@ impl<R: WutEngineRenderer> Runtime<R> {
                 .send_event(WindowingEvent::OpenWindow(new_window_params))
                 .unwrap();
         }
+
+        self.run_message_queue(message_queue);
+    }
+
+    /// Runs the given message queue, calling the appropriate callbacks to handle each message.
+    /// If any new messages are sent while handling the original messages, these are handled too.
+    /// This repeats until no more messages are sent.
+    fn run_message_queue(&mut self, mut message_queue: MessageQueue) {
+        let mut message_iter = 0usize;
+
+        loop {
+            // No more messages, done!
+            if message_queue.is_empty() {
+                return;
+            }
+
+            log::trace!("Message handling loop, iteration {}", message_iter);
+
+            let new_queue = MessageQueue::new();
+
+            self.run_component_func_with_context(
+                &new_queue,
+                |gameobject_id| {
+                    let mut messages_for_gameobject = Vec::new();
+                    message_queue.get_messages_for(gameobject_id, &mut messages_for_gameobject);
+
+                    messages_for_gameobject
+                },
+                |messages, component, context| {
+                    for message in messages {
+                        component.on_message(context, message);
+                    }
+                },
+            );
+            // Replace the old and handled queue with the new one
+            message_queue = new_queue;
+
+            message_iter += 1;
+        }
     }
 }
 
@@ -193,19 +265,19 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         log::trace!("Running pre-update for components");
 
-        self.run_component_hooks(|component, context| {
+        self.run_component_hook(|component, context| {
             component.pre_update(context);
         });
 
         log::trace!("Running update for components");
 
-        self.run_component_hooks(|component, context| {
+        self.run_component_hook(|component, context| {
             component.update(context);
         });
 
         log::trace!("Running pre-render for components");
 
-        self.run_component_hooks(|component, context| {
+        self.run_component_hook(|component, context| {
             component.pre_render(context);
         });
 

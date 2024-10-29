@@ -1,9 +1,13 @@
 //! Module for implementable engine plugins
 
 use core::any::Any;
+use core::fmt::Debug;
 use std::collections::HashMap;
 
-use crate::context::{EngineContext, GraphicsContext, ViewportContext, WindowContext};
+use crate::context::{
+    EngineContext, GraphicsContext, MessageContext, ViewportContext, WindowContext,
+};
+use crate::runtime::messaging::MessageQueue;
 use crate::windowing::winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::window::Window;
 use wutengine_core::identifiers::WindowIdentifier;
@@ -14,7 +18,7 @@ use crate::runtime::RuntimeInitializer;
 /// These plugins are meant to be lower-level extensions to the engine runtime,
 /// allowing for responses to raw events as well as injection
 /// of custom systems and commands at key points in the engine lifecycle
-pub trait WutEnginePlugin: Any + Send + Sync {
+pub trait WutEnginePlugin: Any + Send + Sync + Debug {
     /// Casts the plugin to an instance of [Any], for possible downcasting later
     fn as_any(&self) -> &dyn Any;
 
@@ -46,6 +50,9 @@ pub struct Context<'a> {
     /// The engine context
     pub engine: EngineContext<'a>,
 
+    /// The message context
+    pub message: MessageContext<'a>,
+
     /// The viewport context
     pub viewport: ViewportContext<'a>,
 
@@ -58,9 +65,13 @@ pub struct Context<'a> {
 
 impl<'a> Context<'a> {
     /// Creates a new plugin context with the given parameters
-    pub(crate) fn new(windows: &'a HashMap<WindowIdentifier, Window>) -> Self {
+    pub(crate) fn new(
+        windows: &'a HashMap<WindowIdentifier, Window>,
+        messages: &'a MessageQueue,
+    ) -> Self {
         Self {
             engine: EngineContext::new(),
+            message: MessageContext::new(messages),
             viewport: ViewportContext::new(),
             graphics: GraphicsContext::new(),
             windows: WindowContext::new(windows),

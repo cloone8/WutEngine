@@ -1,16 +1,28 @@
 //! Functionality and definitions for the main [GameObject] type
 
+use core::fmt::Display;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::component::Component;
 
 static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
 
+/// The at-runtime ID of a GameObject
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GameObjectId(u64);
+
+impl Display for GameObjectId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#018x}", self.0)
+    }
+}
+
 /// The GameObject. The main entity within the game world. Contains a set of components that
 /// run the actual gameplay logic.
+#[derive(Debug)]
 pub struct GameObject {
     /// The unique identifier for this [GameObject]
-    pub(crate) id: u64,
+    pub(crate) id: GameObjectId,
 
     /// The name of this [GameObject]
     pub(crate) name: String,
@@ -25,7 +37,7 @@ impl GameObject {
         let name = name.unwrap_or("GameObject".to_string());
 
         Self {
-            id: NEXT_INDEX.fetch_add(1, Ordering::Relaxed),
+            id: GameObjectId(NEXT_INDEX.fetch_add(1, Ordering::Relaxed)),
             name,
             components: Vec::new(),
         }

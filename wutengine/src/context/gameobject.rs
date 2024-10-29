@@ -3,6 +3,7 @@ use crate::gameobject::GameObject;
 
 /// The context for interacting with the current [GameObject]. Usually within a component
 #[must_use = "The commands within the context must be consumed"]
+#[derive(Debug)]
 pub struct GameObjectContext<'a> {
     component_chunks: Vec<&'a mut [Box<dyn Component>]>,
     new_components: Vec<Box<dyn Component>>,

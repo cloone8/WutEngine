@@ -5,6 +5,7 @@ use crate::gameobject::GameObject;
 
 /// The context used for interacting with engine-related APIs
 #[must_use = "The commands within the context must be consumed"]
+#[derive(Debug)]
 pub struct EngineContext<'a> {
     new_gameobjects: Mutex<Vec<GameObject>>,
     ph: PhantomData<&'a ()>,

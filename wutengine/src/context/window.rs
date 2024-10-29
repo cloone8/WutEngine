@@ -8,6 +8,7 @@ use crate::windowing::OpenWindowParams;
 
 /// The window context, used for interacting with window related APIs.
 #[must_use = "The commands within the context must be consumed"]
+#[derive(Debug)]
 pub struct WindowContext<'a> {
     windows: &'a HashMap<WindowIdentifier, Window>,
     opened: Mutex<Vec<OpenWindowParams>>,

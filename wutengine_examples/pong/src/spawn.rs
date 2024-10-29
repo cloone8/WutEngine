@@ -1,7 +1,5 @@
 //! Contains the spawning plugin for the game
 
-use std::time::Instant;
-
 use wutengine::builtins::assets::{Material, Mesh};
 use wutengine::builtins::components::util::FramerateCounter;
 use wutengine::builtins::components::CameraType::{self};
@@ -20,6 +18,7 @@ use wutengine::{map, plugins};
 use crate::{BallData, PlayerMovement};
 
 /// Plugin that only injects the initial components to get the game started
+#[derive(Debug)]
 pub(crate) struct PongStarterPlugin;
 
 impl WutEnginePlugin for PongStarterPlugin {
@@ -51,7 +50,7 @@ impl WutEnginePlugin for PongStarterPlugin {
 fn make_window(context: &mut plugins::Context) {
     let displays = windowing::display::available_displays();
 
-    let primary = displays.primary();
+    let _primary = displays.primary();
 
     context.windows.open(OpenWindowParams {
         id: WindowIdentifier::new("main"),
@@ -113,7 +112,8 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     let mut ball = GameObject::new(Some("Ball".to_string()));
 
     ball.add_component(Box::new(BallData {
-        start: Instant::now(),
+        speed: 0.2,
+        direction: true,
     }));
 
     ball.add_component(Box::new(Transform::with_pos_rot_scale(

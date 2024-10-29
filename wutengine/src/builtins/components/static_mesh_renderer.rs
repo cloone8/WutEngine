@@ -8,6 +8,7 @@ use crate::component::{Component, Context};
 
 /// A static mesh renderer component. Renders its configured mesh using its configured
 /// material
+#[derive(Debug)]
 pub struct StaticMeshRenderer {
     /// The mesh that is rendered
     pub mesh: Mesh,

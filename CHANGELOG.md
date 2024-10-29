@@ -8,6 +8,8 @@ This file documents the most important changes for each released version.
     * I found ECS simply too annoying to develop, to be honest
 - Support for borderless/exclusive fullscreen
 - Introduced multithreaded main loop
+- Basic inter-object message passing
+- Improved keyboard input API to include pressed/released this frame along held/not held
 
 ## [v0.0.7]
 - Initial support for optional components in ECS queries

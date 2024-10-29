@@ -1,7 +1,6 @@
 //! Basic Pong example for WutEngine
 
 use std::any::Any;
-use std::time::Instant;
 
 use spawn::PongStarterPlugin;
 use wutengine::builtins::components::{InputHandler, Transform};
@@ -10,6 +9,7 @@ use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::math::{vec3, Vec3};
 use wutengine::renderer::OpenGLRenderer;
+use wutengine::runtime::messaging::Message;
 use wutengine::runtime::RuntimeInitializer;
 use wutengine::time::Time;
 
@@ -31,8 +31,13 @@ fn main() {
     runtime.run::<OpenGLRenderer>();
 }
 
+#[derive(Debug)]
+struct DoReverseMessage;
+
+#[derive(Debug)]
 struct BallData {
-    start: Instant,
+    speed: f32,
+    direction: bool,
 }
 
 impl Component for BallData {
@@ -45,18 +50,26 @@ impl Component for BallData {
     }
 
     fn update(&mut self, context: &mut Context) {
-        let time_since_start = Time::get()
-            .frame_start
-            .duration_since(self.start)
-            .as_secs_f32()
-            * 3.0;
-
         let transform = context.gameobject.get_component_mut::<Transform>().unwrap();
+        let cur_pos = transform.local_pos();
 
-        transform.set_local_pos(vec3(time_since_start.sin() * 0.6, 0.0, 0.0));
+        let movement = match self.direction {
+            true => 1.0,
+            false => -1.0,
+        };
+
+        transform
+            .set_local_pos(cur_pos + (vec3(self.speed, 0.0, 0.0) * movement * Time::get().delta));
+    }
+
+    fn on_message(&mut self, _context: &mut Context, message: &Message) {
+        if message.try_cast::<DoReverseMessage>().is_some() {
+            self.direction = !self.direction;
+        }
     }
 }
 
+#[derive(Debug)]
 pub struct PlayerMovement {
     move_speed: f32,
 }
@@ -78,12 +91,16 @@ impl Component for PlayerMovement {
 
         let mut movement_vec = Vec3::ZERO;
 
-        if input.is_pressed(KeyCode::ArrowUp) {
+        if input.is_down(KeyCode::ArrowUp) {
             movement_vec += vec3(0.0, movement_this_frame, 0.0);
         }
 
-        if input.is_pressed(KeyCode::ArrowDown) {
+        if input.is_down(KeyCode::ArrowDown) {
             movement_vec += vec3(0.0, -movement_this_frame, 0.0);
+        }
+
+        if input.pressed_this_frame(KeyCode::Space) {
+            context.message.send_global(DoReverseMessage);
         }
 
         let transform = context.gameobject.get_component_mut::<Transform>().unwrap();

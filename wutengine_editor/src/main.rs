@@ -25,6 +25,7 @@ fn main() {
     runtime.run::<OpenGLRenderer>();
 }
 
+#[derive(Debug)]
 struct WutEngineEditorPlugin;
 
 impl WutEngineEditorPlugin {

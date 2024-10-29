@@ -1,6 +1,7 @@
 use crate::plugins::WutEnginePlugin;
 
 /// The plugin context, used for interacting with loaded plugins
+#[derive(Debug)]
 pub struct PluginContext<'a> {
     plugins: &'a [Box<dyn WutEnginePlugin>],
 }

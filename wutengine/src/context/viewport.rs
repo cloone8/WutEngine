@@ -5,6 +5,7 @@ use wutengine_graphics::renderer::Viewport;
 
 /// The viewport context, used for interacting with [Viewport] related APIs
 #[must_use = "The commands within the context must be consumed"]
+#[derive(Debug)]
 pub struct ViewportContext<'a> {
     viewports: Mutex<Vec<Viewport>>,
     ph: PhantomData<&'a ()>,

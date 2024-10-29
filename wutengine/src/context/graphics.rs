@@ -8,6 +8,7 @@ use crate::builtins::assets::{Material, Mesh};
 
 /// The graphics context. Used for interacting with graphics related APIs
 #[must_use = "The commands within the context must be consumed"]
+#[derive(Debug)]
 pub struct GraphicsContext<'a> {
     render_commands: Mutex<Vec<Renderable>>,
     ph: PhantomData<&'a ()>,
