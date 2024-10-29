@@ -3,7 +3,7 @@
 
 use winit::event::ElementState;
 use winit::keyboard::PhysicalKey;
-use wutengine_graphics::windowing::WindowIdentifier;
+use wutengine_core::identifiers::WindowIdentifier;
 
 use crate::windowing::winit::event::{DeviceEvent, DeviceId, WindowEvent};
 

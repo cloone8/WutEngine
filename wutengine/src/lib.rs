@@ -2,7 +2,10 @@
 //! re-exports all relevant subcrates.
 
 #[doc(inline)]
-pub use wutengine_core as core;
+pub use wutengine_core::assert;
+
+#[doc(inline)]
+pub use wutengine_core::profiling;
 
 #[doc(inline)]
 pub use wutengine_graphics as graphics;

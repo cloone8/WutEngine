@@ -7,10 +7,9 @@ use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowId};
 use winit::{application::ApplicationHandler, dpi::PhysicalSize};
+use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
-use wutengine_graphics::windowing::WindowIdentifier;
 
-use crate::component;
 use crate::component::Component;
 use crate::context::{EngineContext, GameObjectContext, ViewportContext, WindowContext};
 use crate::context::{GraphicsContext, PluginContext};
@@ -19,8 +18,10 @@ use crate::plugins::{self, WutEnginePlugin};
 use crate::renderer::queue::RenderQueue;
 use crate::time::Time;
 use crate::windowing::WindowingEvent;
+use crate::{component, windowing};
 
 mod init;
+mod threadpool;
 
 pub use init::*;
 
@@ -166,9 +167,10 @@ impl<R: WutEngineRenderer> Runtime<R> {
 }
 
 impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
-    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if !self.started {
             log::info!("Initializing WutEngine");
+            windowing::display::configure(event_loop);
             self.start();
         }
     }
@@ -219,7 +221,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WindowingEvent) {
-        log::debug!("Handling WutEngine WindowingEvent:\n{:#?}", event);
+        log::trace!("Handling WutEngine WindowingEvent:\n{:#?}", event);
 
         match event {
             WindowingEvent::OpenWindow(params) => {

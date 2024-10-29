@@ -15,6 +15,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
+wutengine_util_macro.workspace = true
 rand.workspace = true
 static_assertions.workspace = true
 nohash-hasher.workspace = true

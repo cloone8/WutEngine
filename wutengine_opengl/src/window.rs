@@ -6,13 +6,10 @@ use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
 use nohash_hasher::IntMap;
 use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::mesh::{IndexBuffer, MeshData, MeshDataId};
+use wutengine_graphics::renderer::{HasDisplayHandle, HasWindowHandle, Renderable, Viewport};
 use wutengine_graphics::shader::resolver::ShaderResolver;
 use wutengine_graphics::shader::uniforms::SharedShaderUniform;
 use wutengine_graphics::shader::ShaderSetId;
-use wutengine_graphics::{
-    renderer::{Renderable, Viewport},
-    windowing::{HasDisplayHandle, HasWindowHandle},
-};
 
 use crate::error::check_gl_err;
 use crate::mesh::GlMeshBuffers;

@@ -12,6 +12,8 @@ use crate::runtime::Runtime;
 use crate::time::Time;
 use crate::windowing::WindowingEvent;
 
+use super::threadpool;
+
 /// We only support starting and running a single runtime per
 /// process. For that reason, we keep track of whether we've
 /// already started a runtime once, and use that
@@ -79,9 +81,11 @@ impl RuntimeInitializer {
             panic!("Another runtime has already been started, and WutEngine does not support multiple runtimes in the same process");
         }
 
-        self.run_plugin_build_hooks();
-
         crate::log::initialize_loggers(&self.log_config);
+
+        threadpool::init_threadpool();
+
+        self.run_plugin_build_hooks();
 
         unsafe {
             Time::initialize();

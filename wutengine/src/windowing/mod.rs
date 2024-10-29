@@ -1,8 +1,20 @@
 //! Windowing and windows
 
+use display::Display;
 pub use winit;
+use winit::monitor::VideoModeHandle;
 use winit::window::Fullscreen;
-use wutengine_graphics::windowing::WindowIdentifier;
+
+pub mod display;
+
+#[doc(inline)]
+pub use wutengine_core::identifiers::WindowIdentifier;
+
+#[doc(inline)]
+pub use wutengine_graphics::renderer::HasDisplayHandle;
+
+#[doc(inline)]
+pub use wutengine_graphics::renderer::HasWindowHandle;
 
 /// The parameters that define a new window
 #[derive(Debug)]
@@ -27,21 +39,27 @@ pub enum FullscreenType {
     Windowed,
 
     /// Borderless fullscreen
-    BorderlessFullscreenWindow,
+    BorderlessFullscreen(Display),
 
     /// Exclusive fullscreen
-    ExclusiveFullscreen,
+    ExclusiveFullscreen(Display, VideoModeHandle),
 }
 
 impl From<FullscreenType> for Option<Fullscreen> {
     fn from(value: FullscreenType) -> Self {
+        //TODO: Switch this `From` function to `TryFrom`
         match value {
             FullscreenType::Windowed => None,
-            FullscreenType::BorderlessFullscreenWindow => {
-                todo!("Borderless fullscreen not yet implemented")
+            FullscreenType::BorderlessFullscreen(display) => {
+                Some(Fullscreen::Borderless(Some(display.handle)))
             }
-            FullscreenType::ExclusiveFullscreen => {
-                todo!("Exclusive fullscreen not yet implemented")
+            FullscreenType::ExclusiveFullscreen(display, mode) => {
+                if mode.monitor() != display.handle {
+                    log::error!("Could not set window to fullscreen, because the provided mode does not match the display");
+                    None
+                } else {
+                    Some(Fullscreen::Exclusive(mode))
+                }
             }
         }
     }

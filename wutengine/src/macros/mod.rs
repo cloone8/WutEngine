@@ -15,7 +15,6 @@ pub use wutengine_macro::*;
 ///     "b" => 2
 /// ];
 /// ```
-
 #[macro_export]
 macro_rules! map {
     ($($key:expr => $val:expr),+) => {{

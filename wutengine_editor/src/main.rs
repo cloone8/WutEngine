@@ -2,11 +2,11 @@
 
 #![allow(clippy::missing_docs_in_private_items)]
 
-use wutengine::graphics::windowing::WindowIdentifier;
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::plugins::{self, WutEnginePlugin};
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::RuntimeInitializer;
+use wutengine::windowing::WindowIdentifier;
 use wutengine::windowing::{FullscreenType, OpenWindowParams};
 
 fn main() {

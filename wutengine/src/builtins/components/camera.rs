@@ -1,5 +1,6 @@
 use glam::Mat4;
-use wutengine_graphics::{color::Color, renderer::Viewport, windowing::WindowIdentifier};
+use wutengine_core::identifiers::WindowIdentifier;
+use wutengine_graphics::{color::Color, renderer::Viewport};
 
 use crate::component::{Component, Context};
 

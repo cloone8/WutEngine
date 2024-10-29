@@ -20,16 +20,16 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Publish engine core
-        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_core
-        env:
-          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-      
       - name: Publish engine utility macros
         run: cargo publish --token ${CRATES_TOKEN} -p wutengine_util_macro
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
- 
+
+      - name: Publish engine core
+        run: cargo publish --token ${CRATES_TOKEN} -p wutengine_core
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+       
       - name: Publish engine graphics core
         run: cargo publish --token ${CRATES_TOKEN} -p wutengine_graphics
         env:

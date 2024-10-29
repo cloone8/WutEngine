@@ -1,14 +1,16 @@
+//! Shared identifier types used throughout the various WutEngine crates
+
 use core::fmt::Display;
 
-pub use raw_window_handle::HasDisplayHandle;
-pub use raw_window_handle::HasWindowHandle;
-
+/// The unique identifier for a window. Used to identify
+/// a unique OS window in a cross-platform way, with user-identifiable names.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WindowIdentifier {
     id: String,
 }
 
 impl WindowIdentifier {
+    /// Creates a new [WindowIdentifier]
     pub fn new(id: impl Into<String>) -> Self {
         Self { id: id.into() }
     }

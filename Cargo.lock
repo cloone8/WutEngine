@@ -2037,6 +2037,7 @@ dependencies = [
  "rand",
  "raw-window-handle",
  "static_assertions",
+ "wutengine_util_macro",
 ]
 
 [[package]]
@@ -2055,6 +2056,7 @@ dependencies = [
  "nohash-hasher",
  "rand",
  "raw-window-handle",
+ "wutengine_core",
 ]
 
 [[package]]
@@ -2078,6 +2080,7 @@ dependencies = [
  "log",
  "nohash-hasher",
  "thiserror",
+ "wutengine_core",
  "wutengine_graphics",
 ]
 

@@ -11,10 +11,10 @@ use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::{IndexBuffer, MeshData};
 use wutengine::graphics::shader::ShaderSetId;
-use wutengine::graphics::windowing::WindowIdentifier;
 use wutengine::math::{vec3, Quat, Vec3};
 use wutengine::plugins::WutEnginePlugin;
-use wutengine::windowing::{FullscreenType, OpenWindowParams};
+use wutengine::windowing::WindowIdentifier;
+use wutengine::windowing::{self, FullscreenType, OpenWindowParams};
 use wutengine::{map, plugins};
 
 use crate::{BallData, PlayerMovement};
@@ -49,9 +49,14 @@ impl WutEnginePlugin for PongStarterPlugin {
 
 /// Opens the window
 fn make_window(context: &mut plugins::Context) {
+    let displays = windowing::display::available_displays();
+
+    let primary = displays.primary();
+
     context.windows.open(OpenWindowParams {
         id: WindowIdentifier::new("main"),
         title: "Pong - WutEngine".to_string(),
+        // mode: FullscreenType::BorderlessFullscreen(primary.clone()),
         mode: FullscreenType::Windowed,
         ignore_existing: false,
     });

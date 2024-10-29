@@ -1,17 +1,17 @@
 //! The various WutEngine renderers and rendering functionality
 
+use wutengine_core::identifiers::WindowIdentifier;
+use wutengine_graphics::renderer::WutEngineRenderer;
 use wutengine_graphics::renderer::{Renderable, Viewport};
 use wutengine_graphics::shader::resolver::ShaderResolver;
-use wutengine_graphics::{
-    renderer::WutEngineRenderer,
-    windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
-};
 
 pub(crate) mod queue;
 pub(crate) mod shader_resolver;
 
 #[cfg(feature = "opengl")]
 pub use wutengine_opengl::OpenGLRenderer;
+
+use crate::windowing::{HasDisplayHandle, HasWindowHandle};
 
 /// The no-op headless renderer.
 /// Ignores all rendering commands, and will

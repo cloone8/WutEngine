@@ -5,11 +5,10 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use window::Window;
-use wutengine_graphics::shader::resolver::ShaderResolver;
-use wutengine_graphics::{
-    renderer::{Renderable, Viewport, WutEngineRenderer},
-    windowing::{HasDisplayHandle, HasWindowHandle, WindowIdentifier},
+use wutengine_graphics::renderer::{
+    HasDisplayHandle, HasWindowHandle, Renderable, Viewport, WindowIdentifier, WutEngineRenderer,
 };
+use wutengine_graphics::shader::resolver::ShaderResolver;
 
 mod opengl {
     #![allow(warnings)]

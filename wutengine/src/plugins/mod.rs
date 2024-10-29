@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::context::{EngineContext, GraphicsContext, ViewportContext, WindowContext};
 use crate::windowing::winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::window::Window;
-use wutengine_graphics::windowing::WindowIdentifier;
+use wutengine_core::identifiers::WindowIdentifier;
 
 use crate::runtime::RuntimeInitializer;
 

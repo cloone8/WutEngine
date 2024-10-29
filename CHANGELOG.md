@@ -3,6 +3,11 @@
 This file documents the most important changes for each released version.
 
 ## [v0.0.8]
+- Switched out ECS for more traditional GameObject oriented design. 
+    * ECS was getting too complicated from a user-API standpoint. It required too many macros to be "nice"
+    * I found ECS simply too annoying to develop, to be honest
+- Support for borderless/exclusive fullscreen
+- Introduced multithreaded main loop
 
 ## [v0.0.7]
 - Initial support for optional components in ECS queries
