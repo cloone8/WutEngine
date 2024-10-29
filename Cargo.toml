@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.8"
+version = "0.0.9"
 edition = "2021"
 rust-version = "1.81"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
@@ -25,13 +25,13 @@ categories = ["game-engines"]
 
 [workspace.dependencies]
 ### Workspace dependencies ###
-wutengine = { path = "wutengine", version = "0.0.8" }
-wutengine_macro = { path = "wutengine/macro", version = "0.0.8" }
-wutengine_core = { path = "wutengine_core", version = "0.0.8" }
-wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.8" }
-wutengine_graphics = { path = "wutengine_graphics", version = "0.0.8" }
-wutengine_opengl = { path = "wutengine_opengl", version = "0.0.8" }
-wutengine_ecs = { path = "wutengine_ecs", version = "0.0.8" }
+wutengine = { path = "wutengine", version = "0.0.9" }
+wutengine_macro = { path = "wutengine/macro", version = "0.0.9" }
+wutengine_core = { path = "wutengine_core", version = "0.0.9" }
+wutengine_util_macro = { path = "wutengine_util/macro", version = "0.0.9" }
+wutengine_graphics = { path = "wutengine_graphics", version = "0.0.9" }
+wutengine_opengl = { path = "wutengine_opengl", version = "0.0.9" }
+wutengine_ecs = { path = "wutengine_ecs", version = "0.0.9" }
 gl-from-raw-window-handle = { path = "gl-from-raw-window-handle", version = "0.1.2" }
 
 ### External dependencies ###

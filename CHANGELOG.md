@@ -2,6 +2,8 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.0.9]
+
 ## [v0.0.8]
 - Switched out ECS for more traditional GameObject oriented design. 
     * ECS was getting too complicated from a user-API standpoint. It required too many macros to be "nice"
