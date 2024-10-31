@@ -58,7 +58,7 @@ impl Component for Camera {
             None => Mat4::IDENTITY,
         };
 
-        let phys_window_size: (u32, u32) = window.inner_size().into();
+        let phys_window_size = window.size;
 
         let aspect_ratio: f64 = phys_window_size.0 as f64 / phys_window_size.1 as f64;
 

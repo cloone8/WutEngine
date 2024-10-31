@@ -1,4 +1,4 @@
-use crate::windowing::winit::keyboard::KeyCode;
+use crate::winit::keyboard::KeyCode;
 
 /// Converts a Winit keycode to a usize, for indexing into an array
 pub(crate) const fn winit_keycode_to_usize(key: KeyCode) -> usize {

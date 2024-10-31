@@ -1,11 +1,11 @@
 //! Windowing and windows
 
 use display::Display;
-pub use winit;
 use winit::monitor::VideoModeHandle;
 use winit::window::Fullscreen;
 
 pub mod display;
+pub mod window;
 
 #[doc(inline)]
 pub use wutengine_core::identifiers::WindowIdentifier;

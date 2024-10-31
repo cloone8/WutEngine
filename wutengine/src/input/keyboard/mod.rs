@@ -5,11 +5,12 @@ use winit::event::ElementState;
 use winit::keyboard::PhysicalKey;
 use wutengine_core::identifiers::WindowIdentifier;
 
-use crate::windowing::winit::event::{DeviceEvent, DeviceId, WindowEvent};
+use crate::winit::event::{DeviceEvent, DeviceId, WindowEvent};
 
 use crate::plugins::{Context, WutEnginePlugin};
 
-pub use crate::windowing::winit::keyboard::KeyCode;
+#[doc(inline)]
+pub use crate::winit::keyboard::KeyCode;
 
 mod winit_mapping;
 

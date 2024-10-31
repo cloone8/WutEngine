@@ -8,8 +8,8 @@ use crate::context::{
     EngineContext, GraphicsContext, MessageContext, ViewportContext, WindowContext,
 };
 use crate::runtime::messaging::MessageQueue;
-use crate::windowing::winit::event::{DeviceEvent, DeviceId, WindowEvent};
-use winit::window::Window;
+use crate::windowing::window::WindowData;
+use crate::winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use wutengine_core::identifiers::WindowIdentifier;
 
 use crate::runtime::RuntimeInitializer;
@@ -66,7 +66,7 @@ pub struct Context<'a> {
 impl<'a> Context<'a> {
     /// Creates a new plugin context with the given parameters
     pub(crate) fn new(
-        windows: &'a HashMap<WindowIdentifier, Window>,
+        windows: &'a HashMap<WindowIdentifier, WindowData>,
         messages: &'a MessageQueue,
     ) -> Self {
         Self {

@@ -25,7 +25,7 @@ pub struct GameObject {
     pub(crate) id: GameObjectId,
 
     /// The name of this [GameObject]
-    pub(crate) name: String,
+    pub name: String,
 
     /// The [Component] types active on this [GameObject]
     pub(crate) components: Vec<Box<dyn Component>>,
@@ -33,8 +33,8 @@ pub struct GameObject {
 
 impl GameObject {
     /// Creates a new [GameObject] that is not yet loaded into the world.
-    pub fn new(name: Option<String>) -> Self {
-        let name = name.unwrap_or("GameObject".to_string());
+    pub fn new(name: Option<impl Into<String>>) -> Self {
+        let name = name.map(|s| s.into()).unwrap_or("GameObject".to_string());
 
         Self {
             id: GameObjectId(NEXT_INDEX.fetch_add(1, Ordering::Relaxed)),

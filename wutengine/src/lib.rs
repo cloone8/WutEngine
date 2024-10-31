@@ -32,6 +32,10 @@ pub mod plugins;
 pub mod renderer;
 pub mod runtime;
 pub mod time;
+pub(crate) mod util;
 pub mod windowing;
+
+/// For use in engine plugins
+pub use winit;
 
 //NOTE: This top-level module will _not_ be logged due to level filtering difficulties. Put any logic in a submodule.

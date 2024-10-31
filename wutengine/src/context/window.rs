@@ -1,22 +1,22 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use winit::window::Window;
 use wutengine_core::identifiers::WindowIdentifier;
 
+use crate::windowing::window::WindowData;
 use crate::windowing::OpenWindowParams;
 
 /// The window context, used for interacting with window related APIs.
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
 pub struct WindowContext<'a> {
-    windows: &'a HashMap<WindowIdentifier, Window>,
+    windows: &'a HashMap<WindowIdentifier, WindowData>,
     opened: Mutex<Vec<OpenWindowParams>>,
 }
 
 impl<'a> WindowContext<'a> {
     /// Creates a new [WindowContext] with the given existing windows.
-    pub(crate) fn new(windows: &'a HashMap<WindowIdentifier, Window>) -> Self {
+    pub(crate) fn new(windows: &'a HashMap<WindowIdentifier, WindowData>) -> Self {
         WindowContext {
             windows,
             opened: Mutex::new(Vec::new()),
@@ -29,7 +29,7 @@ impl<'a> WindowContext<'a> {
     }
 
     /// Returns a reference to the given window, if it exists.
-    pub fn get(&self, window: &WindowIdentifier) -> Option<&Window> {
+    pub fn get(&self, window: &WindowIdentifier) -> Option<&WindowData> {
         self.windows.get(window)
     }
 
