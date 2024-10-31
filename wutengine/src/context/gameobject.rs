@@ -1,10 +1,11 @@
 use crate::component::Component;
-use crate::gameobject::GameObject;
+use crate::gameobject::{GameObject, GameObjectId};
 
 /// The context for interacting with the current [GameObject]. Usually within a component
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
 pub struct GameObjectContext<'a> {
+    id: GameObjectId,
     component_chunks: Vec<&'a mut [Box<dyn Component>]>,
     new_components: Vec<Box<dyn Component>>,
 }
@@ -29,6 +30,7 @@ impl<'a> GameObjectContext<'a> {
         let component = &mut component[0];
 
         let go_contex = GameObjectContext {
+            id: gameobject.id,
             component_chunks: vec![before, after],
             new_components: Vec::new(),
         };
@@ -112,5 +114,9 @@ impl<'a> GameObjectContext<'a> {
         }
 
         found
+    }
+
+    pub fn id(&self) -> GameObjectId {
+        self.id
     }
 }

@@ -9,12 +9,13 @@ use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::{IndexBuffer, MeshData};
 use wutengine::graphics::shader::ShaderSetId;
-use wutengine::math::{vec3, Quat, Vec3};
+use wutengine::math::{vec2, vec3, Quat, Vec3};
 use wutengine::plugins::WutEnginePlugin;
 use wutengine::windowing::WindowIdentifier;
 use wutengine::windowing::{self, FullscreenType, OpenWindowParams};
 use wutengine::{map, plugins};
 
+use crate::collisions::BadColliderComponent;
 use crate::{BallData, PlayerMovement};
 
 /// Plugin that only injects the initial components to get the game started
@@ -67,6 +68,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
 
     player.add_component(Box::new(InputHandler::new()));
     player.add_component(Box::new(PlayerMovement::new()));
+    player.add_component(Box::new(BadColliderComponent::new()));
     player.add_component(Box::new(Transform::with_pos_rot_scale(
         vec3(-1.1, 0.0, 0.0),
         Quat::IDENTITY,
@@ -94,6 +96,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
         Quat::IDENTITY,
         vec3(0.125, 0.4, 1.0),
     )));
+    enemy.add_component(Box::new(BadColliderComponent::new()));
     enemy.add_component(Box::new(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
@@ -112,15 +115,16 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     let mut ball = GameObject::new(Some("Ball".to_string()));
 
     ball.add_component(Box::new(BallData {
-        speed: 0.2,
-        direction: true,
+        speed: 0.8,
+        direction: vec2(1.0, 0.0),
     }));
 
     ball.add_component(Box::new(Transform::with_pos_rot_scale(
-        Vec3::ZERO,
+        vec3(0.0, 0.0, -0.01),
         Quat::IDENTITY,
         vec3(0.07, 0.07, 0.07),
     )));
+    ball.add_component(Box::new(BadColliderComponent::new()));
     ball.add_component(Box::new(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
