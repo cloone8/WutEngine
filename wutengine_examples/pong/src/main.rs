@@ -1,13 +1,12 @@
 //! Basic Pong example for WutEngine
 
-use std::any::Any;
-
 use collisions::{CollisionMessage, CollisionPlugin};
 use spawn::PongStarterPlugin;
 use wutengine::builtins::components::{InputHandler, Transform};
 use wutengine::component::{Component, Context};
 use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
+use wutengine::macros::component_boilerplate;
 use wutengine::math::{vec3, Vec2, Vec3, Vec3Swizzles};
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::messaging::Message;
@@ -55,13 +54,7 @@ impl BallData {
 }
 
 impl Component for BallData {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
+    component_boilerplate!();
 
     fn update(&mut self, context: &mut Context) {
         self.do_step(context);
@@ -89,13 +82,7 @@ pub struct PlayerMovement {
 }
 
 impl Component for PlayerMovement {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
+    component_boilerplate!();
 
     fn update(&mut self, context: &mut Context) {
         let move_speed = self.move_speed;
