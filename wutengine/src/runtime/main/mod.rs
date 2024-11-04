@@ -65,10 +65,12 @@ impl<R: WutEngineRenderer> Runtime<R> {
         self.objects.par_iter_mut().for_each(|gameobject| {
             let meta = meta_func(gameobject.id);
 
+            let mut cur_components = gameobject.components.borrow_mut();
             let mut new_components = Vec::new();
 
-            for i in 0..gameobject.components.len() {
-                let (component, go_context) = GameObjectContext::new(gameobject, i);
+            for i in 0..cur_components.len() {
+                let (component, go_context) =
+                    GameObjectContext::new(gameobject, &mut cur_components, i);
 
                 let mut context = component::Context {
                     gameobject: go_context,
@@ -85,7 +87,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
                 new_components.extend(context.gameobject.consume());
             }
 
-            gameobject.components.extend(new_components);
+            cur_components.extend(new_components);
         });
 
         for new_gameobject in engine_context.consume() {

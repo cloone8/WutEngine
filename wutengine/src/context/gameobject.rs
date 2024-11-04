@@ -1,11 +1,11 @@
 use crate::component::Component;
-use crate::gameobject::{GameObject, GameObjectId};
+use crate::gameobject::GameObject;
 
 /// The context for interacting with the current [GameObject]. Usually within a component
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
 pub struct GameObjectContext<'a> {
-    id: GameObjectId,
+    pub object: &'a GameObject,
     component_chunks: Vec<&'a mut [Box<dyn Component>]>,
     new_components: Vec<Box<dyn Component>>,
 }
@@ -14,15 +14,13 @@ impl<'a> GameObjectContext<'a> {
     /// Creates a new [GameObjectContext] for the given [GameObject] and
     /// the component at the given index.
     pub(crate) fn new(
-        gameobject: &'a mut GameObject,
+        gameobject: &'a GameObject,
+        components: &'a mut [Box<dyn Component>],
         component_idx: usize,
     ) -> (&'a mut Box<dyn Component>, Self) {
-        assert!(
-            component_idx < gameobject.components.len(),
-            "Component out of range"
-        );
+        assert!(component_idx < components.len(), "Component out of range");
 
-        let (before, rest) = gameobject.components.split_at_mut(component_idx);
+        let (before, rest) = components.split_at_mut(component_idx);
         let (component, after) = rest.split_at_mut(1);
 
         assert_eq!(1, component.len());
@@ -30,7 +28,7 @@ impl<'a> GameObjectContext<'a> {
         let component = &mut component[0];
 
         let go_contex = GameObjectContext {
-            id: gameobject.id,
+            object: gameobject,
             component_chunks: vec![before, after],
             new_components: Vec::new(),
         };
@@ -114,9 +112,5 @@ impl<'a> GameObjectContext<'a> {
         }
 
         found
-    }
-
-    pub fn id(&self) -> GameObjectId {
-        self.id
     }
 }

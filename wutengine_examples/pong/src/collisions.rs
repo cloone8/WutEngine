@@ -88,7 +88,7 @@ impl Component for BadColliderComponent {
             let collider_id = plugin.add_collider(
                 transform.world_pos().xy(),
                 transform.lossy_scale().xy(),
-                context.gameobject.id(),
+                context.gameobject.object.id,
             );
 
             self.collider = Some(collider_id);

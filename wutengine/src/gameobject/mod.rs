@@ -1,5 +1,6 @@
 //! Functionality and definitions for the main [GameObject] type
 
+use core::cell::RefCell;
 use core::fmt::Display;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -22,13 +23,13 @@ impl Display for GameObjectId {
 #[derive(Debug)]
 pub struct GameObject {
     /// The unique identifier for this [GameObject]
-    pub(crate) id: GameObjectId,
+    pub id: GameObjectId,
 
     /// The name of this [GameObject]
     pub name: String,
 
     /// The [Component] types active on this [GameObject]
-    pub(crate) components: Vec<Box<dyn Component>>,
+    pub(crate) components: RefCell<Vec<Box<dyn Component>>>,
 }
 
 impl GameObject {
@@ -39,12 +40,12 @@ impl GameObject {
         Self {
             id: GameObjectId(NEXT_INDEX.fetch_add(1, Ordering::Relaxed)),
             name,
-            components: Vec::new(),
+            components: RefCell::new(Vec::new()),
         }
     }
 
     /// Adds a new component to this [GameObject]
     pub fn add_component(&mut self, component: Box<dyn Component>) {
-        self.components.push(component);
+        self.components.get_mut().push(component);
     }
 }
