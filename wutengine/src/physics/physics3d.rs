@@ -1,3 +1,5 @@
+use rapier3d::prelude::*;
+
 #[derive(Debug)]
 pub(crate) struct Physics3D {}
 

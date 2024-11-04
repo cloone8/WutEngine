@@ -39,6 +39,9 @@ pub trait WutEnginePlugin: Any + Send + Sync + Debug {
     /// Called before starting each update tick
     fn pre_update(&mut self, _context: &mut Context) {}
 
+    /// Called on each update tick
+    fn update(&mut self, _context: &mut Context) {}
+
     /// Called once for each raw window event returned by the windowing system (currently [winit])
     fn on_window_event(
         &mut self,

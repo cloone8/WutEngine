@@ -17,6 +17,7 @@ use crate::windowing::window::{Window, WindowData};
 
 use super::{MessageQueue, Runtime, WindowingEvent};
 
+mod lifecycle_hooks;
 mod winit_loop;
 
 impl<R: WutEngineRenderer> Runtime<R> {

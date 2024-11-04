@@ -10,4 +10,5 @@ pub use input::*;
 pub use static_mesh_renderer::*;
 pub use transform::*;
 
+pub mod physics;
 pub mod util;

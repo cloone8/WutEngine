@@ -1,6 +1,7 @@
 //! Contains the spawning plugin for the game
 
 use wutengine::builtins::assets::{Material, Mesh};
+use wutengine::builtins::components::physics::RectangleCollider2D;
 use wutengine::builtins::components::util::FramerateCounter;
 use wutengine::builtins::components::CameraType::{self};
 use wutengine::builtins::components::{Camera, InputHandler, StaticMeshRenderer, Transform};
@@ -9,13 +10,12 @@ use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::{IndexBuffer, MeshData};
 use wutengine::graphics::shader::ShaderSetId;
-use wutengine::math::{vec2, vec3, Quat, Vec3};
+use wutengine::math::{vec2, vec3, Quat, Vec2, Vec3};
 use wutengine::plugins::WutEnginePlugin;
 use wutengine::windowing::WindowIdentifier;
 use wutengine::windowing::{self, FullscreenType, OpenWindowParams};
 use wutengine::{map, plugins};
 
-use crate::collisions::BadColliderComponent;
 use crate::{BallData, PlayerMovement};
 
 /// Plugin that only injects the initial components to get the game started
@@ -68,7 +68,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
 
     player.add_component(Box::new(InputHandler::new()));
     player.add_component(Box::new(PlayerMovement::new()));
-    player.add_component(Box::new(BadColliderComponent::new()));
+    player.add_component(Box::new(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE)));
     player.add_component(Box::new(Transform::with_pos_rot_scale(
         vec3(-1.1, 0.0, 0.0),
         Quat::IDENTITY,
@@ -96,7 +96,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
         Quat::IDENTITY,
         vec3(0.125, 0.4, 1.0),
     )));
-    enemy.add_component(Box::new(BadColliderComponent::new()));
+    enemy.add_component(Box::new(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE)));
     enemy.add_component(Box::new(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
@@ -124,7 +124,7 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
         Quat::IDENTITY,
         vec3(0.07, 0.07, 0.07),
     )));
-    ball.add_component(Box::new(BadColliderComponent::new()));
+    ball.add_component(Box::new(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE)));
     ball.add_component(Box::new(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {

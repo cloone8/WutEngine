@@ -5,11 +5,17 @@ use super::Component;
 /// Per-[Component] data
 #[derive(Debug)]
 pub(crate) struct ComponentData {
+    /// The actual [Component] implementation
     pub(crate) component: Box<dyn Component>,
+
+    /// The current lifecycle state of the component
     pub(crate) state: ComponentState,
 }
 
 impl ComponentData {
+    /// Creates a new [ComponentData] instance for the given
+    /// component instance, with the [ComponentState::ReadyForStart]
+    /// state.
     pub(crate) fn new(component: Box<dyn Component>) -> Self {
         ComponentData {
             component,
@@ -18,10 +24,18 @@ impl ComponentData {
     }
 }
 
+/// A component lifecycle state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub(crate) enum ComponentState {
+    /// Component is ready for starting, but has
+    /// not actually started yet
     ReadyForStart,
+
+    /// Component is active and running
     Active,
+
+    /// Component has been queued for cleanup, but its destroy callback
+    /// still needs to be called
     Dying,
 }

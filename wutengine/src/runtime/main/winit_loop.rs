@@ -5,7 +5,6 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
-use crate::runtime::main::ComponentState;
 use crate::runtime::Runtime;
 use crate::time::Time;
 use crate::windowing;
@@ -39,36 +38,38 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             Time::update_to_now();
         }
 
-        log::trace!("Starting new components");
-        self.run_component_hook(
-            |component| component.state == ComponentState::ReadyForStart,
-            |component_data, context| {
-                component_data.component.start(context);
-                component_data.state = ComponentState::Active;
-            },
-        );
+        self.lifecycle_start();
 
-        log::trace!("Running pre-update for plugins");
+        // Physics usually runs at a fixed interval
+        let mut physics_steps = 0;
 
-        self.run_plugin_hooks(|plugin, context| plugin.pre_update(context));
+        if self.physics_update_interval == 0.0 {
+            physics_steps = 1;
+            log::trace!("Physics synced with framerate. Running iteration");
+            // 0.0 means sync with frame
+            self.lifecycle_physics_update();
+            self.lifecycle_post_physics_update();
+        } else {
+            log::trace!("Physics running at interval. Running variable number of steps");
 
-        log::trace!("Running pre-update for components");
+            // Any other value means "run at that fixed timestep"
+            self.physics_update_accumulator += Time::get().delta as f64;
 
-        self.run_component_hook_on_active(|component_data, context| {
-            component_data.component.pre_update(context);
-        });
+            while self.physics_update_accumulator >= self.physics_update_interval {
+                physics_steps += 1;
+                log::trace!("Running physics step");
 
-        log::trace!("Running update for components");
+                self.lifecycle_physics_update();
+                self.lifecycle_post_physics_update();
+                self.physics_update_accumulator -= self.physics_update_interval;
+            }
+        }
 
-        self.run_component_hook_on_active(|component_data, context| {
-            component_data.component.update(context);
-        });
+        log::trace!("Ran {} physics steps this frame", physics_steps);
 
-        log::trace!("Running pre-render for components");
-
-        self.run_component_hook_on_active(|component_data, context| {
-            component_data.component.pre_render(context);
-        });
+        self.lifecycle_pre_update();
+        self.lifecycle_update();
+        self.lifecycle_pre_render();
 
         log::trace!("Doing rendering");
 

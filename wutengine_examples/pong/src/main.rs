@@ -1,20 +1,18 @@
 //! Basic Pong example for WutEngine
 
-use collisions::{CollisionMessage, CollisionPlugin};
 use spawn::PongStarterPlugin;
 use wutengine::builtins::components::{InputHandler, Transform};
 use wutengine::component::{Component, Context};
 use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::macros::component_boilerplate;
-use wutengine::math::{vec3, Vec2, Vec3, Vec3Swizzles};
+use wutengine::math::{vec3, Vec2, Vec3};
 use wutengine::physics::PhysicsPlugin;
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::messaging::Message;
 use wutengine::runtime::RuntimeInitializer;
 use wutengine::time::Time;
 
-mod collisions;
 mod spawn;
 
 fn main() {
@@ -29,7 +27,6 @@ fn main() {
     });
 
     runtime.with_plugin(PongStarterPlugin {});
-    runtime.with_plugin(CollisionPlugin::new());
     runtime.with_plugin(KeyboardInputPlugin::new());
     runtime.with_plugin(PhysicsPlugin::new());
     runtime.run::<OpenGLRenderer>();
@@ -62,18 +59,9 @@ impl Component for BallData {
         self.do_step(context);
     }
 
-    fn on_message(&mut self, context: &mut Context, message: &Message) {
+    fn on_message(&mut self, _context: &mut Context, message: &Message) {
         if message.try_cast::<DoReverseMessage>().is_some() {
             self.direction *= -1.0;
-        }
-
-        if let Some(collision) = message.try_cast::<CollisionMessage>() {
-            let transform = context.gameobject.get_component::<Transform>().unwrap();
-
-            self.direction = (transform.world_pos().xy() - collision.other_center).normalize();
-            self.do_step(context);
-            self.do_step(context);
-            self.do_step(context);
         }
     }
 }

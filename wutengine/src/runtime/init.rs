@@ -27,10 +27,20 @@ static RUNTIME_STARTED: AtomicBool = AtomicBool::new(false);
 ///
 /// Configured using a builder pattern. See the various struct methods for
 /// more specifics. To start, see [RuntimeInitializer::new].
-#[derive(Default)]
 pub struct RuntimeInitializer {
     log_config: LogConfig,
     plugins: Vec<Box<dyn WutEnginePlugin>>,
+    physics_interval: f64,
+}
+
+impl Default for RuntimeInitializer {
+    fn default() -> Self {
+        Self {
+            log_config: Default::default(),
+            plugins: Default::default(),
+            physics_interval: 1.0 / 50.0,
+        }
+    }
 }
 
 impl RuntimeInitializer {
@@ -48,6 +58,16 @@ impl RuntimeInitializer {
     /// Adds a new plugin to the engine. Consecutive calls add more plugins.
     pub fn with_plugin(&mut self, plugin: impl WutEnginePlugin) -> &mut Self {
         self.plugins.push(Box::new(plugin));
+        self
+    }
+
+    /// Configures the given physics update interval
+    pub fn with_physics_interval(&mut self, interval: f64) -> &mut Self {
+        if interval < 0.0 {
+            panic!("Invalid physics interval given: {}", interval);
+        }
+
+        self.physics_interval = interval;
         self
     }
 
@@ -100,6 +120,8 @@ impl RuntimeInitializer {
         let mut runtime = Runtime {
             identmap: HashMap::default(),
             objects: Vec::new(),
+            physics_update_interval: self.physics_interval,
+            physics_update_accumulator: 0.0,
             render_queue: RenderQueue::new(),
             window_id_map: HashMap::new(),
             windows: HashMap::new(),
