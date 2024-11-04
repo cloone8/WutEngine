@@ -5,6 +5,7 @@ use crate::gameobject::GameObject;
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
 pub struct GameObjectContext<'a> {
+    /// The reference to the [GameObject] itself.
     pub object: &'a GameObject,
     component_chunks: Vec<&'a mut [Box<dyn Component>]>,
     new_components: Vec<Box<dyn Component>>,
