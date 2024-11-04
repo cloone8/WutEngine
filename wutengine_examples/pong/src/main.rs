@@ -8,6 +8,7 @@ use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::macros::component_boilerplate;
 use wutengine::math::{vec3, Vec2, Vec3, Vec3Swizzles};
+use wutengine::physics::PhysicsPlugin;
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::messaging::Message;
 use wutengine::runtime::RuntimeInitializer;
@@ -30,6 +31,7 @@ fn main() {
     runtime.with_plugin(PongStarterPlugin {});
     runtime.with_plugin(CollisionPlugin::new());
     runtime.with_plugin(KeyboardInputPlugin::new());
+    runtime.with_plugin(PhysicsPlugin::new());
     runtime.run::<OpenGLRenderer>();
 }
 

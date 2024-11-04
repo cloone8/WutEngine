@@ -9,8 +9,24 @@ use crate::context::{
 use crate::context::{PluginContext, WindowContext};
 use crate::runtime::messaging::Message;
 
+pub(crate) mod data;
+
 /// A component, the core programmable unit in WutEngine.
 pub trait Component: Any + Send + Sync + Debug {
+    /// Called before the first update cycle this component is active in
+    fn start(&mut self, _context: &mut Context) {}
+
+    /// Called right before this component is destroyed.
+    fn destroy(&mut self, _context: &mut Context) {}
+
+    /// The physics update hook. Any interaction with the physics
+    /// components should happen here
+    fn physics_update(&mut self, _context: &mut Context) {}
+
+    /// Post-physics update hook. Used for any interactions
+    /// following updates to physics components.
+    fn post_physics_update(&mut self, _context: &mut Context) {}
+
     /// The pre-update hook. Runs before all the update hooks
     fn pre_update(&mut self, _context: &mut Context) {}
 

@@ -5,6 +5,7 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
+use crate::runtime::main::ComponentState;
 use crate::runtime::Runtime;
 use crate::time::Time;
 use crate::windowing;
@@ -38,26 +39,35 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             Time::update_to_now();
         }
 
+        log::trace!("Starting new components");
+        self.run_component_hook(
+            |component| component.state == ComponentState::ReadyForStart,
+            |component_data, context| {
+                component_data.component.start(context);
+                component_data.state = ComponentState::Active;
+            },
+        );
+
         log::trace!("Running pre-update for plugins");
 
         self.run_plugin_hooks(|plugin, context| plugin.pre_update(context));
 
         log::trace!("Running pre-update for components");
 
-        self.run_component_hook(|component, context| {
-            component.pre_update(context);
+        self.run_component_hook_on_active(|component_data, context| {
+            component_data.component.pre_update(context);
         });
 
         log::trace!("Running update for components");
 
-        self.run_component_hook(|component, context| {
-            component.update(context);
+        self.run_component_hook_on_active(|component_data, context| {
+            component_data.component.update(context);
         });
 
         log::trace!("Running pre-render for components");
 
-        self.run_component_hook(|component, context| {
-            component.pre_render(context);
+        self.run_component_hook_on_active(|component_data, context| {
+            component_data.component.pre_render(context);
         });
 
         log::trace!("Doing rendering");

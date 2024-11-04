@@ -5,7 +5,8 @@ use rayon::prelude::*;
 use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
-use crate::component::{self, Component};
+use crate::component::data::{ComponentData, ComponentState};
+use crate::component::{self};
 use crate::context::{
     EngineContext, GameObjectContext, GraphicsContext, MessageContext, PluginContext,
     ViewportContext, WindowContext,
@@ -27,15 +28,24 @@ impl<R: WutEngineRenderer> Runtime<R> {
         self.started = true;
     }
 
+    fn run_component_hook_on_active(
+        &mut self,
+        func: impl Fn(&mut ComponentData, &mut component::Context) + Send + Sync,
+    ) {
+        self.run_component_hook(|component| component.state == ComponentState::Active, func);
+    }
+
     fn run_component_hook(
         &mut self,
-        func: impl Fn(&mut Box<dyn Component>, &mut component::Context) + Send + Sync,
+        filter: impl Fn(&ComponentData) -> bool + Sync,
+        func: impl Fn(&mut ComponentData, &mut component::Context) + Send + Sync,
     ) {
         let message_queue = MessageQueue::new();
 
         // Run the main user-provided hook
         self.run_component_func_with_context(
             &message_queue,
+            filter,
             |_| (),
             |_, comp, context| func(comp, context),
         );
@@ -44,14 +54,16 @@ impl<R: WutEngineRenderer> Runtime<R> {
         self.run_message_queue(message_queue);
     }
 
-    fn run_component_func_with_context<F, Fm, M>(
+    fn run_component_func_with_context<F, Fi, Fm, M>(
         &mut self,
         message_queue: &MessageQueue,
+        component_filter: Fi,
         meta_func: Fm,
         func: F,
     ) where
+        Fi: Fn(&ComponentData) -> bool + Sync,
         Fm: Fn(GameObjectId) -> M + Send + Sync,
-        F: Fn(&M, &mut Box<dyn Component>, &mut component::Context) + Send + Sync,
+        F: Fn(&M, &mut ComponentData, &mut component::Context) + Send + Sync,
     {
         let engine_context = EngineContext::new();
         let message_context = MessageContext::new(message_queue);
@@ -69,6 +81,10 @@ impl<R: WutEngineRenderer> Runtime<R> {
             let mut new_components = Vec::new();
 
             for i in 0..cur_components.len() {
+                if !component_filter(&cur_components[i]) {
+                    continue;
+                }
+
                 let (component, go_context) =
                     GameObjectContext::new(gameobject, &mut cur_components, i);
 
@@ -87,7 +103,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
                 new_components.extend(context.gameobject.consume());
             }
 
-            cur_components.extend(new_components);
+            cur_components.extend(new_components.into_iter().map(ComponentData::new));
         });
 
         for new_gameobject in engine_context.consume() {
@@ -193,15 +209,16 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
             self.run_component_func_with_context(
                 &new_queue,
+                |_| true,
                 |gameobject_id| {
                     let mut messages_for_gameobject = Vec::new();
                     message_queue.get_messages_for(gameobject_id, &mut messages_for_gameobject);
 
                     messages_for_gameobject
                 },
-                |messages, component, context| {
+                |messages, component_data, context| {
                     for message in messages {
-                        component.on_message(context, message);
+                        component_data.component.on_message(context, message);
                     }
                 },
             );

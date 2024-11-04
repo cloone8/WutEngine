@@ -28,6 +28,7 @@ pub mod input;
 pub mod log;
 pub mod macros;
 pub mod math;
+pub mod physics;
 pub mod plugins;
 pub mod renderer;
 pub mod runtime;

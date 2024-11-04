@@ -1,3 +1,4 @@
+use crate::component::data::ComponentData;
 use crate::component::Component;
 use crate::gameobject::GameObject;
 
@@ -7,7 +8,7 @@ use crate::gameobject::GameObject;
 pub struct GameObjectContext<'a> {
     /// The reference to the [GameObject] itself.
     pub object: &'a GameObject,
-    component_chunks: Vec<&'a mut [Box<dyn Component>]>,
+    component_chunks: Vec<&'a mut [ComponentData]>,
     new_components: Vec<Box<dyn Component>>,
 }
 
@@ -16,9 +17,9 @@ impl<'a> GameObjectContext<'a> {
     /// the component at the given index.
     pub(crate) fn new(
         gameobject: &'a GameObject,
-        components: &'a mut [Box<dyn Component>],
+        components: &'a mut [ComponentData],
         component_idx: usize,
-    ) -> (&'a mut Box<dyn Component>, Self) {
+    ) -> (&'a mut ComponentData, Self) {
         assert!(component_idx < components.len(), "Component out of range");
 
         let (before, rest) = components.split_at_mut(component_idx);
@@ -50,8 +51,8 @@ impl<'a> GameObjectContext<'a> {
     /// Returns an immutable reference to the first component of type `T`, if the [GameObject] has any.
     pub fn get_component<T: Component>(&self) -> Option<&T> {
         for chunk in &self.component_chunks {
-            for component in chunk.iter() {
-                let as_ref = component.as_ref().as_any();
+            for component_data in chunk.iter() {
+                let as_ref = component_data.component.as_ref().as_any();
                 let cast = as_ref.downcast_ref::<T>();
 
                 if let Some(cast_ok) = cast {
@@ -68,8 +69,8 @@ impl<'a> GameObjectContext<'a> {
         let mut found = Vec::new();
 
         for chunk in &self.component_chunks {
-            for component in chunk.iter() {
-                let as_ref = component.as_ref().as_any();
+            for component_data in chunk.iter() {
+                let as_ref = component_data.component.as_ref().as_any();
                 let cast = as_ref.downcast_ref::<T>();
 
                 if let Some(cast_ok) = cast {
@@ -84,8 +85,8 @@ impl<'a> GameObjectContext<'a> {
     /// Returns a mutable reference to the first component of type `T`, if the [GameObject] has any.
     pub fn get_component_mut<T: Component>(&mut self) -> Option<&mut T> {
         for chunk in &mut self.component_chunks {
-            for component in chunk.iter_mut() {
-                let as_mut = component.as_mut().as_any_mut();
+            for component_data in chunk.iter_mut() {
+                let as_mut = component_data.component.as_mut().as_any_mut();
                 let cast = as_mut.downcast_mut::<T>();
 
                 if let Some(cast_ok) = cast {
@@ -102,8 +103,8 @@ impl<'a> GameObjectContext<'a> {
         let mut found = Vec::new();
 
         for chunk in &mut self.component_chunks {
-            for component in chunk.iter_mut() {
-                let as_mut = component.as_mut().as_any_mut();
+            for component_data in chunk.iter_mut() {
+                let as_mut = component_data.component.as_mut().as_any_mut();
                 let cast = as_mut.downcast_mut::<T>();
 
                 if let Some(cast_ok) = cast {

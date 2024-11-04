@@ -39,3 +39,6 @@ glam.workspace = true
 include_dir.workspace = true
 simplelog.workspace = true
 rayon.workspace = true
+rapier2d.workspace = true
+rapier3d.workspace = true
+nalgebra.workspace = true

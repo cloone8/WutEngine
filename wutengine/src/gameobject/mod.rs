@@ -4,6 +4,7 @@ use core::cell::RefCell;
 use core::fmt::Display;
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::component::data::ComponentData;
 use crate::component::Component;
 
 static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
@@ -29,7 +30,7 @@ pub struct GameObject {
     pub name: String,
 
     /// The [Component] types active on this [GameObject]
-    pub(crate) components: RefCell<Vec<Box<dyn Component>>>,
+    pub(crate) components: RefCell<Vec<ComponentData>>,
 }
 
 impl GameObject {
@@ -46,6 +47,8 @@ impl GameObject {
 
     /// Adds a new component to this [GameObject]
     pub fn add_component(&mut self, component: Box<dyn Component>) {
-        self.components.get_mut().push(component);
+        self.components
+            .get_mut()
+            .push(ComponentData::new(component));
     }
 }

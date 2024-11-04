@@ -3,6 +3,10 @@
 This file documents the most important changes for each released version.
 
 ## [v0.0.9]
+- Added very basic 2D physics support
+- Added more component lifecycle callbacks. Mainly:
+    * Fixed/physics updates
+    * Component started/destroyed callbacks
 
 ## [v0.0.8]
 - Switched out ECS for more traditional GameObject oriented design. 

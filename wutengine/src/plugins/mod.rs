@@ -28,6 +28,14 @@ pub trait WutEnginePlugin: Any + Send + Sync + Debug {
     /// Called once when the runtime has just been built, and is starting
     fn on_start(&mut self, _context: &mut Context) {}
 
+    /// The physics update hook. Any interaction with the physics
+    /// components should happen here
+    fn physics_update(&mut self, _context: &mut Context) {}
+
+    /// Post-physics update hook. Used for any interactions
+    /// following updates to physics components.
+    fn post_physics_update(&mut self, _context: &mut Context) {}
+
     /// Called before starting each update tick
     fn pre_update(&mut self, _context: &mut Context) {}
 
