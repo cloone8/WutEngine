@@ -3,10 +3,12 @@
 use std::any::Any;
 use std::sync::Mutex;
 
+use glam::Vec2;
 use physics2d::Physics2D;
 use physics3d::Physics3D;
 
-use crate::plugins::WutEnginePlugin;
+use crate::plugins::{Context, WutEnginePlugin};
+use crate::time::Time;
 
 mod physics2d;
 mod physics3d;
@@ -49,6 +51,17 @@ impl PhysicsPlugin {
         handle
     }
 
+    pub fn update_collider_2d(
+        &self,
+        collider: rapier2d::geometry::ColliderHandle,
+        translation: Vec2,
+    ) {
+        let mut locked = self.physics_2d.lock().unwrap();
+        let physics = locked.as_mut().unwrap();
+
+        physics.update_collider(collider, translation);
+    }
+
     pub fn add_collider_3d(&self, collider: rapier3d::geometry::Collider) {}
 }
 
@@ -61,5 +74,15 @@ impl Default for PhysicsPlugin {
 impl WutEnginePlugin for PhysicsPlugin {
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn post_physics_update(&mut self, _context: &mut Context) {
+        // First, we step the physics solvers
+
+        let mut locked = self.physics_2d.lock().unwrap();
+
+        if let Some(physics2d) = &mut *locked {
+            physics2d.step(Time::get().fixed_delta);
+        }
     }
 }

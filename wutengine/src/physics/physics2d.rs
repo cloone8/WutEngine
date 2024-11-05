@@ -68,4 +68,49 @@ impl Physics2D {
     pub(crate) fn add_collider(&mut self, collider: Collider) -> ColliderHandle {
         self.rapier.colliders.insert(collider)
     }
+
+    pub(crate) fn update_collider(&mut self, collider: ColliderHandle, translation: Vec2) {
+        self.rapier
+            .colliders
+            .get_mut(collider)
+            .unwrap()
+            .set_translation(translation.into());
+    }
+
+    /// Steps the physics library
+    pub(crate) fn step(&mut self, dt: f32) {
+        log::trace!("Stepping 2D physics solver");
+
+        let rapier = &mut self.rapier;
+
+        rapier.parameters.dt = dt;
+
+        let (collision_send, collision_recv) = rapier2d::crossbeam::channel::unbounded();
+        let (contact_force_send, contact_force_recv) = rapier2d::crossbeam::channel::unbounded();
+        let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
+
+        rapier.physics_pipeline.step(
+            &rapier.gravity.into(),
+            &rapier.parameters,
+            &mut rapier.island_manager,
+            &mut rapier.broad,
+            &mut rapier.narrow,
+            &mut rapier.rigids,
+            &mut rapier.colliders,
+            &mut rapier.impulse_joints,
+            &mut rapier.multibody_joints,
+            &mut rapier.ccd_solver,
+            Some(&mut rapier.query_pipeline),
+            &(),
+            &event_handler,
+        );
+
+        while let Ok(collision_event) = collision_recv.try_recv() {
+            log::info!("COLLISION EVENT: {:?}", collision_event);
+        }
+
+        while let Ok(contact_force_event) = contact_force_recv.try_recv() {
+            log::info!("CONTACT FORCE EVENT: {:?}", contact_force_event);
+        }
+    }
 }

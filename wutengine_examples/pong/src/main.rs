@@ -25,13 +25,23 @@ mod spawn;
 fn main() {
     let mut runtime = RuntimeInitializer::new();
 
-    runtime.with_log_config(LogConfig {
-        runtime: Some(ComponentLogConfig {
-            min_level: log::LevelFilter::Debug,
-            output: log::LogOutput::File(PathBuf::from("./wutengine_runtime.log")),
-        }),
-        ..Default::default()
-    });
+    if cfg!(debug_assertions) {
+        runtime.with_log_config(LogConfig {
+            runtime: Some(ComponentLogConfig {
+                min_level: log::LevelFilter::Debug,
+                output: log::LogOutput::StdOut,
+            }),
+            ..Default::default()
+        });
+    } else {
+        runtime.with_log_config(LogConfig {
+            runtime: Some(ComponentLogConfig {
+                min_level: log::LevelFilter::Info,
+                output: log::LogOutput::File(PathBuf::from("./wutengine_runtime.log")),
+            }),
+            ..Default::default()
+        });
+    }
 
     runtime.with_plugin(PongStarterPlugin {});
     runtime.with_plugin(KeyboardInputPlugin::new());

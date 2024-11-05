@@ -35,7 +35,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         log::trace!("Starting new frame");
 
         unsafe {
-            Time::update_to_now();
+            Time::update_to_now(self.physics_update_interval);
         }
 
         self.lifecycle_start();
@@ -53,7 +53,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             log::trace!("Physics running at interval. Running variable number of steps");
 
             // Any other value means "run at that fixed timestep"
-            self.physics_update_accumulator += Time::get().delta as f64;
+            self.physics_update_accumulator += Time::get().delta;
 
             while self.physics_update_accumulator >= self.physics_update_interval {
                 physics_steps += 1;

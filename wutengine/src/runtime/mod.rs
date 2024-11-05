@@ -29,8 +29,8 @@ pub struct Runtime<R: WutEngineRenderer> {
     identmap: HashMap<GameObjectId, usize>,
     objects: Vec<GameObject>,
 
-    physics_update_interval: f64,
-    physics_update_accumulator: f64,
+    physics_update_interval: f32,
+    physics_update_accumulator: f32,
 
     render_queue: RenderQueue,
 

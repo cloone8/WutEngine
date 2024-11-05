@@ -30,7 +30,7 @@ static RUNTIME_STARTED: AtomicBool = AtomicBool::new(false);
 pub struct RuntimeInitializer {
     log_config: LogConfig,
     plugins: Vec<Box<dyn WutEnginePlugin>>,
-    physics_interval: f64,
+    physics_interval: f32,
 }
 
 impl Default for RuntimeInitializer {
@@ -62,7 +62,7 @@ impl RuntimeInitializer {
     }
 
     /// Configures the given physics update interval
-    pub fn with_physics_interval(&mut self, interval: f64) -> &mut Self {
+    pub fn with_physics_interval(&mut self, interval: f32) -> &mut Self {
         if interval < 0.0 {
             panic!("Invalid physics interval given: {}", interval);
         }
@@ -108,7 +108,7 @@ impl RuntimeInitializer {
         self.run_plugin_build_hooks();
 
         unsafe {
-            Time::initialize();
+            Time::initialize(self.physics_interval as f32);
         }
 
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
