@@ -65,7 +65,7 @@ impl Message {
     }
 
     /// Tries to get the message content as a certain type
-    pub fn try_cast<T: Any>(&self) -> Option<&T> {
+    pub fn try_cast<T: MessageCompatible>(&self) -> Option<&T> {
         // Make sure to extract the reference _out_ of the Arc first,
         // to prevent accidentally casting the Arc itself instead
         // of the content

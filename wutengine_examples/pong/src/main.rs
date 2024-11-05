@@ -15,7 +15,7 @@ use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::macros::component_boilerplate;
 use wutengine::math::{vec3, Vec2, Vec3};
-use wutengine::physics::{Collision2D, Physics2DPlugin};
+use wutengine::physics::{Collision2D, CollisionType, Physics2DPlugin};
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::messaging::Message;
 use wutengine::runtime::RuntimeInitializer;
@@ -82,16 +82,9 @@ impl Component for BallData {
             self.direction *= -1.0;
         }
 
-        let my_handle = _context
-            .gameobject
-            .get_component::<RectangleCollider2D>()
-            .unwrap()
-            .handle
-            .unwrap();
-
         if message
             .try_cast::<Collision2D>()
-            .is_some_and(|coll| coll.handle1 == my_handle || coll.handle2 == my_handle)
+            .is_some_and(|coll| matches!(coll.collision_type, CollisionType::Started))
         {
             self.direction *= -1.0;
         }

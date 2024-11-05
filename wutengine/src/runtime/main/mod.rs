@@ -11,7 +11,7 @@ use crate::context::{
     EngineContext, GameObjectContext, GraphicsContext, MessageContext, PluginContext,
     ViewportContext, WindowContext,
 };
-use crate::gameobject::GameObjectId;
+use crate::gameobject::{GameObject, GameObjectId};
 use crate::plugins::{self, WutEnginePlugin};
 use crate::windowing::window::{Window, WindowData};
 
@@ -107,27 +107,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
             cur_components.extend(new_components.into_iter().map(ComponentData::new));
         });
 
-        for new_gameobject in engine_context.consume() {
-            match self.identmap.contains_key(&new_gameobject.id) {
-                true => log::error!(
-                    "Tried to add an already existing GameObject, ignoring : {}",
-                    new_gameobject.id
-                ),
-                false => {
-                    let go_id = new_gameobject.id;
-                    let new_idx = self.objects.len();
-
-                    self.identmap.insert(go_id, new_idx);
-                    self.objects.push(new_gameobject);
-
-                    log::debug!(
-                        "Added new GameObject with ID {} at index {}",
-                        go_id,
-                        new_idx
-                    );
-                }
-            }
-        }
+        self.add_new_gameobjects(engine_context.consume());
 
         self.render_queue.add_viewports(viewport_context);
         self.render_queue.add_renderables(graphics_context);
@@ -158,27 +138,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
         let graphics_context = context.graphics;
         let window_context = context.windows;
 
-        for new_gameobject in engine_context.consume() {
-            match self.identmap.contains_key(&new_gameobject.id) {
-                true => log::error!(
-                    "Tried to add an already existing GameObject, ignoring : {}",
-                    new_gameobject.id
-                ),
-                false => {
-                    let go_id = new_gameobject.id;
-                    let new_idx = self.objects.len();
-
-                    self.identmap.insert(go_id, new_idx);
-                    self.objects.push(new_gameobject);
-
-                    log::debug!(
-                        "Added new GameObject with ID {} at index {}",
-                        go_id,
-                        new_idx
-                    );
-                }
-            }
-        }
+        self.add_new_gameobjects(engine_context.consume());
 
         self.render_queue.add_viewports(viewport_context);
         self.render_queue.add_renderables(graphics_context);
@@ -227,6 +187,32 @@ impl<R: WutEngineRenderer> Runtime<R> {
             message_queue = new_queue;
 
             message_iter += 1;
+        }
+    }
+
+    fn add_new_gameobjects(&mut self, gameobjects: impl IntoIterator<Item = GameObject>) {
+        for new_gameobject in gameobjects.into_iter() {
+            match self.identmap.contains_key(&new_gameobject.id) {
+                true => log::error!(
+                    "Tried to add an already existing GameObject, ignoring : {}",
+                    new_gameobject.id
+                ),
+                false => {
+                    let go_id = new_gameobject.id;
+                    let new_idx = self.objects.len();
+
+                    self.identmap.insert(go_id, new_idx);
+
+                    log::debug!(
+                        "Added new GameObject \"{}\" with ID {} at index {}",
+                        new_gameobject.name,
+                        go_id,
+                        new_idx
+                    );
+
+                    self.objects.push(new_gameobject);
+                }
+            }
         }
     }
 }

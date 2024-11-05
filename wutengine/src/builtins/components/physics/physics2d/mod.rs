@@ -5,7 +5,7 @@ use wutengine_macro::component_boilerplate;
 use crate::builtins::components::Transform;
 use crate::component::{Component, Context};
 use crate::physics::physics2d::Physics2DPlugin;
-use crate::physics::Collision2D;
+use crate::physics::{Collider2DID, Collision2D};
 use crate::runtime::messaging::Message;
 
 /// A 2D-physics rectangular collider
@@ -13,8 +13,9 @@ use crate::runtime::messaging::Message;
 pub struct RectangleCollider2D {
     center: Vec2,
     size: Vec2,
-    //TODO: Temp pub
-    pub handle: Option<ColliderHandle>,
+
+    /// The raw collider handle
+    pub(crate) handle: Option<Collider2DID>,
 }
 
 impl RectangleCollider2D {
@@ -26,6 +27,14 @@ impl RectangleCollider2D {
             size,
             handle: None,
         }
+    }
+}
+
+impl RectangleCollider2D {
+    /// Returns the raw collider handle for this collider component,
+    /// if it has already been created.
+    pub fn get_handle(&self) -> Option<Collider2DID> {
+        self.handle
     }
 }
 
@@ -57,7 +66,7 @@ impl Component for RectangleCollider2D {
             None => self.size,
         };
 
-        log::info!(
+        log::trace!(
             "Creating rectangle collider at {} with size {}",
             world_center,
             world_size
@@ -70,7 +79,7 @@ impl Component for RectangleCollider2D {
             .sensor(true)
             .build();
 
-        let handle = physics_plugin.add_collider(collider);
+        let handle = physics_plugin.add_collider(collider, context.gameobject.object.id);
 
         self.handle = Some(handle);
     }
@@ -96,23 +105,6 @@ impl Component for RectangleCollider2D {
             };
 
             physics_plugin.update_collider(handle, world_pos);
-        }
-    }
-
-    fn on_message(&mut self, _context: &mut Context, message: &Message) {
-        if self.handle.is_none() {
-            return;
-        }
-
-        let my_handle = self.handle.unwrap();
-
-        if let Some(on_collision) = message.try_cast::<Collision2D>() {
-            if on_collision.handle1 == my_handle || on_collision.handle2 == my_handle {
-                log::info!(
-                    "Collision detected on gameobject {}",
-                    _context.gameobject.object.name
-                );
-            }
         }
     }
 }

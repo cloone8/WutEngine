@@ -108,7 +108,7 @@ impl RuntimeInitializer {
         self.run_plugin_build_hooks();
 
         unsafe {
-            Time::initialize(self.physics_interval as f32);
+            Time::initialize(self.physics_interval);
         }
 
         let event_loop = EventLoop::<WindowingEvent>::with_user_event()
