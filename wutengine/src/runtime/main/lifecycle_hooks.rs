@@ -40,6 +40,12 @@ impl<R: WutEngineRenderer> Runtime<R> {
         });
     }
 
+    pub(super) fn lifecycle_physics_solver_update(&mut self) {
+        log::trace!("Running physics solver update for plugins");
+
+        self.run_plugin_hooks(|plugin, context| plugin.physics_solver_update(context));
+    }
+
     pub(super) fn lifecycle_pre_update(&mut self) {
         log::trace!("Running pre-update for plugins");
 

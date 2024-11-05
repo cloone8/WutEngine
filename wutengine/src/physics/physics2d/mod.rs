@@ -1,12 +1,17 @@
 use core::fmt::Debug;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::Mutex;
 
 use glam::{vec2, Vec2};
 use rapier2d::prelude::*;
 
+use crate::plugins::{Context, WutEnginePlugin};
+use crate::time::Time;
+
 /// A 2D physics pipeline
 #[derive(Debug)]
-pub(crate) struct Physics2D {
-    rapier: RapierStructs2D,
+pub struct Physics2DPlugin {
+    rapier: Mutex<RapierStructs2D>,
 }
 
 struct RapierStructs2D {
@@ -43,11 +48,17 @@ impl Debug for RapierStructs2D {
     }
 }
 
-impl Physics2D {
+impl Default for Physics2DPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Physics2DPlugin {
     /// Creates and initializes a new 2D physics pipeline
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            rapier: RapierStructs2D {
+            rapier: Mutex::new(RapierStructs2D {
                 rigids: RigidBodySet::new(),
                 colliders: ColliderSet::new(),
                 physics_pipeline: PhysicsPipeline::new(),
@@ -60,17 +71,20 @@ impl Physics2D {
                 multibody_joints: MultibodyJointSet::new(),
                 ccd_solver: CCDSolver::new(),
                 query_pipeline: QueryPipeline::new(),
-            },
+            }),
         }
     }
 
     /// Adds a raw collider to the solver
-    pub(crate) fn add_collider(&mut self, collider: Collider) -> ColliderHandle {
-        self.rapier.colliders.insert(collider)
+    pub(crate) fn add_collider(&self, collider: Collider) -> ColliderHandle {
+        self.rapier.lock().unwrap().colliders.insert(collider)
     }
 
-    pub(crate) fn update_collider(&mut self, collider: ColliderHandle, translation: Vec2) {
+    /// Updates a collider to a new translation
+    pub(crate) fn update_collider(&self, collider: ColliderHandle, translation: Vec2) {
         self.rapier
+            .lock()
+            .unwrap()
             .colliders
             .get_mut(collider)
             .unwrap()
@@ -78,16 +92,15 @@ impl Physics2D {
     }
 
     /// Steps the physics library
-    pub(crate) fn step(&mut self, dt: f32) {
+    pub(crate) fn step(&mut self, dt: f32, context: &mut Context) {
         log::trace!("Stepping 2D physics solver");
 
-        let rapier = &mut self.rapier;
+        let rapier = self.rapier.get_mut().unwrap();
 
         rapier.parameters.dt = dt;
 
-        let (collision_send, collision_recv) = rapier2d::crossbeam::channel::unbounded();
-        let (contact_force_send, contact_force_recv) = rapier2d::crossbeam::channel::unbounded();
-        let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
+        let (event_handler, collision_recv, contact_force_recv) =
+            SimpleChannelEventCollector::new();
 
         rapier.physics_pipeline.step(
             &rapier.gravity.into(),
@@ -107,10 +120,78 @@ impl Physics2D {
 
         while let Ok(collision_event) = collision_recv.try_recv() {
             log::info!("COLLISION EVENT: {:?}", collision_event);
+            if !collision_event.started() {
+                continue;
+            }
+
+            context.message.send_global(Collision2D {
+                handle1: collision_event.collider1(),
+                handle2: collision_event.collider2(),
+            });
         }
 
         while let Ok(contact_force_event) = contact_force_recv.try_recv() {
             log::info!("CONTACT FORCE EVENT: {:?}", contact_force_event);
         }
     }
+}
+
+impl WutEnginePlugin for Physics2DPlugin {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn physics_solver_update(&mut self, context: &mut Context) {
+        self.step(Time::get().fixed_delta, context);
+    }
+}
+
+#[derive(Debug)]
+struct SimpleChannelEventCollector {
+    collision_sender: Sender<CollisionEvent>,
+    contact_force_sender: Sender<ContactForceEvent>,
+}
+
+impl SimpleChannelEventCollector {
+    fn new() -> (Self, Receiver<CollisionEvent>, Receiver<ContactForceEvent>) {
+        let (coll_send, coll_recv) = channel();
+        let (contact_send, contact_recv) = channel();
+
+        let collector = Self {
+            collision_sender: coll_send,
+            contact_force_sender: contact_send,
+        };
+
+        (collector, coll_recv, contact_recv)
+    }
+}
+
+impl EventHandler for SimpleChannelEventCollector {
+    fn handle_collision_event(
+        &self,
+        _bodies: &RigidBodySet,
+        _colliders: &ColliderSet,
+        event: CollisionEvent,
+        _contact_pair: Option<&ContactPair>,
+    ) {
+        self.collision_sender.send(event).unwrap();
+    }
+
+    fn handle_contact_force_event(
+        &self,
+        dt: f32,
+        _bodies: &RigidBodySet,
+        _colliders: &ColliderSet,
+        contact_pair: &ContactPair,
+        total_force_magnitude: f32,
+    ) {
+        let result = ContactForceEvent::from_contact_pair(dt, contact_pair, total_force_magnitude);
+        self.contact_force_sender.send(result).unwrap();
+    }
+}
+
+#[derive(Debug)]
+pub struct Collision2D {
+    pub handle1: ColliderHandle,
+    pub handle2: ColliderHandle,
 }

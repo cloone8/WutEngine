@@ -1,9 +1,9 @@
 use rapier3d::prelude::*;
 
 #[derive(Debug)]
-pub(crate) struct Physics3D {}
+pub(crate) struct Physics3DPlugin {}
 
-impl Physics3D {
+impl Physics3DPlugin {
     pub(crate) fn new() -> Self {
         Self {}
     }

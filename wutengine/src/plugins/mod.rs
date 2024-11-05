@@ -36,6 +36,15 @@ pub trait WutEnginePlugin: Any + Send + Sync + Debug {
     /// following updates to physics components.
     fn post_physics_update(&mut self, _context: &mut Context) {}
 
+    /// Hook exclusive to WutEngine plugins, ran after all physics and post-physics
+    /// updates. At this point, all physics components have been synchronized, and can
+    /// no longer be accessed by user scripts unless a message is sent to them.
+    ///
+    /// This basically allows the plugin to step any internal physics solvers,
+    /// with the knowledge that all physics data that was going to be updated has
+    /// actually been updated.
+    fn physics_solver_update(&mut self, _context: &mut Context) {}
+
     /// Called before starting each update tick
     fn pre_update(&mut self, _context: &mut Context) {}
 

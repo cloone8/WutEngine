@@ -8,13 +8,14 @@
 use std::path::PathBuf;
 
 use spawn::PongStarterPlugin;
+use wutengine::builtins::components::physics::RectangleCollider2D;
 use wutengine::builtins::components::{InputHandler, Transform};
 use wutengine::component::{Component, Context};
 use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::macros::component_boilerplate;
 use wutengine::math::{vec3, Vec2, Vec3};
-use wutengine::physics::PhysicsPlugin;
+use wutengine::physics::{Collision2D, Physics2DPlugin};
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::messaging::Message;
 use wutengine::runtime::RuntimeInitializer;
@@ -45,7 +46,7 @@ fn main() {
 
     runtime.with_plugin(PongStarterPlugin {});
     runtime.with_plugin(KeyboardInputPlugin::new());
-    runtime.with_plugin(PhysicsPlugin::new());
+    runtime.with_plugin(Physics2DPlugin::new());
     runtime.run::<OpenGLRenderer>();
 }
 
@@ -65,19 +66,33 @@ impl BallData {
 
         let actual_direction = self.direction.normalize() * self.speed;
 
-        transform.set_local_pos(cur_pos + actual_direction.extend(0.0) * Time::get().delta);
+        transform.set_local_pos(cur_pos + actual_direction.extend(0.0) * Time::get().fixed_delta);
     }
 }
 
 impl Component for BallData {
     component_boilerplate!();
 
-    fn update(&mut self, context: &mut Context) {
+    fn physics_update(&mut self, context: &mut Context) {
         self.do_step(context);
     }
 
     fn on_message(&mut self, _context: &mut Context, message: &Message) {
         if message.try_cast::<DoReverseMessage>().is_some() {
+            self.direction *= -1.0;
+        }
+
+        let my_handle = _context
+            .gameobject
+            .get_component::<RectangleCollider2D>()
+            .unwrap()
+            .handle
+            .unwrap();
+
+        if message
+            .try_cast::<Collision2D>()
+            .is_some_and(|coll| coll.handle1 == my_handle || coll.handle2 == my_handle)
+        {
             self.direction *= -1.0;
         }
     }

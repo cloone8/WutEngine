@@ -49,6 +49,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
             // 0.0 means sync with frame
             self.lifecycle_physics_update();
             self.lifecycle_post_physics_update();
+            self.lifecycle_physics_solver_update();
         } else {
             log::trace!("Physics running at interval. Running variable number of steps");
 
@@ -61,6 +62,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
                 self.lifecycle_physics_update();
                 self.lifecycle_post_physics_update();
+                self.lifecycle_physics_solver_update();
                 self.physics_update_accumulator -= self.physics_update_interval;
             }
         }

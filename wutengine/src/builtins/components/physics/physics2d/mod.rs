@@ -4,15 +4,17 @@ use wutengine_macro::component_boilerplate;
 
 use crate::builtins::components::Transform;
 use crate::component::{Component, Context};
-use crate::physics::PhysicsPlugin;
+use crate::physics::physics2d::Physics2DPlugin;
+use crate::physics::Collision2D;
+use crate::runtime::messaging::Message;
 
 /// A 2D-physics rectangular collider
 #[derive(Debug)]
 pub struct RectangleCollider2D {
     center: Vec2,
     size: Vec2,
-
-    handle: Option<ColliderHandle>,
+    //TODO: Temp pub
+    pub handle: Option<ColliderHandle>,
 }
 
 impl RectangleCollider2D {
@@ -31,7 +33,7 @@ impl Component for RectangleCollider2D {
     component_boilerplate!();
 
     fn start(&mut self, context: &mut Context) {
-        let physics_plugin = context.plugin.get::<PhysicsPlugin>();
+        let physics_plugin = context.plugin.get::<Physics2DPlugin>();
 
         if physics_plugin.is_none() {
             log::warn!("Trying to initialize rectangle collider component failed because the physics plugin was missing");
@@ -68,16 +70,13 @@ impl Component for RectangleCollider2D {
             .sensor(true)
             .build();
 
-        let handle = physics_plugin.add_collider_2d(collider);
+        let handle = physics_plugin.add_collider(collider);
 
         self.handle = Some(handle);
     }
 
-    fn physics_update(&mut self, context: &mut Context) {
-        //TODO: This will break as soon as users implement this hook too, and modify the transform there.
-        // Make another hook?
-
-        let physics_plugin = context.plugin.get::<PhysicsPlugin>();
+    fn post_physics_update(&mut self, context: &mut Context) {
+        let physics_plugin = context.plugin.get::<Physics2DPlugin>();
 
         if physics_plugin.is_none() {
             return;
@@ -96,7 +95,24 @@ impl Component for RectangleCollider2D {
                 None => self.center,
             };
 
-            physics_plugin.update_collider_2d(handle, world_pos);
+            physics_plugin.update_collider(handle, world_pos);
+        }
+    }
+
+    fn on_message(&mut self, _context: &mut Context, message: &Message) {
+        if self.handle.is_none() {
+            return;
+        }
+
+        let my_handle = self.handle.unwrap();
+
+        if let Some(on_collision) = message.try_cast::<Collision2D>() {
+            if on_collision.handle1 == my_handle || on_collision.handle2 == my_handle {
+                log::info!(
+                    "Collision detected on gameobject {}",
+                    _context.gameobject.object.name
+                );
+            }
         }
     }
 }
