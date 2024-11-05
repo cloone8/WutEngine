@@ -153,4 +153,12 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     ) {
         self.run_plugin_hooks(|plugin, context| plugin.on_device_event(device_id, &event, context));
     }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        //TODO: Call destructors for components
+        log::info!("WutEngine shutting down");
+
+        // Final thing: flush all logs
+        log::logger().flush();
+    }
 }

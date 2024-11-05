@@ -1,5 +1,6 @@
 //! Logging and logging configuration
 
+use core::str::FromStr;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufWriter;
@@ -51,23 +52,36 @@ pub enum LogOutput {
 
 impl Default for LogConfig {
     fn default() -> Self {
-        Self {
-            runtime: Some(ComponentLogConfig {
-                min_level: LevelFilter::Info,
-                output: LogOutput::StdOut,
-            }),
-            renderer: Some(ComponentLogConfig {
-                min_level: LevelFilter::Warn,
-                output: LogOutput::StdOut,
-            }),
-            other: Some(ComponentLogConfig {
-                min_level: if cfg!(debug_assertions) {
-                    LevelFilter::Debug
-                } else {
-                    LevelFilter::Info
-                },
-                output: LogOutput::StdOut,
-            }),
+        if cfg!(debug_assertions) {
+            Self {
+                runtime: Some(ComponentLogConfig {
+                    min_level: LevelFilter::Info,
+                    output: LogOutput::StdOut,
+                }),
+                renderer: Some(ComponentLogConfig {
+                    min_level: LevelFilter::Warn,
+                    output: LogOutput::StdOut,
+                }),
+                other: Some(ComponentLogConfig {
+                    min_level: LevelFilter::Debug,
+                    output: LogOutput::StdOut,
+                }),
+            }
+        } else {
+            Self {
+                runtime: Some(ComponentLogConfig {
+                    min_level: LevelFilter::Info,
+                    output: LogOutput::File(PathBuf::from_str("./wutengine_runtime.log").unwrap()),
+                }),
+                renderer: Some(ComponentLogConfig {
+                    min_level: LevelFilter::Warn,
+                    output: LogOutput::File(PathBuf::from_str("./wutengine_renderer.log").unwrap()),
+                }),
+                other: Some(ComponentLogConfig {
+                    min_level: LevelFilter::Info,
+                    output: LogOutput::File(PathBuf::from_str("./game.log").unwrap()),
+                }),
+            }
         }
     }
 }

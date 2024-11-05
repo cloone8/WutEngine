@@ -1,5 +1,12 @@
 //! Basic Pong example for WutEngine
 
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
+use std::path::PathBuf;
+
 use spawn::PongStarterPlugin;
 use wutengine::builtins::components::{InputHandler, Transform};
 use wutengine::component::{Component, Context};
@@ -21,7 +28,7 @@ fn main() {
     runtime.with_log_config(LogConfig {
         runtime: Some(ComponentLogConfig {
             min_level: log::LevelFilter::Debug,
-            output: log::LogOutput::StdOut,
+            output: log::LogOutput::File(PathBuf::from("./wutengine_runtime.log")),
         }),
         ..Default::default()
     });
