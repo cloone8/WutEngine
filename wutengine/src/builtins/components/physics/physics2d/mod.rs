@@ -5,8 +5,7 @@ use wutengine_macro::component_boilerplate;
 use crate::builtins::components::Transform;
 use crate::component::{Component, Context};
 use crate::physics::physics2d::Physics2DPlugin;
-use crate::physics::{Collider2DID, Collision2D};
-use crate::runtime::messaging::Message;
+use crate::physics::Collider2DID;
 
 /// A 2D-physics rectangular collider
 #[derive(Debug)]

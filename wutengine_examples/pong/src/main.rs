@@ -8,14 +8,13 @@
 use std::path::PathBuf;
 
 use spawn::PongStarterPlugin;
-use wutengine::builtins::components::physics::RectangleCollider2D;
 use wutengine::builtins::components::{InputHandler, Transform};
 use wutengine::component::{Component, Context};
 use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::macros::component_boilerplate;
-use wutengine::math::{vec3, Vec2, Vec3};
-use wutengine::physics::{Collision2D, CollisionType, Physics2DPlugin};
+use wutengine::math::{vec3, Vec2, Vec3, Vec3Swizzles};
+use wutengine::physics::{CollisionStart, Physics2DPlugin};
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::messaging::Message;
 use wutengine::runtime::RuntimeInitializer;
@@ -75,18 +74,41 @@ impl Component for BallData {
 
     fn physics_update(&mut self, context: &mut Context) {
         self.do_step(context);
+
+        if context
+            .gameobject
+            .get_component::<Transform>()
+            .unwrap()
+            .world_pos()
+            .y
+            .abs()
+            > 1.0
+        {
+            self.direction.y *= -1.0;
+        }
     }
 
     fn on_message(&mut self, _context: &mut Context, message: &Message) {
         if message.try_cast::<DoReverseMessage>().is_some() {
-            self.direction *= -1.0;
+            self.direction.x *= -1.0;
         }
 
-        if message
-            .try_cast::<Collision2D>()
-            .is_some_and(|coll| matches!(coll.collision_type, CollisionType::Started))
-        {
-            self.direction *= -1.0;
+        if let Some(collision) = message.try_cast::<CollisionStart>() {
+            let my_pos = _context
+                .gameobject
+                .get_component::<Transform>()
+                .unwrap()
+                .world_pos()
+                .xy();
+
+            self.direction.x *= -1.0;
+            self.direction.y *= -1.0;
+
+            if my_pos.y > collision.other_pos.y {
+                self.direction.y += 0.1;
+            } else {
+                self.direction.y -= 0.1;
+            }
         }
     }
 }

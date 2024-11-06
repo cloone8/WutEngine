@@ -9,6 +9,7 @@ use rapier::RapierStructs2D;
 use rapier2d::prelude::*;
 
 use crate::gameobject::GameObjectId;
+use crate::physics::{CollisionEnd, CollisionStart};
 use crate::plugins::{Context, WutEnginePlugin};
 use crate::time::Time;
 
@@ -18,8 +19,6 @@ mod id;
 mod rapier;
 
 pub use id::*;
-
-use super::CollisionType;
 
 /// A 2D physics pipeline
 #[derive(Debug)]
@@ -109,35 +108,62 @@ impl Physics2DPlugin {
         );
 
         while let Ok(collision_event) = collision_recv.try_recv() {
-            let collision_type = if collision_event.started() {
-                CollisionType::Started
-            } else {
-                CollisionType::Stopped
-            };
-
             let id1 = Collider2DID::new(collision_event.collider1());
             let id2 = Collider2DID::new(collision_event.collider2());
+            let collider1_pos = Vec2::from(
+                rapier
+                    .colliders
+                    .get(collision_event.collider1())
+                    .unwrap()
+                    .position()
+                    .translation,
+            );
+
+            let collider2_pos = Vec2::from(
+                rapier
+                    .colliders
+                    .get(collision_event.collider2())
+                    .unwrap()
+                    .position()
+                    .translation,
+            );
 
             let collider_meta_map = self.collider_meta.get_mut().unwrap();
 
             let meta1 = collider_meta_map.get(&id1).expect("Missing collider meta!");
             let meta2 = collider_meta_map.get(&id2).expect("Missing collider meta!");
 
-            context.message.send_gameobject(
-                Collision2D {
-                    other: meta2.gameobject,
-                    collision_type,
-                },
-                meta1.gameobject,
-            );
+            if collision_event.started() {
+                context.message.send_gameobject(
+                    CollisionStart {
+                        other: meta2.gameobject,
+                        other_pos: collider2_pos,
+                    },
+                    meta1.gameobject,
+                );
 
-            context.message.send_gameobject(
-                Collision2D {
-                    other: meta1.gameobject,
-                    collision_type,
-                },
-                meta2.gameobject,
-            );
+                context.message.send_gameobject(
+                    CollisionStart {
+                        other: meta1.gameobject,
+                        other_pos: collider1_pos,
+                    },
+                    meta2.gameobject,
+                );
+            } else {
+                context.message.send_gameobject(
+                    CollisionEnd {
+                        other: meta2.gameobject,
+                    },
+                    meta1.gameobject,
+                );
+
+                context.message.send_gameobject(
+                    CollisionEnd {
+                        other: meta1.gameobject,
+                    },
+                    meta2.gameobject,
+                );
+            }
         }
 
         while let Ok(contact_force_event) = contact_force_recv.try_recv() {
@@ -154,14 +180,4 @@ impl WutEnginePlugin for Physics2DPlugin {
     fn physics_solver_update(&mut self, context: &mut Context) {
         self.step(Time::get().fixed_delta, context);
     }
-}
-
-/// A collision event between 2D physics objects.
-#[derive(Debug, Clone)]
-pub struct Collision2D {
-    /// The ID of the GameObject the other collider is attached to
-    pub other: GameObjectId,
-
-    /// The type of collision event
-    pub collision_type: CollisionType,
 }
