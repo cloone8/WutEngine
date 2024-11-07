@@ -7,6 +7,7 @@ This file documents the most important changes for each released version.
 - Added more component lifecycle callbacks. Mainly:
     * Fixed/physics updates
     * Component started/destroyed callbacks
+- Updated window API and component context API
 
 ## [v0.0.8]
 - Switched out ECS for more traditional GameObject oriented design. 
