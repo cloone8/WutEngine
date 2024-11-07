@@ -79,7 +79,7 @@ rayon = "1.10.0"
 # Physics
 rapier2d = { version = "0.22.0", features = ["simd-stable", "parallel"] }
 rapier3d = { version = "0.22.0", features = ["simd-stable", "parallel"] }
-nalgebra = { version = "*", features = ["convert-glam029"] }
+nalgebra = { version = "0.*", features = ["convert-glam029"] }
 
 # Others
 static_assertions = "1.1.0"
