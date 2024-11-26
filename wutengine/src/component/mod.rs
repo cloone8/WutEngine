@@ -2,6 +2,7 @@
 
 use core::any::Any;
 use core::fmt::Debug;
+use core::marker::PhantomData;
 
 use crate::context::{
     EngineContext, GameObjectContext, GraphicsContext, MessageContext, ViewportContext,
@@ -14,10 +15,10 @@ pub(crate) mod data;
 /// A component, the core programmable unit in WutEngine.
 pub trait Component: Any + Send + Sync + Debug {
     /// Called before the first update cycle this component is active in
-    fn start(&mut self, _context: &mut Context) {}
+    fn on_start(&mut self, _context: &mut Context) {}
 
     /// Called right before this component is destroyed.
-    fn destroy(&mut self, _context: &mut Context) {}
+    fn on_destroy(&mut self, _context: &mut Context) {}
 
     /// The physics update hook. Any interaction with the physics
     /// components should happen here
@@ -69,4 +70,32 @@ pub struct Context<'a> {
 
     /// Window information and APIs
     pub window: &'a WindowContext<'a>,
+
+    /// Engine APIs and functions for the current component
+    pub this: ComponentContext<'a>,
+}
+
+/// Context for interacting with APIs and functions related to the
+/// current component.
+#[derive(Debug)]
+pub struct ComponentContext<'a> {
+    /// Whether the component should be marked as dying ASAP.
+    pub(crate) should_die: bool,
+
+    ph: PhantomData<&'a ()>,
+}
+
+impl<'a> ComponentContext<'a> {
+    /// Creates a new, empty context
+    pub(crate) fn new() -> Self {
+        Self {
+            should_die: false,
+            ph: PhantomData,
+        }
+    }
+    /// Marks the component this context is for as dying, preventing further new component
+    /// hooks to be called on it and allowing it to be cleaned up by the engine runtime.
+    pub fn destroy(&mut self) {
+        self.should_die = true;
+    }
 }

@@ -64,7 +64,7 @@ impl GameObject {
 
         self.components
             .get_mut()
-            .retain(|c| c.state != ComponentState::Dying);
+            .retain(|c| !matches!(c.state, ComponentState::Dying));
     }
 
     /// Removes all components that are currently marked as [ComponentState::ReadyForStart] without
@@ -78,6 +78,6 @@ impl GameObject {
 
         self.components
             .get_mut()
-            .retain(|c| c.state != ComponentState::ReadyForStart);
+            .retain(|c| !matches!(c.state, ComponentState::ReadyForStart));
     }
 }

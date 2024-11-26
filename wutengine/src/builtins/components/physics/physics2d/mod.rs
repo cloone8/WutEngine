@@ -40,7 +40,7 @@ impl RectangleCollider2D {
 impl Component for RectangleCollider2D {
     component_boilerplate!();
 
-    fn start(&mut self, context: &mut Context) {
+    fn on_start(&mut self, context: &mut Context) {
         let physics_plugin = context.plugin.get::<Physics2DPlugin>();
 
         if physics_plugin.is_none() {

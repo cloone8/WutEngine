@@ -1,3 +1,5 @@
+//! Physics and collision related components
+
 mod physics2d;
 mod physics3d;
 

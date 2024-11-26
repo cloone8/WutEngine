@@ -25,8 +25,7 @@ impl ComponentData {
 }
 
 /// A component lifecycle state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum ComponentState {
     /// Component is ready for starting, but has
     /// not actually started yet

@@ -6,7 +6,7 @@ use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
 use crate::component::data::{ComponentData, ComponentState};
-use crate::component::{self};
+use crate::component::{self, ComponentContext};
 use crate::context::{
     EngineContext, GameObjectContext, GraphicsContext, MessageContext, PluginContext,
     ViewportContext, WindowContext,
@@ -33,7 +33,10 @@ impl<R: WutEngineRenderer> Runtime<R> {
         &mut self,
         func: impl Fn(&mut ComponentData, &mut component::Context) + Send + Sync,
     ) {
-        self.run_component_hook(|component| component.state == ComponentState::Active, func);
+        self.run_component_hook(
+            |component| matches!(component.state, ComponentState::Active),
+            func,
+        );
     }
 
     fn run_component_hook(
@@ -91,6 +94,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
                 let mut context = component::Context {
                     gameobject: go_context,
+                    this: ComponentContext::new(),
                     message: &message_context,
                     engine: &engine_context,
                     plugin: &plugin_context,
@@ -100,6 +104,10 @@ impl<R: WutEngineRenderer> Runtime<R> {
                 };
 
                 func(&meta, component, &mut context);
+
+                if context.this.should_die {
+                    component.state = ComponentState::Dying;
+                }
 
                 new_components.extend(context.gameobject.consume());
             }
@@ -170,7 +178,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
             self.run_component_func_with_context(
                 &new_queue,
-                |_| true,
+                |c| matches!(c.state, ComponentState::Active),
                 |gameobject_id| {
                     let mut messages_for_gameobject = Vec::new();
                     message_queue.get_messages_for(gameobject_id, &mut messages_for_gameobject);

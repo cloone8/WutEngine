@@ -94,6 +94,8 @@ impl Component for BallData {
         }
 
         if let Some(collision) = message.try_cast::<CollisionStart>() {
+            _context.this.destroy();
+
             let my_pos = _context
                 .gameobject
                 .get_component::<Transform>()

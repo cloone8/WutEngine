@@ -8,9 +8,9 @@ impl<R: WutEngineRenderer> Runtime<R> {
         log::trace!("Starting new components");
 
         self.run_component_hook(
-            |component| component.state == ComponentState::ReadyForStart,
+            |component| matches!(component.state, ComponentState::ReadyForStart),
             |component_data, context| {
-                component_data.component.start(context);
+                component_data.component.on_start(context);
                 component_data.state = ComponentState::Active;
             },
         );
@@ -20,9 +20,9 @@ impl<R: WutEngineRenderer> Runtime<R> {
         log::trace!("Destroying dying components");
 
         self.run_component_hook(
-            |component| component.state == ComponentState::Dying,
+            |component| matches!(component.state, ComponentState::Dying),
             |component_data, context| {
-                component_data.component.destroy(context);
+                component_data.component.on_destroy(context);
             },
         );
 
