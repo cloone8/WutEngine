@@ -4,7 +4,7 @@ use core::cell::RefCell;
 use core::fmt::Display;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::component::data::ComponentData;
+use crate::component::data::{ComponentData, ComponentState};
 use crate::component::Component;
 
 static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
@@ -50,5 +50,34 @@ impl GameObject {
         self.components
             .get_mut()
             .push(ComponentData::new(component));
+    }
+
+    /// Removes all components that are currently marked as dying, without running
+    /// their [Component::destroy] callbacks. These should be run prior to calling this
+    /// method through some other mechanism.
+    pub(crate) fn remove_dying_components(&mut self) {
+        log::trace!(
+            "Removing dying components from object {} (ID {})",
+            self.name,
+            self.id
+        );
+
+        self.components
+            .get_mut()
+            .retain(|c| c.state != ComponentState::Dying);
+    }
+
+    /// Removes all components that are currently marked as [ComponentState::ReadyForStart] without
+    /// actually running their startup callbacks.
+    pub(crate) fn cancel_component_creation(&mut self) {
+        log::trace!(
+            "Cancelling all components that are queued for startup from object {} (ID {})",
+            self.name,
+            self.id
+        );
+
+        self.components
+            .get_mut()
+            .retain(|c| c.state != ComponentState::ReadyForStart);
     }
 }

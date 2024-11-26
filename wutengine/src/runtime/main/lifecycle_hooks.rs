@@ -16,6 +16,21 @@ impl<R: WutEngineRenderer> Runtime<R> {
         );
     }
 
+    pub(super) fn lifecycle_destroy(&mut self) {
+        log::trace!("Destroying dying components");
+
+        self.run_component_hook(
+            |component| component.state == ComponentState::Dying,
+            |component_data, context| {
+                component_data.component.destroy(context);
+            },
+        );
+
+        for go in &mut self.objects {
+            go.remove_dying_components();
+        }
+    }
+
     pub(super) fn lifecycle_physics_update(&mut self) {
         log::trace!("Running physics update for plugins");
 

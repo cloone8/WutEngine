@@ -5,6 +5,7 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
+use crate::runtime::main::ComponentState;
 use crate::runtime::Runtime;
 use crate::time::Time;
 use crate::windowing;
@@ -72,6 +73,9 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         self.lifecycle_pre_update();
         self.lifecycle_update();
         self.lifecycle_pre_render();
+
+        log::trace!("Running component destructors");
+        self.lifecycle_destroy();
 
         log::trace!("Doing rendering");
 
@@ -157,8 +161,18 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        //TODO: Call destructors for components
         log::info!("WutEngine shutting down");
+
+        // Mark all components as dying and cancel all components queued for startup.
+        for go in &mut self.objects {
+            go.cancel_component_creation();
+            for component in go.components.get_mut() {
+                component.state = ComponentState::Dying;
+            }
+        }
+
+        // Run the destruction lifecycle hook
+        self.lifecycle_destroy();
 
         // Final thing: flush all logs
         log::logger().flush();
