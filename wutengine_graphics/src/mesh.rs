@@ -77,7 +77,7 @@ impl IsEnabled for MeshDataId {}
 
 impl MeshDataId {
     pub fn random() -> Self {
-        let mut rng = SmallRng::from_entropy();
-        Self(rng.gen())
+        let mut rng = SmallRng::from_os_rng();
+        Self(rng.random())
     }
 }
