@@ -42,3 +42,4 @@ rayon.workspace = true
 rapier2d.workspace = true
 rapier3d.workspace = true
 nalgebra.workspace = true
+gilrs.workspace = true

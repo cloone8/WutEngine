@@ -10,3 +10,6 @@ target/
 *.pdb
 
 *.log
+
+# MacOS
+.DS_Store
