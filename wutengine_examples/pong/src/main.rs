@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use spawn::PongStarterPlugin;
 use wutengine::builtins::components::{InputHandler, Transform};
 use wutengine::component::{Component, Context};
+use wutengine::input::gamepad::{GamepadButton, GamepadInputPlugin};
 use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::macros::component_boilerplate;
@@ -45,6 +46,7 @@ fn main() {
 
     runtime.with_plugin(PongStarterPlugin {});
     runtime.with_plugin(KeyboardInputPlugin::new());
+    runtime.with_plugin(GamepadInputPlugin::new());
     runtime.with_plugin(Physics2DPlugin::new());
     runtime.run::<OpenGLRenderer>();
 }
@@ -131,15 +133,21 @@ impl Component for PlayerMovement {
 
         let mut movement_vec = Vec3::ZERO;
 
-        if input.is_down(KeyCode::ArrowUp) {
+        if input.keyboard().is_down(KeyCode::ArrowUp)
+            || input.gamepad().is_down(GamepadButton::DPadUp)
+        {
             movement_vec += vec3(0.0, movement_this_frame, 0.0);
         }
 
-        if input.is_down(KeyCode::ArrowDown) {
+        if input.keyboard().is_down(KeyCode::ArrowDown)
+            || input.gamepad().is_down(GamepadButton::DPadDown)
+        {
             movement_vec += vec3(0.0, -movement_this_frame, 0.0);
         }
 
-        if input.pressed_this_frame(KeyCode::Space) {
+        if input.keyboard().pressed_this_frame(KeyCode::Space)
+            || input.gamepad().pressed_this_frame(GamepadButton::South)
+        {
             context.message.send_global(DoReverseMessage);
         }
 

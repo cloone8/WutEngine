@@ -2719,6 +2719,7 @@ dependencies = [
  "rapier3d",
  "rayon",
  "simplelog",
+ "thiserror 2.0.11",
  "winit",
  "wutengine_core",
  "wutengine_graphics",
