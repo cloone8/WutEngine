@@ -1,9 +1,11 @@
+//! Static mesh rendering components
+
 use std::any::Any;
 
 use glam::Mat4;
 
 use crate::builtins::assets::{Material, Mesh};
-use crate::builtins::components::Transform;
+use crate::builtins::components::transform::Transform;
 use crate::component::{Component, Context};
 
 /// A static mesh renderer component. Renders its configured mesh using its configured

@@ -1,3 +1,5 @@
+//! Input related components
+
 use std::collections::HashMap;
 
 use crate::component::{Component, Context};
@@ -8,8 +10,8 @@ use crate::input::keyboard::MAX_KEYCODE;
 mod gamepad;
 mod keyboard;
 
-pub use gamepad::*;
-pub use keyboard::*;
+pub use gamepad::InputHandlerGamepad;
+pub use keyboard::InputHandlerKeyboard;
 
 /// The main input handler component. The various input-reading engine plugins will
 /// inject their read inputs into each of these components before each Update iteration.
@@ -52,10 +54,12 @@ impl InputHandler {
         }
     }
 
+    /// The keyboard input state
     pub fn keyboard(&self) -> InputHandlerKeyboard {
         InputHandlerKeyboard { handler: self }
     }
 
+    /// The gamepad input state
     pub fn gamepad(&self) -> InputHandlerGamepad {
         InputHandlerGamepad { handler: self }
     }

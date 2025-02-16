@@ -4,6 +4,7 @@ use crate::input::gamepad::{GamepadAxis, GamepadButton, GamepadButtonValue};
 
 use super::{InputHandler, InputState};
 
+/// The gamepad input state from an [InputHandler]
 #[repr(transparent)]
 pub struct InputHandlerGamepad<'a> {
     pub(super) handler: &'a InputHandler,
@@ -18,24 +19,29 @@ impl InputHandlerGamepad<'_> {
             .any(|gp| gp.buttons[button as usize].is_pressed())
     }
 
+    /// Returns whether the given [GamepadButton] is currently down
     pub fn is_down(&self, button: GamepadButton) -> bool {
         Self::is_down_from_state(&self.handler.cur, button)
     }
 
+    /// Returns whether the given [GamepadButton] is currently up
     pub fn is_up(&self, button: GamepadButton) -> bool {
         !self.is_down(button)
     }
 
+    /// Returns whether the given [GamepadButton] changed from released to pressed this frame
     pub fn pressed_this_frame(&self, button: GamepadButton) -> bool {
         Self::is_down_from_state(&self.handler.cur, button)
             && !Self::is_down_from_state(&self.handler.prev, button)
     }
 
+    /// Returns whether the given [GamepadButton] changed from pressed to released this frame
     pub fn released_this_frame(&self, button: GamepadButton) -> bool {
         !Self::is_down_from_state(&self.handler.cur, button)
             && Self::is_down_from_state(&self.handler.prev, button)
     }
 
+    /// Returns the current value for the given [GamepadButton]. The value will be
     pub fn button_value(&self, button: GamepadButton) -> GamepadButtonValue {
         self.handler
             .cur
@@ -46,6 +52,7 @@ impl InputHandlerGamepad<'_> {
             .unwrap_or(GamepadButtonValue::NOT_PRESSED)
     }
 
+    /// Returns the current X/Y values for the given [GamepadAxis]
     pub fn axis_value(&self, axis: GamepadAxis) -> Vec2 {
         let non_neutral: Vec<Vec2> = self
             .handler

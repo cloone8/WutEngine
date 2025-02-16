@@ -1,10 +1,12 @@
+//! Camera components
+
 use glam::Mat4;
 use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::{color::Color, renderer::Viewport};
 
 use crate::component::{Component, Context};
 
-use super::Transform;
+use super::transform::Transform;
 
 /// A camera that renders to a viewport in a window.
 #[derive(Debug)]

@@ -1,10 +1,13 @@
 //! Contains the spawning plugin for the game
 
 use wutengine::builtins::assets::{Material, Mesh};
+use wutengine::builtins::components::camera::CameraType::{self};
 use wutengine::builtins::components::physics::RectangleCollider2D;
 use wutengine::builtins::components::util::FramerateCounter;
-use wutengine::builtins::components::CameraType::{self};
-use wutengine::builtins::components::{Camera, InputHandler, StaticMeshRenderer, Transform};
+use wutengine::builtins::components::{
+    camera::Camera, input::InputHandler, static_mesh_renderer::StaticMeshRenderer,
+    transform::Transform,
+};
 use wutengine::gameobject::GameObject;
 use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};

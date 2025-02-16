@@ -4,6 +4,7 @@ use crate::input::keyboard::winit_keycode_to_usize;
 
 use super::InputHandler;
 
+/// The keyboard input state from an [InputHandler]
 #[repr(transparent)]
 pub struct InputHandlerKeyboard<'a> {
     pub(super) handler: &'a InputHandler,

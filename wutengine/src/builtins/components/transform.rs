@@ -1,3 +1,5 @@
+//! The transform component
+
 use crate::component::Component;
 use crate::math::Vec3;
 use glam::{Mat4, Quat};

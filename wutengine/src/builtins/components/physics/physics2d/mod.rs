@@ -2,7 +2,7 @@ use glam::{Vec2, Vec3Swizzles};
 use rapier2d::prelude::*;
 use wutengine_macro::component_boilerplate;
 
-use crate::builtins::components::Transform;
+use crate::builtins::components::transform::Transform;
 use crate::component::{Component, Context};
 use crate::physics::physics2d::Physics2DPlugin;
 use crate::physics::Collider2DID;

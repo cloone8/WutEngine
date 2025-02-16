@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 
 use spawn::PongStarterPlugin;
-use wutengine::builtins::components::{InputHandler, Transform};
+use wutengine::builtins::components::{input::InputHandler, transform::Transform};
 use wutengine::component::{Component, Context};
 use wutengine::input::gamepad::GamepadAxis::{self};
 use wutengine::input::gamepad::{GamepadButton, GamepadInputPlugin};
