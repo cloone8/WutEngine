@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use spawn::PongStarterPlugin;
 use wutengine::builtins::components::{InputHandler, Transform};
 use wutengine::component::{Component, Context};
+use wutengine::input::gamepad::GamepadAxis::{self};
 use wutengine::input::gamepad::{GamepadButton, GamepadInputPlugin};
 use wutengine::input::keyboard::{KeyCode, KeyboardInputPlugin};
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
@@ -132,17 +133,18 @@ impl Component for PlayerMovement {
         let input = context.gameobject.get_component::<InputHandler>().unwrap();
 
         let mut movement_vec = Vec3::ZERO;
+        let left_stick_val = input.gamepad().axis_value(GamepadAxis::LeftStick).y;
 
         if input.keyboard().is_down(KeyCode::ArrowUp)
             || input.gamepad().is_down(GamepadButton::DPadUp)
         {
             movement_vec += vec3(0.0, movement_this_frame, 0.0);
-        }
-
-        if input.keyboard().is_down(KeyCode::ArrowDown)
+        } else if input.keyboard().is_down(KeyCode::ArrowDown)
             || input.gamepad().is_down(GamepadButton::DPadDown)
         {
             movement_vec += vec3(0.0, -movement_this_frame, 0.0);
+        } else {
+            movement_vec += vec3(0.0, movement_this_frame * left_stick_val, 0.0);
         }
 
         if input.keyboard().pressed_this_frame(KeyCode::Space)

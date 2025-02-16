@@ -1,4 +1,6 @@
-use crate::input::gamepad::{GamepadButton, GamepadButtonValue};
+use glam::Vec2;
+
+use crate::input::gamepad::{GamepadAxis, GamepadButton, GamepadButtonValue};
 
 use super::{InputHandler, InputState};
 
@@ -42,5 +44,23 @@ impl InputHandlerGamepad<'_> {
             .map(|v| v.buttons[button as usize])
             .max()
             .unwrap_or(GamepadButtonValue::NOT_PRESSED)
+    }
+
+    pub fn axis_value(&self, axis: GamepadAxis) -> Vec2 {
+        let non_neutral: Vec<Vec2> = self
+            .handler
+            .cur
+            .gamepads
+            .values()
+            .map(|v| v.axes[axis as usize])
+            .filter(|val| !val.is_neutral())
+            .map(|val| val.value())
+            .collect();
+
+        if non_neutral.is_empty() {
+            Vec2::ZERO
+        } else {
+            non_neutral.iter().sum::<Vec2>() / (non_neutral.len() as f32)
+        }
     }
 }

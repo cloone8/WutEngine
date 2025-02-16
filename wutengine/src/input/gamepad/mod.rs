@@ -5,13 +5,19 @@ use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
 use gilrs::{Event, Gilrs, GilrsBuilder};
+use gilrs_mapping::{
+    get_axis_event_axis_and_value, get_button_event_button_and_value, is_axis_event,
+    is_button_event,
+};
 use thiserror::Error;
 
 use crate::plugins::WutEnginePlugin;
 
+mod axis;
 mod button;
 mod gilrs_mapping;
 
+pub use axis::*;
 pub use button::*;
 
 /// The gamepad input reader plugin.
@@ -28,6 +34,7 @@ pub struct Gamepad {
     pub(crate) id: GamepadId,
     pub(crate) connected: bool,
     pub(crate) buttons: [GamepadButtonValue; gamepad_button_count()],
+    pub(crate) axes: [GamepadAxisValue; gamepad_axis_count()],
 }
 
 impl Gamepad {
@@ -36,6 +43,7 @@ impl Gamepad {
             id,
             connected,
             buttons: [GamepadButtonValue::NOT_PRESSED; gamepad_button_count()],
+            axes: [GamepadAxisValue::NEUTRAL; gamepad_axis_count()],
         }
     }
 }
@@ -43,52 +51,6 @@ impl Gamepad {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct GamepadId(gilrs::GamepadId);
-
-fn is_button_event(event: &gilrs::EventType) -> bool {
-    matches!(
-        event,
-        gilrs::EventType::ButtonPressed(_, _)
-            | gilrs::EventType::ButtonRepeated(_, _)
-            | gilrs::EventType::ButtonReleased(_, _)
-            | gilrs::EventType::ButtonChanged(_, _, _)
-    )
-}
-
-#[derive(Debug, Error)]
-enum ButtonMapErr {
-    #[error("Unknown button")]
-    UnknownButton(#[from] FromGilrsButtonErr),
-}
-
-fn get_button_event_button_and_value(
-    event: &gilrs::EventType,
-) -> Result<(GamepadButton, GamepadButtonValue), ButtonMapErr> {
-    debug_assert!(
-        is_button_event(event),
-        "Non-button event given: {:?}",
-        event
-    );
-
-    match event {
-        gilrs::EventType::ButtonPressed(button, _) => {
-            let button = GamepadButton::try_from(*button)?;
-            Ok((button, GamepadButtonValue::PRESSED))
-        }
-        gilrs::EventType::ButtonRepeated(button, _) => {
-            let button = GamepadButton::try_from(*button)?;
-            Ok((button, GamepadButtonValue::PRESSED))
-        }
-        gilrs::EventType::ButtonReleased(button, _) => {
-            let button = GamepadButton::try_from(*button)?;
-            Ok((button, GamepadButtonValue::NOT_PRESSED))
-        }
-        gilrs::EventType::ButtonChanged(button, val, _) => {
-            let button = GamepadButton::try_from(*button)?;
-            Ok((button, GamepadButtonValue::new_continuous(*val)))
-        }
-        _ => unreachable!(),
-    }
-}
 
 impl GamepadInputPlugin {
     /// Creates a new default [GamepadInputPlugin]
@@ -139,6 +101,19 @@ impl WutEnginePlugin for GamepadInputPlugin {
                 };
 
                 gamepad.buttons[button as usize] = value;
+            }
+
+            if is_axis_event(&event) {
+                let (partial_axis, value) = match get_axis_event_axis_and_value(&event) {
+                    Ok(av) => av,
+                    Err(e) => {
+                        log::debug!("Could not determine gamepad axis value: {}", e);
+                        continue;
+                    }
+                };
+
+                let (axis, dir) = partial_axis.get_full_axis_and_dir();
+                gamepad.axes[axis as usize].set_axis(value, dir);
             }
         }
 
