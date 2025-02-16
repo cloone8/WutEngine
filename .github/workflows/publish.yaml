@@ -15,7 +15,7 @@ jobs:
       - name: Install XCB and GL dependencies (ubuntu runner)
         run: |
           sudo apt update
-          sudo apt install libx11-xcb-dev libgl1-mesa-dev
+          sudo apt install libx11-xcb-dev libgl1-mesa-dev pkg-config libudev-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable

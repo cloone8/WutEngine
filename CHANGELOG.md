@@ -2,6 +2,8 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.1.0]
+
 ## [v0.0.10]
 - Added basic controller support
 
