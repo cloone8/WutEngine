@@ -8,9 +8,9 @@ use cocoa::appkit::{
     NSOpenGLPFAColorSize, NSOpenGLPFADepthSize, NSOpenGLPFADoubleBuffer, NSOpenGLPFAMultisample,
     NSOpenGLPFAOpenGLProfile, NSOpenGLPFASampleBuffers, NSOpenGLPFASamples, NSOpenGLPFAStencilSize,
     NSOpenGLPixelFormat, NSOpenGLProfileVersion3_2Core, NSOpenGLProfileVersion4_1Core,
-    NSOpenGLProfileVersionLegacy, NSOpenGLView, NSView,
+    NSOpenGLProfileVersionLegacy, NSOpenGLView, NSView, NSViewHeightSizable, NSViewWidthSizable,
 };
-use cocoa::base::{id, nil, YES};
+use cocoa::base::{YES, id, nil};
 
 use core_foundation::base::TCFType;
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
@@ -92,7 +92,10 @@ impl GlContext {
 
         view.setWantsBestResolutionOpenGLSurface_(YES);
 
+        // After initializing your view
+        let () = msg_send![view, setAutoresizingMask: (NSViewWidthSizable | NSViewHeightSizable)];
         let () = msg_send![view, retain];
+
         NSOpenGLView::display_(view);
         parent_view.addSubview_(view);
 
