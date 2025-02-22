@@ -18,7 +18,7 @@ impl ComponentData {
     /// state.
     pub(crate) fn new(component: Box<dyn Component>) -> Self {
         ComponentData {
-            component,
+            component: component,
             state: ComponentState::ReadyForStart,
         }
     }

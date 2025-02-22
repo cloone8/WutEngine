@@ -4,8 +4,8 @@ use core::cell::RefCell;
 use core::fmt::Display;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::component::data::{ComponentData, ComponentState};
 use crate::component::Component;
+use crate::component::data::{ComponentData, ComponentState};
 
 static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
 
@@ -46,10 +46,10 @@ impl GameObject {
     }
 
     /// Adds a new component to this [GameObject]
-    pub fn add_component(&mut self, component: Box<dyn Component>) {
+    pub fn add_component(&mut self, component: impl Component) {
         self.components
             .get_mut()
-            .push(ComponentData::new(component));
+            .push(ComponentData::new(Box::new(component)));
     }
 
     /// Removes all components that are currently marked as dying, without running

@@ -13,13 +13,15 @@ use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::{IndexBuffer, MeshData};
 use wutengine::graphics::shader::ShaderSetId;
-use wutengine::math::{vec2, vec3, Quat, Vec2, Vec3};
+use wutengine::math::{Quat, Vec2, Vec3, random, vec2, vec3};
 use wutengine::plugins::WutEnginePlugin;
 use wutengine::windowing::WindowIdentifier;
 use wutengine::windowing::{self, FullscreenType, OpenWindowParams};
 use wutengine::{map, plugins};
 
-use crate::{BallData, PlayerMovement};
+use crate::balldata::BallData;
+use crate::enemy::Enemy;
+use crate::player::PlayerMovement;
 
 /// Plugin that only injects the initial components to get the game started
 #[derive(Debug)]
@@ -69,15 +71,15 @@ fn make_window(context: &mut plugins::Context) {
 fn make_player(context: &mut plugins::Context, mesh: Mesh) {
     let mut player = GameObject::new(Some("Player".to_string()));
 
-    player.add_component(Box::new(InputHandler::new()));
-    player.add_component(Box::new(PlayerMovement::new()));
-    player.add_component(Box::new(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE)));
-    player.add_component(Box::new(Transform::with_pos_rot_scale(
+    player.add_component(InputHandler::new());
+    player.add_component(PlayerMovement::new());
+    player.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
+    player.add_component(Transform::with_pos_rot_scale(
         vec3(-1.1, 0.0, 0.0),
         Quat::IDENTITY,
         vec3(0.125, 0.4, 1.0),
-    )));
-    player.add_component(Box::new(StaticMeshRenderer {
+    ));
+    player.add_component(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
             shader: ShaderSetId::new("unlit"),
@@ -85,7 +87,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
                 "baseColor" => MaterialParameter::Color(Color::BLUE)
             ],
         }),
-    }));
+    });
 
     context.engine.spawn_gameobject(player);
 }
@@ -94,13 +96,13 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
 fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
     let mut enemy = GameObject::new(Some("Enemy".to_string()));
 
-    enemy.add_component(Box::new(Transform::with_pos_rot_scale(
+    enemy.add_component(Transform::with_pos_rot_scale(
         vec3(1.1, 0.0, 0.0),
         Quat::IDENTITY,
         vec3(0.125, 0.4, 1.0),
-    )));
-    enemy.add_component(Box::new(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE)));
-    enemy.add_component(Box::new(StaticMeshRenderer {
+    ));
+    enemy.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
+    enemy.add_component(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
             shader: ShaderSetId::new("unlit"),
@@ -108,7 +110,8 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
                 "baseColor" => MaterialParameter::Color(Color::RED)
             ],
         }),
-    }));
+    });
+    enemy.add_component(Enemy);
 
     context.engine.spawn_gameobject(enemy);
 }
@@ -117,18 +120,18 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
 fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     let mut ball = GameObject::new(Some("Ball".to_string()));
 
-    ball.add_component(Box::new(BallData {
+    ball.add_component(BallData {
         speed: 0.8,
-        direction: vec2(1.0, 0.0),
-    }));
+        direction: vec2(1.0, 0.0) * random::simple::sign(),
+    });
 
-    ball.add_component(Box::new(Transform::with_pos_rot_scale(
+    ball.add_component(Transform::with_pos_rot_scale(
         vec3(0.0, 0.0, -0.01),
         Quat::IDENTITY,
         vec3(0.07, 0.07, 0.07),
-    )));
-    ball.add_component(Box::new(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE)));
-    ball.add_component(Box::new(StaticMeshRenderer {
+    ));
+    ball.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
+    ball.add_component(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
             shader: ShaderSetId::new("unlit"),
@@ -136,7 +139,7 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
                 "baseColor" => MaterialParameter::Color(Color::WHITE)
             ],
         }),
-    }));
+    });
 
     context.engine.spawn_gameobject(ball);
 }
@@ -145,13 +148,13 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
 fn make_camera(context: &mut plugins::Context) {
     let mut camera = GameObject::new(Some("Camera".to_string()));
 
-    camera.add_component(Box::new(FramerateCounter::new()));
+    camera.add_component(FramerateCounter::new());
 
-    camera.add_component(Box::new(Transform::with_pos(Vec3::new(0.0, 0.0, -3.0))));
-    camera.add_component(Box::new(Camera {
+    camera.add_component(Transform::with_pos(Vec3::new(0.0, 0.0, -3.0)));
+    camera.add_component(Camera {
         display: WindowIdentifier::new("main"),
         clear_color: Color::BLACK,
         camera_type: CameraType::Orthographic(2.0),
-    }));
+    });
     context.engine.spawn_gameobject(camera);
 }
