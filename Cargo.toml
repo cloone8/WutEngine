@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.85"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
@@ -32,7 +32,7 @@ wutengine_util_macro = { path = "wutengine_util/macro", version = "0.1.0" }
 wutengine_graphics = { path = "wutengine_graphics", version = "0.1.0" }
 wutengine_opengl = { path = "wutengine_opengl", version = "0.1.0" }
 wutengine_ecs = { path = "wutengine_ecs", version = "0.1.0" }
-gl-from-raw-window-handle = { path = "gl-from-raw-window-handle", version = "0.1.2" }
+gl-from-raw-window-handle = { path = "gl-from-raw-window-handle", version = "0.1.3" }
 
 ### External dependencies ###
 # OS

@@ -2,7 +2,13 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.1.1]
+- Updated Rust edition to 2024
+- Slightly changed API for adding components
+- Added `math::random` module and added `runtime::exit` function.
+
 ## [v0.1.0]
+- No changes. Stabilizing update only.
 
 ## [v0.0.10]
 - Added basic controller support
