@@ -1,7 +1,9 @@
 //! The main runtime and its main loop.
 
+use core::any::TypeId;
 use core::sync::atomic::AtomicBool;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 use messaging::MessageQueue;
 use winit::event_loop::EventLoopProxy;
@@ -9,7 +11,8 @@ use winit::window::WindowId;
 use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
-use crate::gameobject::{GameObject, GameObjectId};
+use crate::gameobject::runtimestorage::GameObjectStorage;
+use crate::global::Global;
 use crate::plugins::WutEnginePlugin;
 use crate::renderer::queue::RenderQueue;
 use crate::windowing::WindowingEvent;
@@ -30,8 +33,7 @@ pub(crate) static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 /// TODO: Split up runtime object into multiple smaller structs
 /// for cleaner code
 pub struct Runtime<R: WutEngineRenderer> {
-    identmap: HashMap<GameObjectId, usize>,
-    objects: Vec<GameObject>,
+    obj_storage: GameObjectStorage,
 
     physics_update_interval: f32,
     physics_update_accumulator: f32,

@@ -1,7 +1,7 @@
 use wutengine_graphics::renderer::WutEngineRenderer;
 
-use crate::runtime::main::ComponentState;
 use crate::runtime::Runtime;
+use crate::runtime::main::ComponentState;
 
 impl<R: WutEngineRenderer> Runtime<R> {
     pub(super) fn lifecycle_start(&mut self) {
@@ -26,7 +26,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
             },
         );
 
-        for go in &mut self.objects {
+        for go in &mut self.obj_storage.objects {
             go.remove_dying_components();
         }
     }

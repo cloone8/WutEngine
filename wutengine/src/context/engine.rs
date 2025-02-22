@@ -11,7 +11,7 @@ pub struct EngineContext<'a> {
     ph: PhantomData<&'a ()>,
 }
 
-impl<'a> EngineContext<'a> {
+impl EngineContext<'_> {
     /// Construct a new, empty, [EngineContext]
     pub(crate) fn new() -> Self {
         Self {

@@ -24,6 +24,7 @@ pub mod builtins;
 pub mod component;
 pub mod context;
 pub mod gameobject;
+pub mod global;
 pub mod input;
 pub mod log;
 pub mod macros;

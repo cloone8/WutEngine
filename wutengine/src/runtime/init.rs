@@ -1,9 +1,12 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 use winit::event_loop::EventLoop;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
+use crate::gameobject::runtimestorage::GameObjectStorage;
+use crate::global;
 use crate::log::LogConfig;
 use crate::plugins::WutEnginePlugin;
 use crate::renderer::queue::RenderQueue;
@@ -98,12 +101,15 @@ impl RuntimeInitializer {
         let runtime_already_started = RUNTIME_STARTED.swap(true, Ordering::SeqCst);
 
         if runtime_already_started {
-            panic!("Another runtime has already been started, and WutEngine does not support multiple runtimes in the same process");
+            panic!(
+                "Another runtime has already been started, and WutEngine does not support multiple runtimes in the same process"
+            );
         }
 
         crate::log::initialize_loggers(&self.log_config);
 
         threadpool::init_threadpool();
+        global::init_globaldata();
 
         self.run_plugin_build_hooks();
 
@@ -118,8 +124,7 @@ impl RuntimeInitializer {
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         let mut runtime = Runtime {
-            identmap: HashMap::default(),
-            objects: Vec::new(),
+            obj_storage: GameObjectStorage::new(),
             physics_update_interval: self.physics_interval,
             physics_update_accumulator: 0.0,
             render_queue: RenderQueue::new(),

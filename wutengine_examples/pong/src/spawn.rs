@@ -111,7 +111,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
             ],
         }),
     });
-    enemy.add_component(Enemy::new(1.0, 0.2));
+    enemy.add_component(Enemy::new(0.5, 0.9));
 
     context.engine.spawn_gameobject(enemy);
 }

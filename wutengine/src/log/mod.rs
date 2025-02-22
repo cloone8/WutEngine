@@ -190,6 +190,9 @@ pub(crate) fn initialize_loggers(config: &LogConfig) {
     }
 
     for err in logger_create_errs {
-        log::error!("Error configuring one of the loggers, logging output for that component will not be available: {}", err);
+        log::error!(
+            "Error configuring one of the loggers, logging output for that component will not be available: {}",
+            err
+        );
     }
 }

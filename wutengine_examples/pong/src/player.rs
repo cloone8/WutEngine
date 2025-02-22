@@ -58,6 +58,6 @@ impl Default for PlayerMovement {
 
 impl PlayerMovement {
     pub fn new() -> Self {
-        PlayerMovement { move_speed: 1.0 }
+        PlayerMovement { move_speed: 0.5 }
     }
 }

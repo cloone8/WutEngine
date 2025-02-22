@@ -173,7 +173,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         log::info!("WutEngine shutting down");
 
         // Mark all components as dying and cancel all components queued for startup.
-        for go in &mut self.objects {
+        for go in &mut self.obj_storage.objects {
             go.cancel_component_creation();
             for component in go.components.get_mut() {
                 component.state = ComponentState::Dying;

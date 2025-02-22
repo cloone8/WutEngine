@@ -78,44 +78,48 @@ impl<R: WutEngineRenderer> Runtime<R> {
         let window_data = make_windowdata_map(&self.windows);
         let window_context = WindowContext::new(&window_data);
 
-        self.objects.par_iter_mut().for_each(|gameobject| {
-            let meta = meta_func(gameobject.id);
+        self.obj_storage
+            .objects
+            .par_iter_mut()
+            .for_each(|gameobject| {
+                let meta = meta_func(gameobject.id);
 
-            let mut cur_components = gameobject.components.borrow_mut();
-            let mut new_components = Vec::new();
+                let mut cur_components = gameobject.components.borrow_mut();
+                let mut new_components = Vec::new();
 
-            for i in 0..cur_components.len() {
-                if !component_filter(&cur_components[i]) {
-                    continue;
+                for i in 0..cur_components.len() {
+                    if !component_filter(&cur_components[i]) {
+                        continue;
+                    }
+
+                    let (component, go_context) =
+                        GameObjectContext::new(gameobject, &mut cur_components, i);
+
+                    let mut context = component::Context {
+                        gameobject: go_context,
+                        this: ComponentContext::new(),
+                        message: &message_context,
+                        engine: &engine_context,
+                        plugin: &plugin_context,
+                        viewport: &viewport_context,
+                        graphics: &graphics_context,
+                        window: &window_context,
+                    };
+
+                    func(&meta, component, &mut context);
+
+                    if context.this.should_die {
+                        component.state = ComponentState::Dying;
+                    }
+
+                    new_components.extend(context.gameobject.consume());
                 }
 
-                let (component, go_context) =
-                    GameObjectContext::new(gameobject, &mut cur_components, i);
+                cur_components.extend(new_components.into_iter().map(ComponentData::new));
+            });
 
-                let mut context = component::Context {
-                    gameobject: go_context,
-                    this: ComponentContext::new(),
-                    message: &message_context,
-                    engine: &engine_context,
-                    plugin: &plugin_context,
-                    viewport: &viewport_context,
-                    graphics: &graphics_context,
-                    window: &window_context,
-                };
-
-                func(&meta, component, &mut context);
-
-                if context.this.should_die {
-                    component.state = ComponentState::Dying;
-                }
-
-                new_components.extend(context.gameobject.consume());
-            }
-
-            cur_components.extend(new_components.into_iter().map(ComponentData::new));
-        });
-
-        self.add_new_gameobjects(engine_context.consume());
+        self.obj_storage
+            .add_new_gameobjects(engine_context.consume());
 
         self.render_queue.add_viewports(viewport_context);
         self.render_queue.add_renderables(graphics_context);
@@ -146,7 +150,8 @@ impl<R: WutEngineRenderer> Runtime<R> {
         let graphics_context = context.graphics;
         let window_context = context.windows;
 
-        self.add_new_gameobjects(engine_context.consume());
+        self.obj_storage
+            .add_new_gameobjects(engine_context.consume());
 
         self.render_queue.add_viewports(viewport_context);
         self.render_queue.add_renderables(graphics_context);
@@ -195,32 +200,6 @@ impl<R: WutEngineRenderer> Runtime<R> {
             message_queue = new_queue;
 
             message_iter += 1;
-        }
-    }
-
-    fn add_new_gameobjects(&mut self, gameobjects: impl IntoIterator<Item = GameObject>) {
-        for new_gameobject in gameobjects.into_iter() {
-            match self.identmap.contains_key(&new_gameobject.id) {
-                true => log::error!(
-                    "Tried to add an already existing GameObject, ignoring : {}",
-                    new_gameobject.id
-                ),
-                false => {
-                    let go_id = new_gameobject.id;
-                    let new_idx = self.objects.len();
-
-                    self.identmap.insert(go_id, new_idx);
-
-                    log::debug!(
-                        "Added new GameObject \"{}\" with ID {} at index {}",
-                        new_gameobject.name,
-                        go_id,
-                        new_idx
-                    );
-
-                    self.objects.push(new_gameobject);
-                }
-            }
         }
     }
 }

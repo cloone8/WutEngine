@@ -2,10 +2,11 @@
 
 This file documents the most important changes for each released version.
 
-## [v0.1.1]
+## [v0.2.0]
 - Updated Rust edition to 2024
 - Slightly changed API for adding components
 - Added `math::random` module and added `runtime::exit` function.
+- Added `global` module that enables the sharing of global data between components
 
 ## [v0.1.0]
 - No changes. Stabilizing update only.
