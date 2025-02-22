@@ -1,5 +1,6 @@
 use wutengine::builtins::components::transform::Transform;
 use wutengine::component::{Component, Context};
+use wutengine::log;
 use wutengine::macros::component_boilerplate;
 use wutengine::math::{Vec2, Vec3Swizzles};
 use wutengine::physics::CollisionStart;
@@ -32,15 +33,25 @@ impl Component for BallData {
     fn physics_update(&mut self, context: &mut Context) {
         self.do_step(context);
 
-        if context
+        let cur_pos = context
             .gameobject
             .get_component::<Transform>()
             .unwrap()
-            .world_pos()
-            .y
-            .abs()
-            > 1.0
-        {
+            .world_pos();
+
+        if cur_pos.x.abs() > 1.2 {
+            let player_won = cur_pos.x.is_sign_positive();
+
+            if player_won {
+                log::info!("PLAYER WON");
+            } else {
+                log::info!("ENEMY WON");
+            }
+
+            wutengine::runtime::exit();
+        }
+
+        if cur_pos.y.abs() > 1.0 {
             self.direction.y *= -1.0;
         }
     }

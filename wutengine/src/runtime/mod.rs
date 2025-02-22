@@ -1,5 +1,6 @@
 //! The main runtime and its main loop.
 
+use core::sync::atomic::AtomicBool;
 use std::collections::HashMap;
 
 use messaging::MessageQueue;
@@ -11,8 +12,8 @@ use wutengine_graphics::renderer::WutEngineRenderer;
 use crate::gameobject::{GameObject, GameObjectId};
 use crate::plugins::WutEnginePlugin;
 use crate::renderer::queue::RenderQueue;
-use crate::windowing::window::Window;
 use crate::windowing::WindowingEvent;
+use crate::windowing::window::Window;
 
 mod init;
 mod main;
@@ -20,6 +21,9 @@ pub mod messaging;
 mod threadpool;
 
 pub use init::*;
+
+/// Whether the runtime was requested to stop by the user through [global_fns::exit]
+pub(crate) static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 /// The main runtime for WutEngine. Cannot be constructed directly. Instead,
 /// construct a runtime with a [RuntimeInitializer]
@@ -43,4 +47,9 @@ pub struct Runtime<R: WutEngineRenderer> {
 
     plugins: Vec<Box<dyn WutEnginePlugin>>,
     renderer: R,
+}
+
+/// Stops the WutEngine runtime cleanly before the next frame. Can still finish the current frame
+pub fn exit() {
+    EXIT_REQUESTED.store(true, core::sync::atomic::Ordering::SeqCst);
 }
