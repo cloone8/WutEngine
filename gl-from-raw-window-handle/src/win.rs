@@ -1,4 +1,4 @@
-use std::ffi::{c_void, CString, OsStr};
+use std::ffi::{CString, OsStr, c_void};
 use std::os::windows::ffi::OsStrExt;
 
 use raw_window_handle::{DisplayHandle, RawWindowHandle, WindowHandle};
@@ -8,15 +8,15 @@ use winapi::shared::ntdef::WCHAR;
 use winapi::shared::windef::{HDC, HGLRC, HWND};
 use winapi::um::libloaderapi::{FreeLibrary, GetProcAddress, LoadLibraryA};
 use winapi::um::wingdi::{
-    wglCreateContext, wglDeleteContext, wglGetProcAddress, wglMakeCurrent, ChoosePixelFormat,
-    DescribePixelFormat, SetPixelFormat, SwapBuffers, PFD_DOUBLEBUFFER, PFD_DRAW_TO_WINDOW,
-    PFD_MAIN_PLANE, PFD_SUPPORT_OPENGL, PFD_TYPE_RGBA, PIXELFORMATDESCRIPTOR,
+    ChoosePixelFormat, DescribePixelFormat, PFD_DOUBLEBUFFER, PFD_DRAW_TO_WINDOW, PFD_MAIN_PLANE,
+    PFD_SUPPORT_OPENGL, PFD_TYPE_RGBA, PIXELFORMATDESCRIPTOR, SetPixelFormat, SwapBuffers,
+    wglCreateContext, wglDeleteContext, wglGetProcAddress, wglMakeCurrent,
 };
 
 use winapi::um::winnt::IMAGE_DOS_HEADER;
 use winapi::um::winuser::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GetDC, RegisterClassW, ReleaseDC,
-    UnregisterClassW, CS_OWNDC, CW_USEDEFAULT, WNDCLASSW,
+    CS_OWNDC, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetDC, RegisterClassW,
+    ReleaseDC, UnregisterClassW, WNDCLASSW,
 };
 
 use crate::{GlConfig, GlError, Profile};
@@ -72,7 +72,7 @@ pub(crate) struct GlContext {
     gl_library: HMODULE,
 }
 
-extern "C" {
+unsafe extern "C" {
     static __ImageBase: IMAGE_DOS_HEADER;
 }
 

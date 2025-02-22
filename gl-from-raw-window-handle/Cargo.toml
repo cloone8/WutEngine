@@ -1,7 +1,7 @@
 [package]
 name = "gl-from-raw-window-handle"
 description = "Library for creating an OpenGL context from a RawWindowHandle"
-version = "0.1.2"
+version = "0.1.3"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
