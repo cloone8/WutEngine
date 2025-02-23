@@ -24,8 +24,12 @@ mod shader;
 mod vao;
 mod window;
 
+/// Main OpenGL Renderer
 pub struct OpenGLRenderer {
+    /// ShaderResolver, responsible for finding shaders on disk
     shader_resolver: Rc<dyn ShaderResolver>,
+
+    /// The active windows
     windows: HashMap<WindowIdentifier, Window>,
 }
 

@@ -7,9 +7,9 @@ use nohash_hasher::IntMap;
 use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::mesh::{IndexBuffer, MeshData, MeshDataId};
 use wutengine_graphics::renderer::{HasDisplayHandle, HasWindowHandle, Renderable, Viewport};
+use wutengine_graphics::shader::ShaderSetId;
 use wutengine_graphics::shader::resolver::ShaderResolver;
 use wutengine_graphics::shader::uniforms::SharedShaderUniform;
-use wutengine_graphics::shader::ShaderSetId;
 
 use crate::error::check_gl_err;
 use crate::mesh::GlMeshBuffers;
@@ -28,6 +28,8 @@ pub(crate) struct Window {
 }
 
 impl Window {
+    /// Creates a new window-specific context for the given native handle and initial size.
+    /// Uses the provided shader resolver to find the shaders on disk.
     pub(crate) fn new(
         shader_resolver: Rc<dyn ShaderResolver>,
         handles: impl HasDisplayHandle + HasWindowHandle,
@@ -74,6 +76,8 @@ impl Window {
         }
     }
 
+    /// A function to be called whenever the size of the native window changed. Changes
+    /// the OpenGL rendering viewport
     pub(crate) fn size_changed(&mut self, size: (u32, u32)) {
         unsafe {
             self.context.make_current();

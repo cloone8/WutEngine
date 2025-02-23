@@ -1,3 +1,5 @@
+//! Abstractions around OpenGL buffers
+
 use core::ffi::c_void;
 use core::marker::PhantomData;
 use core::num::NonZero;
@@ -8,7 +10,10 @@ use crate::error::check_gl_err;
 use crate::opengl::types::{GLenum, GLuint};
 use crate::opengl::{self, Gl};
 
+/// A marker trait to be implemented by some empty structs to type the different
+/// OpenGL buffer types statically
 pub(crate) trait GlBufferType {
+    /// The [GLenum] to be used in [opengl::Gl::BindBuffer] calls
     const GL_BUFTYPE: GLenum;
 }
 

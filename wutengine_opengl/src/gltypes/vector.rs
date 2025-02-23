@@ -1,6 +1,7 @@
 use glam::{Vec3, Vec4};
 use wutengine_graphics::color::Color;
 
+/// A 3D OpenGL float vector
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GlVec3f {
@@ -19,6 +20,7 @@ impl From<Vec3> for GlVec3f {
     }
 }
 
+/// A 4D OpenGL float vector
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GlVec4f {

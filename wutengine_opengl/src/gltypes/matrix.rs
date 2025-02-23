@@ -2,6 +2,7 @@ use glam::Mat4;
 
 use super::GlVec4f;
 
+/// A 4x4 OpenGL float matrix
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GlMat4f {
