@@ -4,13 +4,18 @@ use std::collections::HashMap;
 
 use super::{GameObject, GameObjectId};
 
+/// A container for the runtime storage of WutEngine [GameObject] structs, and their related data
 #[derive(Debug)]
 pub(crate) struct GameObjectStorage {
+    /// A map of [GameObjectId]s to indices into the [Self::objects] array
     pub(crate) identmap: HashMap<GameObjectId, usize>,
+
+    /// The current [GameObject]s
     pub(crate) objects: Vec<GameObject>,
 }
 
 impl GameObjectStorage {
+    /// Creates a new empty [GameObjectStorage]
     pub(crate) fn new() -> Self {
         Self {
             identmap: HashMap::default(),
@@ -18,6 +23,7 @@ impl GameObjectStorage {
         }
     }
 
+    /// Adds the given set of [GameObject]s to the storage
     pub(crate) fn add_new_gameobjects(
         &mut self,
         gameobjects: impl IntoIterator<Item = GameObject>,

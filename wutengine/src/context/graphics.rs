@@ -14,7 +14,7 @@ pub struct GraphicsContext<'a> {
     ph: PhantomData<&'a ()>,
 }
 
-impl<'a> GraphicsContext<'a> {
+impl GraphicsContext<'_> {
     /// Creates a new, empty, graphics context
     pub(crate) fn new() -> Self {
         GraphicsContext {

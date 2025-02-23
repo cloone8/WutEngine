@@ -85,7 +85,7 @@ pub struct ComponentContext<'a> {
     ph: PhantomData<&'a ()>,
 }
 
-impl<'a> ComponentContext<'a> {
+impl ComponentContext<'_> {
     /// Creates a new, empty context
     pub(crate) fn new() -> Self {
         Self {

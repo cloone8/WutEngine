@@ -1,9 +1,7 @@
 //! The main runtime and its main loop.
 
-use core::any::TypeId;
 use core::sync::atomic::AtomicBool;
 use std::collections::HashMap;
-use std::sync::RwLock;
 
 use messaging::MessageQueue;
 use winit::event_loop::EventLoopProxy;
@@ -12,7 +10,6 @@ use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
 use crate::gameobject::runtimestorage::GameObjectStorage;
-use crate::global::Global;
 use crate::plugins::WutEnginePlugin;
 use crate::renderer::queue::RenderQueue;
 use crate::windowing::WindowingEvent;

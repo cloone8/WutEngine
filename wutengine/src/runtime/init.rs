@@ -1,6 +1,5 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
-use std::sync::RwLock;
 
 use winit::event_loop::EventLoop;
 use wutengine_graphics::renderer::WutEngineRenderer;

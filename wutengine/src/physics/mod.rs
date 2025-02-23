@@ -12,12 +12,16 @@ use crate::gameobject::GameObjectId;
 /// Event fired when a collision with another object has started
 #[derive(Debug, Clone)]
 pub struct CollisionStart {
+    /// The [crate::gameobject::GameObject] that we collided with
     pub other: GameObjectId,
+
+    /// The position of the other [crate::gameobject::GameObject] upon collision
     pub other_pos: Vec2,
 }
 
 /// Event fired when a collision with another object has ended
 #[derive(Debug, Clone)]
 pub struct CollisionEnd {
+    /// The [crate::gameobject::GameObject] that we collided with
     pub other: GameObjectId,
 }

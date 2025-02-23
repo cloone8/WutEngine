@@ -11,7 +11,7 @@ pub struct ViewportContext<'a> {
     ph: PhantomData<&'a ()>,
 }
 
-impl<'a> ViewportContext<'a> {
+impl ViewportContext<'_> {
     /// Creates a new, empty, [ViewportContext]
     pub(crate) fn new() -> Self {
         ViewportContext {

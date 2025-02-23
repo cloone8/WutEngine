@@ -1,10 +1,12 @@
+//! 2D Physics logic
+
 use core::fmt::Debug;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
 use collider_meta::ColliderMeta;
 use event_handler::SimpleChannelEventCollector;
-use glam::{vec2, Vec2};
+use glam::{Vec2, vec2};
 use rapier::RapierStructs2D;
 use rapier2d::prelude::*;
 

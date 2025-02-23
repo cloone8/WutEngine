@@ -11,7 +11,7 @@ use crate::context::{
     EngineContext, GameObjectContext, GraphicsContext, MessageContext, PluginContext,
     ViewportContext, WindowContext,
 };
-use crate::gameobject::{GameObject, GameObjectId};
+use crate::gameobject::GameObjectId;
 use crate::plugins::{self, WutEnginePlugin};
 use crate::windowing::window::{Window, WindowData};
 

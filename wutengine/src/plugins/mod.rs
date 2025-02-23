@@ -1,13 +1,12 @@
 //! Module for implementable engine plugins
 
-use core::any::{Any, TypeId};
+use core::any::Any;
 use core::fmt::Debug;
 use std::collections::HashMap;
 
 use crate::context::{
     EngineContext, GraphicsContext, MessageContext, ViewportContext, WindowContext,
 };
-use crate::global::Global;
 use crate::runtime::messaging::MessageQueue;
 use crate::windowing::window::WindowData;
 use crate::winit::event::{DeviceEvent, DeviceId, WindowEvent};

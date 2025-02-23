@@ -1,3 +1,5 @@
+//! 3D Physics logic
+
 use rapier3d::prelude::*;
 
 #[derive(Debug)]
