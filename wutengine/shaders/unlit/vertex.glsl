@@ -1,6 +1,6 @@
-#version 330 core
+#version 410 core
 
-in vec3 wuteng_Position;
+layout(location = 0) in vec3 wuteng_Position;
 
 uniform mat4 wuteng_ModelMat;
 uniform mat4 wuteng_ViewMat;

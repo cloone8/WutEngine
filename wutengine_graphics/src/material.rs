@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use glam::Mat4;
 
 use crate::color::Color;
-use crate::shader::ShaderSetId;
+use crate::renderer::RendererTextureId;
+use crate::shader::ShaderId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MaterialData {
-    pub shader: ShaderSetId,
+    pub shader: Option<ShaderId>,
     pub parameters: HashMap<String, MaterialParameter>,
 }
 
@@ -15,4 +16,5 @@ pub struct MaterialData {
 pub enum MaterialParameter {
     Color(Color),
     Mat4(Mat4),
+    Texture(RendererTextureId),
 }

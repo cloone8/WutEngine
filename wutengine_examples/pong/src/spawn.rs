@@ -12,7 +12,7 @@ use wutengine::gameobject::GameObject;
 use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
 use wutengine::graphics::mesh::{IndexBuffer, MeshData};
-use wutengine::graphics::shader::ShaderSetId;
+use wutengine::graphics::shader::ShaderId;
 use wutengine::math::{Quat, Vec2, Vec3, random, vec2, vec3};
 use wutengine::plugins::WutEnginePlugin;
 use wutengine::windowing::WindowIdentifier;
@@ -82,7 +82,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
     player.add_component(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
-            shader: ShaderSetId::new("unlit"),
+            shader: Some(ShaderId::new("unlit")),
             parameters: map![
                 "baseColor" => MaterialParameter::Color(Color::BLUE)
             ],
@@ -105,7 +105,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
     enemy.add_component(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
-            shader: ShaderSetId::new("unlit"),
+            shader: Some(ShaderId::new("unlit")),
             parameters: map![
                 "baseColor" => MaterialParameter::Color(Color::RED)
             ],
@@ -134,7 +134,7 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     ball.add_component(StaticMeshRenderer {
         mesh,
         material: Material::new(MaterialData {
-            shader: ShaderSetId::new("unlit"),
+            shader: Some(ShaderId::new("unlit")),
             parameters: map![
                 "baseColor" => MaterialParameter::Color(Color::WHITE)
             ],

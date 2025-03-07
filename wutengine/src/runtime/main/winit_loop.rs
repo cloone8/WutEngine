@@ -3,7 +3,7 @@ use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
-use wutengine_graphics::renderer::WutEngineRenderer;
+use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
 
 use crate::runtime::main::ComponentState;
 use crate::runtime::{EXIT_REQUESTED, Runtime};
@@ -88,9 +88,19 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         log::trace!("Doing rendering");
 
+        let renderables: Vec<_> = self
+            .render_queue
+            .renderables
+            .iter()
+            .map(|command| Renderable {
+                mesh: command.mesh.get_renderer_id_or_init(&mut self.renderer),
+                material: command.material.get_renderer_id_or_init(&mut self.renderer),
+                object_to_world: command.object_to_world,
+            })
+            .collect();
+
         for viewport in &self.render_queue.viewports {
-            self.renderer
-                .render(viewport, &self.render_queue.renderables);
+            self.renderer.render(viewport, &renderables);
         }
 
         self.render_queue.viewports.clear();
@@ -149,7 +159,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
                     size.height
                 );
 
-                self.renderer.size_changed(&identifier, size.into());
+                self.renderer.window_size_changed(&identifier, size.into());
 
                 if cfg!(target_os = "windows") {
                     // hack for resizing bug in winit, remove once fixed

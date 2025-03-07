@@ -1,98 +1,122 @@
+use core::ffi::c_void;
 use core::num::NonZero;
 
 use thiserror::Error;
+use wutengine_graphics::shader::ShaderVertexLayout;
 
-use crate::error::check_gl_err;
-use crate::mesh::GlMeshBuffers;
+use crate::error::checkerr;
+use crate::mesh::{GlMeshBuffers, MeshBufferLayout};
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
-use crate::shader::program::ShaderProgram;
 
+/// An OpenGL Vertex Array Object
 #[derive(Debug)]
 pub(crate) struct Vao {
     handle: Option<NonZero<GLuint>>,
+    current_layout: Option<(MeshBufferLayout, ShaderVertexLayout)>,
 }
 
+/// An error while creating a [Vao]
 #[derive(Debug, Error)]
 pub(crate) enum CreateErr {
+    /// OpenGL returned 0
     #[error("OpenGL returned 0")]
     Zero,
 }
 
 impl Vao {
+    /// Creates a new, unbound VAO
     pub(crate) fn new(gl: &Gl) -> Result<Self, CreateErr> {
         let mut handle = 0;
 
         unsafe {
             gl.GenVertexArrays(1, &mut handle);
         }
-        check_gl_err!(gl);
+        checkerr!(gl);
 
         let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
 
         Ok(Self {
             handle: Some(handle),
+            current_layout: None,
         })
     }
 
+    /// Checks if the currently configured layout
+    /// matches the given mesh and shader layouts
+    pub(crate) fn layout_matches(
+        &self,
+        mesh_layout: &MeshBufferLayout,
+        shader_layout: &ShaderVertexLayout,
+    ) -> bool {
+        match &self.current_layout {
+            Some((cur_mesh_layout, cur_shader_layout)) => {
+                cur_mesh_layout == mesh_layout && cur_shader_layout == shader_layout
+            }
+            None => false,
+        }
+    }
+
+    /// Binds the VAO
     pub(crate) fn bind(&mut self, gl: &Gl) {
         unsafe {
             let handle_int = self.handle.unwrap().get();
 
             gl.BindVertexArray(handle_int);
         }
-        check_gl_err!(gl);
+        checkerr!(gl);
     }
 
+    /// Unbinds the VAO
     pub(crate) fn unbind(&mut self, gl: &Gl) {
         unsafe {
             gl.BindVertexArray(0);
         }
-        check_gl_err!(gl);
+        checkerr!(gl);
     }
 
-    pub(crate) fn set_vertex_attrs_for(
+    /// Sets the given layout and associates with the given mesh buffers.
+    /// Binds and unbinds this VAO, so no buffer is bound after this call returns
+    pub(crate) fn set_layout(
         &mut self,
         gl: &Gl,
-        mesh: &GlMeshBuffers,
-        program: &ShaderProgram,
+        mesh: &mut GlMeshBuffers,
+        shader_layout: ShaderVertexLayout,
     ) {
-        for attribute in mesh.layout.get_present_attributes() {
-            log::trace!("Checking attribute presence: {:?}", attribute);
+        //NOTE: For now it's assumed that mesh buffers only have vertex position data
+        let mesh_vtx_layout = &mesh.vertex_layout;
+        let mesh_vtx_stride = mesh_vtx_layout.calculate_stride_for_layout();
 
-            let location_index = unsafe {
-                gl.GetAttribLocation(program.assert_linked().get(), attribute.as_c_str().as_ptr())
-            };
-            check_gl_err!(gl);
+        self.bind(gl);
 
-            if location_index == -1 {
-                log::trace!("Attribute not present");
-                // Attribute not present on shader
-                continue;
-            }
+        mesh.vertex.bind(gl);
+        mesh.index.bind(gl);
 
-            log::trace!("Attribute present at {}", location_index);
-
-            let layout = mesh.layout.get_for_attribute(attribute).unwrap();
-
-            log::trace!("Resolved layout: {:#?}", layout);
-
+        if let (Some(shader_attr_pos), Some(mesh_attr_pos)) =
+            (shader_layout.position, mesh_vtx_layout.position)
+        {
             unsafe {
                 gl.VertexAttribPointer(
-                    location_index as GLuint,
-                    layout.size,
-                    layout.gltype,
+                    shader_attr_pos as GLuint,
+                    3,
+                    opengl::FLOAT,
                     opengl::FALSE,
-                    layout.stride,
-                    layout.offset,
+                    mesh_vtx_stride,
+                    mesh_attr_pos as *const c_void,
                 );
-                check_gl_err!(gl);
-                gl.EnableVertexAttribArray(location_index as GLuint);
-                check_gl_err!(gl);
+                checkerr!(gl);
+
+                gl.EnableVertexAttribArray(shader_attr_pos as GLuint);
+                checkerr!(gl);
             }
         }
+
+        self.unbind(gl);
+
+        self.current_layout = Some((mesh_vtx_layout.clone(), shader_layout));
     }
 
+    /// Destroys this VAO
     pub(crate) fn destroy(mut self, gl: &Gl) {
         if let Some(handle) = self.handle.take() {
             let as_int = handle.get();
@@ -100,7 +124,7 @@ impl Vao {
             unsafe {
                 gl.DeleteVertexArrays(1, &as_int);
             }
-            check_gl_err!(gl);
+            checkerr!(gl);
         }
     }
 }

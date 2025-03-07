@@ -1,7 +1,11 @@
 //! Internal render queue related functionality
 
-use wutengine_graphics::renderer::{Renderable, Viewport};
+use std::sync::Arc;
 
+use glam::Mat4;
+use wutengine_graphics::renderer::Viewport;
+
+use crate::builtins::assets::{RawMaterial, RawMesh};
 use crate::context::{GraphicsContext, ViewportContext};
 
 /// The rendering queue for a given frame
@@ -10,7 +14,14 @@ pub(crate) struct RenderQueue {
     pub(crate) viewports: Vec<Viewport>,
 
     /// Objects to render
-    pub(crate) renderables: Vec<Renderable>,
+    pub(crate) renderables: Vec<RenderCommand>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct RenderCommand {
+    pub(crate) mesh: Arc<RawMesh>,
+    pub(crate) material: Arc<RawMaterial>,
+    pub(crate) object_to_world: Mat4,
 }
 
 impl RenderQueue {

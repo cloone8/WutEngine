@@ -36,7 +36,6 @@ log.workspace = true
 itertools.workspace = true
 rand.workspace = true
 glam.workspace = true
-include_dir.workspace = true
 simplelog.workspace = true
 rayon.workspace = true
 rapier2d.workspace = true

@@ -4,7 +4,7 @@
 
 use quote::{format_ident, quote};
 use syn::parse::Parse;
-use syn::{parse_macro_input, Ident, Token};
+use syn::{Attribute, Ident, Token, parse_macro_input};
 
 struct GenerateAssertSetInput {
     name: Ident,
@@ -76,6 +76,78 @@ pub fn generate_assert_set(input: proc_macro::TokenStream) -> proc_macro::TokenS
         pub use #ident_normal;
         pub use #ident_eq;
         pub use #ident_ne;
+    }
+    .into()
+}
+
+struct GenerateAtomicIdInput {
+    attrs: Vec<Attribute>,
+    name: Ident,
+}
+
+impl Parse for GenerateAtomicIdInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let attrs = input.call(Attribute::parse_outer)?;
+        let name: Ident = input.parse()?;
+
+        Ok(Self { attrs, name })
+    }
+}
+/// Generates a new atomic identifier type, which automatically increments itself
+/// whenever a new instance is created.
+#[proc_macro]
+pub fn generate_atomic_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as GenerateAtomicIdInput);
+
+    let ident_id = input.name;
+
+    let id_overflow_err = format!("Overflow for ID of type `{}`", ident_id);
+
+    let ident_new_doc = format!("Generate a new guaranteed unique [{}]", ident_id);
+    let attrs = input.attrs;
+    quote! {
+        #(#attrs)*
+        #[repr(transparent)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub struct #ident_id(::core::num::NonZeroU64);
+
+        impl ::std::fmt::Display for #ident_id {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                write!(f, "{:016x}", self.0)
+            }
+        }
+
+        impl ::core::hash::Hash for #ident_id {
+            fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+                state.write_u64(self.0.get());
+            }
+        }
+
+        impl ::nohash_hasher::IsEnabled for #ident_id {}
+
+        impl Default for #ident_id {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
+        impl #ident_id {
+            #[doc = #ident_new_doc]
+            #[inline]
+            pub fn new() -> Self {
+                static NEXT_ID: ::core::sync::atomic::AtomicU64 = ::core::sync::atomic::AtomicU64::new(1);
+
+                let mut id_val = 0;
+                
+                while id_val == 0 {
+                    id_val = NEXT_ID.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed);
+                }
+
+                debug_assert!(id_val < u64::MAX, #id_overflow_err);
+
+                Self(::core::num::NonZeroU64::new(id_val).unwrap())
+            }
+        }
     }
     .into()
 }

@@ -29,9 +29,6 @@ impl Component for StaticMeshRenderer {
     }
 
     fn pre_render(&mut self, context: &mut Context) {
-        let mesh = self.mesh.data.clone();
-        let material = self.material.data.clone();
-
         let transform = if let Some(transform) = context.gameobject.get_component::<Transform>() {
             transform.local_to_world()
         } else {
@@ -41,8 +38,8 @@ impl Component for StaticMeshRenderer {
 
         log::trace!(
             "Pushing renderable mesh {:#?} with material {:#?} and transform {}",
-            mesh,
-            material,
+            &self.mesh,
+            &self.material,
             transform
         );
 

@@ -2,15 +2,15 @@ use core::marker::PhantomData;
 use std::sync::Mutex;
 
 use glam::Mat4;
-use wutengine_graphics::renderer::Renderable;
 
 use crate::builtins::assets::{Material, Mesh};
+use crate::renderer::queue::RenderCommand;
 
 /// The graphics context. Used for interacting with graphics related APIs
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
 pub struct GraphicsContext<'a> {
-    render_commands: Mutex<Vec<Renderable>>,
+    render_commands: Mutex<Vec<RenderCommand>>,
     ph: PhantomData<&'a ()>,
 }
 
@@ -24,7 +24,7 @@ impl GraphicsContext<'_> {
     }
 
     /// Returns the renderable commands contained within the context
-    pub(crate) fn consume(self) -> Vec<Renderable> {
+    pub(crate) fn consume(self) -> Vec<RenderCommand> {
         self.render_commands.into_inner().unwrap()
     }
 
@@ -33,9 +33,9 @@ impl GraphicsContext<'_> {
     pub fn render(&self, mesh: &Mesh, material: &Material, object_to_world: Mat4) {
         let mut locked = self.render_commands.lock().unwrap();
 
-        locked.push(Renderable {
-            mesh: mesh.data.clone(),
-            material: material.data.clone(),
+        locked.push(RenderCommand {
+            mesh: mesh.0.clone(),
+            material: material.0.clone(),
             object_to_world,
         });
     }

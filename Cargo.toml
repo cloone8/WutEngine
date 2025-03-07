@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.85"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
@@ -25,13 +25,13 @@ categories = ["game-engines"]
 
 [workspace.dependencies]
 ### Workspace dependencies ###
-wutengine = { path = "wutengine", version = "0.2.0" }
-wutengine_macro = { path = "wutengine/macro", version = "0.2.0" }
-wutengine_core = { path = "wutengine_core", version = "0.2.0" }
-wutengine_util_macro = { path = "wutengine_util/macro", version = "0.2.0" }
-wutengine_graphics = { path = "wutengine_graphics", version = "0.2.0" }
-wutengine_opengl = { path = "wutengine_opengl", version = "0.2.0" }
-wutengine_ecs = { path = "wutengine_ecs", version = "0.2.0" }
+wutengine = { path = "wutengine", version = "0.3.0" }
+wutengine_macro = { path = "wutengine/macro", version = "0.3.0" }
+wutengine_core = { path = "wutengine_core", version = "0.3.0" }
+wutengine_util_macro = { path = "wutengine_util/macro", version = "0.3.0" }
+wutengine_graphics = { path = "wutengine_graphics", version = "0.3.0" }
+wutengine_opengl = { path = "wutengine_opengl", version = "0.3.0" }
+wutengine_ecs = { path = "wutengine_ecs", version = "0.3.0" }
 gl-from-raw-window-handle = { path = "gl-from-raw-window-handle", version = "0.1.4" }
 
 ### External dependencies ###
@@ -86,7 +86,6 @@ nalgebra = { version = "0.*", features = ["convert-glam029"] }
 
 # Others
 static_assertions = "1.1.0"
-include_dir = "0.7.4"
 
 [profile.dev]
 opt-level = 1

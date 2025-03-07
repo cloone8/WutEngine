@@ -132,7 +132,7 @@ impl RuntimeInitializer {
             eventloop: event_loop.create_proxy(),
             started: false,
             plugins: self.plugins,
-            renderer: R::build(EmbeddedShaderResolver),
+            renderer: R::build(EmbeddedShaderResolver::new()),
         };
 
         event_loop.run_app(&mut runtime).unwrap();

@@ -10,15 +10,6 @@ pub use wutengine_core::profiling;
 #[doc(inline)]
 pub use wutengine_graphics as graphics;
 
-mod embedded {
-    //! Embedded resources. Will probably be replaced with something more intelligent later
-
-    use include_dir::{Dir, include_dir};
-
-    /// Embedded shader sources. Will be replaced with a more sophisticated shader loading system later.
-    pub(crate) static SHADERS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/shaders");
-}
-
 pub mod asset;
 pub mod builtins;
 pub mod component;

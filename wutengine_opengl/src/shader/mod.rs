@@ -1,207 +1,272 @@
-use core::ffi::{c_char, CStr};
-use core::fmt::Debug;
+use core::ffi::CStr;
 use core::num::NonZero;
+use core::ptr::{null, null_mut};
+use std::collections::HashMap;
 use std::ffi::CString;
-use std::marker::PhantomData;
-use std::ptr::{null, null_mut};
 
 use thiserror::Error;
+use wutengine_graphics::shader::{Shader, ShaderVertexLayout};
 
-use crate::error::check_gl_err;
-use crate::opengl::types::GLint;
-use crate::opengl::{self, types::GLuint, Gl};
-
-pub(crate) mod attribute;
-pub(crate) mod program;
-pub(crate) mod set;
-pub(crate) mod uniform;
-
-pub(crate) unsafe trait ShaderType: Debug {
-    const GL_SHADER_TYPE: GLuint;
-}
+use crate::error::checkerr;
+use crate::opengl::types::{GLchar, GLint, GLuint};
+use crate::opengl::{self, Gl};
 
 #[derive(Debug)]
-pub(crate) struct Vertex;
-
-#[derive(Debug)]
-pub(crate) struct Fragment;
-
-unsafe impl ShaderType for Vertex {
-    const GL_SHADER_TYPE: GLuint = opengl::VERTEX_SHADER;
-}
-unsafe impl ShaderType for Fragment {
-    const GL_SHADER_TYPE: GLuint = opengl::FRAGMENT_SHADER;
+pub(crate) struct GlShaderProgram {
+    handle: Option<NonZero<GLuint>>,
+    vertex_layout: ShaderVertexLayout,
+    uniforms: HashMap<String, ()>,
 }
 
 #[derive(Debug, Error)]
 pub(crate) enum CreateErr {
-    #[error("OpenGL returned 0")]
-    Zero,
+    #[error("Shader has no source code")]
+    Empty,
+
+    #[error("OpenGL did not return a shader program handle")]
+    Handle,
+
+    #[error("Could not compile shader stage")]
+    Compile(#[from] CompileErr),
+
+    #[error("Could not link shader program")]
+    Link(String),
 }
 
 #[derive(Debug, Error)]
 pub(crate) enum CompileErr {
-    #[error("OpenGL returned error message during shader compilation: {}", 0)]
-    Gl(String),
+    #[error("OpenGL did not return a shader handle")]
+    Handle,
 
-    #[error("Shader was already compiled")]
-    AlreadyCompiled,
+    #[error("Source code contained non-ascii or NUL character")]
+    SourceEncoding,
+
+    #[error("OpenGL shader compile error: {}", 0)]
+    Compile(String),
 }
 
-#[derive(Debug)]
-pub(crate) struct Shader<T: ShaderType> {
-    data: ShaderData,
-    phantom: PhantomData<T>,
-}
-
-impl<T: ShaderType> Shader<T> {
-    pub(crate) fn new(gl: &Gl, source: &str) -> Result<Self, CreateErr> {
-        Ok(Self {
-            data: ShaderData::new::<T>(gl, source)?,
-            phantom: PhantomData,
-        })
-    }
-
-    pub(crate) fn get_compiled(&mut self, gl: &Gl) -> Result<NonZero<GLuint>, CompileErr> {
-        if !self.data.is_compiled() {
-            self.data.do_compile(gl)?;
-
-            debug_assert!(self.data.is_compiled(), "Should be compiled now!");
+impl GlShaderProgram {
+    /// Creates, compiles, and links a new OpenGL shaderprogram from the given source
+    pub(crate) fn new(gl: &Gl, source: &Shader) -> Result<Self, CreateErr> {
+        if !source.source.has_any() {
+            return Err(CreateErr::Empty);
         }
 
-        Ok(self.data.get_handle())
-    }
+        let program: NonZero<GLuint> =
+            NonZero::new(unsafe { gl.CreateProgram() }).ok_or(CreateErr::Handle)?;
+        checkerr!(gl);
 
-    pub(crate) fn assert_compiled(&self) -> NonZero<GLuint> {
-        assert!(self.data.is_compiled());
+        // Compile the stages one-by-one, cleaning up the partial program if we encounter an error
+        let vertex = if let Some(vtx_src) = &source.source.vertex {
+            let compiled = compile_stage(gl, vtx_src, opengl::VERTEX_SHADER);
 
-        self.data.get_handle()
-    }
-    pub(crate) fn destroy(&mut self, gl: &Gl) {
-        log::trace!("Destroying shader: {:?}", self);
+            if let Err(e) = compiled {
+                destroy_program(gl, program);
 
-        let handle = match self.data {
-            ShaderData::Uncompiled { handle, .. } => handle,
-            ShaderData::Compiled { handle } => handle,
-            ShaderData::Destroyed => panic!("Trying to destroy an already destroyed shader"),
+                return Err(e.into());
+            } else {
+                Some(compiled.unwrap())
+            }
+        } else {
+            None
         };
 
-        let as_int = handle.get();
+        let fragment = if let Some(frg_src) = &source.source.fragment {
+            let compiled = compile_stage(gl, frg_src, opengl::FRAGMENT_SHADER);
 
-        unsafe {
-            gl.DeleteShader(as_int);
-        }
+            if let Err(e) = compiled {
+                if let Some(vtx) = vertex {
+                    destroy_stage(gl, vtx)
+                }
 
-        check_gl_err!(gl);
+                destroy_program(gl, program);
 
-        self.data = ShaderData::Destroyed;
-    }
-}
-
-#[derive(Debug)]
-enum ShaderData {
-    Uncompiled {
-        handle: NonZero<GLuint>,
-        source: CString,
-    },
-    Compiled {
-        handle: NonZero<GLuint>,
-    },
-    Destroyed,
-}
-
-impl ShaderData {
-    fn new<T: ShaderType>(gl: &Gl, src: &str) -> Result<Self, CreateErr> {
-        let handle = unsafe { gl.CreateShader(T::GL_SHADER_TYPE) };
-
-        check_gl_err!(gl);
-
-        let handle = NonZero::new(handle).ok_or(CreateErr::Zero)?;
-
-        Ok(Self::Uncompiled {
-            handle,
-            source: CString::new(src).unwrap(),
-        })
-    }
-
-    fn is_compiled(&self) -> bool {
-        matches!(self, Self::Compiled { .. })
-    }
-
-    fn get_handle(&self) -> NonZero<GLuint> {
-        match self {
-            Self::Uncompiled { handle, .. } => *handle,
-            Self::Compiled { handle, .. } => *handle,
-            Self::Destroyed => panic!("Trying to get the handle to a destroyed shader"),
-        }
-    }
-
-    fn get_source(&self) -> Option<&CStr> {
-        match self {
-            Self::Uncompiled { source, .. } => Some(source.as_c_str()),
-            Self::Compiled { .. } => None,
-            Self::Destroyed => panic!("Trying to get the source to a destroyed shader"),
-        }
-    }
-
-    fn do_compile(&mut self, gl: &Gl) -> Result<(), CompileErr> {
-        if matches!(self, Self::Destroyed) {
-            panic!("Trying to compile a destroyed shader");
-        }
-
-        log::debug!("Compiling shader");
-
-        if self.is_compiled() {
-            return Err(CompileErr::AlreadyCompiled);
-        }
-
-        let handle = self.get_handle();
-        let source = self.get_source().unwrap();
-
-        unsafe {
-            gl.ShaderSource(handle.get(), 1, &source.as_ptr(), null());
-            check_gl_err!(gl);
-
-            gl.CompileShader(handle.get());
-            check_gl_err!(gl);
-
-            let mut success: GLint = opengl::FALSE as GLint;
-
-            gl.GetShaderiv(handle.get(), opengl::COMPILE_STATUS, &mut success);
-            check_gl_err!(gl);
-
-            if success != (opengl::TRUE as GLint) {
-                let mut buflen: GLint = 512;
-
-                gl.GetShaderiv(handle.get(), opengl::INFO_LOG_LENGTH, &mut buflen);
-                check_gl_err!(gl);
-
-                let mut logbuf: Vec<u8> = vec![0; buflen as usize];
-
-                gl.GetShaderInfoLog(
-                    handle.get(),
-                    buflen,
-                    null_mut(),
-                    logbuf.as_mut_ptr() as *mut c_char,
-                );
-                check_gl_err!(gl);
-
-                let logstr = CString::from_vec_with_nul(logbuf).unwrap();
-
-                return Err(CompileErr::Gl(logstr.to_string_lossy().to_string()));
+                return Err(e.into());
             } else {
-                *self = ShaderData::Compiled { handle };
-                Ok(())
+                Some(compiled.unwrap())
             }
+        } else {
+            None
+        };
+
+        unsafe {
+            // Attach the individual stages, if they exist
+            if let Some(sh) = vertex {
+                gl.AttachShader(program.get(), sh.get());
+                checkerr!(gl);
+            }
+
+            if let Some(sh) = fragment {
+                gl.AttachShader(program.get(), sh.get());
+                checkerr!(gl);
+            }
+
+            // Do the actual linking
+            gl.LinkProgram(program.get());
+            checkerr!(gl);
         }
+
+        // Now check if the compilation was succesful
+        let mut success = opengl::FALSE as GLint;
+
+        unsafe {
+            gl.GetProgramiv(program.get(), opengl::LINK_STATUS, &raw mut success);
+            checkerr!(gl);
+        }
+
+        if success == (opengl::TRUE as GLint) {
+            Ok(Self {
+                handle: Some(program),
+                vertex_layout: source.vertex_layout.clone(),
+                uniforms: HashMap::default(),
+            })
+        } else {
+            let err = get_program_link_err(gl, program);
+
+            destroy_program(gl, program);
+            if let Some(sh) = vertex {
+                destroy_stage(gl, sh)
+            }
+            if let Some(sh) = fragment {
+                destroy_stage(gl, sh)
+            }
+
+            Err(CreateErr::Link(err))
+        }
+    }
+
+    pub(crate) fn destroy(mut self, gl: &Gl) {
+        let handle = self.handle.take().unwrap();
+        destroy_program(gl, handle);
+    }
+
+    /// Calls [Gl::UseProgram] with this shaderprogram
+    pub(crate) fn use_program(&self, gl: &Gl) {
+        let handle_int = self.handle.unwrap().get();
+
+        unsafe {
+            gl.UseProgram(handle_int);
+        }
+    }
+
+    /// Returns the vertex layout for this shader
+    pub(crate) const fn get_vertex_layout(&self) -> &ShaderVertexLayout {
+        &self.vertex_layout
     }
 }
 
-#[cfg(debug_assertions)]
-impl<T: ShaderType> Drop for Shader<T> {
+fn compile_stage(gl: &Gl, source: &str, stage: GLuint) -> Result<NonZero<GLuint>, CompileErr> {
+    if !source.is_ascii() {
+        return Err(CompileErr::SourceEncoding);
+    }
+
+    let source_c = CString::new(source).map_err(|_| CompileErr::SourceEncoding)?;
+
+    let shader: NonZero<GLuint> =
+        NonZero::new(unsafe { gl.CreateShader(stage) }).ok_or(CompileErr::Handle)?;
+    checkerr!(gl);
+
+    let source_ptr = source_c.as_ptr();
+
+    // Actually load the shader source into OpenGL and compile it
+    unsafe {
+        gl.ShaderSource(shader.get(), 1, &source_ptr, null());
+        checkerr!(gl);
+        gl.CompileShader(shader.get());
+        checkerr!(gl);
+    };
+
+    // Now check if the compilation was succesful
+    let mut success = opengl::FALSE as GLint;
+
+    unsafe {
+        gl.GetShaderiv(shader.get(), opengl::COMPILE_STATUS, &raw mut success);
+        checkerr!(gl);
+    }
+
+    if success == (opengl::TRUE as GLint) {
+        Ok(shader)
+    } else {
+        Err(CompileErr::Compile(get_shader_compile_err(gl, shader)))
+    }
+}
+
+fn get_shader_compile_err(gl: &Gl, shader: NonZero<GLuint>) -> String {
+    let mut buflen: GLint = 0;
+
+    unsafe {
+        gl.GetShaderiv(shader.get(), opengl::INFO_LOG_LENGTH, &raw mut buflen);
+        checkerr!(gl);
+    }
+
+    assert!(buflen >= 0);
+
+    let mut buf = vec![0u8; buflen as usize];
+
+    unsafe {
+        gl.GetShaderInfoLog(
+            shader.get(),
+            buflen,
+            null_mut(),
+            buf.as_mut_ptr() as *mut GLchar,
+        );
+        checkerr!(gl);
+    }
+
+    CStr::from_bytes_with_nul(&buf)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
+}
+
+fn get_program_link_err(gl: &Gl, program: NonZero<GLuint>) -> String {
+    let mut buflen: GLint = 0;
+
+    unsafe {
+        gl.GetProgramiv(program.get(), opengl::INFO_LOG_LENGTH, &raw mut buflen);
+        checkerr!(gl);
+    }
+
+    assert!(buflen >= 0);
+
+    let mut buf = vec![0u8; buflen as usize];
+
+    unsafe {
+        gl.GetProgramInfoLog(
+            program.get(),
+            buflen,
+            null_mut(),
+            buf.as_mut_ptr() as *mut GLchar,
+        );
+        checkerr!(gl);
+    }
+
+    CStr::from_bytes_with_nul(&buf)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
+}
+
+fn destroy_stage(gl: &Gl, shader: NonZero<GLuint>) {
+    unsafe {
+        gl.DeleteShader(shader.get());
+        checkerr!(gl);
+    }
+}
+
+fn destroy_program(gl: &Gl, program: NonZero<GLuint>) {
+    unsafe {
+        gl.DeleteProgram(program.get());
+        checkerr!(gl);
+    }
+}
+
+impl Drop for GlShaderProgram {
     fn drop(&mut self) {
-        if !matches!(self.data, ShaderData::Destroyed) {
-            log::warn!("Shader {:#?} dropped without being destroyed!", self);
+        if cfg!(debug_assertions) && self.handle.is_some() {
+            log::warn!("GL shader dropped without being destroyed!");
         }
     }
 }

@@ -2,6 +2,12 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.3.0]
+- Changed renderer API to make creating GPU resources more explicitly controlled by the engine
+- Added support for textures
+- Full refactor of OpenGL graphics backend
+- Updated OpenGL to version 4.1 (the highest version still supported by MacOS)
+
 ## [v0.2.0]
 - Updated Rust edition to 2024
 - Slightly changed API for adding components

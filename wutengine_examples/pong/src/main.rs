@@ -29,6 +29,10 @@ fn main() {
                 min_level: log::LevelFilter::Debug,
                 output: log::LogOutput::StdOut,
             }),
+            renderer: Some(ComponentLogConfig {
+                min_level: log::LevelFilter::Debug,
+                output: log::LogOutput::StdOut,
+            }),
             ..Default::default()
         });
     } else {
