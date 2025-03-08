@@ -49,5 +49,6 @@ fn main() {
     runtime.with_plugin(KeyboardInputPlugin::new());
     runtime.with_plugin(GamepadInputPlugin::new());
     runtime.with_plugin(Physics2DPlugin::new());
+    runtime.with_physics_interval(1.0 / 120.0);
     runtime.run::<OpenGLRenderer>();
 }
