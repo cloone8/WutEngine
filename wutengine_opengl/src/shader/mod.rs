@@ -1,3 +1,5 @@
+//! Module for OpenGL shader functionality, and mapping from the abstract WutEngine [Shader] type
+
 use core::ffi::CStr;
 use core::num::NonZero;
 use core::ptr::{null, null_mut};
@@ -5,12 +7,17 @@ use std::collections::HashMap;
 use std::ffi::CString;
 
 use thiserror::Error;
-use wutengine_graphics::shader::{Shader, ShaderVertexLayout, Uniform};
+use uniform::{GlShaderUniform, discover_uniforms};
+use wutengine_graphics::material::MaterialParameter;
+use wutengine_graphics::shader::{Shader, ShaderVertexLayout};
 
 use crate::error::checkerr;
-use crate::opengl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
+use crate::opengl::types::{GLchar, GLint, GLuint};
 use crate::opengl::{self, Gl};
 
+mod uniform;
+
+/// A fully-linked and ready to use OpenGL shader program..
 #[derive(Debug)]
 pub(crate) struct GlShaderProgram {
     handle: Option<NonZero<GLuint>>,
@@ -26,37 +33,37 @@ impl Drop for GlShaderProgram {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct GlShaderUniform {
-    pub(crate) location: GLint,
-    pub(crate) index: GLuint,
-    pub(crate) uniform_type: GLenum,
-    pub(crate) uniform_size: GLint,
-}
-
+/// An error while creating a [GlShaderProgram]
 #[derive(Debug, Error)]
 pub(crate) enum CreateErr {
+    /// No shader source
     #[error("Shader has no source code")]
     Empty,
 
+    /// No handle
     #[error("OpenGL did not return a shader program handle")]
     Handle,
 
+    /// Compile error
     #[error("Could not compile shader stage")]
     Compile(#[from] CompileErr),
 
+    /// Link error
     #[error("Could not link shader program")]
     Link(String),
 }
 
 #[derive(Debug, Error)]
 pub(crate) enum CompileErr {
+    /// No handle
     #[error("OpenGL did not return a shader handle")]
     Handle,
 
+    /// Non-ascii chars in source code
     #[error("Source code contained non-ascii or NUL character")]
     SourceEncoding,
 
+    /// Compile error
     #[error("OpenGL shader compile error: {}", 0)]
     Compile(String),
 }
@@ -173,6 +180,16 @@ impl GlShaderProgram {
     pub(crate) const fn get_vertex_layout(&self) -> &ShaderVertexLayout {
         &self.vertex_layout
     }
+
+    /// Sets the given uniforms on this program. The program must current be in use, by calling [Self::use_program]
+    pub(crate) fn set_uniforms(&mut self, gl: &Gl, uniforms: &HashMap<String, MaterialParameter>) {
+        uniform::set_uniforms(
+            gl,
+            self.handle.expect("Program destroyed"),
+            uniforms,
+            &self.uniforms,
+        );
+    }
 }
 
 fn compile_stage(gl: &Gl, source: &str, stage: GLuint) -> Result<NonZero<GLuint>, CompileErr> {
@@ -281,151 +298,4 @@ fn destroy_program(gl: &Gl, program: NonZero<GLuint>) {
         gl.DeleteProgram(program.get());
         checkerr!(gl);
     }
-}
-
-fn discover_uniforms(
-    gl: &Gl,
-    program: NonZero<GLuint>,
-    declared_uniforms: &HashMap<String, Uniform>,
-) -> HashMap<String, GlShaderUniform> {
-    log::debug!("Discovering uniforms for shaderprogram {}", program);
-
-    // First, find the total amount of uniforms currently active in this program
-    let mut active_uniforms: GLint = 0;
-
-    unsafe {
-        gl.GetProgramiv(
-            program.get(),
-            opengl::ACTIVE_UNIFORMS,
-            &raw mut active_uniforms,
-        );
-        checkerr!(gl);
-    }
-
-    if active_uniforms < 0 {
-        log::error!(
-            "OpenGL returned a negative amount of uniforms ({}) for program {}",
-            active_uniforms,
-            program
-        );
-        return HashMap::new();
-    }
-
-    log::trace!(
-        "Shaderprogram {} has {} active uniforms",
-        program,
-        active_uniforms
-    );
-
-    // Now, find the max name length of any active uniform
-    let mut max_uniform_name_len: GLint = 0;
-
-    unsafe {
-        gl.GetProgramiv(
-            program.get(),
-            opengl::ACTIVE_UNIFORM_MAX_LENGTH, // Includes the null-terminator
-            &raw mut max_uniform_name_len,
-        );
-        checkerr!(gl);
-    }
-
-    if max_uniform_name_len < 0 {
-        log::error!(
-            "OpenGL returned a negative max uniform name length ({}) for program {}",
-            max_uniform_name_len,
-            program
-        );
-        return HashMap::new();
-    }
-
-    log::trace!(
-        "Shaderprogram {} has a max uniform name length of {}",
-        program,
-        max_uniform_name_len
-    );
-
-    // Set up a buffer for the name
-    let mut name_buf = vec![0u8; max_uniform_name_len as usize];
-
-    // Now actually query each uniform. If they match one if the input uniforms,
-    // return its information.
-    let mut found_uniforms = HashMap::with_capacity(declared_uniforms.len());
-
-    for index in 0..(active_uniforms as GLuint) {
-        let mut actual_name_len: GLsizei = 0; // Name length _excluding_ null-terminator
-        let mut uniform_size: GLint = 0;
-        let mut uniform_type: GLenum = 0;
-
-        unsafe {
-            gl.GetActiveUniform(
-                program.get(),
-                index,
-                name_buf.len() as GLsizei,
-                &raw mut actual_name_len,
-                &raw mut uniform_size,
-                &raw mut uniform_type,
-                name_buf.as_mut_ptr() as *mut GLchar,
-            );
-            checkerr!(gl);
-        }
-
-        let name_cstr =
-            CStr::from_bytes_with_nul(&name_buf[..(actual_name_len + 1) as usize]).unwrap();
-
-        let name = name_cstr.to_str().unwrap();
-
-        log::trace!(
-            "Found uniform at index {} with name \"{}\", type {}, and size {}",
-            index,
-            name,
-            uniform_type,
-            uniform_size
-        );
-
-        if !declared_uniforms.contains_key(name) {
-            log::debug!(
-                "Uniform {} was not found in the expected uniform map, skipping",
-                name
-            );
-            continue;
-        }
-
-        // Find the uniform location, as that needs to be done seperately
-        let uniform_location =
-            unsafe { gl.GetUniformLocation(program.get(), name_cstr.as_ptr() as *const GLchar) };
-
-        checkerr!(gl);
-
-        if uniform_location < 0 {
-            log::error!(
-                "Could not get uniform location for uniform {} in program {}. Returned location: {}",
-                name,
-                program,
-                uniform_location
-            );
-            continue;
-        }
-
-        log::trace!(
-            "Uniform {} location in program {} is {}",
-            name,
-            program,
-            uniform_location
-        );
-
-        let found_uniform = GlShaderUniform {
-            location: uniform_location,
-            index,
-            uniform_type,
-            uniform_size,
-        };
-
-        let prev = found_uniforms.insert(name.to_owned(), found_uniform);
-
-        debug_assert!(prev.is_none());
-    }
-
-    log::debug!("Found uniforms: {:#?}", found_uniforms);
-
-    found_uniforms
 }

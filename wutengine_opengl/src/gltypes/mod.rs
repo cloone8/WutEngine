@@ -1,3 +1,5 @@
+//! OpenGL types implemented as Rust types
+
 mod matrix;
 mod vector;
 

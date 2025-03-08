@@ -13,6 +13,7 @@ pub(crate) struct GlMat4f {
 }
 
 impl From<Mat4> for GlMat4f {
+    #[inline]
     fn from(value: Mat4) -> Self {
         Self {
             x_col: value.x_axis.into(),

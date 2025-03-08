@@ -1,3 +1,5 @@
+//! OpenGL mesh and mesh buffer functionality, and mappings to/from WutEngine generic mesh types
+
 use thiserror::Error;
 use wutengine_graphics::mesh::{IndexBuffer, IndexType, MeshData};
 
@@ -5,16 +7,29 @@ use crate::buffer::{ArrayBuffer, ElementArrayBuffer, GlBuffer};
 use crate::opengl::types::{GLenum, GLint, GLsizei, GLuint, GLushort};
 use crate::opengl::{self, Gl};
 
+/// A set of OpenGL buffers holding all the data for any given mesh
 #[derive(Debug)]
 pub(crate) struct GlMeshBuffers {
+    /// The vertex buffer
     pub(crate) vertex: GlBuffer<ArrayBuffer>,
+
+    /// The layout of the vertex buffer
     pub(crate) vertex_layout: MeshBufferLayout,
+
+    /// The index buffer
     pub(crate) index: GlBuffer<ElementArrayBuffer>,
+
+    /// The amount of elements in the index buffer
     pub(crate) num_elements: usize,
+
+    /// The type of the elements in the index buffer
     pub(crate) element_type: IndexType,
+
+    /// The OpenGL size of the indices
     pub(crate) index_size: GLenum,
 }
 
+/// A descriptor for the layout of a mesh vertex buffer
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub(crate) struct MeshBufferLayout {
     /// The offset of the position attribute within a vertex (in bytes)
@@ -31,8 +46,10 @@ pub(crate) struct MeshBufferLayout {
 }
 
 impl MeshBufferLayout {
+    /// The size (in bytes) of the vertex positional data
     pub(crate) const POS_SIZE: GLint = (size_of::<f32>() * 3) as GLint;
 
+    /// Calculates the stride between vertices for this layout
     pub(crate) const fn calculate_stride_for_layout(&self) -> GLsizei {
         let mut stride = 0;
 
@@ -56,8 +73,10 @@ impl MeshBufferLayout {
     }
 }
 
+/// Error while creating the mesh buffers
 #[derive(Debug, Error)]
 pub(crate) enum CreateErr {
+    /// Failed to create a buffer
     #[error("Failed to create an OpenGL buffer")]
     Buf(#[from] crate::buffer::CreateErr),
 }
@@ -86,12 +105,14 @@ impl GlMeshBuffers {
         })
     }
 
+    /// Uploads the given data to this set of OpenGL mesh buffers. Discards
+    /// the current data and fully replaces it with the new data.
+    /// Note that this might change the mesh vertex buffer layout
     pub(crate) fn upload_data(&mut self, gl: &Gl, data: &MeshData) {
         self.vertex.bind(gl);
         self.vertex.buffer_data(gl, &data.positions);
         self.vertex.unbind(gl);
 
-        // TODO: Somehow force a refresh of the VAO layout
         self.vertex_layout = MeshBufferLayout {
             position: Some(0),
             ..Default::default()

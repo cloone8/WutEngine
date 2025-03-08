@@ -1,3 +1,5 @@
+//! OpenGL vertex array object functionality
+
 use core::ffi::c_void;
 use core::num::NonZero;
 

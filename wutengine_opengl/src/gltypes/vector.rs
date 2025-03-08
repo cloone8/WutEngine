@@ -31,6 +31,7 @@ pub(crate) struct GlVec4f {
 }
 
 impl From<Vec4> for GlVec4f {
+    #[inline]
     fn from(value: Vec4) -> Self {
         Self {
             x: value.x,
@@ -42,6 +43,7 @@ impl From<Vec4> for GlVec4f {
 }
 
 impl From<Color> for GlVec4f {
+    #[inline]
     fn from(value: Color) -> Self {
         Self {
             x: value.r,

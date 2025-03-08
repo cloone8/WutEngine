@@ -1,7 +1,8 @@
+//! Module for an OpenGL window and associated context. Most of the main code of the backend is here.
+
 use core::ptr::null_mut;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
 use thiserror::Error;
@@ -182,7 +183,7 @@ impl Window {
 
             let shader_id = shader_id.unwrap();
 
-            let shader = match self.shaders.get(shader_id) {
+            let shader = match self.shaders.get_mut(shader_id) {
                 Some(sh) => sh,
                 None => {
                     log::error!("Missing shader {}", shader_id);
@@ -197,6 +198,9 @@ impl Window {
 
             vao.bind(gl);
             shader.use_program(gl);
+
+            // Set the uniforms
+            shader.set_uniforms(gl, &material.parameters);
 
             unsafe {
                 gl.DrawElements(
@@ -283,14 +287,17 @@ impl Window {
         buffers.upload_data(&self.bindings, data);
     }
 
+    /// Generates OpenGL buffers for the given texture and registers it with the context
     pub(crate) fn create_texture(&mut self, _id: RendererTextureId) {
         todo!()
     }
 
+    /// Deletes the given texture and its associated GPU resources in this context
     pub(crate) fn delete_texture(&mut self, _id: RendererTextureId) {
         todo!()
     }
 
+    /// Uploads new texture data for the given texture ID
     pub(crate) fn update_texture(&mut self, _id: RendererTextureId, _data: &TextureData) {
         todo!()
     }
