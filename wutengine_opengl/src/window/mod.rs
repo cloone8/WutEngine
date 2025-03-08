@@ -13,7 +13,7 @@ use wutengine_graphics::renderer::{
     RendererTextureId, Viewport,
 };
 use wutengine_graphics::shader::ShaderId;
-use wutengine_graphics::shader::resolver::ShaderResolver;
+use wutengine_graphics::shader::ShaderResolver;
 use wutengine_graphics::texture::TextureData;
 
 use crate::error::checkerr;

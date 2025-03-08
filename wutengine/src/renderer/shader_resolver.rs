@@ -1,7 +1,7 @@
 //! The various WutEngine builtin shader resolvers.
 
 use std::collections::HashMap;
-use wutengine_graphics::shader::resolver::ShaderResolver;
+use wutengine_graphics::shader::ShaderResolver;
 use wutengine_graphics::shader::{
     Shader, ShaderId, ShaderStages, ShaderVertexLayout, Uniform, UniformBinding, UniformType,
 };

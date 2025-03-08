@@ -1,3 +1,5 @@
+//! Color datatypes and conversions
+
 use glam::{Vec3, Vec4};
 
 /// RGBA color consisting of one 32-bit float per component

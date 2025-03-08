@@ -5,13 +5,13 @@ use wutengine_graphics::renderer::{RendererMaterialId, WutEngineRenderer};
 
 use crate::asset::Asset;
 
-/// A material component, describing how to render
-/// a mesh. Works together with the [super::Mesh] component to make
+/// A material asset, describing how to render
+/// a mesh. Works together with the [super::Mesh] asset to make
 /// an entity renderable.
 #[derive(Debug, Clone)]
 pub struct Material(pub(crate) Arc<RawMaterial>);
 
-/// The raw internal material data for a [Material] component
+/// The raw internal material data for a [Material] asset
 #[derive(Debug)]
 pub(crate) struct RawMaterial {
     renderer_id: OnceLock<RendererMaterialId>,
@@ -44,7 +44,7 @@ impl RawMaterial {
 }
 
 impl Material {
-    /// Creates a new material component.
+    /// Creates a new [Material] asset.
     pub fn new(data: MaterialData) -> Self {
         Self(Arc::new(RawMaterial {
             renderer_id: OnceLock::new(),

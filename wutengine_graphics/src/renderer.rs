@@ -1,3 +1,6 @@
+//! The main description and data for a WutEngine rendering backend. Rendering backends
+//! use the data and traits in this module to provide a common API for the main WutEngine runtime
+
 use glam::Mat4;
 
 pub use raw_window_handle::HasDisplayHandle;
@@ -8,7 +11,7 @@ use wutengine_util_macro::generate_atomic_id;
 use crate::color::Color;
 use crate::material::MaterialData;
 use crate::mesh::MeshData;
-use crate::shader::resolver::ShaderResolver;
+use crate::shader::ShaderResolver;
 use crate::texture::TextureData;
 
 /// A general descriptor for a viewport

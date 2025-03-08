@@ -7,7 +7,6 @@ pub use wutengine_core::assert;
 #[doc(inline)]
 pub use wutengine_core::profiling;
 
-#[doc(inline)]
 pub use wutengine_graphics as graphics;
 
 pub mod asset;

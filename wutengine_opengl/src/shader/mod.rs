@@ -10,7 +10,7 @@ use glam::Mat4;
 use thiserror::Error;
 use uniform::{GlShaderUniform, discover_uniforms};
 use wutengine_graphics::material::MaterialParameter;
-use wutengine_graphics::shader::uniforms::SharedShaderUniform;
+use wutengine_graphics::shader::SharedShaderUniform;
 use wutengine_graphics::shader::{Shader, ShaderVertexLayout};
 
 use crate::error::checkerr;

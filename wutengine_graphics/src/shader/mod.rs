@@ -1,12 +1,16 @@
+//! Shader abstractions and descriptions used for communication between the WutEngine runtime and graphics backends
+
 use core::fmt::Display;
 use core::hash::Hash;
 use std::collections::HashMap;
 
 use nohash_hasher::IsEnabled;
 
-pub mod attributes;
-pub mod resolver;
-pub mod uniforms;
+mod resolver;
+mod uniforms;
+
+pub use resolver::*;
+pub use uniforms::*;
 
 /// The ID of a [Shader]
 #[repr(transparent)]
@@ -77,22 +81,40 @@ pub struct ShaderVertexLayout {
     pub uv: Option<usize>,
 }
 
+/// The descriptor for a single generic [Shader] uniform, used by WutEngine
+/// graphics backends to properly map data to their shaders
 #[derive(Debug, Clone)]
 pub struct Uniform {
+    /// The uniform type
     pub ty: UniformType,
+
+    /// The uniform "binding". This refers to the actual binding in the shader
     pub binding: UniformBinding,
 }
 
+/// The type of a [Uniform]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UniformType {
+    /// A three-f32 vector
     Vec3,
+
+    /// A four-f32 vector
     Vec4,
+
+    /// A 4x4 f32 matrix
     Mat4,
 }
 
+/// The shader source binding for a [Uniform]. A combination of any/all of these
+/// values is used by the graphics backend
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UniformBinding {
+    /// The name of the uniform in the shader
     pub name: String,
+
+    /// The uniform group
     pub group: usize,
+
+    /// The uniform binding
     pub binding: usize,
 }

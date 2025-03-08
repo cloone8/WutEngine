@@ -5,8 +5,8 @@ use core::num::NonZero;
 use std::collections::HashMap;
 
 use wutengine_graphics::material::MaterialParameter;
+use wutengine_graphics::shader::SharedShaderUniform;
 use wutengine_graphics::shader::Uniform;
-use wutengine_graphics::shader::uniforms::SharedShaderUniform;
 
 use crate::error::checkerr;
 use crate::gltypes::GlMat4f;

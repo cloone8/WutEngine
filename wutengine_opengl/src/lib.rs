@@ -11,7 +11,7 @@ use wutengine_graphics::renderer::{
     HasDisplayHandle, HasWindowHandle, Renderable, RendererMaterialId, RendererMeshId,
     RendererTextureId, Viewport, WindowIdentifier, WutEngineRenderer,
 };
-use wutengine_graphics::shader::resolver::ShaderResolver;
+use wutengine_graphics::shader::ShaderResolver;
 use wutengine_graphics::texture::TextureData;
 
 mod opengl {

@@ -76,6 +76,9 @@ quote = "1.0.39"
 proc-macro2 = "1.0.94"
 darling = "0.20.10"
 
+# Asset loading
+image = "0.25.5"
+
 # Parallellism
 rayon = "1.10.0"
 

@@ -6,12 +6,12 @@ use wutengine_graphics::renderer::{RendererMeshId, WutEngineRenderer};
 
 use crate::asset::Asset;
 
-/// A renderable mesh. Works together with the [super::Material] component
+/// A renderable mesh. Works together with a [super::Material] asset
 /// to enable an entity to be rendered.
 #[derive(Debug, Clone)]
 pub struct Mesh(pub(crate) Arc<RawMesh>);
 
-/// The raw internal mesh data for a [Mesh] component
+/// The raw internal mesh data for a [Mesh] asset
 #[derive(Debug)]
 pub(crate) struct RawMesh {
     renderer_id: OnceLock<RendererMeshId>,
@@ -19,6 +19,15 @@ pub(crate) struct RawMesh {
     /// The actual mesh data.
     /// Allows multiple meshes to use the same data transparently
     pub(crate) data: MeshData,
+}
+
+impl Clone for RawMesh {
+    fn clone(&self) -> Self {
+        Self {
+            renderer_id: OnceLock::new(),
+            data: self.data.clone(),
+        }
+    }
 }
 
 impl RawMesh {
@@ -32,15 +41,6 @@ impl RawMesh {
             renderer.update_mesh(id, &self.data);
             id
         })
-    }
-}
-
-impl Clone for RawMesh {
-    fn clone(&self) -> Self {
-        Self {
-            renderer_id: OnceLock::new(),
-            data: self.data.clone(),
-        }
     }
 }
 

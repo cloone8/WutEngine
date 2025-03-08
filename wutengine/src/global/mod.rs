@@ -1,4 +1,4 @@
-//! Module for things surrounding [GlobalData]
+//! Module for things surrounding user-defined global singletons
 
 use core::any::{Any, TypeId};
 use core::fmt::Debug;
