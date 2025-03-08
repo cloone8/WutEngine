@@ -11,7 +11,7 @@ use wutengine::builtins::components::{
 use wutengine::gameobject::GameObject;
 use wutengine::graphics::color::Color;
 use wutengine::graphics::material::{MaterialData, MaterialParameter};
-use wutengine::graphics::mesh::{IndexBuffer, MeshData};
+use wutengine::graphics::mesh::{IndexBuffer, IndexType, MeshData};
 use wutengine::graphics::shader::ShaderId;
 use wutengine::math::{Quat, Vec2, Vec3, random, vec2, vec3};
 use wutengine::plugins::WutEnginePlugin;
@@ -29,16 +29,17 @@ pub(crate) struct PongStarterPlugin;
 
 impl WutEnginePlugin for PongStarterPlugin {
     fn on_start(&mut self, context: &mut plugins::Context) {
-        let mut rectangle_mesh_data = MeshData::new();
-        rectangle_mesh_data.positions = vec![
+        let mut rectangle_mesh = Mesh::new();
+
+        rectangle_mesh.set_vertex_positions(vec![
             Vec3::new(0.5, 0.5, 0.0),
             Vec3::new(0.5, -0.5, 0.0),
             Vec3::new(-0.5, -0.5, 0.0),
             Vec3::new(-0.5, 0.5, 0.0),
-        ];
+        ]);
 
-        rectangle_mesh_data.indices = IndexBuffer::U32(vec![0, 1, 3, 1, 2, 3]);
-        let rectangle_mesh = Mesh::new(rectangle_mesh_data);
+        rectangle_mesh.set_indices(vec![0u32, 1, 3, 1, 2, 3]);
+        rectangle_mesh.set_index_type(IndexType::Triangles);
 
         make_window(context);
         make_camera(context);
@@ -79,14 +80,14 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
         Quat::IDENTITY,
         vec3(0.125, 0.4, 1.0),
     ));
+
+    let mut player_material = Material::new();
+    player_material.set_shader(Some(ShaderId::new("unlit")));
+    player_material.set_color("baseColor", Color::BLUE);
+
     player.add_component(StaticMeshRenderer {
         mesh,
-        material: Material::new(MaterialData {
-            shader: Some(ShaderId::new("unlit")),
-            parameters: map![
-                "baseColor" => MaterialParameter::Color(Color::BLUE)
-            ],
-        }),
+        material: player_material,
     });
 
     context.engine.spawn_gameobject(player);
@@ -102,14 +103,14 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
         vec3(0.125, 0.4, 1.0),
     ));
     enemy.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
+
+    let mut enemy_material = Material::new();
+    enemy_material.set_shader(Some(ShaderId::new("unlit")));
+    enemy_material.set_color("baseColor", Color::RED);
+
     enemy.add_component(StaticMeshRenderer {
         mesh,
-        material: Material::new(MaterialData {
-            shader: Some(ShaderId::new("unlit")),
-            parameters: map![
-                "baseColor" => MaterialParameter::Color(Color::RED)
-            ],
-        }),
+        material: enemy_material,
     });
     enemy.add_component(Enemy::new(0.5, 0.9));
 
@@ -131,14 +132,14 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
         vec3(0.07, 0.07, 0.07),
     ));
     ball.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
+
+    let mut ball_material = Material::new();
+    ball_material.set_shader(Some(ShaderId::new("unlit")));
+    ball_material.set_color("baseColor", Color::WHITE);
+
     ball.add_component(StaticMeshRenderer {
         mesh,
-        material: Material::new(MaterialData {
-            shader: Some(ShaderId::new("unlit")),
-            parameters: map![
-                "baseColor" => MaterialParameter::Color(Color::WHITE)
-            ],
-        }),
+        material: ball_material,
     });
 
     context.engine.spawn_gameobject(ball);

@@ -17,10 +17,16 @@ pub(crate) struct RenderQueue {
     pub(crate) renderables: Vec<RenderCommand>,
 }
 
+/// A render command to be sent to the graphics backend
 #[derive(Debug, Clone)]
 pub(crate) struct RenderCommand {
+    /// The mesh to render
     pub(crate) mesh: Arc<RawMesh>,
+
+    /// The material to render with
     pub(crate) material: Arc<RawMaterial>,
+
+    /// The mesh object-to-world matrix
     pub(crate) object_to_world: Mat4,
 }
 

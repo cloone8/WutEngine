@@ -1,7 +1,9 @@
 use std::sync::{Arc, OnceLock};
 
-use wutengine_graphics::material::MaterialData;
+use wutengine_graphics::color::Color;
+use wutengine_graphics::material::{MaterialData, MaterialParameter};
 use wutengine_graphics::renderer::{RendererMaterialId, WutEngineRenderer};
+use wutengine_graphics::shader::ShaderId;
 
 use crate::asset::Asset;
 
@@ -45,11 +47,38 @@ impl RawMaterial {
 
 impl Material {
     /// Creates a new [Material] asset.
-    pub fn new(data: MaterialData) -> Self {
+    pub fn new() -> Self {
         Self(Arc::new(RawMaterial {
             renderer_id: OnceLock::new(),
-            data,
+            data: MaterialData::default(),
         }))
+    }
+
+    /// Sets the shader of this material to a new value
+    pub fn set_shader(&mut self, shader: Option<ShaderId>) {
+        self.get_raw_mut_cloned().data.shader = shader;
+    }
+
+    /// Sets a color value on this material to a new value
+    pub fn set_color(&mut self, name: impl Into<String>, color: Color) {
+        self.get_raw_mut_cloned()
+            .data
+            .parameters
+            .insert(name.into(), MaterialParameter::Color(color));
+    }
+}
+
+/// Private utilities
+impl Material {
+    #[inline(always)]
+    fn get_raw_mut_cloned(&mut self) -> &mut RawMaterial {
+        Arc::make_mut(&mut self.0)
+    }
+}
+
+impl Default for Material {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

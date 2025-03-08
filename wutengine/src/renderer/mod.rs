@@ -44,12 +44,12 @@ impl WutEngineRenderer for HeadlessRenderer {
         RendererMeshId::new()
     }
 
-    fn delete_mesh(&mut self, id: wutengine_graphics::renderer::RendererMeshId) {}
+    fn delete_mesh(&mut self, _id: wutengine_graphics::renderer::RendererMeshId) {}
 
     fn update_mesh(
         &mut self,
-        id: wutengine_graphics::renderer::RendererMeshId,
-        data: &wutengine_graphics::mesh::MeshData,
+        _id: wutengine_graphics::renderer::RendererMeshId,
+        _data: &wutengine_graphics::mesh::MeshData,
     ) {
     }
 
@@ -57,12 +57,12 @@ impl WutEngineRenderer for HeadlessRenderer {
         RendererTextureId::new()
     }
 
-    fn delete_texture(&mut self, id: wutengine_graphics::renderer::RendererTextureId) {}
+    fn delete_texture(&mut self, _id: wutengine_graphics::renderer::RendererTextureId) {}
 
     fn update_texture(
         &mut self,
-        id: wutengine_graphics::renderer::RendererTextureId,
-        data: &wutengine_graphics::texture::TextureData,
+        _id: wutengine_graphics::renderer::RendererTextureId,
+        _data: &wutengine_graphics::texture::TextureData,
     ) {
     }
 
@@ -70,12 +70,12 @@ impl WutEngineRenderer for HeadlessRenderer {
         RendererMaterialId::new()
     }
 
-    fn delete_material(&mut self, id: wutengine_graphics::renderer::RendererMaterialId) {}
+    fn delete_material(&mut self, _id: wutengine_graphics::renderer::RendererMaterialId) {}
 
     fn update_material(
         &mut self,
-        id: wutengine_graphics::renderer::RendererMaterialId,
-        data: &wutengine_graphics::material::MaterialData,
+        _id: wutengine_graphics::renderer::RendererMaterialId,
+        _data: &wutengine_graphics::material::MaterialData,
     ) {
     }
 }

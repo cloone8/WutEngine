@@ -1,7 +1,7 @@
 use std::sync::{Arc, OnceLock};
 
 use glam::Vec3;
-use wutengine_graphics::mesh::MeshData;
+use wutengine_graphics::mesh::{IndexBuffer, IndexType, MeshData};
 use wutengine_graphics::renderer::{RendererMeshId, WutEngineRenderer};
 
 use crate::asset::Asset;
@@ -46,16 +46,45 @@ impl RawMesh {
 
 impl Mesh {
     /// Returns the read-only vertex positions of this [Mesh]
-    pub fn get_vertices(&self) -> &[Vec3] {
+    pub fn get_vertex_positions(&self) -> &[Vec3] {
         &self.0.data.positions
     }
 
+    /// Sets the vertex positions
+    pub fn set_vertex_positions(&mut self, positions: Vec<Vec3>) {
+        self.get_raw_mut_cloned().data.positions = positions;
+    }
+
+    /// Sets the index buffer
+    pub fn set_indices(&mut self, indices: impl Into<IndexBuffer>) {
+        self.get_raw_mut_cloned().data.indices = indices.into();
+    }
+
+    /// Sets the type of indices of this mesh
+    pub fn set_index_type(&mut self, index_type: IndexType) {
+        self.get_raw_mut_cloned().data.index_type = index_type;
+    }
+
     /// Creates a new [Mesh]
-    pub fn new(data: MeshData) -> Self {
+    pub fn new() -> Self {
         Self(Arc::new(RawMesh {
             renderer_id: OnceLock::new(),
-            data,
+            data: MeshData::default(),
         }))
+    }
+}
+
+/// Private utilities
+impl Mesh {
+    #[inline(always)]
+    fn get_raw_mut_cloned(&mut self) -> &mut RawMesh {
+        Arc::make_mut(&mut self.0)
+    }
+}
+
+impl Default for Mesh {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

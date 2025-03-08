@@ -43,11 +43,17 @@ impl RawTexture {
 
 impl Texture {
     /// Creates a new texture asset.
-    pub fn new(data: TextureData) -> Self {
+    pub fn new() -> Self {
         Self(Arc::new(RawTexture {
             renderer_id: OnceLock::new(),
-            data,
+            data: TextureData::default(),
         }))
+    }
+}
+
+impl Default for Texture {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
