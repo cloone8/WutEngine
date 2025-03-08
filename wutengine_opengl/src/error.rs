@@ -44,7 +44,7 @@ pub(crate) fn check_err_impl(gl: &Gl, file: &str, line: u32) {
 }
 
 #[cfg(not(debug_assertions))]
-#[inline]
+#[inline(always)]
 pub(crate) fn check_err_impl(_gl: &Gl, _file: &str, _line: u32) {}
 
 /// Converts an OpenGL error enum to a string, if it is a known error enum. Returns "(unknown)" otherwise.
