@@ -6,9 +6,11 @@ use core::ptr::{null, null_mut};
 use std::collections::HashMap;
 use std::ffi::CString;
 
+use glam::Mat4;
 use thiserror::Error;
 use uniform::{GlShaderUniform, discover_uniforms};
 use wutengine_graphics::material::MaterialParameter;
+use wutengine_graphics::shader::uniforms::SharedShaderUniform;
 use wutengine_graphics::shader::{Shader, ShaderVertexLayout};
 
 use crate::error::checkerr;
@@ -189,6 +191,44 @@ impl GlShaderProgram {
             uniforms,
             &self.uniforms,
         );
+    }
+
+    /// Sets the model/view/projection matrix uniforms on this shader
+    pub(crate) fn set_mvp(&mut self, gl: &Gl, model: Mat4, view: Mat4, projection: Mat4) {
+        assert!(self.handle.is_some(), "ShaderProgram already destroyed");
+
+        let model_uform = self.uniforms.get(SharedShaderUniform::ModelMat.as_str());
+        let view_uform = self.uniforms.get(SharedShaderUniform::ViewMat.as_str());
+        let projection_uform = self
+            .uniforms
+            .get(SharedShaderUniform::ProjectionMat.as_str());
+
+        if let Some(model_uform) = model_uform {
+            uniform::set_uniform_value(gl, &MaterialParameter::Mat4(model), model_uform);
+        } else {
+            log::debug!(
+                "Model uniform not found on shaderprogram {}",
+                self.handle.unwrap()
+            );
+        }
+
+        if let Some(view_uform) = view_uform {
+            uniform::set_uniform_value(gl, &MaterialParameter::Mat4(view), view_uform);
+        } else {
+            log::debug!(
+                "View uniform not found on shaderprogram {}",
+                self.handle.unwrap()
+            );
+        }
+
+        if let Some(projection_uform) = projection_uform {
+            uniform::set_uniform_value(gl, &MaterialParameter::Mat4(projection), projection_uform);
+        } else {
+            log::debug!(
+                "Projection uniform not found on shaderprogram {}",
+                self.handle.unwrap()
+            );
+        }
     }
 }
 

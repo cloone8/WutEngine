@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::shader::Uniform;
+use wutengine_graphics::shader::uniforms::SharedShaderUniform;
 
 use crate::error::checkerr;
 use crate::gltypes::GlMat4f;
@@ -131,9 +132,9 @@ pub(super) fn discover_uniforms(
             uniform_size
         );
 
-        if !declared_uniforms.contains_key(name) {
+        if !declared_uniforms.contains_key(name) && is_mvp_mat(name) {
             log::debug!(
-                "Uniform {} was not found in the expected uniform map, skipping",
+                "Uniform {} was not found in the expected uniform map and is not one of the MVP matrices, skipping",
                 name
             );
             continue;
@@ -177,6 +178,12 @@ pub(super) fn discover_uniforms(
     log::debug!("Found uniforms: {:#?}", found_uniforms);
 
     found_uniforms
+}
+
+fn is_mvp_mat(name: &str) -> bool {
+    name == SharedShaderUniform::ModelMat.as_str()
+        || name == SharedShaderUniform::ViewMat.as_str()
+        || name == SharedShaderUniform::ProjectionMat.as_str()
 }
 
 /// Tries to set the given uniform material parameters on the given shader program.

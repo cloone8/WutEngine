@@ -202,6 +202,14 @@ impl Window {
             // Set the uniforms
             shader.set_uniforms(gl, &material.parameters);
 
+            // Set MVP matrices
+            shader.set_mvp(
+                gl,
+                object.object_to_world,
+                viewport_context.view_mat,
+                viewport_context.projection_mat,
+            );
+
             unsafe {
                 gl.DrawElements(
                     index_type_to_gl(mesh.element_type),
