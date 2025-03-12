@@ -75,8 +75,8 @@ glam = { version = "0.29.2", features = [
 ] }
 
 # Macro utilities
-syn = { version = "2.0.99", features = ["full", "parsing"] }
-quote = "1.0.39"
+syn = { version = "2.0.100", features = ["full", "parsing"] }
+quote = "1.0.40"
 proc-macro2 = "1.0.94"
 darling = "0.20.10"
 
