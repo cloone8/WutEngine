@@ -4,10 +4,10 @@ use core::ffi::c_void;
 use core::num::NonZero;
 
 use thiserror::Error;
-use wutengine_graphics::texture::TextureData;
+use wutengine_graphics::texture::{TextureData, TextureFiltering, TextureWrapping, WrappingMethod};
 
 use crate::error::checkerr;
-use crate::opengl::types::{GLint, GLsizei, GLuint};
+use crate::opengl::types::{GLenum, GLint, GLsizei, GLuint};
 use crate::opengl::{self, Gl};
 
 use super::determine_image_format;
@@ -89,32 +89,27 @@ impl GlTexture2D {
         self.bind(gl);
 
         unsafe {
-            //TODO: Make this configurable through the generic texture data
-            gl.TexParameteri(
-                opengl::TEXTURE_2D,
-                opengl::TEXTURE_WRAP_S,
-                opengl::REPEAT as GLint,
-            );
+            let (wrap_s, wrap_t) = get_u_v_wrapping(data.wrapping);
+
+            gl.TexParameteri(opengl::TEXTURE_2D, opengl::TEXTURE_WRAP_S, wrap_s as GLint);
             checkerr!(gl);
 
-            gl.TexParameteri(
-                opengl::TEXTURE_2D,
-                opengl::TEXTURE_WRAP_T,
-                opengl::REPEAT as GLint,
-            );
+            gl.TexParameteri(opengl::TEXTURE_2D, opengl::TEXTURE_WRAP_T, wrap_t as GLint);
             checkerr!(gl);
+
+            let (filter_min, filter_mag) = get_min_mag_filter(data.filtering);
 
             gl.TexParameteri(
                 opengl::TEXTURE_2D,
                 opengl::TEXTURE_MIN_FILTER,
-                opengl::LINEAR_MIPMAP_LINEAR as GLint,
+                filter_min as GLint,
             );
             checkerr!(gl);
 
             gl.TexParameteri(
                 opengl::TEXTURE_2D,
                 opengl::TEXTURE_MAG_FILTER,
-                opengl::LINEAR as GLint,
+                filter_mag as GLint,
             );
             checkerr!(gl);
 
@@ -163,5 +158,36 @@ impl Drop for GlTexture2D {
                 log::warn!("GL texture {} dropped without being destroyed!", handle);
             }
         }
+    }
+}
+
+/// Converts a [TextureFiltering] struct to an opengl min/mag filter.
+/// Returns `(min, mag)`
+fn get_min_mag_filter(filter: TextureFiltering) -> (GLenum, GLenum) {
+    match filter {
+        TextureFiltering::Linear => (opengl::LINEAR_MIPMAP_LINEAR, opengl::LINEAR),
+        TextureFiltering::Nearest => (opengl::NEAREST_MIPMAP_NEAREST, opengl::NEAREST),
+    }
+}
+
+/// Converts a [TextureWrapping] struct to two opengl wrapping method enums, one per axis.
+/// Returns (u, v)
+const fn get_u_v_wrapping(wrapping: TextureWrapping) -> (GLenum, GLenum) {
+    match wrapping {
+        TextureWrapping::Both(wrapping_method) => {
+            let mthd = wrapping_method_to_enum(wrapping_method);
+            (mthd, mthd)
+        }
+        TextureWrapping::PerAxis { u, v } => {
+            (wrapping_method_to_enum(u), wrapping_method_to_enum(v))
+        }
+    }
+}
+
+const fn wrapping_method_to_enum(method: WrappingMethod) -> GLenum {
+    match method {
+        WrappingMethod::Repeat => opengl::REPEAT,
+        WrappingMethod::Mirror => opengl::MIRRORED_REPEAT,
+        WrappingMethod::Clamp => opengl::CLAMP_TO_EDGE,
     }
 }

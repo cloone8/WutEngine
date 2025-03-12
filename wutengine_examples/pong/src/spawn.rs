@@ -12,6 +12,7 @@ use wutengine::gameobject::GameObject;
 use wutengine::graphics::color::Color;
 use wutengine::graphics::mesh::IndexType;
 use wutengine::graphics::shader::ShaderId;
+use wutengine::graphics::texture::TextureFiltering;
 use wutengine::math::{Quat, Vec2, Vec3, random, vec2, vec3};
 use wutengine::plugins::WutEnginePlugin;
 use wutengine::windowing::WindowIdentifier;
@@ -147,6 +148,7 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     let mut face_texture = Texture::new();
     let face_image = wutengine::graphics::image::load_from_memory(FACE_IMAGE).unwrap();
     face_texture.set_image(face_image);
+    face_texture.set_filter(TextureFiltering::Nearest);
 
     let mut ball_material = Material::new();
     ball_material.set_shader(Some(ShaderId::new("unlit")));

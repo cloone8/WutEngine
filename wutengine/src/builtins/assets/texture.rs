@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use wutengine_graphics::image::DynamicImage;
 use wutengine_graphics::renderer::{RendererTextureId, WutEngineRenderer};
-use wutengine_graphics::texture::TextureData;
+use wutengine_graphics::texture::{TextureData, TextureFiltering, TextureWrapping};
 
 use crate::asset::Asset;
 
@@ -25,6 +25,22 @@ impl Texture {
         let raw = self.get_raw_mut_cloned();
 
         raw.data.imagedata = image.into();
+        raw.dirty = true;
+    }
+
+    /// Sets the texture filtering method
+    pub fn set_filter(&mut self, filter: TextureFiltering) {
+        let raw = self.get_raw_mut_cloned();
+
+        raw.data.filtering = filter;
+        raw.dirty = true;
+    }
+
+    /// Sets the texture wrapping method
+    pub fn set_wrapping(&mut self, wrapping: TextureWrapping) {
+        let raw = self.get_raw_mut_cloned();
+
+        raw.data.wrapping = wrapping;
         raw.dirty = true;
     }
 }

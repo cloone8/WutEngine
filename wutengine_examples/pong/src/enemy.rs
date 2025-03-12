@@ -31,6 +31,11 @@ impl Component for Enemy {
 
         let ball_global = wutengine::global::find_clone::<BallPosition>().unwrap();
 
+        if ball_global.pos.x < 0.0 {
+            self.cur_speed = 0.0;
+            return;
+        }
+
         if (ball_global.pos.y - transform.world_pos().y).abs() < 0.02 {
             self.cur_speed = 0.0;
             return;
