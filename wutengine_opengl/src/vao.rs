@@ -85,9 +85,14 @@ impl Vao {
         mesh: &mut GlMeshBuffers,
         shader_layout: ShaderVertexLayout,
     ) {
-        //NOTE: For now it's assumed that mesh buffers only have vertex position data
+        log::trace!("Setting VAO layout");
+
         let mesh_vtx_layout = &mesh.vertex_layout;
         let mesh_vtx_stride = mesh_vtx_layout.calculate_stride_for_layout();
+
+        log::trace!("Mesh layout: {:#?}", mesh_vtx_layout);
+        log::trace!("Mesh layout stride: {}", mesh_vtx_stride);
+        log::trace!("Shader layout: {:#?}", shader_layout);
 
         self.bind(gl);
 
@@ -113,6 +118,23 @@ impl Vao {
             }
         }
 
+        if let (Some(shader_attr_uv), Some(mesh_attr_uv)) = (shader_layout.uv, mesh_vtx_layout.uv) {
+            unsafe {
+                gl.VertexAttribPointer(
+                    shader_attr_uv as GLuint,
+                    2,
+                    opengl::FLOAT,
+                    opengl::FALSE,
+                    mesh_vtx_stride,
+                    mesh_attr_uv as *const c_void,
+                );
+                checkerr!(gl);
+
+                gl.EnableVertexAttribArray(shader_attr_uv as GLuint);
+                checkerr!(gl);
+            }
+        }
+
         self.unbind(gl);
 
         self.current_layout = Some((mesh_vtx_layout.clone(), shader_layout));
@@ -131,11 +153,12 @@ impl Vao {
     }
 }
 
-#[cfg(debug_assertions)]
 impl Drop for Vao {
     fn drop(&mut self) {
-        if self.handle.is_some() {
-            log::warn!("VAO dropped without being destroyed!");
+        if cfg!(debug_assertions) {
+            if let Some(handle) = self.handle {
+                log::warn!("VAO {} dropped without being destroyed!", handle);
+            }
         }
     }
 }

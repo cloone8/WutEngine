@@ -4,7 +4,9 @@ use core::ffi::CStr;
 use core::num::NonZero;
 use std::collections::HashMap;
 
+use glam::Mat4;
 use wutengine_graphics::material::MaterialParameter;
+use wutengine_graphics::renderer::RendererTextureId;
 use wutengine_graphics::shader::SharedShaderUniform;
 use wutengine_graphics::shader::Uniform;
 
@@ -12,6 +14,7 @@ use crate::error::checkerr;
 use crate::gltypes::GlMat4f;
 use crate::opengl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
 use crate::opengl::{self, Gl};
+use crate::texture::GlTexture;
 
 /// The description of a single OpenGL shader uniform
 #[derive(Debug, Clone, Copy)]
@@ -193,6 +196,8 @@ pub(super) fn set_uniforms(
     program: NonZero<GLuint>,
     to_set: &HashMap<String, MaterialParameter>,
     program_uniforms: &HashMap<String, GlShaderUniform>,
+    first_free_texture_unit: &mut GLenum,
+    texture_mappings: &mut HashMap<RendererTextureId, GlTexture>,
 ) {
     for (uniform_name, uniform_value) in to_set {
         let program_uniform = match program_uniforms.get(uniform_name) {
@@ -207,7 +212,13 @@ pub(super) fn set_uniforms(
             }
         };
 
-        let ok = set_uniform_value(gl, uniform_value, program_uniform);
+        let ok = set_uniform_value(
+            gl,
+            uniform_value,
+            program_uniform,
+            first_free_texture_unit,
+            texture_mappings,
+        );
 
         if !ok {
             log::warn!(
@@ -227,14 +238,25 @@ pub(super) fn set_uniform_value(
     gl: &Gl,
     value: &MaterialParameter,
     uniform: &GlShaderUniform,
+    first_free_texture_unit: &mut GLenum,
+    texture_mappings: &mut HashMap<RendererTextureId, GlTexture>,
 ) -> bool {
     if uniform.uniform_size != 1 {
         todo!("Array uniforms not yet implemented");
     }
 
     let ok = match uniform.uniform_type {
+        opengl::BOOL => set_bool(gl, value, uniform.location),
         opengl::FLOAT_VEC4 => set_float_vec4(gl, value, uniform.location),
         opengl::FLOAT_MAT4 => set_float_mat4(gl, value, uniform.location),
+        opengl::SAMPLER_2D => set_texture_2d(
+            gl,
+            value,
+            uniform.location,
+            first_free_texture_unit,
+            texture_mappings,
+        ),
+
         _ => {
             log::error!("Unknown uniform type: {}", uniform.uniform_type);
             false
@@ -246,6 +268,22 @@ pub(super) fn set_uniform_value(
     ok
 }
 
+fn set_bool(gl: &Gl, value: &MaterialParameter, location: GLint) -> bool {
+    unsafe {
+        match value {
+            MaterialParameter::Boolean(val) => {
+                let as_int = if *val { 1 } else { 0 };
+
+                gl.Uniform1i(location, as_int);
+                true
+            }
+            MaterialParameter::Color(_) => false,
+            MaterialParameter::Mat4(_) => false,
+            MaterialParameter::Texture(_) => false,
+        }
+    }
+}
+
 fn set_float_vec4(gl: &Gl, value: &MaterialParameter, location: GLint) -> bool {
     unsafe {
         match value {
@@ -255,6 +293,12 @@ fn set_float_vec4(gl: &Gl, value: &MaterialParameter, location: GLint) -> bool {
             }
             MaterialParameter::Mat4(_) => false,
             MaterialParameter::Texture(_) => false,
+            MaterialParameter::Boolean(val) => {
+                let as_flt = if *val { 1.0 } else { 0.0 };
+
+                gl.Uniform4f(location, as_flt, as_flt, as_flt, as_flt);
+                true
+            }
         }
     }
 }
@@ -270,6 +314,54 @@ fn set_float_mat4(gl: &Gl, value: &MaterialParameter, location: GLint) -> bool {
                 true
             }
             MaterialParameter::Texture(_) => false,
+            MaterialParameter::Boolean(val) => {
+                let mat = if *val { Mat4::IDENTITY } else { Mat4::ZERO };
+                let mat_gl = GlMat4f::from(mat);
+
+                gl.UniformMatrix4fv(location, 1, opengl::FALSE, &raw const mat_gl as *const f32);
+
+                true
+            }
+        }
+    }
+}
+
+fn set_texture_2d(
+    gl: &Gl,
+    value: &MaterialParameter,
+    location: GLint,
+    texture_unit: &mut GLenum,
+    texture_mappings: &mut HashMap<RendererTextureId, GlTexture>,
+) -> bool {
+    match value {
+        MaterialParameter::Boolean(_) => false,
+        MaterialParameter::Color(_) => false,
+        MaterialParameter::Mat4(_) => false,
+        MaterialParameter::Texture(tex_id) => {
+            let tex_buf = texture_mappings.get_mut(tex_id);
+
+            if tex_buf.is_none() {
+                log::warn!(
+                    "Tried to use texture {}, but its buffers were not found",
+                    tex_id
+                );
+                return false;
+            }
+
+            match tex_buf.unwrap() {
+                GlTexture::Tex2D(gl_tex2d) => {
+                    let cur_tex_unit = *texture_unit;
+                    unsafe {
+                        gl.ActiveTexture(opengl::TEXTURE0 + cur_tex_unit);
+                        gl_tex2d.bind(gl);
+                        gl.Uniform1i(location, cur_tex_unit as GLint);
+                    }
+
+                    *texture_unit += 1;
+                }
+            }
+
+            true
         }
     }
 }

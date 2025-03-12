@@ -10,12 +10,14 @@ use glam::Mat4;
 use thiserror::Error;
 use uniform::{GlShaderUniform, discover_uniforms};
 use wutengine_graphics::material::MaterialParameter;
+use wutengine_graphics::renderer::RendererTextureId;
 use wutengine_graphics::shader::SharedShaderUniform;
 use wutengine_graphics::shader::{Shader, ShaderVertexLayout};
 
 use crate::error::checkerr;
-use crate::opengl::types::{GLchar, GLint, GLuint};
+use crate::opengl::types::{GLchar, GLenum, GLint, GLuint};
 use crate::opengl::{self, Gl};
+use crate::texture::GlTexture;
 
 mod uniform;
 
@@ -184,12 +186,20 @@ impl GlShaderProgram {
     }
 
     /// Sets the given uniforms on this program. The program must current be in use, by calling [Self::use_program]
-    pub(crate) fn set_uniforms(&mut self, gl: &Gl, uniforms: &HashMap<String, MaterialParameter>) {
+    pub(crate) fn set_uniforms(
+        &mut self,
+        gl: &Gl,
+        uniforms: &HashMap<String, MaterialParameter>,
+        first_free_tex_unit: &mut GLenum,
+        texture_mappings: &mut HashMap<RendererTextureId, GlTexture>,
+    ) {
         uniform::set_uniforms(
             gl,
             self.handle.expect("Program destroyed"),
             uniforms,
             &self.uniforms,
+            first_free_tex_unit,
+            texture_mappings,
         );
     }
 
@@ -203,8 +213,18 @@ impl GlShaderProgram {
             .uniforms
             .get(SharedShaderUniform::ProjectionMat.as_str());
 
+        // Fake variables. We're not using the texture units here anyway
+        let mut tex_unit = 0;
+        let mut tex_maps = HashMap::new();
+
         if let Some(model_uform) = model_uform {
-            uniform::set_uniform_value(gl, &MaterialParameter::Mat4(model), model_uform);
+            uniform::set_uniform_value(
+                gl,
+                &MaterialParameter::Mat4(model),
+                model_uform,
+                &mut tex_unit,
+                &mut tex_maps,
+            );
         } else {
             log::debug!(
                 "Model uniform not found on shaderprogram {}",
@@ -213,7 +233,13 @@ impl GlShaderProgram {
         }
 
         if let Some(view_uform) = view_uform {
-            uniform::set_uniform_value(gl, &MaterialParameter::Mat4(view), view_uform);
+            uniform::set_uniform_value(
+                gl,
+                &MaterialParameter::Mat4(view),
+                view_uform,
+                &mut tex_unit,
+                &mut tex_maps,
+            );
         } else {
             log::debug!(
                 "View uniform not found on shaderprogram {}",
@@ -222,7 +248,13 @@ impl GlShaderProgram {
         }
 
         if let Some(projection_uform) = projection_uform {
-            uniform::set_uniform_value(gl, &MaterialParameter::Mat4(projection), projection_uform);
+            uniform::set_uniform_value(
+                gl,
+                &MaterialParameter::Mat4(projection),
+                projection_uform,
+                &mut tex_unit,
+                &mut tex_maps,
+            );
         } else {
             log::debug!(
                 "Projection uniform not found on shaderprogram {}",

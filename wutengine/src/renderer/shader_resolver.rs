@@ -41,6 +41,7 @@ impl EmbeddedShaderResolver {
                 },
                 vertex_layout: ShaderVertexLayout {
                     position: Some(0),
+                    uv: Some(1),
                     ..Default::default()
                 },
                 uniforms: map![
@@ -72,6 +73,22 @@ impl EmbeddedShaderResolver {
                         ty: UniformType::Vec4,
                         binding: UniformBinding {
                             name: "baseColor".to_string(),
+                            group: 0,
+                            binding: 0
+                        }
+                    },
+                    "colorMap" => Uniform {
+                        ty: UniformType::Tex2D,
+                        binding: UniformBinding {
+                            name: "colorMap".to_string(),
+                            group: 0,
+                            binding: 0
+                        }
+                    },
+                    "hasColorMap" => Uniform {
+                        ty: UniformType::Bool,
+                        binding: UniformBinding {
+                            name: "hasColorMap".to_string(),
                             group: 0,
                             binding: 0
                         }

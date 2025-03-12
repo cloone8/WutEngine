@@ -95,6 +95,9 @@ pub struct Uniform {
 /// The type of a [Uniform]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UniformType {
+    /// A boolean value
+    Bool,
+
     /// A three-f32 vector
     Vec3,
 
@@ -103,6 +106,9 @@ pub enum UniformType {
 
     /// A 4x4 f32 matrix
     Mat4,
+
+    /// A 2D texture
+    Tex2D,
 }
 
 /// The shader source binding for a [Uniform]. A combination of any/all of these

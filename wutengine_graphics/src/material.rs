@@ -21,6 +21,9 @@ pub struct MaterialData {
 /// The value of a material parameter in a [MaterialData]
 #[derive(Debug, Clone)]
 pub enum MaterialParameter {
+    /// A boolean
+    Boolean(bool),
+
     /// A color
     Color(Color),
 

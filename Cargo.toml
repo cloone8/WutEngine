@@ -68,7 +68,11 @@ thiserror = "2.0.12"
 nohash-hasher = { version = "0.2.0" }
 rand = { version = "0.9.0", features = ["std", "std_rng", "small_rng"] }
 itertools = "0.14.0"
-glam = { version = "0.29.2", features = ["std", "debug-glam-assert"] }
+glam = { version = "0.29.2", features = [
+    "std",
+    "debug-glam-assert",
+    "bytemuck",
+] }
 
 # Macro utilities
 syn = { version = "2.0.99", features = ["full", "parsing"] }
@@ -89,6 +93,7 @@ nalgebra = { version = "0.*", features = ["convert-glam029"] }
 
 # Others
 static_assertions = "1.1.0"
+bytemuck = "1.22.0"
 
 [profile.dev]
 opt-level = 1

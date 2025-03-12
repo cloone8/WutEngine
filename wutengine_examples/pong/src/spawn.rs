@@ -1,6 +1,6 @@
 //! Contains the spawning plugin for the game
 
-use wutengine::builtins::assets::{Material, Mesh};
+use wutengine::builtins::assets::{Material, Mesh, Texture};
 use wutengine::builtins::components::camera::CameraType::{self};
 use wutengine::builtins::components::physics::RectangleCollider2D;
 use wutengine::builtins::components::util::FramerateCounter;
@@ -10,18 +10,19 @@ use wutengine::builtins::components::{
 };
 use wutengine::gameobject::GameObject;
 use wutengine::graphics::color::Color;
-use wutengine::graphics::material::{MaterialData, MaterialParameter};
-use wutengine::graphics::mesh::{IndexBuffer, IndexType, MeshData};
+use wutengine::graphics::mesh::IndexType;
 use wutengine::graphics::shader::ShaderId;
 use wutengine::math::{Quat, Vec2, Vec3, random, vec2, vec3};
 use wutengine::plugins::WutEnginePlugin;
 use wutengine::windowing::WindowIdentifier;
 use wutengine::windowing::{self, FullscreenType, OpenWindowParams};
-use wutengine::{map, plugins};
+use wutengine::{log, plugins};
 
 use crate::balldata::BallData;
 use crate::enemy::Enemy;
 use crate::player::PlayerMovement;
+
+const FACE_IMAGE: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/face.png"));
 
 /// Plugin that only injects the initial components to get the game started
 #[derive(Debug)]
@@ -29,6 +30,7 @@ pub(crate) struct PongStarterPlugin;
 
 impl WutEnginePlugin for PongStarterPlugin {
     fn on_start(&mut self, context: &mut plugins::Context) {
+        log::info!("Running pong onstart");
         let mut rectangle_mesh = Mesh::new();
 
         rectangle_mesh.set_vertex_positions(vec![
@@ -36,6 +38,13 @@ impl WutEnginePlugin for PongStarterPlugin {
             Vec3::new(0.5, -0.5, 0.0),
             Vec3::new(-0.5, -0.5, 0.0),
             Vec3::new(-0.5, 0.5, 0.0),
+        ]);
+
+        rectangle_mesh.set_uvs(vec![
+            Vec2::new(1.0, 1.0),
+            Vec2::new(1.0, 0.0),
+            Vec2::new(0.0, 0.0),
+            Vec2::new(0.0, 1.0),
         ]);
 
         rectangle_mesh.set_indices(vec![0u32, 1, 3, 1, 2, 3]);
@@ -46,6 +55,8 @@ impl WutEnginePlugin for PongStarterPlugin {
         make_player(context, rectangle_mesh.clone());
         make_enemy(context, rectangle_mesh.clone());
         make_ball(context, rectangle_mesh.clone());
+
+        log::info!("Pong onstart done");
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -133,9 +144,15 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     ));
     ball.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
 
+    let mut face_texture = Texture::new();
+    let face_image = wutengine::graphics::image::load_from_memory(FACE_IMAGE).unwrap();
+    face_texture.set_image(face_image);
+
     let mut ball_material = Material::new();
     ball_material.set_shader(Some(ShaderId::new("unlit")));
     ball_material.set_color("baseColor", Color::WHITE);
+    ball_material.set_texture("colorMap", face_texture);
+    ball_material.set_bool("hasColorMap", true);
 
     ball.add_component(StaticMeshRenderer {
         mesh,

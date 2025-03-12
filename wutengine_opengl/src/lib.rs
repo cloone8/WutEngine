@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use window::Window;
+use wutengine_graphics::image::metadata::Orientation;
 use wutengine_graphics::material::MaterialData;
 use wutengine_graphics::mesh::MeshData;
 use wutengine_graphics::renderer::{
@@ -25,6 +26,7 @@ mod error;
 mod gltypes;
 mod mesh;
 mod shader;
+mod texture;
 mod vao;
 mod window;
 
@@ -130,8 +132,8 @@ impl WutEngineRenderer for OpenGLRenderer {
 
     fn render(&mut self, render_context: &Viewport, objects: &[Renderable]) {
         log::trace!(
-            "Rendering context {:#?} with {} objects",
-            render_context,
+            "Rendering window {} with {} objects",
+            render_context.window,
             objects.len()
         );
 
@@ -145,21 +147,7 @@ impl WutEngineRenderer for OpenGLRenderer {
         }
     }
 
-    fn create_mesh(&mut self) -> RendererMeshId {
-        let id = RendererMeshId::new();
-
-        log::debug!("Creating new mesh with id {}", id);
-
-        self.meshes.insert(id, None);
-
-        for window in self.windows.values_mut() {
-            window.create_mesh(id);
-        }
-
-        id
-    }
-
-    fn delete_mesh(&mut self, id: RendererMeshId) {
+    fn dispose_mesh(&mut self, id: RendererMeshId) {
         log::debug!("Deleting mesh with id {}", id);
 
         self.meshes.remove(&id);
@@ -172,28 +160,22 @@ impl WutEngineRenderer for OpenGLRenderer {
     fn update_mesh(&mut self, id: RendererMeshId, data: &MeshData) {
         log::debug!("Updating mesh with id {}", id);
 
-        self.meshes.insert(id, Some(data.clone()));
+        if !self.meshes.contains_key(&id) {
+            log::debug!("Mesh is new, creating new mesh with id {}", id);
+
+            for window in self.windows.values_mut() {
+                window.create_mesh(id);
+            }
+        }
 
         for window in self.windows.values_mut() {
             window.update_mesh(id, data);
         }
+
+        self.meshes.insert(id, Some(data.clone()));
     }
 
-    fn create_texture(&mut self) -> RendererTextureId {
-        let id = RendererTextureId::new();
-
-        log::debug!("Creating new texture with id {}", id);
-
-        self.textures.insert(id, None);
-
-        for window in self.windows.values_mut() {
-            window.create_texture(id);
-        }
-
-        id
-    }
-
-    fn delete_texture(&mut self, id: RendererTextureId) {
+    fn dispose_texture(&mut self, id: RendererTextureId) {
         log::debug!("Deleting texture with id {}", id);
 
         for window in self.windows.values_mut() {
@@ -206,28 +188,29 @@ impl WutEngineRenderer for OpenGLRenderer {
     fn update_texture(&mut self, id: RendererTextureId, data: &TextureData) {
         log::debug!("Updating texture with id {}", id);
 
-        self.textures.insert(id, Some(data.clone()));
+        if !self.textures.contains_key(&id) {
+            log::debug!("Texture is new, creating new texture with id {}", id);
 
-        for window in self.windows.values_mut() {
-            window.update_texture(id, data);
-        }
-    }
-
-    fn create_material(&mut self) -> RendererMaterialId {
-        let id = RendererMaterialId::new();
-
-        log::debug!("Creating new material with id {}", id);
-
-        self.materials.insert(id, None);
-
-        for window in self.windows.values_mut() {
-            window.create_material(id);
+            for window in self.windows.values_mut() {
+                window.create_texture(id);
+            }
         }
 
-        id
+        // OpenGL expects images to be flipped, so we do that here once instead of in
+        // every window
+        let mut cloned = data.clone();
+        cloned
+            .imagedata
+            .apply_orientation(Orientation::FlipVertical);
+
+        for window in self.windows.values_mut() {
+            window.update_texture(id, &cloned);
+        }
+
+        self.textures.insert(id, Some(cloned));
     }
 
-    fn delete_material(&mut self, id: RendererMaterialId) {
+    fn dispose_material(&mut self, id: RendererMaterialId) {
         log::debug!("Deleting material with id {}", id);
 
         for window in self.windows.values_mut() {
@@ -240,11 +223,19 @@ impl WutEngineRenderer for OpenGLRenderer {
     fn update_material(&mut self, id: RendererMaterialId, data: &MaterialData) {
         log::debug!("Updating material with id {}", id);
 
-        self.materials.insert(id, Some(data.clone()));
+        if !self.materials.contains_key(&id) {
+            log::debug!("Material is new, creating new material with id {}", id);
+
+            for window in self.windows.values_mut() {
+                window.create_material(id);
+            }
+        }
 
         for window in self.windows.values_mut() {
             window.update_material(id, data);
         }
+
+        self.materials.insert(id, Some(data.clone()));
     }
 }
 

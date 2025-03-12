@@ -1,6 +1,6 @@
 //! Internal render queue related functionality
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use glam::Mat4;
 use wutengine_graphics::renderer::Viewport;
@@ -21,10 +21,10 @@ pub(crate) struct RenderQueue {
 #[derive(Debug, Clone)]
 pub(crate) struct RenderCommand {
     /// The mesh to render
-    pub(crate) mesh: Arc<RawMesh>,
+    pub(crate) mesh: Arc<RwLock<RawMesh>>,
 
     /// The material to render with
-    pub(crate) material: Arc<RawMaterial>,
+    pub(crate) material: Arc<RwLock<RawMaterial>>,
 
     /// The mesh object-to-world matrix
     pub(crate) object_to_world: Mat4,

@@ -78,31 +78,22 @@ pub trait WutEngineRenderer {
     /// Called by the engine when the size of the window has changed
     fn window_size_changed(&mut self, id: &WindowIdentifier, phys_size: (u32, u32));
 
-    /// Creates a new (uninitialized) mesh
-    fn create_mesh(&mut self) -> RendererMeshId;
+    /// Disposes the GPU resources for the given mesh
+    fn dispose_mesh(&mut self, id: RendererMeshId);
 
-    /// Deletes an existing mesh
-    fn delete_mesh(&mut self, id: RendererMeshId);
-
-    /// Updates the data for the given mesh
+    /// Updates the data for the given mesh.
     fn update_mesh(&mut self, id: RendererMeshId, data: &MeshData);
 
-    /// Creates a new (uninitialized) texture
-    fn create_texture(&mut self) -> RendererTextureId;
-
-    /// Deletes an existing texture
-    fn delete_texture(&mut self, id: RendererTextureId);
+    /// Disposes the GPU resources for the given texture
+    fn dispose_texture(&mut self, id: RendererTextureId);
 
     /// Updates the data for the given texture
     fn update_texture(&mut self, id: RendererTextureId, data: &TextureData);
 
-    /// Creates a new (uninitialized) material
-    fn create_material(&mut self) -> RendererMaterialId;
+    /// Disposes an existing material
+    fn dispose_material(&mut self, id: RendererMaterialId);
 
-    /// Deletes an existing material
-    fn delete_material(&mut self, id: RendererMaterialId);
-
-    /// Updates the data for the givenmaterial
+    /// Updates the data for the given material
     fn update_material(&mut self, id: RendererMaterialId, data: &MaterialData);
 
     /// Render the given objects into the given viewport

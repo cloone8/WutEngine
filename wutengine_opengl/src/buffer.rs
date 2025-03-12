@@ -85,6 +85,7 @@ impl<B: GlBufferType> GlBuffer<B> {
     }
 
     /// Uploads the given data to this buffer
+    /// The buffer _must_ be currently bound
     pub(crate) fn buffer_data<T: Copy>(&mut self, gl: &Gl, data: &[T]) {
         unsafe {
             gl.BufferData(

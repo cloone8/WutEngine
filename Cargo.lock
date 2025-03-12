@@ -220,9 +220,9 @@ checksum = "1628fb46dfa0b37568d12e5edd512553eccf6a22a78e8bde00bb4aed84d5bdbf"
 
 [[package]]
 name = "bytemuck"
-version = "1.21.0"
+version = "1.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef657dfab802224e671f5818e9a4935f9b1957ed18e58292690cc39e7a4092a3"
+checksum = "b6b1fc10dbac614ebc03540c9dbd60e83887fda27794998c6528f1782047d540"
 
 [[package]]
 name = "byteorder"
@@ -788,6 +788,9 @@ name = "glam"
 version = "0.29.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc46dd3ec48fdd8e693a98d2b8bafae273a2d54c1de02a2a7e3d57d501f39677"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "half"
@@ -3209,7 +3212,6 @@ version = "0.3.0"
 dependencies = [
  "gilrs",
  "glam",
- "image",
  "itertools 0.14.0",
  "log",
  "nalgebra",
@@ -3277,6 +3279,7 @@ dependencies = [
 name = "wutengine_opengl"
 version = "0.3.0"
 dependencies = [
+ "bytemuck",
  "gl-from-raw-window-handle",
  "gl_generator",
  "glam",

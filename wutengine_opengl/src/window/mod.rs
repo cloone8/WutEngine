@@ -21,6 +21,8 @@ use crate::mesh::{GlMeshBuffers, index_type_to_gl};
 use crate::opengl::types::{GLint, GLuint};
 use crate::opengl::{self, Gl};
 use crate::shader::{self, GlShaderProgram};
+use crate::texture::GlTexture;
+use crate::texture::tex2d::GlTexture2D;
 use crate::vao::Vao;
 
 /// An OpenGL representation of a rendering window, with a unique context
@@ -31,7 +33,7 @@ pub(crate) struct Window {
     bindings: Gl,
     shaders: HashMap<ShaderId, GlShaderProgram>,
     meshes: HashMap<RendererMeshId, GlMeshBuffers>,
-    textures: HashMap<RendererTextureId, ()>,
+    textures: HashMap<RendererTextureId, GlTexture>,
     materials: HashMap<RendererMaterialId, MaterialData>,
     attributes: HashMap<RendererMeshId, Vao>,
 }
@@ -200,7 +202,18 @@ impl Window {
             shader.use_program(gl);
 
             // Set the uniforms
-            shader.set_uniforms(gl, &material.parameters);
+            let mut first_free_texture_unit = 0;
+
+            shader.set_uniforms(
+                gl,
+                &material.parameters,
+                &mut first_free_texture_unit,
+                &mut self.textures,
+            );
+
+            if first_free_texture_unit > 0 {
+                log::trace!("Bound {} texture units", first_free_texture_unit);
+            }
 
             // Set MVP matrices
             shader.set_mvp(
@@ -296,18 +309,53 @@ impl Window {
     }
 
     /// Generates OpenGL buffers for the given texture and registers it with the context
-    pub(crate) fn create_texture(&mut self, _id: RendererTextureId) {
-        todo!()
+    pub(crate) fn create_texture(&mut self, id: RendererTextureId) {
+        log::trace!("Creating texture {}", id);
+
+        debug_assert!(
+            !self.textures.contains_key(&id),
+            "Texture ID already exists"
+        );
+
+        let texture = match GlTexture2D::new(&self.bindings) {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("Failed to create OpenGL texture: {:#?}", e);
+                return;
+            }
+        };
+
+        self.textures.insert(id, GlTexture::Tex2D(texture));
     }
 
     /// Deletes the given texture and its associated GPU resources in this context
-    pub(crate) fn delete_texture(&mut self, _id: RendererTextureId) {
-        todo!()
+    pub(crate) fn delete_texture(&mut self, id: RendererTextureId) {
+        log::trace!("Deleting texture {}", id);
+
+        let texture = self.textures.remove(&id);
+
+        match texture {
+            Some(t) => t.destroy(&self.bindings),
+            None => {
+                log::warn!("Tried to delete non-existing texture {}", id)
+            }
+        };
     }
 
     /// Uploads new texture data for the given texture ID
-    pub(crate) fn update_texture(&mut self, _id: RendererTextureId, _data: &TextureData) {
-        todo!()
+    pub(crate) fn update_texture(&mut self, id: RendererTextureId, data: &TextureData) {
+        log::trace!("Updating texture {}", id);
+
+        let texture = self.textures.get_mut(&id);
+
+        if texture.is_none() {
+            log::error!("Trying to update unknown texture {}", id);
+            return;
+        }
+
+        let texture = texture.unwrap();
+
+        texture.upload_data(&self.bindings, data);
     }
 
     /// Registers the given material with this OpenGL window and context
