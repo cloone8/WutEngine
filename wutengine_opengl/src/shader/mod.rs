@@ -8,7 +8,7 @@ use std::ffi::CString;
 
 use glam::Mat4;
 use thiserror::Error;
-use uniform::{GlShaderUniform, discover_uniforms};
+use uniform::{GlShaderUniform, discover_uniforms, set_texture_from_buf};
 use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::renderer::RendererTextureId;
 use wutengine_graphics::shader::SharedShaderUniform;
@@ -156,7 +156,7 @@ impl GlShaderProgram {
         }
 
         // Program succesfully compiled. Now find all uniforms as declared by the source shader
-        let gl_uniforms = discover_uniforms(gl, program, &source.uniforms);
+        let gl_uniforms = discover_uniforms(gl, program);
 
         Ok(Self {
             handle: Some(program),
@@ -185,7 +185,58 @@ impl GlShaderProgram {
         &self.vertex_layout
     }
 
-    /// Sets the given uniforms on this program. The program must current be in use, by calling [Self::use_program]
+    /// Sets the default values for all uniforms on this shader _*NOT*_ in `set_uniforms`.
+    /// The program must currently be in use, by calling [Self::use_program]
+    pub(crate) fn set_uniform_defaults<P>(
+        &mut self,
+        gl: &Gl,
+        set_uniforms: &HashMap<String, P>,
+        first_free_tex_unit: &mut GLenum,
+        default_texture: &mut GlTexture,
+    ) {
+        let mut fake_mappings = HashMap::new();
+
+        for (uform_name, uform) in &self.uniforms {
+            if set_uniforms.contains_key(uform_name) {
+                // No need to set a default because we're gonna set this value later
+                continue;
+            }
+
+            let default_val = match uform.uniform_type {
+                opengl::BOOL => MaterialParameter::DEFAULT_BOOL,
+                opengl::FLOAT_VEC4 => MaterialParameter::DEFAULT_VEC4,
+                opengl::FLOAT_MAT4 => MaterialParameter::DEFAULT_MAT4,
+                opengl::SAMPLER_2D => unsafe {
+                    set_texture_from_buf(gl, default_texture, uform.location, first_free_tex_unit);
+                    continue;
+                },
+                _ => panic!("Missing default value for type {}", uform.uniform_type),
+            };
+
+            let cur_tex_unit = *first_free_tex_unit;
+
+            let ok = uniform::set_uniform_value(
+                gl,
+                &default_val,
+                uform,
+                first_free_tex_unit,
+                &mut fake_mappings,
+            );
+
+            assert!(
+                ok,
+                "Failed to set default uniform value of uniform {} to {:#?}",
+                uform_name, default_val
+            );
+
+            debug_assert_eq!(
+                cur_tex_unit, *first_free_tex_unit,
+                "Set a texture when we didn't expect to"
+            );
+        }
+    }
+
+    /// Sets the given uniforms on this program. The program must currently be in use, by calling [Self::use_program]
     pub(crate) fn set_uniforms(
         &mut self,
         gl: &Gl,

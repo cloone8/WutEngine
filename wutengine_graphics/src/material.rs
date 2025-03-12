@@ -2,11 +2,13 @@
 
 use std::collections::HashMap;
 
-use glam::Mat4;
+use glam::{Mat4, Vec4};
+use image::{DynamicImage, ImageBuffer};
 
 use crate::color::Color;
 use crate::renderer::RendererTextureId;
 use crate::shader::ShaderId;
+use crate::texture::{TextureData, TextureFiltering, TextureWrapping, WrappingMethod};
 
 /// The data of a material
 #[derive(Debug, Clone, Default)]
@@ -27,9 +29,45 @@ pub enum MaterialParameter {
     /// A color
     Color(Color),
 
+    /// A 4D vector
+    Vec4(Vec4),
+
     /// A matrix
     Mat4(Mat4),
 
     /// A texture
     Texture(RendererTextureId),
+}
+
+impl MaterialParameter {
+    /// The default value for a missing [MaterialParameter::Boolean]
+    pub const DEFAULT_BOOL: MaterialParameter = MaterialParameter::Boolean(false);
+
+    /// The default value for a missing [MaterialParameter::Color]
+    pub const DEFAULT_COLOR: MaterialParameter = MaterialParameter::Color(Color::BLACK);
+
+    /// The default value for a missing [MaterialParameter::Vec4]
+    pub const DEFAULT_VEC4: MaterialParameter = MaterialParameter::Vec4(Vec4::ZERO);
+
+    /// The default value for a missing [MaterialParameter::Mat4]
+    pub const DEFAULT_MAT4: MaterialParameter = MaterialParameter::Mat4(Mat4::ZERO);
+}
+
+/// Returns a new copy of the default texture, which is a 2x2 repeating pink-green image
+pub fn get_default_texture<const SIZE: u32>() -> TextureData {
+    assert!(SIZE.is_power_of_two());
+
+    TextureData {
+        imagedata: DynamicImage::ImageRgb8(ImageBuffer::from_fn(SIZE, SIZE, |x, y| {
+            let coord = x + (y % 2);
+
+            if coord % 2 == 0 {
+                image::Rgb([0xff, 0x00, 0x7f]) // pink
+            } else {
+                image::Rgb([0xcc, 0xff, 0x0b]) // green
+            }
+        })),
+        filtering: TextureFiltering::Nearest,
+        wrapping: TextureWrapping::Both(WrappingMethod::Repeat),
+    }
 }

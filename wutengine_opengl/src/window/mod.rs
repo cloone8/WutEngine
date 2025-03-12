@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
 use thiserror::Error;
-use wutengine_graphics::material::MaterialData;
+use wutengine_graphics::material::{MaterialData, get_default_texture};
 use wutengine_graphics::mesh::MeshData;
 use wutengine_graphics::renderer::{
     HasDisplayHandle, HasWindowHandle, Renderable, RendererMaterialId, RendererMeshId,
@@ -31,10 +31,23 @@ pub(crate) struct Window {
     shader_resolver: Rc<dyn ShaderResolver>,
     context: GlContext,
     bindings: Gl,
+
+    default_texture: GlTexture,
+
+    // === Resources ===
+    /// Shaders
     shaders: HashMap<ShaderId, GlShaderProgram>,
+
+    /// Meshes
     meshes: HashMap<RendererMeshId, GlMeshBuffers>,
+
+    /// Textures
     textures: HashMap<RendererTextureId, GlTexture>,
+
+    /// Materials
     materials: HashMap<RendererMaterialId, MaterialData>,
+
+    /// VAOs
     attributes: HashMap<RendererMeshId, Vao>,
 }
 
@@ -77,10 +90,15 @@ impl Window {
 
         checkerr!(&bindings);
 
+        // We inject the default texture here
+        let mut default_texture = GlTexture::Tex2D(GlTexture2D::new(&bindings).unwrap());
+        default_texture.upload_data(&bindings, &get_default_texture::<16>());
+
         Self {
             shader_resolver,
             context,
             bindings,
+            default_texture,
             shaders: Default::default(),
             meshes: Default::default(),
             textures: Default::default(),
@@ -114,6 +132,8 @@ impl Window {
             let sh = self.shaders.remove(&id).unwrap();
             sh.destroy(&self.bindings);
         });
+
+        self.default_texture.destroy(&self.bindings);
     }
 
     /// A function to be called whenever the size of the native window changed. Changes
@@ -203,6 +223,13 @@ impl Window {
 
             // Set the uniforms
             let mut first_free_texture_unit = 0;
+
+            shader.set_uniform_defaults(
+                gl,
+                &material.parameters,
+                &mut first_free_texture_unit,
+                &mut self.default_texture,
+            );
 
             shader.set_uniforms(
                 gl,

@@ -7,8 +7,6 @@ use std::collections::HashMap;
 use glam::Mat4;
 use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::renderer::RendererTextureId;
-use wutengine_graphics::shader::SharedShaderUniform;
-use wutengine_graphics::shader::Uniform;
 
 use crate::error::checkerr;
 use crate::gltypes::GlMat4f;
@@ -32,14 +30,10 @@ pub(crate) struct GlShaderUniform {
     pub(crate) uniform_size: GLint,
 }
 
-/// Tries to find the given declared uniforms in the given shaderprogram.
-/// Any declared uniforms that are not found in the active uniform list, OR
-/// any extra active uniforms that are not found in the declared uniform list
-/// are not returned.
+/// Finds all uniforms in the given program, and returns information on them
 pub(super) fn discover_uniforms(
     gl: &Gl,
     program: NonZero<GLuint>,
-    declared_uniforms: &HashMap<String, Uniform>,
 ) -> HashMap<String, GlShaderUniform> {
     log::debug!("Discovering uniforms for shaderprogram {}", program);
 
@@ -100,9 +94,8 @@ pub(super) fn discover_uniforms(
     // Set up a buffer for the name
     let mut name_buf = vec![0u8; max_uniform_name_len as usize];
 
-    // Now actually query each uniform. If they match one if the input uniforms,
-    // return its information.
-    let mut found_uniforms = HashMap::with_capacity(declared_uniforms.len());
+    // Now actually query each uniform.
+    let mut found_uniforms = HashMap::new();
 
     for index in 0..(active_uniforms as GLuint) {
         let mut actual_name_len: GLsizei = 0; // Name length _excluding_ null-terminator
@@ -134,14 +127,6 @@ pub(super) fn discover_uniforms(
             uniform_type,
             uniform_size
         );
-
-        if !declared_uniforms.contains_key(name) && is_mvp_mat(name) {
-            log::debug!(
-                "Uniform {} was not found in the expected uniform map and is not one of the MVP matrices, skipping",
-                name
-            );
-            continue;
-        }
 
         // Find the uniform location, as that needs to be done seperately
         let uniform_location =
@@ -181,12 +166,6 @@ pub(super) fn discover_uniforms(
     log::debug!("Found uniforms: {:#?}", found_uniforms);
 
     found_uniforms
-}
-
-fn is_mvp_mat(name: &str) -> bool {
-    name == SharedShaderUniform::ModelMat.as_str()
-        || name == SharedShaderUniform::ViewMat.as_str()
-        || name == SharedShaderUniform::ProjectionMat.as_str()
 }
 
 /// Tries to set the given uniform material parameters on the given shader program.
@@ -278,6 +257,7 @@ fn set_bool(gl: &Gl, value: &MaterialParameter, location: GLint) -> bool {
                 true
             }
             MaterialParameter::Color(_) => false,
+            MaterialParameter::Vec4(_) => false,
             MaterialParameter::Mat4(_) => false,
             MaterialParameter::Texture(_) => false,
         }
@@ -289,6 +269,10 @@ fn set_float_vec4(gl: &Gl, value: &MaterialParameter, location: GLint) -> bool {
         match value {
             MaterialParameter::Color(color) => {
                 gl.Uniform4f(location, color.r, color.g, color.b, color.a);
+                true
+            }
+            MaterialParameter::Vec4(vec) => {
+                gl.Uniform4f(location, vec.x, vec.y, vec.z, vec.w);
                 true
             }
             MaterialParameter::Mat4(_) => false,
@@ -307,6 +291,7 @@ fn set_float_mat4(gl: &Gl, value: &MaterialParameter, location: GLint) -> bool {
     unsafe {
         match value {
             MaterialParameter::Color(_) => false,
+            MaterialParameter::Vec4(_) => false,
             MaterialParameter::Mat4(mat4) => {
                 let mat_gl = GlMat4f::from(*mat4);
                 gl.UniformMatrix4fv(location, 1, opengl::FALSE, &raw const mat_gl as *const f32);
@@ -336,6 +321,7 @@ fn set_texture_2d(
     match value {
         MaterialParameter::Boolean(_) => false,
         MaterialParameter::Color(_) => false,
+        MaterialParameter::Vec4(_) => false,
         MaterialParameter::Mat4(_) => false,
         MaterialParameter::Texture(tex_id) => {
             let tex_buf = texture_mappings.get_mut(tex_id);
@@ -348,20 +334,31 @@ fn set_texture_2d(
                 return false;
             }
 
-            match tex_buf.unwrap() {
-                GlTexture::Tex2D(gl_tex2d) => {
-                    let cur_tex_unit = *texture_unit;
-                    unsafe {
-                        gl.ActiveTexture(opengl::TEXTURE0 + cur_tex_unit);
-                        gl_tex2d.bind(gl);
-                        gl.Uniform1i(location, cur_tex_unit as GLint);
-                    }
-
-                    *texture_unit += 1;
-                }
+            unsafe {
+                set_texture_from_buf(gl, tex_buf.unwrap(), location, texture_unit);
             }
 
             true
+        }
+    }
+}
+
+pub(super) unsafe fn set_texture_from_buf(
+    gl: &Gl,
+    buffer: &mut GlTexture,
+    location: GLint,
+    texture_unit: &mut GLenum,
+) {
+    match buffer {
+        GlTexture::Tex2D(gl_tex2d) => {
+            let cur_tex_unit = *texture_unit;
+            unsafe {
+                gl.ActiveTexture(opengl::TEXTURE0 + cur_tex_unit);
+                gl_tex2d.bind(gl);
+                gl.Uniform1i(location, cur_tex_unit as GLint);
+            }
+
+            *texture_unit += 1;
         }
     }
 }
