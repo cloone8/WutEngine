@@ -2,6 +2,9 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.4.0]
+- Added default values for missing Material parameters
+
 ## [v0.3.0]
 - Changed renderer API to make creating GPU resources more explicitly controlled by the engine
 - Added support for textures
