@@ -1,6 +1,6 @@
 //! Camera components
 
-use glam::Mat4;
+use glam::{Mat4, Vec3};
 use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::{color::Color, renderer::Viewport};
 
@@ -56,7 +56,11 @@ impl Component for Camera {
         };
 
         let view_mat = match context.gameobject.get_component::<Transform>() {
-            Some(t) => t.local_to_world(),
+            Some(t) => Mat4::look_to_lh(
+                t.world_pos(),
+                t.world_rot() * Vec3::Z,
+                t.world_rot() * Vec3::Y,
+            ),
             None => Mat4::IDENTITY,
         };
 
@@ -65,7 +69,7 @@ impl Component for Camera {
         let aspect_ratio: f64 = phys_window_size.0 as f64 / phys_window_size.1 as f64;
 
         let projection_mat = match self.camera_type {
-            CameraType::Perspective(vertical_fov) => Mat4::perspective_rh_gl(
+            CameraType::Perspective(vertical_fov) => Mat4::perspective_lh(
                 vertical_fov.to_radians() as f32,
                 aspect_ratio as f32,
                 0.1,
@@ -75,7 +79,7 @@ impl Component for Camera {
                 let half_size = size / 2.0;
                 let half_horizontal_size = half_size * aspect_ratio;
 
-                Mat4::orthographic_rh_gl(
+                Mat4::orthographic_lh(
                     -half_horizontal_size as f32,
                     half_horizontal_size as f32,
                     -half_size as f32,

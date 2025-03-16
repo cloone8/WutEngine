@@ -26,8 +26,14 @@ unsafe impl<T: Sync> Sync for SyncUnsafeCell<T> {}
 /// Current time values
 #[derive(Debug, Clone, Copy)]
 pub struct Time {
+    /// Start time of the entire level
+    pub level_start: Instant,
+
     /// Start time of the frame
     pub frame_start: Instant,
+
+    /// The amount of frames that have passed in this level
+    pub frame_num: usize,
 
     /// Delta time as measured from the previous frame
     pub delta: f32,
@@ -52,11 +58,24 @@ impl Time {
         }
     }
 
+    #[inline(always)]
+    unsafe fn _set_scene_start(new: Instant) {
+        let mut prev_time = Self::get();
+
+        prev_time.level_start = new;
+
+        unsafe {
+            Self::set(prev_time);
+        }
+    }
+
     /// Initializes the time struct to a valid value.
     /// Must be called once before the runtime has started, and only once.
     pub(crate) unsafe fn initialize(fixed_timestep: f32) {
         unsafe {
             Self::set(Self {
+                level_start: Instant::now(),
+                frame_num: 0,
                 frame_start: Instant::now(),
                 delta: 0.0,
                 fixed_delta: fixed_timestep,
@@ -82,10 +101,21 @@ impl Time {
 
         unsafe {
             Self::set(Time {
+                level_start: prev_time.level_start,
+                frame_num: prev_time.frame_num.wrapping_add(1),
                 frame_start: cur_time,
                 delta: cur_time.duration_since(prev_time.frame_start).as_secs_f32(),
                 fixed_delta: fixed_timestep,
             });
         }
+    }
+
+    /// Returns the elapsed time in seconds since the start
+    /// of the current level
+    #[inline(always)]
+    pub fn since_start(self) -> f32 {
+        self.frame_start
+            .duration_since(self.level_start)
+            .as_secs_f32()
     }
 }

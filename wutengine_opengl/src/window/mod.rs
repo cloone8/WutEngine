@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use gl_from_raw_window_handle::{GlConfig, GlContext, Profile};
+use glam::{Mat4, Vec4};
 use thiserror::Error;
 use wutengine_graphics::material::{MaterialData, get_default_texture};
 use wutengine_graphics::mesh::MeshData;
@@ -86,7 +87,10 @@ impl Window {
 
         let bindings = Gl::load_with(|s| context.get_proc_address(s));
 
-        unsafe { bindings.Viewport(0, 0, size.0.try_into().unwrap(), size.1.try_into().unwrap()) };
+        unsafe {
+            bindings.Viewport(0, 0, size.0.try_into().unwrap(), size.1.try_into().unwrap());
+            bindings.Enable(opengl::DEPTH_TEST);
+        };
 
         checkerr!(&bindings);
 
@@ -158,6 +162,15 @@ impl Window {
             self.context.make_current();
         }
 
+        // First we transform the projection matrix depth range from the universal [0..1] to OpenGL [-1..1]
+        let projection_mat = viewport_context.projection_mat
+            * Mat4::from_cols(
+                Vec4::new(1.0, 0.0, 0.0, 0.0),
+                Vec4::new(0.0, 1.0, 0.0, 0.0),
+                Vec4::new(0.0, 0.0, 2.0, 0.0),
+                Vec4::new(0.0, 0.0, -1.0, 1.0),
+            );
+
         let gl = &self.bindings;
 
         let clear_color = viewport_context.clear_color;
@@ -165,7 +178,7 @@ impl Window {
         unsafe {
             gl.ClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
             checkerr!(gl);
-            gl.Clear(opengl::COLOR_BUFFER_BIT);
+            gl.Clear(opengl::COLOR_BUFFER_BIT | opengl::DEPTH_BUFFER_BIT);
             checkerr!(gl);
         }
 
@@ -247,7 +260,7 @@ impl Window {
                 gl,
                 object.object_to_world,
                 viewport_context.view_mat,
-                viewport_context.projection_mat,
+                projection_mat,
             );
 
             unsafe {

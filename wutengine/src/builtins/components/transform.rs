@@ -110,9 +110,19 @@ impl Transform {
         self.data.rot
     }
 
+    /// Sets the world-space rotation of this transform
+    pub fn set_world_rot(&mut self, rot: Quat) {
+        self.data.rot = rot;
+    }
+
     /// Gets the local-space rotation of this transform
     pub fn local_rot(&self) -> Quat {
         self.data.rot
+    }
+
+    /// Sets the local-space rotation of this transform
+    pub fn set_local_rot(&mut self, rot: Quat) {
+        self.data.rot = rot;
     }
 
     /// Gets the local-space scale of this transform
