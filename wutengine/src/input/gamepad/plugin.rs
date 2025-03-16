@@ -19,7 +19,7 @@ pub struct GamepadInputPlugin {
     gilrs: Mutex<Gilrs>,
 
     /// Map of all currently known gamepads
-    pub gamepads: HashMap<GamepadId, Gamepad>,
+    pub(crate) gamepads: HashMap<GamepadId, Gamepad>,
 }
 
 impl GamepadInputPlugin {
