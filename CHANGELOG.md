@@ -2,6 +2,9 @@
 
 This file documents the most important changes for each released version.
 
+## [v0.5.0]
+
+
 ## [v0.4.0]
 - Added default values for missing Material parameters
 - Fixed view/projection matrices to properly follow the left-handed coordinate system
