@@ -14,7 +14,7 @@ use super::transform::Transform;
 pub struct Camera {
     /// The window to render to. Must match the identifier of an opened window in order
     /// for the camera to render anything.
-    pub display: WindowIdentifier,
+    pub window: WindowIdentifier,
 
     /// The background color of the camera for any unset pixel
     pub clear_color: Color,
@@ -38,12 +38,12 @@ pub enum CameraType {
 #[profiling::all_functions]
 impl Component for Camera {
     fn pre_render(&mut self, context: &mut Context) {
-        let window = match context.window.get(&self.display) {
+        let window = match context.window.get(&self.window) {
             Some(w) => w,
             None => {
                 log::warn!(
                     "Camera trying to render to non-existing window {}",
-                    self.display
+                    self.window
                 );
                 return;
             }

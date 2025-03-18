@@ -3,14 +3,14 @@ use std::sync::Mutex;
 
 use wutengine_core::identifiers::WindowIdentifier;
 
-use crate::windowing::window::WindowData;
 use crate::windowing::OpenWindowParams;
+use crate::windowing::window::WindowData;
 
 /// The window context, used for interacting with window related APIs.
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
 pub struct WindowContext<'a> {
-    windows: &'a HashMap<WindowIdentifier, WindowData>,
+    pub(crate) windows: &'a HashMap<WindowIdentifier, WindowData>,
     opened: Mutex<Vec<OpenWindowParams>>,
 }
 

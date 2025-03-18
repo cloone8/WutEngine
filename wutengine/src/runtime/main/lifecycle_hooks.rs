@@ -90,6 +90,10 @@ impl<R: WutEngineRenderer> Runtime<R> {
     }
 
     pub(super) fn lifecycle_pre_render(&mut self) {
+        log::trace!("Running pre-render for plugins");
+
+        self.run_plugin_hooks(|plugin, context| plugin.pre_render(context));
+
         log::trace!("Running pre-render for components");
 
         self.run_component_hook_on_active(|component_data, context| {

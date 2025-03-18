@@ -171,7 +171,7 @@ fn make_camera() {
 
     camera.add_component(Transform::with_pos(Vec3::new(0.0, 0.0, -3.0)));
     camera.add_component(Camera {
-        display: WindowIdentifier::new("main"),
+        window: WindowIdentifier::new("main"),
         clear_color: Color::BLACK,
         camera_type: CameraType::Orthographic(2.0),
     });

@@ -128,7 +128,7 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
         let window_data = make_windowdata_map(&self.windows);
 
-        let mut context = plugins::Context::new(&window_data, &message_queue);
+        let mut context = plugins::Context::new(&window_data, &message_queue, &self.obj_storage);
 
         for plugin in &mut self.plugins {
             func(plugin, &mut context);

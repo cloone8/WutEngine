@@ -49,7 +49,7 @@ impl GameObject {
     }
 
     /// Removes all components that are currently marked as dying, without running
-    /// their [Component::destroy] callbacks. These should be run prior to calling this
+    /// their [crate::component::Component::on_destroy] callbacks. These should be run prior to calling this
     /// method through some other mechanism.
     pub(crate) fn remove_dying_components(&mut self) {
         log::trace!(

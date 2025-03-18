@@ -6,7 +6,7 @@ use crate::gameobject::{GameObject, GameObjectId};
 
 /// A container for the runtime storage of WutEngine [GameObject] structs, and their related data
 #[derive(Debug)]
-pub(crate) struct GameObjectStorage {
+pub struct GameObjectStorage {
     /// A map of [GameObjectId]s to indices into the [Self::objects] array
     pub(crate) identmap: HashMap<GameObjectId, usize>,
 
@@ -52,5 +52,18 @@ impl GameObjectStorage {
                 }
             }
         }
+    }
+}
+
+/// Exposed functionality
+impl GameObjectStorage {
+    /// Returns the slice of all objects currently tracked by the engine
+    pub fn get_objects(&self) -> &[GameObject] {
+        &self.objects
+    }
+
+    /// Returns the object belonging to the given ID, if it exists
+    pub fn get_object(&self, id: GameObjectId) -> Option<&GameObject> {
+        self.identmap.get(&id).map(|idx| &self.objects[*idx])
     }
 }

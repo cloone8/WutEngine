@@ -34,12 +34,20 @@ impl AvailableDisplays {
 /// An available display
 #[derive(Debug, Clone)]
 pub struct Display {
-    pub(super) handle: MonitorHandle,
+    pub(crate) handle: MonitorHandle,
     pub(super) modes: Vec<VideoModeHandle>,
     pub(super) largest_mode: VideoModeHandle,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct DisplayId(pub(crate) MonitorHandle);
+
 impl Display {
+    pub fn id(&self) -> DisplayId {
+        DisplayId(self.handle.clone())
+    }
+
     /// Returns the name of the display
     pub fn name(&self) -> String {
         self.handle.name().unwrap()
@@ -109,7 +117,7 @@ fn map_display(handle: MonitorHandle) -> Display {
     }
 }
 
-/// Returnst whether `mode` is a "better" (larger, faster) video mode when compared to
+/// Returns whether `mode` is a "better" (larger, faster) video mode when compared to
 /// `compared_to`
 fn better_mode(mode: &VideoModeHandle, compared_to: &VideoModeHandle) -> bool {
     let resolution_cmp = mode.size().cmp(&compared_to.size());
@@ -134,4 +142,12 @@ pub fn available_displays() -> AvailableDisplays {
         .get()
         .expect("Displays not yet initialized!")
         .clone()
+}
+
+pub fn get_display(id: &DisplayId) -> Option<Display> {
+    available_displays()
+        .displays
+        .iter()
+        .find(|disp| disp.id() == *id)
+        .cloned()
 }

@@ -22,6 +22,18 @@ impl ComponentData {
             state: ComponentState::ReadyForStart,
         }
     }
+
+    pub(crate) fn get_inner_cast<T: Component>(&self) -> Option<&T> {
+        let as_ref = self.component.as_ref().as_any();
+
+        as_ref.downcast_ref::<T>()
+    }
+
+    pub(crate) fn get_inner_cast_mut<T: Component>(&mut self) -> Option<&mut T> {
+        let as_ref = self.component.as_mut().as_any_mut();
+
+        as_ref.downcast_mut::<T>()
+    }
 }
 
 /// A component lifecycle state
