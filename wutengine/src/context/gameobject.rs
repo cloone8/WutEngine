@@ -1,5 +1,5 @@
-use crate::component::data::ComponentData;
 use crate::component::Component;
+use crate::component::data::ComponentData;
 use crate::gameobject::GameObject;
 
 /// The context for interacting with the current [GameObject]. Usually within a component
@@ -52,10 +52,7 @@ impl<'a> GameObjectContext<'a> {
     pub fn get_component<T: Component>(&self) -> Option<&T> {
         for chunk in &self.component_chunks {
             for component_data in chunk.iter() {
-                let as_ref = component_data.component.as_ref().as_any();
-                let cast = as_ref.downcast_ref::<T>();
-
-                if let Some(cast_ok) = cast {
+                if let Some(cast_ok) = component_data.get_inner_cast::<T>() {
                     return Some(cast_ok);
                 }
             }
@@ -70,10 +67,7 @@ impl<'a> GameObjectContext<'a> {
 
         for chunk in &self.component_chunks {
             for component_data in chunk.iter() {
-                let as_ref = component_data.component.as_ref().as_any();
-                let cast = as_ref.downcast_ref::<T>();
-
-                if let Some(cast_ok) = cast {
+                if let Some(cast_ok) = component_data.get_inner_cast::<T>() {
                     found.push(cast_ok);
                 }
             }
@@ -86,10 +80,7 @@ impl<'a> GameObjectContext<'a> {
     pub fn get_component_mut<T: Component>(&mut self) -> Option<&mut T> {
         for chunk in &mut self.component_chunks {
             for component_data in chunk.iter_mut() {
-                let as_mut = component_data.component.as_mut().as_any_mut();
-                let cast = as_mut.downcast_mut::<T>();
-
-                if let Some(cast_ok) = cast {
+                if let Some(cast_ok) = component_data.get_inner_cast_mut::<T>() {
                     return Some(cast_ok);
                 }
             }
@@ -104,10 +95,7 @@ impl<'a> GameObjectContext<'a> {
 
         for chunk in &mut self.component_chunks {
             for component_data in chunk.iter_mut() {
-                let as_mut = component_data.component.as_mut().as_any_mut();
-                let cast = as_mut.downcast_mut::<T>();
-
-                if let Some(cast_ok) = cast {
+                if let Some(cast_ok) = component_data.get_inner_cast_mut::<T>() {
                     found.push(cast_ok);
                 }
             }

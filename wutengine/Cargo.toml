@@ -43,3 +43,5 @@ rapier3d.workspace = true
 nalgebra.workspace = true
 gilrs.workspace = true
 thiserror.workspace = true
+egui.workspace = true
+bytemuck.workspace = true

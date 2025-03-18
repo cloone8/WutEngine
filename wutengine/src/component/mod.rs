@@ -51,7 +51,7 @@ pub trait Component: Any + Send + Sync + Debug {
 /// The main context handed to each component each frame
 pub struct Context<'a> {
     /// Engine related APIs and commands
-    pub engine: &'a EngineContext<'a>,
+    pub engine: &'a EngineContext,
 
     /// Information and APIs related to the gameobject this component is on
     pub gameobject: GameObjectContext<'a>,
@@ -63,10 +63,10 @@ pub struct Context<'a> {
     pub plugin: &'a PluginContext<'a>,
 
     /// Information and APIs for interacting with viewports
-    pub viewport: &'a ViewportContext<'a>,
+    pub viewport: &'a ViewportContext,
 
     /// Graphics and rendering APIs
-    pub graphics: &'a GraphicsContext<'a>,
+    pub graphics: &'a GraphicsContext,
 
     /// Window information and APIs
     pub window: &'a WindowContext<'a>,

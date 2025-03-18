@@ -1,4 +1,3 @@
-use core::marker::PhantomData;
 use std::sync::Mutex;
 
 use crate::gameobject::GameObject;
@@ -6,17 +5,15 @@ use crate::gameobject::GameObject;
 /// The context used for interacting with engine-related APIs
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
-pub struct EngineContext<'a> {
+pub struct EngineContext {
     new_gameobjects: Mutex<Vec<GameObject>>,
-    ph: PhantomData<&'a ()>,
 }
 
-impl EngineContext<'_> {
+impl EngineContext {
     /// Construct a new, empty, [EngineContext]
     pub(crate) fn new() -> Self {
         Self {
             new_gameobjects: Mutex::new(Vec::new()),
-            ph: PhantomData,
         }
     }
 

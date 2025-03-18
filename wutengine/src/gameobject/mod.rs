@@ -9,6 +9,8 @@ use crate::component::data::{ComponentData, ComponentState};
 
 pub(crate) mod runtimestorage;
 
+pub use runtimestorage::GameObjectStorage;
+
 static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
 
 /// The at-runtime ID of a GameObject
@@ -55,7 +57,7 @@ impl GameObject {
     }
 
     /// Removes all components that are currently marked as dying, without running
-    /// their [Component::destroy] callbacks. These should be run prior to calling this
+    /// their [crate::component::Component::on_destroy] callbacks. These should be run prior to calling this
     /// method through some other mechanism.
     pub(crate) fn remove_dying_components(&mut self) {
         log::trace!(

@@ -1,4 +1,3 @@
-use core::marker::PhantomData;
 use std::sync::Mutex;
 
 use glam::Mat4;
@@ -9,17 +8,15 @@ use crate::renderer::queue::RenderCommand;
 /// The graphics context. Used for interacting with graphics related APIs
 #[must_use = "The commands within the context must be consumed"]
 #[derive(Debug)]
-pub struct GraphicsContext<'a> {
+pub struct GraphicsContext {
     render_commands: Mutex<Vec<RenderCommand>>,
-    ph: PhantomData<&'a ()>,
 }
 
-impl GraphicsContext<'_> {
+impl GraphicsContext {
     /// Creates a new, empty, graphics context
     pub(crate) fn new() -> Self {
         GraphicsContext {
             render_commands: Mutex::new(Vec::new()),
-            ph: PhantomData,
         }
     }
 

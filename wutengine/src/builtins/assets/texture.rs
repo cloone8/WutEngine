@@ -20,7 +20,7 @@ impl Texture {
         })))
     }
 
-    /// Sets the image data for this texture
+    /// Creates a private clone of this texture and sets its image data
     pub fn set_image(&mut self, image: impl Into<DynamicImage>) {
         let raw = self.get_raw_mut_cloned();
 
@@ -28,7 +28,14 @@ impl Texture {
         raw.dirty = true;
     }
 
-    /// Sets the texture filtering method
+    /// Sets the image data of this texture for all its current users
+    pub fn set_image_shared(&mut self, image: impl Into<DynamicImage>) {
+        let mut raw = self.0.write().unwrap();
+        raw.data.imagedata = image.into();
+        raw.dirty = true;
+    }
+
+    /// Creates a private clone of this texture and sets the texture filtering method
     pub fn set_filter(&mut self, filter: TextureFiltering) {
         let raw = self.get_raw_mut_cloned();
 
@@ -36,9 +43,25 @@ impl Texture {
         raw.dirty = true;
     }
 
-    /// Sets the texture wrapping method
+    /// Sets the texture filtering method for all current users of this texture
+    pub fn set_filter_shared(&mut self, filter: TextureFiltering) {
+        let mut raw = self.0.write().unwrap();
+
+        raw.data.filtering = filter;
+        raw.dirty = true;
+    }
+
+    /// Creates a private clone of this texture and sets the texture wrapping method
     pub fn set_wrapping(&mut self, wrapping: TextureWrapping) {
         let raw = self.get_raw_mut_cloned();
+
+        raw.data.wrapping = wrapping;
+        raw.dirty = true;
+    }
+
+    /// Sets the texture wrapping method for all current users of this texture
+    pub fn set_wrapping_shared(&mut self, wrapping: TextureWrapping) {
+        let mut raw = self.0.write().unwrap();
 
         raw.data.wrapping = wrapping;
         raw.dirty = true;

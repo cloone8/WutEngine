@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use crate::context::{
     EngineContext, GraphicsContext, MessageContext, ViewportContext, WindowContext,
 };
+use crate::gameobject::runtimestorage::GameObjectStorage;
 use crate::runtime::messaging::MessageQueue;
 use crate::windowing::window::WindowData;
 use crate::winit::event::{DeviceEvent, DeviceId, WindowEvent};
@@ -51,6 +52,10 @@ pub trait WutEnginePlugin: Any + Send + Sync + Debug {
     /// Called on each update tick
     fn update(&mut self, _context: &mut Context) {}
 
+    /// The pre-render hook. Runs after the update phase. Use this for submitting
+    /// rendering commands
+    fn pre_render(&mut self, _context: &mut Context) {}
+
     /// Called once for each raw window event returned by the windowing system (currently [winit])
     fn on_window_event(
         &mut self,
@@ -66,31 +71,36 @@ pub trait WutEnginePlugin: Any + Send + Sync + Debug {
 }
 
 /// The context handed to most plugin hooks. Can be used to access the engine APIs
-pub struct Context<'a> {
+pub struct Context<'a, 'b, 'c> {
     /// The engine context
-    pub engine: EngineContext<'a>,
+    pub engine: EngineContext,
+
+    /// All currently tracked GameObjects
+    pub gameobjects: &'c GameObjectStorage,
 
     /// The message context
-    pub message: MessageContext<'a>,
+    pub message: MessageContext<'b>,
 
     /// The viewport context
-    pub viewport: ViewportContext<'a>,
+    pub viewport: ViewportContext,
 
     /// The graphics context
-    pub graphics: GraphicsContext<'a>,
+    pub graphics: GraphicsContext,
 
     /// The windowing context
     pub windows: WindowContext<'a>,
 }
 
-impl<'a> Context<'a> {
+impl<'a, 'b, 'c> Context<'a, 'b, 'c> {
     /// Creates a new plugin context with the given parameters
     pub(crate) fn new(
         windows: &'a HashMap<WindowIdentifier, WindowData>,
-        messages: &'a MessageQueue,
+        messages: &'b MessageQueue,
+        objects: &'c GameObjectStorage,
     ) -> Self {
         Self {
             engine: EngineContext::new(),
+            gameobjects: objects,
             message: MessageContext::new(messages),
             viewport: ViewportContext::new(),
             graphics: GraphicsContext::new(),

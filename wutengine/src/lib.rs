@@ -24,6 +24,7 @@ pub mod plugins;
 pub mod renderer;
 pub mod runtime;
 pub mod time;
+pub mod ui;
 pub(crate) mod util;
 pub mod windowing;
 
