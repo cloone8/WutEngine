@@ -9,7 +9,6 @@ use winit::window::WindowId;
 use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
-use crate::gameobject::runtimestorage::GameObjectStorage;
 use crate::plugins::WutEnginePlugin;
 use crate::windowing::WindowingEvent;
 use crate::windowing::window::Window;
@@ -29,8 +28,6 @@ pub(crate) static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 /// TODO: Split up runtime object into multiple smaller structs
 /// for cleaner code
 pub struct Runtime<R: WutEngineRenderer> {
-    obj_storage: GameObjectStorage,
-
     physics_update_interval: f32,
     physics_update_accumulator: f32,
 

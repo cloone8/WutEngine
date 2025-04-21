@@ -10,7 +10,7 @@ use crate::runtime::main::ComponentState;
 use crate::runtime::{EXIT_REQUESTED, Runtime};
 use crate::time::Time;
 use crate::windowing::window::Window;
-use crate::{graphics, windowing};
+use crate::{gameobject, graphics, windowing};
 
 use super::WindowingEvent;
 
@@ -229,12 +229,16 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         // Mark all components as dying and cancel all components queued for startup.
         {
             profiling::scope!("Kill Components");
-            for go in &mut self.obj_storage.objects {
-                go.cancel_component_creation();
-                for component in go.components.get_mut() {
-                    component.state = ComponentState::Dying;
+
+            gameobject::internal::with_storage_mut(|storage| {
+                for go in &mut storage.objects {
+                    go.cancel_component_creation();
+
+                    for component in go.components.get_mut().unwrap() {
+                        component.state = ComponentState::Dying;
+                    }
                 }
-            }
+            });
         }
 
         // Run the destruction lifecycle hook

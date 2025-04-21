@@ -3,13 +3,12 @@
 use core::cell::RefCell;
 use core::fmt::Display;
 use core::sync::atomic::{AtomicU64, Ordering};
+use std::sync::RwLock;
 
 use crate::component::Component;
 use crate::component::data::{ComponentData, ComponentState};
 
-pub(crate) mod runtimestorage;
-
-static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
+pub(crate) mod internal;
 
 /// The at-runtime ID of a GameObject
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -32,19 +31,20 @@ pub struct GameObject {
     pub name: String,
 
     /// The [Component] types active on this [GameObject]
-    pub(crate) components: RefCell<Vec<ComponentData>>,
+    pub(crate) components: RwLock<Vec<ComponentData>>,
 }
 
 #[profiling::all_functions]
 impl GameObject {
     /// Creates a new [GameObject] that is not yet loaded into the world.
     pub fn new(name: Option<impl Into<String>>) -> Self {
+        static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
         let name = name.map(|s| s.into()).unwrap_or("GameObject".to_string());
 
         Self {
             id: GameObjectId(NEXT_INDEX.fetch_add(1, Ordering::Relaxed)),
             name,
-            components: RefCell::new(Vec::new()),
+            components: RwLock::new(Vec::new()),
         }
     }
 
@@ -52,6 +52,7 @@ impl GameObject {
     pub fn add_component(&mut self, component: impl Component) {
         self.components
             .get_mut()
+            .unwrap()
             .push(ComponentData::new(Box::new(component)));
     }
 
@@ -67,6 +68,7 @@ impl GameObject {
 
         self.components
             .get_mut()
+            .unwrap()
             .retain(|c| !matches!(c.state, ComponentState::Dying));
     }
 
@@ -81,6 +83,12 @@ impl GameObject {
 
         self.components
             .get_mut()
+            .unwrap()
             .retain(|c| !matches!(c.state, ComponentState::ReadyForStart));
     }
+}
+
+#[profiling::function]
+pub fn spawn(go: GameObject) {
+    internal::CREATION_QUEUE.lock().unwrap().push(go);
 }

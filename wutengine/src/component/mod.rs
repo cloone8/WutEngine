@@ -4,7 +4,7 @@ use core::any::Any;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-use crate::context::{EngineContext, GameObjectContext, MessageContext};
+use crate::context::{GameObjectContext, MessageContext};
 use crate::context::{PluginContext, WindowContext};
 use crate::runtime::messaging::Message;
 
@@ -42,9 +42,6 @@ pub trait Component: Any + Send + Sync + Debug {
 
 /// The main context handed to each component each frame
 pub struct Context<'a> {
-    /// Engine related APIs and commands
-    pub engine: &'a EngineContext<'a>,
-
     /// Information and APIs related to the gameobject this component is on
     pub gameobject: GameObjectContext<'a>,
 

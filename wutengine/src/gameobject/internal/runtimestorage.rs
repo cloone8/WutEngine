@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::{GameObject, GameObjectId};
+use crate::gameobject::{GameObject, GameObjectId};
 
 /// A container for the runtime storage of WutEngine [GameObject] structs, and their related data
 #[derive(Debug)]

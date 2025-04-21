@@ -1,5 +1,6 @@
 use wutengine_graphics::renderer::WutEngineRenderer;
 
+use crate::gameobject;
 use crate::runtime::Runtime;
 use crate::runtime::main::ComponentState;
 
@@ -27,9 +28,11 @@ impl<R: WutEngineRenderer> Runtime<R> {
             },
         );
 
-        for go in &mut self.obj_storage.objects {
-            go.remove_dying_components();
-        }
+        gameobject::internal::with_storage_mut(|storage| {
+            for go in &mut storage.objects {
+                go.remove_dying_components();
+            }
+        });
     }
 
     pub(super) fn lifecycle_physics_update(&mut self) {

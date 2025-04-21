@@ -7,10 +7,8 @@ use wutengine_graphics::renderer::WutEngineRenderer;
 
 use crate::component::data::{ComponentData, ComponentState};
 use crate::component::{self, ComponentContext};
-use crate::context::{
-    EngineContext, GameObjectContext, MessageContext, PluginContext, WindowContext,
-};
-use crate::gameobject::GameObjectId;
+use crate::context::{GameObjectContext, MessageContext, PluginContext, WindowContext};
+use crate::gameobject::{self, GameObjectId};
 use crate::plugins::{self, WutEnginePlugin};
 use crate::windowing::window::{Window, WindowData};
 
@@ -69,20 +67,17 @@ impl<R: WutEngineRenderer> Runtime<R> {
         Fm: Fn(GameObjectId) -> M + Send + Sync,
         F: Fn(&M, &mut ComponentData, &mut component::Context) + Send + Sync,
     {
-        let engine_context = EngineContext::new();
         let message_context = MessageContext::new(message_queue);
         let plugin_context = PluginContext::new(&self.plugins);
 
         let window_data = make_windowdata_map(&self.windows);
         let window_context = WindowContext::new(&window_data);
 
-        self.obj_storage
-            .objects
-            .par_iter_mut()
-            .for_each(|gameobject| {
+        gameobject::internal::with_storage(|storage| {
+            storage.objects.par_iter().for_each(|gameobject| {
                 let meta = meta_func(gameobject.id);
 
-                let mut cur_components = gameobject.components.borrow_mut();
+                let mut cur_components = gameobject.components.write().unwrap();
                 let mut new_components = Vec::new();
 
                 for i in 0..cur_components.len() {
@@ -97,7 +92,6 @@ impl<R: WutEngineRenderer> Runtime<R> {
                         gameobject: go_context,
                         this: ComponentContext::new(),
                         message: &message_context,
-                        engine: &engine_context,
                         plugin: &plugin_context,
                         window: &window_context,
                     };
@@ -113,9 +107,11 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
                 cur_components.extend(new_components.into_iter().map(ComponentData::new));
             });
+        });
 
-        self.obj_storage
-            .add_new_gameobjects(engine_context.consume());
+        gameobject::internal::with_storage_mut(|storage| {
+            storage.add_new_gameobjects(gameobject::internal::take_creation_queue());
+        });
 
         for new_window_params in window_context.consume() {
             self.eventloop
@@ -138,11 +134,11 @@ impl<R: WutEngineRenderer> Runtime<R> {
             func(plugin, &mut context);
         }
 
-        let engine_context = context.engine;
         let window_context = context.windows;
 
-        self.obj_storage
-            .add_new_gameobjects(engine_context.consume());
+        gameobject::internal::with_storage_mut(|storage| {
+            storage.add_new_gameobjects(gameobject::internal::take_creation_queue());
+        });
 
         for new_window_params in window_context.consume() {
             self.eventloop

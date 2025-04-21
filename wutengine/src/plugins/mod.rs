@@ -4,7 +4,7 @@ use core::any::Any;
 use core::fmt::Debug;
 use std::collections::HashMap;
 
-use crate::context::{EngineContext, MessageContext, WindowContext};
+use crate::context::{MessageContext, WindowContext};
 use crate::runtime::messaging::MessageQueue;
 use crate::windowing::window::WindowData;
 use crate::winit::event::{DeviceEvent, DeviceId, WindowEvent};
@@ -62,9 +62,6 @@ pub trait WutEnginePlugin: Any + Send + Sync + Debug {
 
 /// The context handed to most plugin hooks. Can be used to access the engine APIs
 pub struct Context<'a> {
-    /// The engine context
-    pub engine: EngineContext<'a>,
-
     /// The message context
     pub message: MessageContext<'a>,
 
@@ -79,7 +76,6 @@ impl<'a> Context<'a> {
         messages: &'a MessageQueue,
     ) -> Self {
         Self {
-            engine: EngineContext::new(),
             message: MessageContext::new(messages),
             windows: WindowContext::new(windows),
         }

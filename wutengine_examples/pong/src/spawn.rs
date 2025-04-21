@@ -8,7 +8,7 @@ use wutengine::builtins::components::{
     camera::Camera, input::InputHandler, static_mesh_renderer::StaticMeshRenderer,
     transform::Transform,
 };
-use wutengine::gameobject::GameObject;
+use wutengine::gameobject::{self, GameObject};
 use wutengine::graphics::color::Color;
 use wutengine::graphics::mesh::IndexType;
 use wutengine::graphics::shader::ShaderId;
@@ -98,7 +98,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
         material: player_material,
     });
 
-    context.engine.spawn_gameobject(player);
+    gameobject::spawn(player);
 }
 
 /// Creates the enemy entity
@@ -122,7 +122,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
     });
     enemy.add_component(Enemy::new(0.5, 0.9));
 
-    context.engine.spawn_gameobject(enemy);
+    gameobject::spawn(enemy);
 }
 
 /// Creates the ball entity
@@ -157,7 +157,7 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
         material: ball_material,
     });
 
-    context.engine.spawn_gameobject(ball);
+    gameobject::spawn(ball);
 }
 
 /// Creates the camera entity
@@ -172,5 +172,6 @@ fn make_camera(context: &mut plugins::Context) {
         clear_color: Color::BLACK,
         camera_type: CameraType::Orthographic(2.0),
     });
-    context.engine.spawn_gameobject(camera);
+
+    gameobject::spawn(camera);
 }

@@ -4,14 +4,13 @@ use std::collections::HashMap;
 use winit::event_loop::EventLoop;
 use wutengine_graphics::renderer::WutEngineRenderer;
 
-use crate::gameobject::runtimestorage::GameObjectStorage;
-use crate::global;
 use crate::log::LogConfig;
 use crate::plugins::WutEnginePlugin;
 use crate::renderer::shader_resolver::EmbeddedShaderResolver;
 use crate::runtime::Runtime;
 use crate::time::Time;
 use crate::windowing::WindowingEvent;
+use crate::{gameobject, global};
 
 use super::threadpool;
 
@@ -108,6 +107,7 @@ impl RuntimeInitializer {
 
         threadpool::init_threadpool();
         global::init_globaldata();
+        gameobject::internal::init_storage();
 
         self.run_plugin_build_hooks();
 
@@ -122,7 +122,6 @@ impl RuntimeInitializer {
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         let mut runtime = Runtime {
-            obj_storage: GameObjectStorage::new(),
             physics_update_interval: self.physics_interval,
             physics_update_accumulator: 0.0,
             window_id_map: HashMap::new(),
