@@ -15,7 +15,7 @@ members = [
 [workspace.package]
 version = "0.5.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.86"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
 repository = "https://github.com/cloone8/WutEngine"
@@ -49,7 +49,7 @@ winapi = { version = "0.3.9", features = [
     "winnt",
     "winuser",
 ] }
-uuid = { version = "1.15.1", features = ["v4"] }
+uuid = { version = "1.16.0", features = ["v4"] }
 
 # Windowing 
 winit = { version = "0.30.9" }
@@ -60,15 +60,15 @@ raw-window-handle = "0.6.2"
 gilrs = { version = "0.11.0" }
 
 # Logging and errors
-log = "0.4.26"
+log = "0.4.27"
 simplelog = "0.12.2"
 thiserror = "2.0.12"
 
 # Math and algorithms
 nohash-hasher = { version = "0.2.0" }
-rand = { version = "0.9.0", features = ["std", "std_rng", "small_rng"] }
+rand = { version = "0.9.1", features = ["std", "std_rng", "small_rng"] }
 itertools = "0.14.0"
-glam = { version = "0.29.2", features = [
+glam = { version = "0.29.3", features = [
     "std",
     "debug-glam-assert",
     "bytemuck",
@@ -77,18 +77,18 @@ glam = { version = "0.29.2", features = [
 # Macro utilities
 syn = { version = "2.0.100", features = ["full", "parsing"] }
 quote = "1.0.40"
-proc-macro2 = "1.0.94"
-darling = "0.20.10"
+proc-macro2 = "1.0.95"
+darling = "0.20.11"
 
 # Asset loading
-image = "0.25.5"
+image = "0.25.6"
 
 # Parallellism
 rayon = "1.10.0"
 
 # Physics
-rapier2d = { version = "0.23.1", features = ["simd-stable", "parallel"] }
-rapier3d = { version = "0.23.1", features = ["simd-stable", "parallel"] }
+rapier2d = { version = "0.24.0", features = ["simd-stable", "parallel"] }
+rapier3d = { version = "0.24.0", features = ["simd-stable", "parallel"] }
 nalgebra = { version = "0.*", features = ["convert-glam029"] }
 
 # Others
