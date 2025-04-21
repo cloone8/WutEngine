@@ -1,5 +1,6 @@
 //! Module for an OpenGL window and associated context. Most of the main code of the backend is here.
 
+use core::marker::PhantomData;
 use core::ptr::null_mut;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::HashMap;
@@ -55,6 +56,9 @@ pub(crate) struct Window {
 
     /// VAOs
     attributes: HashMap<RendererMeshId, Vao>,
+
+    /// Trickery to ensure single-threaded rendering
+    _not_send: PhantomData<*mut ()>,
 }
 
 #[profiling::all_functions]
@@ -122,6 +126,7 @@ impl Window {
             textures: Default::default(),
             materials: Default::default(),
             attributes: Default::default(),
+            _not_send: PhantomData,
         }
     }
 
