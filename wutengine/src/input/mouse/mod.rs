@@ -55,6 +55,7 @@ impl Default for MouseInputPlugin {
     }
 }
 
+#[profiling::all_functions]
 impl WutEnginePlugin for MouseInputPlugin {
     fn pre_update(&mut self, _context: &mut crate::plugins::Context) {
         if !self.had_event {
@@ -100,6 +101,7 @@ impl WutEnginePlugin for MouseInputPlugin {
     }
 }
 
+#[profiling::all_functions]
 impl MouseInputPlugin {
     fn check_reset(&mut self) {
         let cur_frame = Time::get().frame_num;

@@ -35,6 +35,7 @@ pub struct GameObject {
     pub(crate) components: RefCell<Vec<ComponentData>>,
 }
 
+#[profiling::all_functions]
 impl GameObject {
     /// Creates a new [GameObject] that is not yet loaded into the world.
     pub fn new(name: Option<impl Into<String>>) -> Self {

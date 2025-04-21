@@ -90,29 +90,32 @@ impl GlTexture2D {
         self.bind(gl);
 
         unsafe {
-            let (wrap_s, wrap_t) = get_u_v_wrapping(data.wrapping);
+            {
+                profiling::scope!("Texture Parameters");
+                let (wrap_s, wrap_t) = get_u_v_wrapping(data.wrapping);
 
-            gl.TexParameteri(opengl::TEXTURE_2D, opengl::TEXTURE_WRAP_S, wrap_s as GLint);
-            checkerr!(gl);
+                gl.TexParameteri(opengl::TEXTURE_2D, opengl::TEXTURE_WRAP_S, wrap_s as GLint);
+                checkerr!(gl);
 
-            gl.TexParameteri(opengl::TEXTURE_2D, opengl::TEXTURE_WRAP_T, wrap_t as GLint);
-            checkerr!(gl);
+                gl.TexParameteri(opengl::TEXTURE_2D, opengl::TEXTURE_WRAP_T, wrap_t as GLint);
+                checkerr!(gl);
 
-            let (filter_min, filter_mag) = get_min_mag_filter(data.filtering);
+                let (filter_min, filter_mag) = get_min_mag_filter(data.filtering);
 
-            gl.TexParameteri(
-                opengl::TEXTURE_2D,
-                opengl::TEXTURE_MIN_FILTER,
-                filter_min as GLint,
-            );
-            checkerr!(gl);
+                gl.TexParameteri(
+                    opengl::TEXTURE_2D,
+                    opengl::TEXTURE_MIN_FILTER,
+                    filter_min as GLint,
+                );
+                checkerr!(gl);
 
-            gl.TexParameteri(
-                opengl::TEXTURE_2D,
-                opengl::TEXTURE_MAG_FILTER,
-                filter_mag as GLint,
-            );
-            checkerr!(gl);
+                gl.TexParameteri(
+                    opengl::TEXTURE_2D,
+                    opengl::TEXTURE_MAG_FILTER,
+                    filter_mag as GLint,
+                );
+                checkerr!(gl);
+            }
 
             // Now upload the actual data
             let img_fmt = determine_image_format(&data.imagedata).expect("Unknown color format");
@@ -127,21 +130,27 @@ impl GlTexture2D {
                 img_fmt
             );
 
-            gl.TexImage2D(
-                opengl::TEXTURE_2D,
-                0,
-                img_fmt.texture_internal_format as GLint,
-                width,
-                height,
-                0,
-                img_fmt.source_pixel_format,
-                img_fmt.source_pixel_data_type,
-                data.imagedata.as_bytes().as_ptr() as *const c_void,
-            );
+            {
+                profiling::scope!("TexImage2D");
+                gl.TexImage2D(
+                    opengl::TEXTURE_2D,
+                    0,
+                    img_fmt.texture_internal_format as GLint,
+                    width,
+                    height,
+                    0,
+                    img_fmt.source_pixel_format,
+                    img_fmt.source_pixel_data_type,
+                    data.imagedata.as_bytes().as_ptr() as *const c_void,
+                );
 
-            checkerr!(gl);
+                checkerr!(gl);
+            }
 
-            gl.GenerateMipmap(opengl::TEXTURE_2D);
+            {
+                profiling::scope!("GenerateMipmap");
+                gl.GenerateMipmap(opengl::TEXTURE_2D);
+            }
 
             checkerr!(gl);
         }

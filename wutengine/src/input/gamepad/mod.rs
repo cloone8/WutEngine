@@ -32,6 +32,7 @@ pub struct Gamepad {
     pub(crate) axes: [GamepadAxisValue; gamepad_axis_count()],
 }
 
+#[profiling::all_functions]
 impl Gamepad {
     fn new(id: GamepadId, connected: bool) -> Self {
         Self {

@@ -11,6 +11,7 @@ impl From<gilrs::GamepadId> for GamepadId {
     }
 }
 
+#[profiling::function]
 pub(super) fn is_button_event(event: &gilrs::EventType) -> bool {
     matches!(
         event,
@@ -21,6 +22,7 @@ pub(super) fn is_button_event(event: &gilrs::EventType) -> bool {
     )
 }
 
+#[profiling::function]
 pub(super) fn is_axis_event(event: &gilrs::EventType) -> bool {
     matches!(event, gilrs::EventType::AxisChanged(_, _, _))
 }
@@ -31,6 +33,7 @@ pub(super) enum ButtonMapErr {
     UnknownButton(#[from] FromGilrsButtonErr),
 }
 
+#[profiling::function]
 pub(super) fn get_button_event_button_and_value(
     event: &gilrs::EventType,
 ) -> Result<(GamepadButton, GamepadButtonValue), ButtonMapErr> {
@@ -67,6 +70,7 @@ pub(super) enum AxisMapErr {
     UnknownButton(#[from] FromGilrsAxisErr),
 }
 
+#[profiling::function]
 pub(super) fn get_axis_event_axis_and_value(
     event: &gilrs::EventType,
 ) -> Result<(PartialGamepadAxis, PartialGamepadAxisValue), AxisMapErr> {

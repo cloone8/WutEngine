@@ -1,6 +1,7 @@
 //! Module for an OpenGL window and associated context. Most of the main code of the backend is here.
 
 use core::ptr::null_mut;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -26,9 +27,13 @@ use crate::texture::GlTexture;
 use crate::texture::tex2d::GlTexture2D;
 use crate::vao::Vao;
 
+static WINDOW_IDS: AtomicUsize = AtomicUsize::new(1);
+static CURRENT_WINDOW_CONTEXT: AtomicUsize = AtomicUsize::new(0);
+
 /// An OpenGL representation of a rendering window, with a unique context
 /// and set of GPU resources
 pub(crate) struct Window {
+    id: usize,
     shader_resolver: Rc<dyn ShaderResolver>,
     context: GlContext,
     bindings: Gl,
@@ -84,9 +89,13 @@ impl Window {
             .unwrap()
         };
 
+        let window_id = WINDOW_IDS.fetch_add(1, Ordering::Relaxed);
+        assert_ne!(0, window_id, "Window ID overflow"); // Should be exceedingly rare
+
         unsafe {
             profiling::scope!("Make Context Current");
             context.make_current();
+            CURRENT_WINDOW_CONTEXT.store(window_id, Ordering::SeqCst);
         }
 
         let bindings = Gl::load_with(|s| context.get_proc_address(s));
@@ -103,6 +112,7 @@ impl Window {
         default_texture.upload_data(&bindings, &get_default_texture::<16>());
 
         Self {
+            id: window_id,
             shader_resolver,
             context,
             bindings,
@@ -115,11 +125,20 @@ impl Window {
         }
     }
 
+    /// Makes the context of this window current, if it is not already
+    fn make_context_current(&self) {
+        let cur_context = CURRENT_WINDOW_CONTEXT.swap(self.id, Ordering::SeqCst);
+
+        if cur_context != self.id {
+            unsafe {
+                self.context.make_current();
+            }
+        }
+    }
+
     /// Destroys this [Window], its associated OpenGL context, and all resources
     pub(crate) fn destroy(mut self) {
-        unsafe {
-            self.context.make_current();
-        }
+        self.make_context_current();
 
         let mesh_ids: Vec<_> = self.meshes.keys().copied().collect();
         let material_ids: Vec<_> = self.materials.keys().copied().collect();
@@ -147,9 +166,9 @@ impl Window {
     /// A function to be called whenever the size of the native window changed. Changes
     /// the OpenGL rendering viewport
     pub(crate) fn size_changed(&mut self, size: (u32, u32)) {
-        unsafe {
-            self.context.make_current();
+        self.make_context_current();
 
+        unsafe {
             self.bindings
                 .Viewport(0, 0, size.0 as GLint, size.1 as GLint);
 
@@ -162,10 +181,7 @@ impl Window {
     /// viewport configuration. The objects represent the meshes to render, as well as which
     /// shaders and model matrices to use for rendering them.
     pub(crate) fn render(&mut self, viewport_context: &Viewport, objects: &[Renderable]) {
-        unsafe {
-            profiling::scope!("Make context current");
-            self.context.make_current();
-        }
+        self.make_context_current();
 
         // First we transform the projection matrix depth range from the universal [0..1] to OpenGL [-1..1]
         let projection_mat = viewport_context.projection_mat
@@ -302,6 +318,8 @@ impl Window {
     pub(crate) fn create_mesh(&mut self, id: RendererMeshId) {
         log::trace!("Creating mesh {}", id);
 
+        self.make_context_current();
+
         let buffers = match GlMeshBuffers::new(&self.bindings) {
             Ok(b) => b,
             Err(e) => {
@@ -331,6 +349,8 @@ impl Window {
     pub(crate) fn delete_mesh(&mut self, id: RendererMeshId) {
         log::trace!("Deleting mesh {}", id);
 
+        self.make_context_current();
+
         let vao = self.attributes.remove(&id);
 
         match vao {
@@ -350,6 +370,8 @@ impl Window {
     pub(crate) fn update_mesh(&mut self, id: RendererMeshId, data: &MeshData) {
         log::trace!("Updating mesh {}", id);
 
+        self.make_context_current();
+
         let buffers = self.meshes.get_mut(&id);
 
         if buffers.is_none() {
@@ -365,6 +387,8 @@ impl Window {
     /// Generates OpenGL buffers for the given texture and registers it with the context
     pub(crate) fn create_texture(&mut self, id: RendererTextureId) {
         log::trace!("Creating texture {}", id);
+
+        self.make_context_current();
 
         debug_assert!(
             !self.textures.contains_key(&id),
@@ -386,6 +410,8 @@ impl Window {
     pub(crate) fn delete_texture(&mut self, id: RendererTextureId) {
         log::trace!("Deleting texture {}", id);
 
+        self.make_context_current();
+
         let texture = self.textures.remove(&id);
 
         match texture {
@@ -399,6 +425,8 @@ impl Window {
     /// Uploads new texture data for the given texture ID
     pub(crate) fn update_texture(&mut self, id: RendererTextureId, data: &TextureData) {
         log::trace!("Updating texture {}", id);
+
+        self.make_context_current();
 
         let texture = self.textures.get_mut(&id);
 
@@ -416,6 +444,8 @@ impl Window {
     pub(crate) fn create_material(&mut self, id: RendererMaterialId) {
         log::trace!("Creating material {}", id);
 
+        self.make_context_current();
+
         debug_assert!(
             !self.materials.contains_key(&id),
             "Material ID already exists"
@@ -428,6 +458,8 @@ impl Window {
     pub(crate) fn delete_material(&mut self, id: RendererMaterialId) {
         log::trace!("Deleting material {}", id);
 
+        self.make_context_current();
+
         let materialdata = self.materials.remove(&id);
 
         if materialdata.is_none() {
@@ -438,6 +470,8 @@ impl Window {
     /// Updates the given material
     pub(crate) fn update_material(&mut self, id: RendererMaterialId, data: &MaterialData) {
         log::trace!("Updating material {}", id);
+
+        self.make_context_current();
 
         match self.materials.get_mut(&id) {
             Some(mat) => {

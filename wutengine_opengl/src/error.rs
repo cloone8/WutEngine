@@ -17,9 +17,11 @@ use crate::opengl::Gl;
 #[cfg(debug_assertions)]
 #[inline]
 pub(crate) fn check_err_impl(gl: &Gl, file: &str, line: u32) {
+    profiling::function_scope!();
     let mut err_count: usize = 0;
 
     loop {
+        profiling::scope!("Check Single Error");
         let err = unsafe { gl.GetError() };
 
         if err == crate::opengl::NO_ERROR {
@@ -48,6 +50,7 @@ pub(crate) fn check_err_impl(gl: &Gl, file: &str, line: u32) {
 pub(crate) fn check_err_impl(_gl: &Gl, _file: &str, _line: u32) {}
 
 /// Converts an OpenGL error enum to a string, if it is a known error enum. Returns "(unknown)" otherwise.
+#[allow(dead_code)]
 pub(crate) const fn gl_err_to_str(err: crate::opengl::types::GLenum) -> &'static str {
     match err {
         crate::opengl::INVALID_ENUM => "Invalid Enum",

@@ -29,6 +29,7 @@ pub struct KeyboardInputPlugin {
     pub(crate) pressed_keys: [bool; MAX_KEYCODE],
 }
 
+#[profiling::all_functions]
 impl KeyboardInputPlugin {
     /// Creates a new, default, [KeyboardInputPlugin]
     pub fn new() -> Self {
@@ -59,6 +60,7 @@ impl Default for KeyboardInputPlugin {
     }
 }
 
+#[profiling::all_functions]
 impl WutEnginePlugin for KeyboardInputPlugin {
     fn on_device_event(&mut self, _device: DeviceId, event: &DeviceEvent, _context: &mut Context) {
         if let DeviceEvent::Key(raw_key_event) = event {

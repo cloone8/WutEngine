@@ -22,6 +22,7 @@ pub struct GamepadInputPlugin {
     pub(crate) gamepads: HashMap<GamepadId, Gamepad>,
 }
 
+#[profiling::all_functions]
 impl GamepadInputPlugin {
     /// Creates a new default [GamepadInputPlugin]
     pub fn new() -> Self {
@@ -39,6 +40,7 @@ impl Default for GamepadInputPlugin {
     }
 }
 
+#[profiling::all_functions]
 impl WutEnginePlugin for GamepadInputPlugin {
     fn pre_update(&mut self, _context: &mut crate::plugins::Context) {
         let mut gilrs = self.gilrs.lock().unwrap();

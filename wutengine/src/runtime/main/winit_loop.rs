@@ -14,8 +14,8 @@ use crate::windowing::window::Window;
 
 use super::WindowingEvent;
 
-#[profiling::all_functions]
 impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
+    #[profiling::function]
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if !self.started {
             log::info!("Initializing WutEngine");
@@ -24,6 +24,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         }
     }
 
+    #[profiling::function]
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         profiling::finish_frame!();
 
@@ -137,6 +138,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         }
     }
 
+    #[profiling::function]
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WindowingEvent) {
         log::trace!("Handling WutEngine WindowingEvent:\n{:#?}", event);
 
@@ -153,7 +155,10 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
                     .with_min_inner_size(PhysicalSize::<u32>::from((640u32, 480u32)))
                     .with_fullscreen(params.mode.into());
 
-                let window = event_loop.create_window(attrs).unwrap();
+                let window = {
+                    profiling::scope!("Create Native Window");
+                    event_loop.create_window(attrs).unwrap()
+                };
 
                 self.renderer
                     .new_window(&params.id, &window, window.inner_size().into());
@@ -169,6 +174,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         }
     }
 
+    #[profiling::function]
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -182,8 +188,13 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         });
 
         match event {
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => {
+                profiling::scope!("Close Requested");
+                event_loop.exit()
+            }
             WindowEvent::Resized(size) => {
+                profiling::scope!("Resized");
+
                 log::debug!(
                     "Resizing window {} to {}x{}",
                     identifier,
@@ -202,6 +213,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         }
     }
 
+    #[profiling::function]
     fn device_event(
         &mut self,
         _event_loop: &ActiveEventLoop,
@@ -211,14 +223,18 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         self.run_plugin_hooks(|plugin, context| plugin.on_device_event(device_id, &event, context));
     }
 
+    #[profiling::function]
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         log::info!("WutEngine shutting down");
 
         // Mark all components as dying and cancel all components queued for startup.
-        for go in &mut self.obj_storage.objects {
-            go.cancel_component_creation();
-            for component in go.components.get_mut() {
-                component.state = ComponentState::Dying;
+        {
+            profiling::scope!("Kill Components");
+            for go in &mut self.obj_storage.objects {
+                go.cancel_component_creation();
+                for component in go.components.get_mut() {
+                    component.state = ComponentState::Dying;
+                }
             }
         }
 

@@ -14,6 +14,7 @@ pub(crate) struct GameObjectStorage {
     pub(crate) objects: Vec<GameObject>,
 }
 
+#[profiling::all_functions]
 impl GameObjectStorage {
     /// Creates a new empty [GameObjectStorage]
     pub(crate) fn new() -> Self {
