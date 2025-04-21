@@ -9,6 +9,7 @@ members = [
     "wutengine_util/macro",
     "wutengine_graphics",
     "wutengine_opengl",
+    "wutengine_shadercompiler",
     "gl-from-raw-window-handle",
 ]
 
@@ -31,7 +32,7 @@ wutengine_core = { path = "wutengine_core", version = "0.5.0" }
 wutengine_util_macro = { path = "wutengine_util/macro", version = "0.5.0" }
 wutengine_graphics = { path = "wutengine_graphics", version = "0.5.0" }
 wutengine_opengl = { path = "wutengine_opengl", version = "0.5.0" }
-wutengine_ecs = { path = "wutengine_ecs", version = "0.5.0" }
+wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.5.0" }
 gl-from-raw-window-handle = { path = "gl-from-raw-window-handle", version = "0.1.4" }
 
 ### External dependencies ###
@@ -60,6 +61,7 @@ raw-window-handle = "0.6.2"
 gilrs = { version = "0.11.0" }
 
 # Logging, errors and other info
+clap = { version = "4.5.37", features = ["derive"] }
 log = "0.4.27"
 simplelog = "0.12.2"
 thiserror = "2.0.12"
@@ -85,6 +87,11 @@ darling = "0.20.11"
 
 # Asset loading
 image = "0.25.6"
+# naga = { version = "25.0.0", features = ["wgsl-in", "glsl-out"] }
+naga = { git = "https://github.com/gfx-rs/wgpu.git", rev = "30b247a8d1c59cbce1a82958ac66764d3230a3fe", features = [
+    "wgsl-in",
+    "glsl-out",
+] }
 
 # Parallellism
 rayon = "1.10.0"

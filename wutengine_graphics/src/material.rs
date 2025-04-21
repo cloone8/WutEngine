@@ -26,17 +26,32 @@ pub enum MaterialParameter {
     /// A boolean
     Boolean(bool),
 
+    /// An array of booleans
+    BooleanArray(Vec<bool>),
+
     /// A color
     Color(Color),
+
+    /// An array of colors
+    ColorArray(Vec<Color>),
 
     /// A 4D vector
     Vec4(Vec4),
 
-    /// A matrix
+    /// An array of 4D vectors,
+    Vec4Array(Vec<Vec4>),
+
+    /// A 4x4 matrix
     Mat4(Mat4),
+
+    /// An array of 4x4 matrices
+    Mat4Array(Vec<Mat4>),
 
     /// A texture
     Texture(RendererTextureId),
+
+    /// An array of textures
+    TextureArray(Vec<RendererTextureId>),
 }
 
 impl MaterialParameter {

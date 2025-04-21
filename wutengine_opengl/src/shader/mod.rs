@@ -7,8 +7,10 @@ use std::collections::HashMap;
 use std::ffi::CString;
 
 use glam::Mat4;
+use reflection::{get_program_link_err, get_shader_compile_err};
 use thiserror::Error;
-use uniform::{GlShaderUniform, discover_uniforms, set_texture_from_buf};
+use uniform::GlShaderUniform;
+use uniform::discovery::discover_uniforms;
 use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::renderer::RendererTextureId;
 use wutengine_graphics::shader::SharedShaderUniform;
@@ -19,6 +21,7 @@ use crate::opengl::types::{GLchar, GLenum, GLint, GLuint};
 use crate::opengl::{self, Gl};
 use crate::texture::GlTexture;
 
+mod reflection;
 mod uniform;
 
 /// A fully-linked and ready to use OpenGL shader program..
@@ -86,7 +89,7 @@ impl GlShaderProgram {
 
         // Compile the stages one-by-one, cleaning up the partial program if we encounter an error
         let vertex = if let Some(vtx_src) = &source.source.vertex {
-            let compiled = compile_stage(gl, vtx_src, opengl::VERTEX_SHADER);
+            let compiled = compile_stage(gl, &vtx_src.source, opengl::VERTEX_SHADER);
 
             if let Err(e) = compiled {
                 destroy_program(gl, program);
@@ -100,7 +103,7 @@ impl GlShaderProgram {
         };
 
         let fragment = if let Some(frg_src) = &source.source.fragment {
-            let compiled = compile_stage(gl, frg_src, opengl::FRAGMENT_SHADER);
+            let compiled = compile_stage(gl, &frg_src.source, opengl::FRAGMENT_SHADER);
 
             if let Err(e) = compiled {
                 if let Some(vtx) = vertex {
@@ -157,7 +160,7 @@ impl GlShaderProgram {
         }
 
         // Program succesfully compiled. Now find all uniforms as declared by the source shader
-        let gl_uniforms = discover_uniforms(gl, program);
+        let gl_uniforms = discover_uniforms(gl, program, &source.uniforms);
 
         Ok(Self {
             handle: Some(program),
@@ -196,46 +199,47 @@ impl GlShaderProgram {
         first_free_tex_unit: &mut GLenum,
         default_texture: &mut GlTexture,
     ) {
-        let mut fake_mappings = HashMap::new();
+        return;
+        // let mut fake_mappings = HashMap::new();
 
-        for (uform_name, uform) in &self.uniforms {
-            if set_uniforms.contains_key(uform_name) {
-                // No need to set a default because we're gonna set this value later
-                continue;
-            }
+        // for (uform_name, uform) in &self.uniforms {
+        //     if set_uniforms.contains_key(uform_name) {
+        //         // No need to set a default because we're gonna set this value later
+        //         continue;
+        //     }
 
-            let default_val = match uform.uniform_type {
-                opengl::BOOL => MaterialParameter::DEFAULT_BOOL,
-                opengl::FLOAT_VEC4 => MaterialParameter::DEFAULT_VEC4,
-                opengl::FLOAT_MAT4 => MaterialParameter::DEFAULT_MAT4,
-                opengl::SAMPLER_2D => unsafe {
-                    set_texture_from_buf(gl, default_texture, uform.location, first_free_tex_unit);
-                    continue;
-                },
-                _ => panic!("Missing default value for type {}", uform.uniform_type),
-            };
+        //     let default_val = match uform.uniform_type {
+        //         opengl::BOOL => MaterialParameter::DEFAULT_BOOL,
+        //         opengl::FLOAT_VEC4 => MaterialParameter::DEFAULT_VEC4,
+        //         opengl::FLOAT_MAT4 => MaterialParameter::DEFAULT_MAT4,
+        //         opengl::SAMPLER_2D => unsafe {
+        //             set_texture_from_buf(gl, default_texture, uform.location, first_free_tex_unit);
+        //             continue;
+        //         },
+        //         _ => panic!("Missing default value for type {}", uform.uniform_type),
+        //     };
 
-            let cur_tex_unit = *first_free_tex_unit;
+        //     let cur_tex_unit = *first_free_tex_unit;
 
-            let ok = uniform::set_uniform_value(
-                gl,
-                &default_val,
-                uform,
-                first_free_tex_unit,
-                &mut fake_mappings,
-            );
+        //     let ok = uniform::set_uniform_value(
+        //         gl,
+        //         &default_val,
+        //         uform,
+        //         first_free_tex_unit,
+        //         &mut fake_mappings,
+        //     );
 
-            assert!(
-                ok,
-                "Failed to set default uniform value of uniform {} to {:#?}",
-                uform_name, default_val
-            );
+        //     assert!(
+        //         ok,
+        //         "Failed to set default uniform value of uniform {} to {:#?}",
+        //         uform_name, default_val
+        //     );
 
-            debug_assert_eq!(
-                cur_tex_unit, *first_free_tex_unit,
-                "Set a texture when we didn't expect to"
-            );
-        }
+        //     debug_assert_eq!(
+        //         cur_tex_unit, *first_free_tex_unit,
+        //         "Set a texture when we didn't expect to"
+        //     );
+        // }
     }
 
     /// Sets the given uniforms on this program. The program must currently be in use, by calling [Self::use_program]
@@ -246,74 +250,75 @@ impl GlShaderProgram {
         first_free_tex_unit: &mut GLenum,
         texture_mappings: &mut HashMap<RendererTextureId, GlTexture>,
     ) {
-        uniform::set_uniforms(
-            gl,
-            self.handle.expect("Program destroyed"),
-            uniforms,
-            &self.uniforms,
-            first_free_tex_unit,
-            texture_mappings,
-        );
+        // uniform::set_uniforms(
+        //     gl,
+        //     self.handle.expect("Program destroyed"),
+        //     uniforms,
+        //     &self.uniforms,
+        //     first_free_tex_unit,
+        //     texture_mappings,
+        // );
     }
 
     /// Sets the model/view/projection matrix uniforms on this shader
     pub(crate) fn set_mvp(&mut self, gl: &Gl, model: Mat4, view: Mat4, projection: Mat4) {
+        return;
         assert!(self.handle.is_some(), "ShaderProgram already destroyed");
 
-        let model_uform = self.uniforms.get(SharedShaderUniform::ModelMat.as_str());
-        let view_uform = self.uniforms.get(SharedShaderUniform::ViewMat.as_str());
-        let projection_uform = self
-            .uniforms
-            .get(SharedShaderUniform::ProjectionMat.as_str());
+        // let model_uform = self.uniforms.get(SharedShaderUniform::ModelMat.as_str());
+        // let view_uform = self.uniforms.get(SharedShaderUniform::ViewMat.as_str());
+        // let projection_uform = self
+        //     .uniforms
+        //     .get(SharedShaderUniform::ProjectionMat.as_str());
 
-        // Fake variables. We're not using the texture units here anyway
-        let mut tex_unit = 0;
-        let mut tex_maps = HashMap::new();
+        // // Fake variables. We're not using the texture units here anyway
+        // let mut tex_unit = 0;
+        // let mut tex_maps = HashMap::new();
 
-        if let Some(model_uform) = model_uform {
-            uniform::set_uniform_value(
-                gl,
-                &MaterialParameter::Mat4(model),
-                model_uform,
-                &mut tex_unit,
-                &mut tex_maps,
-            );
-        } else {
-            log::debug!(
-                "Model uniform not found on shaderprogram {}",
-                self.handle.unwrap()
-            );
-        }
+        // if let Some(model_uform) = model_uform {
+        //     uniform::set_uniform_value(
+        //         gl,
+        //         &MaterialParameter::Mat4(model),
+        //         model_uform,
+        //         &mut tex_unit,
+        //         &mut tex_maps,
+        //     );
+        // } else {
+        //     log::debug!(
+        //         "Model uniform not found on shaderprogram {}",
+        //         self.handle.unwrap()
+        //     );
+        // }
 
-        if let Some(view_uform) = view_uform {
-            uniform::set_uniform_value(
-                gl,
-                &MaterialParameter::Mat4(view),
-                view_uform,
-                &mut tex_unit,
-                &mut tex_maps,
-            );
-        } else {
-            log::debug!(
-                "View uniform not found on shaderprogram {}",
-                self.handle.unwrap()
-            );
-        }
+        // if let Some(view_uform) = view_uform {
+        //     uniform::set_uniform_value(
+        //         gl,
+        //         &MaterialParameter::Mat4(view),
+        //         view_uform,
+        //         &mut tex_unit,
+        //         &mut tex_maps,
+        //     );
+        // } else {
+        //     log::debug!(
+        //         "View uniform not found on shaderprogram {}",
+        //         self.handle.unwrap()
+        //     );
+        // }
 
-        if let Some(projection_uform) = projection_uform {
-            uniform::set_uniform_value(
-                gl,
-                &MaterialParameter::Mat4(projection),
-                projection_uform,
-                &mut tex_unit,
-                &mut tex_maps,
-            );
-        } else {
-            log::debug!(
-                "Projection uniform not found on shaderprogram {}",
-                self.handle.unwrap()
-            );
-        }
+        // if let Some(projection_uform) = projection_uform {
+        //     uniform::set_uniform_value(
+        //         gl,
+        //         &MaterialParameter::Mat4(projection),
+        //         projection_uform,
+        //         &mut tex_unit,
+        //         &mut tex_maps,
+        //     );
+        // } else {
+        //     log::debug!(
+        //         "Projection uniform not found on shaderprogram {}",
+        //         self.handle.unwrap()
+        //     );
+        // }
     }
 }
 
@@ -352,66 +357,6 @@ fn compile_stage(gl: &Gl, source: &str, stage: GLuint) -> Result<NonZero<GLuint>
     } else {
         Err(CompileErr::Compile(get_shader_compile_err(gl, shader)))
     }
-}
-
-#[profiling::function]
-fn get_shader_compile_err(gl: &Gl, shader: NonZero<GLuint>) -> String {
-    let mut buflen: GLint = 0;
-
-    unsafe {
-        gl.GetShaderiv(shader.get(), opengl::INFO_LOG_LENGTH, &raw mut buflen);
-        checkerr!(gl);
-    }
-
-    assert!(buflen >= 0);
-
-    let mut buf = vec![0u8; buflen as usize];
-
-    unsafe {
-        gl.GetShaderInfoLog(
-            shader.get(),
-            buflen,
-            null_mut(),
-            buf.as_mut_ptr() as *mut GLchar,
-        );
-        checkerr!(gl);
-    }
-
-    CStr::from_bytes_with_nul(&buf)
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string()
-}
-
-#[profiling::function]
-fn get_program_link_err(gl: &Gl, program: NonZero<GLuint>) -> String {
-    let mut buflen: GLint = 0;
-
-    unsafe {
-        gl.GetProgramiv(program.get(), opengl::INFO_LOG_LENGTH, &raw mut buflen);
-        checkerr!(gl);
-    }
-
-    assert!(buflen >= 0);
-
-    let mut buf = vec![0u8; buflen as usize];
-
-    unsafe {
-        gl.GetProgramInfoLog(
-            program.get(),
-            buflen,
-            null_mut(),
-            buf.as_mut_ptr() as *mut GLchar,
-        );
-        checkerr!(gl);
-    }
-
-    CStr::from_bytes_with_nul(&buf)
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string()
 }
 
 #[profiling::function]

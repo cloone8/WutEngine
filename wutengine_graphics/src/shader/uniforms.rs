@@ -17,18 +17,18 @@ impl SharedShaderUniform {
     /// Returns the shared uniform as a [str]
     pub const fn as_str(self) -> &'static str {
         match self {
-            SharedShaderUniform::ModelMat => "wuteng_ModelMat",
-            SharedShaderUniform::ViewMat => "wuteng_ViewMat",
-            SharedShaderUniform::ProjectionMat => "wuteng_ProjectionMat",
+            SharedShaderUniform::ModelMat => "wuteng_model_mat",
+            SharedShaderUniform::ViewMat => "wuteng_view_mat",
+            SharedShaderUniform::ProjectionMat => "wuteng_projection_mat",
         }
     }
 
     /// Returns the shared uniform as a null-terminated [CStr]
     pub const fn as_c_str(self) -> &'static CStr {
         match self {
-            SharedShaderUniform::ModelMat => c"wuteng_ModelMat",
-            SharedShaderUniform::ViewMat => c"wuteng_ViewMat",
-            SharedShaderUniform::ProjectionMat => c"wuteng_ProjectionMat",
+            SharedShaderUniform::ModelMat => c"wuteng_model_mat",
+            SharedShaderUniform::ViewMat => c"wuteng_view_mat",
+            SharedShaderUniform::ProjectionMat => c"wuteng_projection_mat",
         }
     }
 }

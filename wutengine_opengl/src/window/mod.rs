@@ -15,8 +15,8 @@ use wutengine_graphics::renderer::{
     HasDisplayHandle, HasWindowHandle, Renderable, RendererMaterialId, RendererMeshId,
     RendererTextureId, Viewport,
 };
-use wutengine_graphics::shader::ShaderId;
 use wutengine_graphics::shader::ShaderResolver;
+use wutengine_graphics::shader::{ShaderId, ShaderTarget};
 use wutengine_graphics::texture::TextureData;
 
 use crate::error::checkerr;
@@ -503,8 +503,11 @@ enum FindCompileShaderErr {
     #[error("Could not find shader with the given ID")]
     Find,
 
-    #[error("Could not compile shader")]
-    Compile(#[from] shader::CreateErr),
+    #[error("Could not cross-compile raw shader to OpenGL shader: {0}")]
+    CrossCompile(#[from] wutengine_shadercompiler::CompileErr),
+
+    #[error("Could not compile OpenGL shader: {0}")]
+    GlCompile(#[from] shader::CreateErr),
 }
 
 #[profiling::all_functions]
@@ -522,9 +525,19 @@ impl Window {
 
         let shader_source = shader_source.unwrap();
 
-        let compiled = GlShaderProgram::new(&self.bindings, shader_source)?;
+        let compile_opts = wutengine_shadercompiler::Options {
+            target: Some(ShaderTarget::OpenGL),
+        };
 
-        self.shaders.insert(id.clone(), compiled);
+        let compiled = wutengine_shadercompiler::compile(shader_source, &compile_opts)?;
+
+        log::info!("Compiled shader: {:#?}", compiled);
+
+        debug_assert_eq!(ShaderTarget::OpenGL, compiled.target);
+
+        let gl_compiled = GlShaderProgram::new(&self.bindings, &compiled)?;
+
+        self.shaders.insert(id.clone(), gl_compiled);
 
         Ok(())
     }

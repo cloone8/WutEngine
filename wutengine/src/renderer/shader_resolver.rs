@@ -1,10 +1,12 @@
 //! The various WutEngine builtin shader resolvers.
 
 use std::collections::HashMap;
-use wutengine_graphics::shader::ShaderResolver;
+use wutengine_graphics::shader::ShaderTarget::{self};
 use wutengine_graphics::shader::{
-    Shader, ShaderId, ShaderStages, ShaderVertexLayout, Uniform, UniformBinding, UniformType,
+    Shader, ShaderId, ShaderStages, ShaderVertexLayout, SingleUniformBinding, Uniform,
+    UniformBinding, UniformType,
 };
+use wutengine_graphics::shader::{ShaderResolver, ShaderStage};
 
 use crate::map;
 
@@ -23,21 +25,24 @@ impl EmbeddedShaderResolver {
             ShaderId::new("unlit"),
             Shader {
                 id: ShaderId::new("unlit"),
+                target: ShaderTarget::Raw,
                 source: ShaderStages {
-                    vertex: Some(
-                        include_str!(concat!(
+                    vertex: Some(ShaderStage {
+                        source: include_str!(concat!(
                             env!("CARGO_MANIFEST_DIR"),
-                            "/shaders/unlit/vertex.glsl"
+                            "/shaders/unlit/vertex.wgsl"
                         ))
                         .to_string(),
-                    ),
-                    fragment: Some(
-                        include_str!(concat!(
+                        entry: "vertex_main".to_string(),
+                    }),
+                    fragment: Some(ShaderStage {
+                        source: include_str!(concat!(
                             env!("CARGO_MANIFEST_DIR"),
-                            "/shaders/unlit/fragment.glsl"
+                            "/shaders/unlit/fragment.wgsl"
                         ))
                         .to_string(),
-                    ),
+                        entry: "fragment_main".to_string(),
+                    }),
                 },
                 vertex_layout: ShaderVertexLayout {
                     position: Some(0),
@@ -45,53 +50,62 @@ impl EmbeddedShaderResolver {
                     ..Default::default()
                 },
                 uniforms: map![
-                    "wuteng_ModelMat" => Uniform {
-                        ty: UniformType::Mat4,
-                        binding: UniformBinding {
-                            name: "wuteng_ModelMat".to_string(),
+                    "wuteng_model_mat" => Uniform {
+                        ty: UniformType::Array(Box::new(UniformType::Struct(map![
+                            "model_mat" => UniformType::Mat4
+                        ])), 5),
+                        binding: UniformBinding::Standard(SingleUniformBinding {
+                            name: "wuteng_model_mat".to_string(),
+                            group: 0,
+                            binding: 1
+                        }),
+                    },
+                    "wuteng_vp" => Uniform {
+                        ty: UniformType::Struct(map![
+                            "inner" => UniformType::Struct(
+                                map![
+                                    "view" => UniformType::Mat4,
+                                    "projection" => UniformType::Mat4
+                                ]
+                            ),
+                            "test" => UniformType::Array(Box::new(UniformType::Vec3), 7)
+                        ]),
+                        binding: UniformBinding::Standard(SingleUniformBinding {
+                            name: "wuteng_vp".to_string(),
                             group: 0,
                             binding: 0
-                        }
+                        }),
                     },
-                    "wuteng_ViewMat" => Uniform {
-                        ty: UniformType::Mat4,
-                        binding: UniformBinding {
-                            name: "wuteng_ViewMat".to_string(),
-                            group: 0,
-                            binding: 0
-                        }
-                    },
-                    "wuteng_ProjectionMat" => Uniform {
-                        ty: UniformType::Mat4,
-                        binding: UniformBinding {
-                            name: "wuteng_ProjectionMat".to_string(),
-                            group: 0,
-                            binding: 0
-                        }
-                    },
-                    "baseColor" => Uniform {
+                    "base_color" => Uniform {
                         ty: UniformType::Vec4,
-                        binding: UniformBinding {
-                            name: "baseColor".to_string(),
-                            group: 0,
+                        binding: UniformBinding::Standard(SingleUniformBinding {
+                            name: "base_color".to_string(),
+                            group: 1,
                             binding: 0
-                        }
+                        }),
                     },
-                    "colorMap" => Uniform {
+                    "color_map" => Uniform {
                         ty: UniformType::Tex2D,
-                        binding: UniformBinding {
-                            name: "colorMap".to_string(),
-                            group: 0,
-                            binding: 0
-                        }
+                        binding: UniformBinding::Texture {
+                            texture: Some(SingleUniformBinding {
+                                name: "color_map".to_string(),
+                                group: 1,
+                                binding: 2
+                            }),
+                            sampler: Some(SingleUniformBinding {
+                                name: "color_map_tex".to_string(),
+                                group: 1,
+                                binding: 1
+                            })
+                        },
                     },
-                    "hasColorMap" => Uniform {
-                        ty: UniformType::Bool,
-                        binding: UniformBinding {
-                            name: "hasColorMap".to_string(),
-                            group: 0,
-                            binding: 0
-                        }
+                    "has_color_map" => Uniform {
+                        ty: UniformType::Uint32,
+                        binding: UniformBinding::Standard(SingleUniformBinding {
+                            name: "has_color_map".to_string(),
+                            group: 1,
+                            binding: 3
+                        }),
                     }
                 ],
             },

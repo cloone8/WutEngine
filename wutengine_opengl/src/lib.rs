@@ -27,6 +27,7 @@ mod gltypes;
 mod mesh;
 mod shader;
 mod texture;
+mod utils;
 mod vao;
 mod window;
 

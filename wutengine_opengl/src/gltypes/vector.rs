@@ -1,3 +1,4 @@
+use bytemuck::{Pod, Zeroable};
 use glam::{Vec3, Vec4};
 use wutengine_graphics::color::Color;
 
@@ -9,6 +10,9 @@ pub(crate) struct GlVec3f {
     y: f32,
     z: f32,
 }
+
+unsafe impl Zeroable for GlVec3f {}
+unsafe impl Pod for GlVec3f {}
 
 impl From<Vec3> for GlVec3f {
     fn from(value: Vec3) -> Self {
@@ -29,6 +33,9 @@ pub(crate) struct GlVec4f {
     z: f32,
     w: f32,
 }
+
+unsafe impl Zeroable for GlVec4f {}
+unsafe impl Pod for GlVec4f {}
 
 impl From<Vec4> for GlVec4f {
     #[inline]

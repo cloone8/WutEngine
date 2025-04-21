@@ -21,6 +21,7 @@ gl_generator.workspace = true
 [dependencies]
 wutengine_graphics.workspace = true
 wutengine_core.workspace = true
+wutengine_shadercompiler.workspace = true
 gl-from-raw-window-handle.workspace = true
 log.workspace = true
 thiserror.workspace = true

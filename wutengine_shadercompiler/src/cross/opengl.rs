@@ -1,0 +1,238 @@
+//! Cross compilation to OpenGL 4.1
+
+use std::collections::HashMap;
+
+use naga::WithSpan;
+use naga::back::glsl::{self};
+use naga::front::wgsl::ParseError;
+use naga::proc::BoundsCheckPolicies;
+use naga::valid::{Capabilities, SubgroupOperationSet, ValidationError, ValidationFlags};
+use thiserror::Error;
+use wutengine_graphics::shader::{Shader, ShaderStage, ShaderTarget, Uniform, UniformBinding};
+
+#[derive(Debug, Error)]
+pub enum CrossOpenGLErr {
+    #[error("Input parsing error: {0}")]
+    Parse(#[from] ParseError),
+
+    #[error("Input was invalid: {0}")]
+    Validation(#[from] WithSpan<ValidationError>),
+
+    #[error("Error compiling the validated input to GLSL: {0}")]
+    Compile(#[from] glsl::Error),
+
+    #[error("Uniform {0} was remapped twice. First: {1:?}, second {2:?}")]
+    DoubleUniform(String, Box<Uniform>, Box<Uniform>),
+
+    #[error("Uniform {0} with binding {1:?} was not remapped")]
+    MissingUniform(String, Box<Uniform>),
+}
+
+pub(super) fn cross_to_opengl(shader: &mut Shader) -> Result<(), CrossOpenGLErr> {
+    log::info!("Starting OpenGL cross compile for shader {}", shader.id);
+
+    let mut remapped_uniforms = HashMap::with_capacity(shader.uniforms.len());
+
+    if let Some(vtx) = &mut shader.source.vertex {
+        log::debug!("Cross compiling vertex shader");
+        cross_stage(
+            vtx,
+            naga::ShaderStage::Vertex,
+            &shader.uniforms,
+            &mut remapped_uniforms,
+        )?;
+    } else {
+        log::debug!("No vertex shader to cross compile");
+    }
+
+    if let Some(frag) = &mut shader.source.fragment {
+        log::debug!("Cross compiling fragment shader");
+        cross_stage(
+            frag,
+            naga::ShaderStage::Fragment,
+            &shader.uniforms,
+            &mut remapped_uniforms,
+        )?;
+    } else {
+        log::debug!("No fragment shader to cross compile");
+    }
+
+    // for k in shader.uniforms.keys() {
+    //     if !remapped_uniforms.contains_key(k) {
+    //         return Err(CrossOpenGLErr::MissingUniform(
+    //             k.clone(),
+    //             Box::new(shader.uniforms.get(k).unwrap().clone()),
+    //         ));
+    //     }
+    // }
+
+    shader.target = ShaderTarget::OpenGL;
+    shader.uniforms = remapped_uniforms;
+
+    Ok(())
+}
+
+fn cross_stage(
+    stage_src: &mut ShaderStage,
+    stage: naga::ShaderStage,
+    uniforms: &HashMap<String, Uniform>,
+    remapped_uniforms: &mut HashMap<String, Uniform>,
+) -> Result<(), CrossOpenGLErr> {
+    log::trace!("Parsing stage");
+
+    let parsed = naga::front::wgsl::parse_str(&stage_src.source)?;
+
+    log::trace!("Validating stage");
+
+    let info = naga::valid::Validator::new(ValidationFlags::default(), Capabilities::default())
+        .subgroup_stages(to_valid_shaderstages(stage))
+        .subgroup_operations(SubgroupOperationSet::all())
+        .validate(&parsed)?;
+
+    let options = glsl::Options {
+        version: glsl::Version::Desktop(410),
+        writer_flags: glsl::WriterFlags::empty(),
+        ..Default::default()
+    };
+
+    let pipeline_options = glsl::PipelineOptions {
+        shader_stage: stage,
+        entry_point: stage_src.entry.clone(),
+        multiview: None,
+    };
+
+    log::trace!("Writing output");
+    let mut out = String::new();
+
+    let mut writer = glsl::Writer::new(
+        &mut out,
+        &parsed,
+        &info,
+        &options,
+        &pipeline_options,
+        BoundsCheckPolicies::default(),
+    )?;
+
+    let reflection_info = writer.write()?;
+
+    stage_src.source = out;
+    stage_src.entry = "main".to_string();
+
+    for (uform_name, uform_val) in uniforms {
+        log::trace!("Remapping uniform {}", uform_name);
+
+        if uform_val.ty.is_texture_type() {
+            let (tex_binding, samp_binding) = match uform_val.binding.try_as_texture() {
+                Some(b) => b,
+                None => {
+                    log::error!(
+                        "Non-texture binding descriptor for texture {}, skipping",
+                        uform_name
+                    );
+                    continue;
+                }
+            };
+
+            let tex_binding_name = &tex_binding.unwrap().name;
+            let samp_binding_name = &samp_binding.unwrap().name;
+
+            let tex_handle = get_globvar_handle(&parsed.global_variables, tex_binding_name);
+            let sampler_handle = get_globvar_handle(&parsed.global_variables, samp_binding_name);
+
+            assert_eq!(tex_handle.is_some(), sampler_handle.is_some());
+
+            if let (Some(tex), Some(samp)) = (tex_handle, sampler_handle) {
+                for (new_sampler_name, tex_mapping) in &reflection_info.texture_mapping {
+                    if tex_mapping.texture == tex {
+                        assert_eq!(Some(samp), tex_mapping.sampler);
+
+                        log::trace!(
+                            "New binding name for texture {} is {}",
+                            uform_name,
+                            new_sampler_name
+                        );
+
+                        let mut new_sampler_binding = samp_binding.unwrap().clone();
+                        new_sampler_binding.name = new_sampler_name.clone();
+
+                        let mut new_uform_val = uform_val.clone();
+                        new_uform_val.binding = UniformBinding::Texture {
+                            sampler: Some(new_sampler_binding),
+                            texture: None,
+                        };
+
+                        if remapped_uniforms.contains_key(uform_name) {
+                            return Err(CrossOpenGLErr::DoubleUniform(
+                                uform_name.clone(),
+                                Box::new(remapped_uniforms[uform_name].clone()),
+                                Box::new(new_uform_val),
+                            ));
+                        }
+
+                        remapped_uniforms.insert(uform_name.clone(), new_uform_val);
+
+                        break;
+                    }
+                }
+            }
+        } else {
+            let input_binding = match uform_val.binding.try_as_standard() {
+                Some(b) => b,
+                None => {
+                    log::error!(
+                        "Texture binding descriptor for non-texture {}, skipping",
+                        uform_name
+                    );
+                    continue;
+                }
+            };
+
+            let uniform_handle = get_globvar_handle(&parsed.global_variables, &input_binding.name);
+
+            if uniform_handle.is_none() {
+                continue;
+            }
+
+            let uniform_handle = uniform_handle.unwrap();
+
+            let new_binding_name = reflection_info.uniforms[&uniform_handle].clone();
+
+            let mut new_binding = input_binding.clone();
+            new_binding.name = new_binding_name;
+
+            log::trace!("New binding for {} is {:#?}", uform_name, new_binding);
+
+            let mut new_uform_val = uform_val.clone();
+            new_uform_val.binding = UniformBinding::Standard(new_binding);
+
+            if remapped_uniforms.contains_key(uform_name) {
+                return Err(CrossOpenGLErr::DoubleUniform(
+                    uform_name.clone(),
+                    Box::new(remapped_uniforms[uform_name].clone()),
+                    Box::new(new_uform_val),
+                ));
+            }
+
+            remapped_uniforms.insert(uform_name.clone(), new_uform_val);
+        }
+    }
+
+    Ok(())
+}
+
+fn to_valid_shaderstages(s: naga::ShaderStage) -> naga::valid::ShaderStages {
+    match s {
+        naga::ShaderStage::Vertex => naga::valid::ShaderStages::VERTEX,
+        naga::ShaderStage::Fragment => naga::valid::ShaderStages::FRAGMENT,
+        naga::ShaderStage::Compute => naga::valid::ShaderStages::COMPUTE,
+        naga::ShaderStage::Task | naga::ShaderStage::Mesh => {
+            panic!("Unsupported shader stage: {:?}", s)
+        }
+    }
+}
+fn get_globvar_handle(
+    globvars: &naga::Arena<naga::GlobalVariable>,
+    name: impl AsRef<str>,
+) -> Option<naga::Handle<naga::GlobalVariable>> {
+    globvars.fetch_if(|global| global.name.as_ref().unwrap() == name.as_ref())
+}

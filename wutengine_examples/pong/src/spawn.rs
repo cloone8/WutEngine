@@ -91,7 +91,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
 
     let mut player_material = Material::new();
     player_material.set_shader(Some(ShaderId::new("unlit")));
-    player_material.set_color("baseColor", Color::BLUE);
+    player_material.set_color("base_color", Color::BLUE);
 
     player.add_component(StaticMeshRenderer {
         mesh,
@@ -114,7 +114,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
 
     let mut enemy_material = Material::new();
     enemy_material.set_shader(Some(ShaderId::new("unlit")));
-    enemy_material.set_color("baseColor", Color::RED);
+    enemy_material.set_color("base_color", Color::RED);
 
     enemy.add_component(StaticMeshRenderer {
         mesh,
@@ -148,9 +148,9 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
 
     let mut ball_material = Material::new();
     ball_material.set_shader(Some(ShaderId::new("unlit")));
-    ball_material.set_color("baseColor", Color::WHITE);
-    ball_material.set_texture("colorMap", face_texture);
-    ball_material.set_bool("hasColorMap", true);
+    ball_material.set_color("base_color", Color::WHITE);
+    ball_material.set_texture("color_map", face_texture);
+    ball_material.set_bool("has_color_map", true);
 
     ball.add_component(StaticMeshRenderer {
         mesh,

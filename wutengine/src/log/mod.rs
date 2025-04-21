@@ -133,6 +133,7 @@ impl LogConfig {
                 .clone()
                 .add_filter_allow_str("wutengine_graphics")
                 .add_filter_allow_str("wutengine_opengl")
+                .add_filter_allow_str("wutengine_shadercompiler")
                 .build();
 
             match renderer.make_simplelog_logger(cfg) {
@@ -146,6 +147,7 @@ impl LogConfig {
             let cfg = template_cfg
                 .clone()
                 .add_filter_ignore_str("wutengine")
+                .add_filter_ignore_str("naga")
                 .build();
 
             match other.make_simplelog_logger(cfg) {

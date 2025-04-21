@@ -1,3 +1,4 @@
+use bytemuck::{Pod, Zeroable};
 use glam::Mat4;
 
 use super::GlVec4f;
@@ -11,6 +12,9 @@ pub(crate) struct GlMat4f {
     pub z_col: GlVec4f,
     pub w_col: GlVec4f,
 }
+
+unsafe impl Zeroable for GlMat4f {}
+unsafe impl Pod for GlMat4f {}
 
 impl From<Mat4> for GlMat4f {
     #[inline]

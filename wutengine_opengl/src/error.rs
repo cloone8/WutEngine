@@ -43,6 +43,10 @@ pub(crate) fn check_err_impl(gl: &Gl, file: &str, line: u32) {
 
         err_count += 1;
     }
+
+    if err_count != 0 {
+        panic!("Encountered OpenGL error.");
+    }
 }
 
 #[cfg(not(debug_assertions))]

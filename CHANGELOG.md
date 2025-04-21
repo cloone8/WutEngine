@@ -5,6 +5,8 @@ This file documents the most important changes for each released version.
 ## [v0.5.0]
 - Removed custom `as_any` and `as_any_mut` implementations for various traits in favour of Rust 1.86 trait upcasting
 - Added profiling support
+- Switched shader source language from GLSL to WGSL
+- Added shader (cross)-compiler to compile WGSL shaders to (for now) GLSL. This should enable us to keep the same shaders when writing multiple backends
 
 ## [v0.4.0]
 - Added default values for missing Material parameters
