@@ -16,7 +16,7 @@ readme = "../README.md"
 workspace = true
 
 [features]
-default = ["opengl", "profiling"]
+default = ["opengl"]
 opengl = ["dep:wutengine_opengl"]
 profiling = [
     "profiling/profile-with-puffin",
