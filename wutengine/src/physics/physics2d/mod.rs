@@ -175,10 +175,6 @@ impl Physics2DPlugin {
 }
 
 impl WutEnginePlugin for Physics2DPlugin {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
     fn physics_solver_update(&mut self, context: &mut Context) {
         self.step(Time::get().fixed_delta, context);
     }

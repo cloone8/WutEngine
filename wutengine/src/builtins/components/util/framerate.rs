@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::time::Instant;
 
 use crate::component::{Component, Context};
@@ -48,14 +47,6 @@ impl Component for FramerateCounter {
             self.prev_report_time = cur_time;
         }
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
 }
 
 impl FramerateCounter {
@@ -99,11 +90,7 @@ fn average(nums: &[f32]) -> f32 {
         }
     }
 
-    if count == 0 {
-        0.0
-    } else {
-        sum / count as f32
-    }
+    if count == 0 { 0.0 } else { sum / count as f32 }
 }
 
 fn low_x(nums: &[f32], x: f32) -> f32 {

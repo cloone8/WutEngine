@@ -60,10 +60,6 @@ impl Default for KeyboardInputPlugin {
 }
 
 impl WutEnginePlugin for KeyboardInputPlugin {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
     fn on_device_event(&mut self, _device: DeviceId, event: &DeviceEvent, _context: &mut Context) {
         if let DeviceEvent::Key(raw_key_event) = event {
             self.handle_physical_key(raw_key_event.physical_key, raw_key_event.state);

@@ -56,10 +56,6 @@ impl Default for MouseInputPlugin {
 }
 
 impl WutEnginePlugin for MouseInputPlugin {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
     fn pre_update(&mut self, _context: &mut crate::plugins::Context) {
         if !self.had_event {
             self.mouse_delta = Vec2::ZERO;

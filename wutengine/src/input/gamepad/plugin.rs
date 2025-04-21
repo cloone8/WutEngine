@@ -40,10 +40,6 @@ impl Default for GamepadInputPlugin {
 }
 
 impl WutEnginePlugin for GamepadInputPlugin {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
     fn pre_update(&mut self, _context: &mut crate::plugins::Context) {
         let mut gilrs = self.gilrs.lock().unwrap();
 

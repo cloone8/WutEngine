@@ -59,10 +59,6 @@ impl WutEnginePlugin for PongStarterPlugin {
 
         log::info!("Pong onstart done");
     }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
 }
 
 /// Opens the window

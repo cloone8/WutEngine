@@ -43,8 +43,4 @@ impl WutEnginePlugin for WutEngineEditorPlugin {
             ignore_existing: false,
         });
     }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
 }

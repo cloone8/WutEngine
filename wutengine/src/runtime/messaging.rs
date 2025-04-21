@@ -42,19 +42,9 @@ pub struct Message {
 #[diagnostic::on_unimplemented(
     message = "`{Self}` is not message-compatible. It needs to implement all of `Any`, `Send`, `Sync` and `Debug`"
 )]
-pub trait MessageCompatible: Any + Send + Sync + Debug {
-    /// Casts the message to an [Any] reference, for internal conversions.
-    fn as_any(&self) -> &dyn Any;
-}
+pub trait MessageCompatible: Any + Send + Sync + Debug {}
 
-impl<T> MessageCompatible for T
-where
-    T: Any + Send + Sync + Debug,
-{
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
+impl<T> MessageCompatible for T where T: Any + Send + Sync + Debug {}
 
 impl Message {
     /// Creates a new message with the given content
@@ -71,7 +61,7 @@ impl Message {
         // of the content
         let arc_inner = self.content.as_ref();
 
-        arc_inner.as_any().downcast_ref::<T>()
+        (arc_inner as &dyn Any).downcast_ref::<T>()
     }
 }
 

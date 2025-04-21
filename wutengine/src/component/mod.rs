@@ -40,12 +40,6 @@ pub trait Component: Any + Send + Sync + Debug {
 
     /// Called for each message that might be relevant for this component.
     fn on_message(&mut self, _context: &mut Context, _message: &Message) {}
-
-    /// Converts the component reference to a dyn [Any] reference.
-    fn as_any(&self) -> &dyn Any;
-
-    /// Converts the component mutable reference to a dyn [Any] mutable reference.
-    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 /// The main context handed to each component each frame

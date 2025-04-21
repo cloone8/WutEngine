@@ -19,9 +19,6 @@ use crate::runtime::RuntimeInitializer;
 /// allowing for responses to raw events as well as injection
 /// of custom systems and commands at key points in the engine lifecycle
 pub trait WutEnginePlugin: Any + Send + Sync + Debug {
-    /// Casts the plugin to an instance of [Any], for possible downcasting later
-    fn as_any(&self) -> &dyn Any;
-
     /// Called once right after [RuntimeInitializer::run] is called
     fn on_build(&mut self, _initializer: &mut RuntimeInitializer) {}
 
