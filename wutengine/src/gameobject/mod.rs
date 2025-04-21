@@ -10,14 +10,10 @@ use crate::component::data::{ComponentData, ComponentState};
 
 pub(crate) mod internal;
 
-/// The at-runtime ID of a GameObject
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GameObjectId(u64);
+wutengine_util_macro::generate_atomic_id! {
 
-impl Display for GameObjectId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#016x}", self.0)
-    }
+    /// The at-runtime ID of a GameObject
+    GameObjectId
 }
 
 /// The GameObject. The main entity within the game world. Contains a set of components that
@@ -38,11 +34,10 @@ pub struct GameObject {
 impl GameObject {
     /// Creates a new [GameObject] that is not yet loaded into the world.
     pub fn new(name: Option<impl Into<String>>) -> Self {
-        static NEXT_INDEX: AtomicU64 = AtomicU64::new(0);
         let name = name.map(|s| s.into()).unwrap_or("GameObject".to_string());
 
         Self {
-            id: GameObjectId(NEXT_INDEX.fetch_add(1, Ordering::Relaxed)),
+            id: GameObjectId::new(),
             name,
             components: RwLock::new(Vec::new()),
         }

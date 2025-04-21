@@ -137,12 +137,8 @@ pub fn generate_atomic_id(input: proc_macro::TokenStream) -> proc_macro::TokenSt
             pub fn new() -> Self {
                 static NEXT_ID: ::core::sync::atomic::AtomicU64 = ::core::sync::atomic::AtomicU64::new(1);
 
-                let mut id_val = 0;
+                let id_val = NEXT_ID.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed);
                 
-                while id_val == 0 {
-                    id_val = NEXT_ID.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed);
-                }
-
                 debug_assert!(id_val < u64::MAX, #id_overflow_err);
 
                 Self(::core::num::NonZeroU64::new(id_val).unwrap())
