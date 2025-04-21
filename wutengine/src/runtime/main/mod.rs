@@ -8,8 +8,7 @@ use wutengine_graphics::renderer::WutEngineRenderer;
 use crate::component::data::{ComponentData, ComponentState};
 use crate::component::{self, ComponentContext};
 use crate::context::{
-    EngineContext, GameObjectContext, GraphicsContext, MessageContext, PluginContext,
-    ViewportContext, WindowContext,
+    EngineContext, GameObjectContext, MessageContext, PluginContext, WindowContext,
 };
 use crate::gameobject::GameObjectId;
 use crate::plugins::{self, WutEnginePlugin};
@@ -73,8 +72,6 @@ impl<R: WutEngineRenderer> Runtime<R> {
         let engine_context = EngineContext::new();
         let message_context = MessageContext::new(message_queue);
         let plugin_context = PluginContext::new(&self.plugins);
-        let viewport_context = ViewportContext::new();
-        let graphics_context = GraphicsContext::new();
 
         let window_data = make_windowdata_map(&self.windows);
         let window_context = WindowContext::new(&window_data);
@@ -102,8 +99,6 @@ impl<R: WutEngineRenderer> Runtime<R> {
                         message: &message_context,
                         engine: &engine_context,
                         plugin: &plugin_context,
-                        viewport: &viewport_context,
-                        graphics: &graphics_context,
                         window: &window_context,
                     };
 
@@ -121,9 +116,6 @@ impl<R: WutEngineRenderer> Runtime<R> {
 
         self.obj_storage
             .add_new_gameobjects(engine_context.consume());
-
-        self.render_queue.add_viewports(viewport_context);
-        self.render_queue.add_renderables(graphics_context);
 
         for new_window_params in window_context.consume() {
             self.eventloop
@@ -147,15 +139,10 @@ impl<R: WutEngineRenderer> Runtime<R> {
         }
 
         let engine_context = context.engine;
-        let viewport_context = context.viewport;
-        let graphics_context = context.graphics;
         let window_context = context.windows;
 
         self.obj_storage
             .add_new_gameobjects(engine_context.consume());
-
-        self.render_queue.add_viewports(viewport_context);
-        self.render_queue.add_renderables(graphics_context);
 
         for new_window_params in window_context.consume() {
             self.eventloop

@@ -5,6 +5,7 @@ use glam::Mat4;
 use crate::builtins::assets::{Material, Mesh};
 use crate::builtins::components::transform::Transform;
 use crate::component::{Component, Context};
+use crate::graphics;
 
 /// A static mesh renderer component. Renders its configured mesh using its configured
 /// material
@@ -34,8 +35,6 @@ impl Component for StaticMeshRenderer {
             transform
         );
 
-        context
-            .graphics
-            .render(&self.mesh, &self.material, transform);
+        graphics::render_mesh(&self.mesh, &self.material, transform);
     }
 }

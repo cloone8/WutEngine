@@ -4,14 +4,13 @@
 #[doc(inline)]
 pub use wutengine_core::assert;
 
-pub use wutengine_graphics as graphics;
-
 pub mod asset;
 pub mod builtins;
 pub mod component;
 pub mod context;
 pub mod gameobject;
 pub mod global;
+pub mod graphics;
 pub mod input;
 pub mod log;
 pub mod macros;

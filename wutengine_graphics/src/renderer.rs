@@ -15,7 +15,7 @@ use crate::shader::ShaderResolver;
 use crate::texture::TextureData;
 
 /// A general descriptor for a viewport
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Viewport {
     /// The viewport window
     pub window: WindowIdentifier,

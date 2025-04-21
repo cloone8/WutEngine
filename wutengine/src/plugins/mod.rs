@@ -4,9 +4,7 @@ use core::any::Any;
 use core::fmt::Debug;
 use std::collections::HashMap;
 
-use crate::context::{
-    EngineContext, GraphicsContext, MessageContext, ViewportContext, WindowContext,
-};
+use crate::context::{EngineContext, MessageContext, WindowContext};
 use crate::runtime::messaging::MessageQueue;
 use crate::windowing::window::WindowData;
 use crate::winit::event::{DeviceEvent, DeviceId, WindowEvent};
@@ -70,12 +68,6 @@ pub struct Context<'a> {
     /// The message context
     pub message: MessageContext<'a>,
 
-    /// The viewport context
-    pub viewport: ViewportContext<'a>,
-
-    /// The graphics context
-    pub graphics: GraphicsContext<'a>,
-
     /// The windowing context
     pub windows: WindowContext<'a>,
 }
@@ -89,8 +81,6 @@ impl<'a> Context<'a> {
         Self {
             engine: EngineContext::new(),
             message: MessageContext::new(messages),
-            viewport: ViewportContext::new(),
-            graphics: GraphicsContext::new(),
             windows: WindowContext::new(windows),
         }
     }

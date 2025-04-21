@@ -9,8 +9,8 @@ use crate::builtins::assets::{RawMaterial, RawMesh};
 use crate::runtime::main::ComponentState;
 use crate::runtime::{EXIT_REQUESTED, Runtime};
 use crate::time::Time;
-use crate::windowing;
 use crate::windowing::window::Window;
+use crate::{graphics, windowing};
 
 use super::WindowingEvent;
 
@@ -107,34 +107,33 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         {
             profiling::scope!("Rendering");
 
-            let mut renderables = Vec::with_capacity(self.render_queue.renderables.len());
-
-            {
+            let renderables: Vec<_> = {
                 profiling::scope!("Resolve Render Commands");
 
-                for render_command in &self.render_queue.renderables {
-                    renderables.push(Renderable {
+                graphics::internal::objects::queued_objects()
+                    .into_iter()
+                    .map(|render_command| Renderable {
                         material: RawMaterial::flush_and_get_id(
                             &render_command.material,
                             &mut self.renderer,
                         ),
                         mesh: RawMesh::flush_and_get_id(&render_command.mesh, &mut self.renderer),
                         object_to_world: render_command.object_to_world,
-                    });
-                }
-            }
+                    })
+                    .collect()
+            };
 
             {
                 profiling::scope!("Render Viewports");
 
-                for viewport in &self.render_queue.viewports {
+                for viewport in graphics::internal::viewports::queued_viewports() {
                     profiling::scope!("Render Single Viewport");
-                    self.renderer.render(viewport, &renderables);
+                    self.renderer.render(&viewport, &renderables);
                 }
             }
 
-            self.render_queue.viewports.clear();
-            self.render_queue.renderables.clear();
+            graphics::internal::objects::clear_queued_objects();
+            graphics::internal::viewports::clear_queued_viewports();
         }
     }
 

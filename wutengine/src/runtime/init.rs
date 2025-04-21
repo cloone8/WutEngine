@@ -8,7 +8,6 @@ use crate::gameobject::runtimestorage::GameObjectStorage;
 use crate::global;
 use crate::log::LogConfig;
 use crate::plugins::WutEnginePlugin;
-use crate::renderer::queue::RenderQueue;
 use crate::renderer::shader_resolver::EmbeddedShaderResolver;
 use crate::runtime::Runtime;
 use crate::time::Time;
@@ -126,7 +125,6 @@ impl RuntimeInitializer {
             obj_storage: GameObjectStorage::new(),
             physics_update_interval: self.physics_interval,
             physics_update_accumulator: 0.0,
-            render_queue: RenderQueue::new(),
             window_id_map: HashMap::new(),
             windows: HashMap::new(),
             eventloop: event_loop.create_proxy(),

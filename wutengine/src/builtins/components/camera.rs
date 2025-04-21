@@ -5,6 +5,7 @@ use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::{color::Color, renderer::Viewport};
 
 use crate::component::{Component, Context};
+use crate::graphics;
 
 use super::transform::Transform;
 
@@ -83,7 +84,7 @@ impl Component for Camera {
             }
         };
 
-        context.viewport.render_viewport(Viewport {
+        graphics::render_viewport(Viewport {
             window: self.display.clone(),
             clear_color: self.clear_color,
             view_mat,

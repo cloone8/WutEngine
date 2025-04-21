@@ -4,9 +4,7 @@ use core::any::Any;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-use crate::context::{
-    EngineContext, GameObjectContext, GraphicsContext, MessageContext, ViewportContext,
-};
+use crate::context::{EngineContext, GameObjectContext, MessageContext};
 use crate::context::{PluginContext, WindowContext};
 use crate::runtime::messaging::Message;
 
@@ -55,12 +53,6 @@ pub struct Context<'a> {
 
     /// The loaded plugins
     pub plugin: &'a PluginContext<'a>,
-
-    /// Information and APIs for interacting with viewports
-    pub viewport: &'a ViewportContext<'a>,
-
-    /// Graphics and rendering APIs
-    pub graphics: &'a GraphicsContext<'a>,
 
     /// Window information and APIs
     pub window: &'a WindowContext<'a>,

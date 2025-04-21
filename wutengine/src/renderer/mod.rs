@@ -5,7 +5,6 @@ use wutengine_graphics::renderer::WutEngineRenderer;
 use wutengine_graphics::renderer::{Renderable, Viewport};
 use wutengine_graphics::shader::ShaderResolver;
 
-pub(crate) mod queue;
 pub(crate) mod shader_resolver;
 
 #[cfg(feature = "opengl")]

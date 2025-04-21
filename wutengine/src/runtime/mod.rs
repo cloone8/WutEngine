@@ -11,7 +11,6 @@ use wutengine_graphics::renderer::WutEngineRenderer;
 
 use crate::gameobject::runtimestorage::GameObjectStorage;
 use crate::plugins::WutEnginePlugin;
-use crate::renderer::queue::RenderQueue;
 use crate::windowing::WindowingEvent;
 use crate::windowing::window::Window;
 
@@ -34,8 +33,6 @@ pub struct Runtime<R: WutEngineRenderer> {
 
     physics_update_interval: f32,
     physics_update_accumulator: f32,
-
-    render_queue: RenderQueue,
 
     eventloop: EventLoopProxy<WindowingEvent>,
 
