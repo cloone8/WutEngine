@@ -72,6 +72,7 @@ pub(crate) enum CompileErr {
     Compile(String),
 }
 
+#[profiling::all_functions]
 impl GlShaderProgram {
     /// Creates, compiles, and links a new OpenGL shaderprogram from the given source
     pub(crate) fn new(gl: &Gl, source: &Shader) -> Result<Self, CreateErr> {
@@ -181,6 +182,7 @@ impl GlShaderProgram {
     }
 
     /// Returns the vertex layout for this shader
+    #[profiling::skip]
     pub(crate) const fn get_vertex_layout(&self) -> &ShaderVertexLayout {
         &self.vertex_layout
     }
@@ -315,6 +317,7 @@ impl GlShaderProgram {
     }
 }
 
+#[profiling::function]
 fn compile_stage(gl: &Gl, source: &str, stage: GLuint) -> Result<NonZero<GLuint>, CompileErr> {
     if !source.is_ascii() {
         return Err(CompileErr::SourceEncoding);
@@ -351,6 +354,7 @@ fn compile_stage(gl: &Gl, source: &str, stage: GLuint) -> Result<NonZero<GLuint>
     }
 }
 
+#[profiling::function]
 fn get_shader_compile_err(gl: &Gl, shader: NonZero<GLuint>) -> String {
     let mut buflen: GLint = 0;
 
@@ -380,6 +384,7 @@ fn get_shader_compile_err(gl: &Gl, shader: NonZero<GLuint>) -> String {
         .to_string()
 }
 
+#[profiling::function]
 fn get_program_link_err(gl: &Gl, program: NonZero<GLuint>) -> String {
     let mut buflen: GLint = 0;
 
@@ -409,6 +414,7 @@ fn get_program_link_err(gl: &Gl, program: NonZero<GLuint>) -> String {
         .to_string()
 }
 
+#[profiling::function]
 fn destroy_stage(gl: &Gl, shader: NonZero<GLuint>) {
     unsafe {
         gl.DeleteShader(shader.get());
@@ -416,6 +422,7 @@ fn destroy_stage(gl: &Gl, shader: NonZero<GLuint>) {
     }
 }
 
+#[profiling::function]
 fn destroy_program(gl: &Gl, program: NonZero<GLuint>) {
     unsafe {
         gl.DeleteProgram(program.get());

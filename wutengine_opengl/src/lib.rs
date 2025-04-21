@@ -48,6 +48,7 @@ pub struct OpenGLRenderer {
     textures: HashMap<RendererTextureId, Option<TextureData>>,
 }
 
+#[profiling::all_functions]
 impl WutEngineRenderer for OpenGLRenderer {
     fn build<R: ShaderResolver>(shaders: R) -> Self {
         Self {

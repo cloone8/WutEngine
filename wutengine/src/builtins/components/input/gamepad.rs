@@ -10,6 +10,7 @@ pub struct InputHandlerGamepad<'a> {
     pub(super) handler: &'a InputHandler,
 }
 
+#[profiling::all_functions]
 impl InputHandlerGamepad<'_> {
     fn is_down_from_state(state: &InputState, button: GamepadButton) -> bool {
         state

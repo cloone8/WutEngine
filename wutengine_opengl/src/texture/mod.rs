@@ -16,6 +16,7 @@ pub(crate) enum GlTexture {
     Tex2D(GlTexture2D),
 }
 
+#[profiling::all_functions]
 impl GlTexture {
     /// Destroys this texture
     pub(crate) fn destroy(self, gl: &Gl) {

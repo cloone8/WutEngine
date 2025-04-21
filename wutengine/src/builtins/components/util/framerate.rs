@@ -33,6 +33,7 @@ impl Default for FramerateCounter {
     }
 }
 
+#[profiling::all_functions]
 impl Component for FramerateCounter {
     fn update(&mut self, _context: &mut Context) {
         self.record_frametime();
@@ -49,6 +50,7 @@ impl Component for FramerateCounter {
     }
 }
 
+#[profiling::all_functions]
 impl FramerateCounter {
     fn record_frametime(&mut self) {
         self.frametimes[self.frame_index] = Time::get().delta;
@@ -79,6 +81,7 @@ impl FramerateCounter {
     }
 }
 
+#[profiling::function]
 fn average(nums: &[f32]) -> f32 {
     let mut count = 0;
     let mut sum = 0.0;
@@ -93,6 +96,7 @@ fn average(nums: &[f32]) -> f32 {
     if count == 0 { 0.0 } else { sum / count as f32 }
 }
 
+#[profiling::function]
 fn low_x(nums: &[f32], x: f32) -> f32 {
     assert!(x <= 100.0);
 

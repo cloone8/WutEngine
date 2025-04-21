@@ -4,8 +4,8 @@ use wutengine_macro::component_boilerplate;
 
 use crate::builtins::components::transform::Transform;
 use crate::component::{Component, Context};
-use crate::physics::physics2d::Physics2DPlugin;
 use crate::physics::Collider2DID;
+use crate::physics::physics2d::Physics2DPlugin;
 
 /// A 2D-physics rectangular collider
 #[derive(Debug)]
@@ -17,6 +17,7 @@ pub struct RectangleCollider2D {
     pub(crate) handle: Option<Collider2DID>,
 }
 
+#[profiling::all_functions]
 impl RectangleCollider2D {
     /// Creates a new 2D rectangle collider component with the
     /// given initial state
@@ -29,6 +30,7 @@ impl RectangleCollider2D {
     }
 }
 
+#[profiling::all_functions]
 impl RectangleCollider2D {
     /// Returns the raw collider handle for this collider component,
     /// if it has already been created.
@@ -37,6 +39,7 @@ impl RectangleCollider2D {
     }
 }
 
+#[profiling::all_functions]
 impl Component for RectangleCollider2D {
     component_boilerplate!();
 
@@ -44,7 +47,9 @@ impl Component for RectangleCollider2D {
         let physics_plugin = context.plugin.get::<Physics2DPlugin>();
 
         if physics_plugin.is_none() {
-            log::warn!("Trying to initialize rectangle collider component failed because the physics plugin was missing");
+            log::warn!(
+                "Trying to initialize rectangle collider component failed because the physics plugin was missing"
+            );
             return;
         }
 

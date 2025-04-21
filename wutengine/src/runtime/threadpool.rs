@@ -19,6 +19,16 @@ pub(crate) fn init_threadpool() {
 
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_available_threads.get())
+        .start_handler(thread_start_handler)
+        .thread_name(make_thread_name)
         .build_global()
         .expect("Could not initialize thread pool");
+}
+
+fn thread_start_handler(_index: usize) {
+    profiling::register_thread!();
+}
+
+fn make_thread_name(index: usize) -> String {
+    format!("wutengine_worker_{}", index)
 }

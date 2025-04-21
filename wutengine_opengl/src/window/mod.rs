@@ -52,6 +52,7 @@ pub(crate) struct Window {
     attributes: HashMap<RendererMeshId, Vao>,
 }
 
+#[profiling::all_functions]
 impl Window {
     /// Creates a new window-specific context for the given native handle and initial size.
     /// Uses the provided shader resolver to find the shaders on disk.
@@ -61,6 +62,8 @@ impl Window {
         size: (u32, u32),
     ) -> Self {
         let context = unsafe {
+            profiling::scope!("Create Context");
+
             GlContext::create(
                 &handles,
                 GlConfig {
@@ -82,6 +85,7 @@ impl Window {
         };
 
         unsafe {
+            profiling::scope!("Make Context Current");
             context.make_current();
         }
 
@@ -159,6 +163,7 @@ impl Window {
     /// shaders and model matrices to use for rendering them.
     pub(crate) fn render(&mut self, viewport_context: &Viewport, objects: &[Renderable]) {
         unsafe {
+            profiling::scope!("Make context current");
             self.context.make_current();
         }
 
@@ -176,112 +181,121 @@ impl Window {
         let clear_color = viewport_context.clear_color;
 
         unsafe {
+            profiling::scope!("Clear Viewport");
             gl.ClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
             checkerr!(gl);
             gl.Clear(opengl::COLOR_BUFFER_BIT | opengl::DEPTH_BUFFER_BIT);
             checkerr!(gl);
         }
 
-        for object in objects {
-            let mesh = match self.meshes.get_mut(&object.mesh) {
-                Some(m) => m,
-                None => {
-                    log::error!("Missing mesh buffers for mesh {}", object.mesh);
+        {
+            profiling::scope!("Render Objects");
+
+            for object in objects {
+                profiling::scope!("Render Object");
+
+                let mesh = match self.meshes.get_mut(&object.mesh) {
+                    Some(m) => m,
+                    None => {
+                        log::error!("Missing mesh buffers for mesh {}", object.mesh);
+                        continue;
+                    }
+                };
+
+                let vao = match self.attributes.get_mut(&object.mesh) {
+                    Some(m) => m,
+                    None => {
+                        log::error!("Missing mesh VAO for mesh {}", object.mesh);
+                        continue;
+                    }
+                };
+
+                let material = match self.materials.get(&object.material) {
+                    Some(m) => m,
+                    None => {
+                        log::error!("Missing material {}", object.material);
+                        continue;
+                    }
+                };
+
+                let shader_id = material.shader.as_ref();
+                if shader_id.is_none() {
+                    log::trace!(
+                        "Not rendering object because its material ({}) has no shader attached",
+                        object.material
+                    );
                     continue;
                 }
-            };
 
-            let vao = match self.attributes.get_mut(&object.mesh) {
-                Some(m) => m,
-                None => {
-                    log::error!("Missing mesh VAO for mesh {}", object.mesh);
-                    continue;
+                let shader_id = shader_id.unwrap();
+
+                let shader = match self.shaders.get_mut(shader_id) {
+                    Some(sh) => sh,
+                    None => {
+                        log::error!("Missing shader {}", shader_id);
+                        continue;
+                    }
+                };
+
+                // Check if the VAO attributes are still up-to-date. Set them if not
+                if !vao.layout_matches(&mesh.vertex_layout, shader.get_vertex_layout()) {
+                    vao.set_layout(gl, mesh, shader.get_vertex_layout().clone());
                 }
-            };
 
-            let material = match self.materials.get(&object.material) {
-                Some(m) => m,
-                None => {
-                    log::error!("Missing material {}", object.material);
-                    continue;
-                }
-            };
+                vao.bind(gl);
+                shader.use_program(gl);
 
-            let shader_id = material.shader.as_ref();
-            if shader_id.is_none() {
-                log::trace!(
-                    "Not rendering object because its material ({}) has no shader attached",
-                    object.material
-                );
-                continue;
-            }
+                // Set the uniforms
+                let mut first_free_texture_unit = 0;
 
-            let shader_id = shader_id.unwrap();
-
-            let shader = match self.shaders.get_mut(shader_id) {
-                Some(sh) => sh,
-                None => {
-                    log::error!("Missing shader {}", shader_id);
-                    continue;
-                }
-            };
-
-            // Check if the VAO attributes are still up-to-date. Set them if not
-            if !vao.layout_matches(&mesh.vertex_layout, shader.get_vertex_layout()) {
-                vao.set_layout(gl, mesh, shader.get_vertex_layout().clone());
-            }
-
-            vao.bind(gl);
-            shader.use_program(gl);
-
-            // Set the uniforms
-            let mut first_free_texture_unit = 0;
-
-            shader.set_uniform_defaults(
-                gl,
-                &material.parameters,
-                &mut first_free_texture_unit,
-                &mut self.default_texture,
-            );
-
-            shader.set_uniforms(
-                gl,
-                &material.parameters,
-                &mut first_free_texture_unit,
-                &mut self.textures,
-            );
-
-            if first_free_texture_unit > 0 {
-                log::trace!("Bound {} texture units", first_free_texture_unit);
-            }
-
-            // Set MVP matrices
-            shader.set_mvp(
-                gl,
-                object.object_to_world,
-                viewport_context.view_mat,
-                projection_mat,
-            );
-
-            unsafe {
-                gl.DrawElements(
-                    index_type_to_gl(mesh.element_type),
-                    GLuint::try_from(mesh.num_elements).unwrap() as GLint,
-                    mesh.index_size,
-                    null_mut(),
+                shader.set_uniform_defaults(
+                    gl,
+                    &material.parameters,
+                    &mut first_free_texture_unit,
+                    &mut self.default_texture,
                 );
 
-                checkerr!(gl);
-            }
+                shader.set_uniforms(
+                    gl,
+                    &material.parameters,
+                    &mut first_free_texture_unit,
+                    &mut self.textures,
+                );
 
-            vao.unbind(gl);
+                if first_free_texture_unit > 0 {
+                    log::trace!("Bound {} texture units", first_free_texture_unit);
+                }
+
+                // Set MVP matrices
+                shader.set_mvp(
+                    gl,
+                    object.object_to_world,
+                    viewport_context.view_mat,
+                    projection_mat,
+                );
+
+                unsafe {
+                    gl.DrawElements(
+                        index_type_to_gl(mesh.element_type),
+                        GLuint::try_from(mesh.num_elements).unwrap() as GLint,
+                        mesh.index_size,
+                        null_mut(),
+                    );
+
+                    checkerr!(gl);
+                }
+
+                vao.unbind(gl);
+            }
         }
 
+        profiling::scope!("Swap Buffers");
         self.context.swap_buffers();
     }
 }
 
 /// Resource management
+#[profiling::all_functions]
 impl Window {
     /// Creates new OpenGL buffers for the given mesh and registers it with the
     /// context
@@ -454,6 +468,7 @@ enum FindCompileShaderErr {
     Compile(#[from] shader::CreateErr),
 }
 
+#[profiling::all_functions]
 impl Window {
     fn find_and_compile_shader(&mut self, id: &ShaderId) -> Result<(), FindCompileShaderErr> {
         log::trace!("Finding and compiling shader with ID {}", id);

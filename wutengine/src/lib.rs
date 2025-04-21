@@ -4,9 +4,6 @@
 #[doc(inline)]
 pub use wutengine_core::assert;
 
-#[doc(inline)]
-pub use wutengine_core::profiling;
-
 pub use wutengine_graphics as graphics;
 
 pub mod asset;
@@ -21,6 +18,7 @@ pub mod macros;
 pub mod math;
 pub mod physics;
 pub mod plugins;
+pub mod profiling;
 pub mod renderer;
 pub mod runtime;
 pub mod time;

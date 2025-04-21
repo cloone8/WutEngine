@@ -20,6 +20,7 @@ use super::{MessageQueue, Runtime, WindowingEvent};
 mod lifecycle_hooks;
 mod winit_loop;
 
+#[profiling::all_functions]
 impl<R: WutEngineRenderer> Runtime<R> {
     fn start(&mut self) {
         self.run_plugin_hooks(|plugin, context| {

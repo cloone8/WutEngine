@@ -54,6 +54,7 @@ impl MaterialParameter {
 }
 
 /// Returns a new copy of the default texture, which is a 2x2 repeating pink-green image
+#[profiling::function]
 pub fn get_default_texture<const SIZE: u32>() -> TextureData {
     assert!(SIZE.is_power_of_two());
 

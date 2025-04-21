@@ -34,6 +34,7 @@ pub enum CameraType {
     Orthographic(f64),
 }
 
+#[profiling::all_functions]
 impl Component for Camera {
     fn pre_render(&mut self, context: &mut Context) {
         let window = match context.window.get(&self.display) {

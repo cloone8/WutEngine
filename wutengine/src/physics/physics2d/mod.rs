@@ -35,6 +35,7 @@ impl Default for Physics2DPlugin {
     }
 }
 
+#[profiling::all_functions]
 impl Physics2DPlugin {
     /// Creates and initializes a new 2D physics pipeline
     pub fn new() -> Self {
@@ -174,6 +175,7 @@ impl Physics2DPlugin {
     }
 }
 
+#[profiling::all_functions]
 impl WutEnginePlugin for Physics2DPlugin {
     fn physics_solver_update(&mut self, context: &mut Context) {
         self.step(Time::get().fixed_delta, context);

@@ -14,6 +14,7 @@ use crate::windowing::window::Window;
 
 use super::WindowingEvent;
 
+#[profiling::all_functions]
 impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if !self.started {
@@ -24,6 +25,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        profiling::finish_frame!();
+
         if !self.started {
             log::trace!("about_to_wait fired but engine not yet initialized");
             return;
@@ -39,46 +42,57 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
         }
 
         log::trace!("Updating current window information");
-        for window in self.windows.values_mut() {
-            window.update();
+        {
+            profiling::scope!("Update Windows");
+            for window in self.windows.values_mut() {
+                window.update();
+            }
         }
 
         log::trace!("Starting new frame");
 
         unsafe {
+            profiling::scope!("Update Time");
             Time::update_to_now(self.physics_update_interval);
         }
 
         self.lifecycle_start();
 
         // Physics usually runs at a fixed interval
-        let mut physics_steps = 0;
+        {
+            profiling::scope!("Phyiscs Pipeline");
 
-        if self.physics_update_interval == 0.0 {
-            physics_steps = 1;
-            log::trace!("Physics synced with framerate. Running iteration");
-            // 0.0 means sync with frame
-            self.lifecycle_physics_update();
-            self.lifecycle_post_physics_update();
-            self.lifecycle_physics_solver_update();
-        } else {
-            log::trace!("Physics running at interval. Running variable number of steps");
+            let mut physics_steps = 0;
+            if self.physics_update_interval == 0.0 {
+                profiling::scope!("Physics Step");
+                physics_steps = 1;
 
-            // Any other value means "run at that fixed timestep"
-            self.physics_update_accumulator += Time::get().delta;
+                log::trace!("Physics synced with framerate. Running iteration");
 
-            while self.physics_update_accumulator >= self.physics_update_interval {
-                physics_steps += 1;
-                log::trace!("Running physics step");
-
+                // 0.0 means sync with frame
                 self.lifecycle_physics_update();
                 self.lifecycle_post_physics_update();
                 self.lifecycle_physics_solver_update();
-                self.physics_update_accumulator -= self.physics_update_interval;
-            }
-        }
+            } else {
+                log::trace!("Physics running at interval. Running variable number of steps");
 
-        log::trace!("Ran {} physics steps this frame", physics_steps);
+                // Any other value means "run at that fixed timestep"
+                self.physics_update_accumulator += Time::get().delta;
+
+                while self.physics_update_accumulator >= self.physics_update_interval {
+                    profiling::scope!("Physics Step");
+                    physics_steps += 1;
+
+                    log::trace!("Running physics step");
+
+                    self.lifecycle_physics_update();
+                    self.lifecycle_post_physics_update();
+                    self.lifecycle_physics_solver_update();
+                    self.physics_update_accumulator -= self.physics_update_interval;
+                }
+            }
+            log::trace!("Ran {} physics steps this frame", physics_steps);
+        }
 
         self.lifecycle_pre_update();
         self.lifecycle_update();
@@ -89,25 +103,38 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         log::trace!("Doing rendering");
 
-        let mut renderables = Vec::with_capacity(self.render_queue.renderables.len());
+        {
+            profiling::scope!("Rendering");
 
-        for render_command in &self.render_queue.renderables {
-            renderables.push(Renderable {
-                material: RawMaterial::flush_and_get_id(
-                    &render_command.material,
-                    &mut self.renderer,
-                ),
-                mesh: RawMesh::flush_and_get_id(&render_command.mesh, &mut self.renderer),
-                object_to_world: render_command.object_to_world,
-            });
+            let mut renderables = Vec::with_capacity(self.render_queue.renderables.len());
+
+            {
+                profiling::scope!("Resolve Render Commands");
+
+                for render_command in &self.render_queue.renderables {
+                    renderables.push(Renderable {
+                        material: RawMaterial::flush_and_get_id(
+                            &render_command.material,
+                            &mut self.renderer,
+                        ),
+                        mesh: RawMesh::flush_and_get_id(&render_command.mesh, &mut self.renderer),
+                        object_to_world: render_command.object_to_world,
+                    });
+                }
+            }
+
+            {
+                profiling::scope!("Render Viewports");
+
+                for viewport in &self.render_queue.viewports {
+                    profiling::scope!("Render Single Viewport");
+                    self.renderer.render(viewport, &renderables);
+                }
+            }
+
+            self.render_queue.viewports.clear();
+            self.render_queue.renderables.clear();
         }
-
-        for viewport in &self.render_queue.viewports {
-            self.renderer.render(viewport, &renderables);
-        }
-
-        self.render_queue.viewports.clear();
-        self.render_queue.renderables.clear();
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WindowingEvent) {
@@ -115,6 +142,8 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
         match event {
             WindowingEvent::OpenWindow(params) => {
+                profiling::scope!("Open Window");
+
                 if self.windows.contains_key(&params.id) && !params.ignore_existing {
                     panic!("Window {} already exists!", params.id);
                 }

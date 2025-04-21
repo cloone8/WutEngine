@@ -2,4 +2,3 @@
 
 pub mod assert;
 pub mod identifiers;
-pub mod profiling;

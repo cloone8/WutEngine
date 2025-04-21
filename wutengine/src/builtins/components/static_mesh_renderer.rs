@@ -17,6 +17,7 @@ pub struct StaticMeshRenderer {
     pub material: Material,
 }
 
+#[profiling::all_functions]
 impl Component for StaticMeshRenderer {
     fn pre_render(&mut self, context: &mut Context) {
         let transform = if let Some(transform) = context.gameobject.get_component::<Transform>() {

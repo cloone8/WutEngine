@@ -26,6 +26,7 @@ pub(crate) enum CreateErr {
     Zero,
 }
 
+#[profiling::all_functions]
 impl GlTexture2D {
     /// Creates a new uninitialized OpenGL texture
     pub(crate) fn new(gl: &Gl) -> Result<Self, CreateErr> {

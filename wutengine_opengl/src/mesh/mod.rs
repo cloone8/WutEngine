@@ -84,6 +84,7 @@ pub(crate) enum CreateErr {
     Buf(#[from] crate::buffer::CreateErr),
 }
 
+#[profiling::all_functions]
 impl GlMeshBuffers {
     /// Creates a new mesh buffer set, creating the buffers
     /// but not binding any data
@@ -159,6 +160,7 @@ impl GlMeshBuffers {
 
 /// Combines the input mesh data into a single buffer with interleaved vertex
 /// data
+#[profiling::function]
 fn create_interleaved_mesh_vec(mesh: &MeshData) -> (Vec<u8>, MeshBufferLayout) {
     // First we calculate the desired layout
     let mut cur_offset = 0;

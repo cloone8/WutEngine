@@ -29,6 +29,7 @@ impl Default for TransformData {
     }
 }
 
+#[profiling::all_functions]
 impl Transform {
     /// Creates a new identity transform
     pub fn new() -> Self {
@@ -148,4 +149,5 @@ impl Transform {
     }
 }
 
+#[profiling::all_functions]
 impl Component for Transform {}

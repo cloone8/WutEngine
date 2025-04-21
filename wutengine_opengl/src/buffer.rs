@@ -48,6 +48,7 @@ pub(crate) enum CreateErr {
     Zero,
 }
 
+#[profiling::all_functions]
 impl<B: GlBufferType> GlBuffer<B> {
     /// Creates a new OpenGL buffer with no data
     pub(crate) fn new(gl: &Gl) -> Result<Self, CreateErr> {

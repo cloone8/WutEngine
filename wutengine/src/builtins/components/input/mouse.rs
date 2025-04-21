@@ -8,6 +8,7 @@ pub struct InputHandlerMouse<'a> {
     pub(super) handler: &'a InputHandler,
 }
 
+#[profiling::all_functions]
 impl InputHandlerMouse<'_> {
     /// The mouse movement delta this frame
     pub fn frame_delta(&self) -> Vec2 {

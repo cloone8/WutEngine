@@ -10,6 +10,7 @@ pub struct InputHandlerKeyboard<'a> {
     pub(super) handler: &'a InputHandler,
 }
 
+#[profiling::all_functions]
 impl InputHandlerKeyboard<'_> {
     /// Returns whether the key with the given keycode is currently held down
     pub fn is_down(&self, key: KeyCode) -> bool {

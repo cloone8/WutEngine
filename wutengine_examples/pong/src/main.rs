@@ -12,6 +12,7 @@ use wutengine::input::gamepad::GamepadInputPlugin;
 use wutengine::input::keyboard::KeyboardInputPlugin;
 use wutengine::log::{self, ComponentLogConfig, LogConfig};
 use wutengine::physics::Physics2DPlugin;
+use wutengine::profiling;
 use wutengine::renderer::OpenGLRenderer;
 use wutengine::runtime::RuntimeInitializer;
 
@@ -21,6 +22,8 @@ mod player;
 mod spawn;
 
 fn main() {
+    profiling::start_http_server(None, None);
+
     let mut runtime = RuntimeInitializer::new();
 
     if cfg!(debug_assertions) {

@@ -26,6 +26,7 @@ pub(crate) enum CreateErr {
     Zero,
 }
 
+#[profiling::all_functions]
 impl Vao {
     /// Creates a new, unbound VAO
     pub(crate) fn new(gl: &Gl) -> Result<Self, CreateErr> {

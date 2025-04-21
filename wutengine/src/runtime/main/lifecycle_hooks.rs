@@ -3,6 +3,7 @@ use wutengine_graphics::renderer::WutEngineRenderer;
 use crate::runtime::Runtime;
 use crate::runtime::main::ComponentState;
 
+#[profiling::all_functions]
 impl<R: WutEngineRenderer> Runtime<R> {
     pub(super) fn lifecycle_start(&mut self) {
         log::trace!("Starting new components");

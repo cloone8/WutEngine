@@ -58,6 +58,7 @@ impl Default for InputState {
     }
 }
 
+#[profiling::all_functions]
 impl InputHandler {
     /// Constructs a new [InputHandler] component
     pub fn new() -> Self {
@@ -83,6 +84,7 @@ impl InputHandler {
     }
 }
 
+#[profiling::all_functions]
 impl Component for InputHandler {
     fn pre_update(&mut self, context: &mut Context) {
         self.prev = std::mem::take(&mut self.cur);

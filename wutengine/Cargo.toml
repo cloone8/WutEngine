@@ -18,6 +18,11 @@ workspace = true
 [features]
 default = ["opengl"]
 opengl = ["dep:wutengine_opengl"]
+profiling = [
+    "profiling/profile-with-puffin",
+    "dep:puffin_http",
+    "dep:puffin_egui",
+]
 
 [dependencies]
 # Core
@@ -43,3 +48,7 @@ rapier3d.workspace = true
 nalgebra.workspace = true
 gilrs.workspace = true
 thiserror.workspace = true
+profiling.workspace = true
+
+puffin_http = { workspace = true, optional = true }
+puffin_egui = { workspace = true, optional = true }

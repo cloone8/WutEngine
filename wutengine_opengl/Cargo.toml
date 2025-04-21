@@ -27,3 +27,4 @@ thiserror.workspace = true
 nohash-hasher.workspace = true
 glam.workspace = true
 bytemuck.workspace = true
+profiling.workspace = true
