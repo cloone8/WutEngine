@@ -50,30 +50,23 @@ impl EmbeddedShaderResolver {
                     ..Default::default()
                 },
                 uniforms: map![
-                    "wuteng_model_mat" => Uniform {
-                        ty: UniformType::Array(Box::new(UniformType::Struct(map![
-                            "model_mat" => UniformType::Mat4
-                        ])), 5),
-                        binding: UniformBinding::Standard(SingleUniformBinding {
-                            name: "wuteng_model_mat".to_string(),
-                            group: 0,
-                            binding: 1
-                        }),
-                    },
                     "wuteng_vp" => Uniform {
                         ty: UniformType::Struct(map![
-                            "inner" => UniformType::Struct(
-                                map![
-                                    "view" => UniformType::Mat4,
-                                    "projection" => UniformType::Mat4
-                                ]
-                            ),
-                            "test" => UniformType::Array(Box::new(UniformType::Vec3), 7)
+                            "view" => UniformType::Mat4,
+                            "projection" => UniformType::Mat4
                         ]),
                         binding: UniformBinding::Standard(SingleUniformBinding {
                             name: "wuteng_vp".to_string(),
                             group: 0,
                             binding: 0
+                        }),
+                    },
+                    "wuteng_model" => Uniform {
+                        ty: UniformType::Mat4,
+                        binding: UniformBinding::Standard(SingleUniformBinding {
+                            name: "wuteng_model".to_string(),
+                            group: 0,
+                            binding: 1
                         }),
                     },
                     "base_color" => Uniform {

@@ -9,27 +9,8 @@ pub(crate) mod discovery;
 pub(crate) mod std140;
 
 /// The description of a single OpenGL shader uniform
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum GlShaderUniform {
-    Sampler {
-        location: GLint,
-    },
-    Block {
-        index: GLuint,
-        desc: UniformBlockDescriptor,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum UniformBlockDescriptor {
-    Single {
-        offset: GLintptr,
-        bytes: usize,
-    },
-    Array {
-        stride: usize,
-        count: usize,
-        element: Box<UniformBlockDescriptor>,
-    },
-    Struct(HashMap<String, UniformBlockDescriptor>),
+    Sampler { location: GLint },
+    Block { index: GLuint, size_bytes: usize },
 }

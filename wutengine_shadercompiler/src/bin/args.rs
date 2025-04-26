@@ -6,11 +6,11 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 struct Args {
-    /// The input file or files. Must be at least one
+    /// The input folder containing the individual stages.
     #[arg(short, long, required = true)]
-    pub input: Vec<PathBuf>,
+    pub input: PathBuf,
 
-    /// The output file
+    /// The output folder
     #[arg(short, long)]
-    pub output: Option<PathBuf>,
+    pub output: PathBuf,
 }
