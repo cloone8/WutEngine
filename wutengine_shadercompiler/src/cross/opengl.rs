@@ -8,7 +8,9 @@ use naga::front::wgsl::ParseError;
 use naga::proc::BoundsCheckPolicies;
 use naga::valid::{Capabilities, SubgroupOperationSet, ValidationError, ValidationFlags};
 use thiserror::Error;
-use wutengine_graphics::shader::{Shader, ShaderStage, ShaderTarget, Uniform, UniformBinding};
+use wutengine_graphics::shader::{
+    Shader, ShaderStage, ShaderTarget, SingleUniformBinding, Uniform, UniformBinding,
+};
 
 #[derive(Debug, Error)]
 pub enum CrossOpenGLErr {
@@ -28,8 +30,42 @@ pub enum CrossOpenGLErr {
     MissingUniform(String, Box<Uniform>),
 }
 
+#[derive(Debug, Clone)]
+#[repr(transparent)]
+struct BindingMap(Vec<(usize, usize)>);
+
+impl BindingMap {
+    fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    fn get_or_insert(&mut self, group: usize, binding: usize) -> usize {
+        let as_tuple = (group, binding);
+
+        match self.0.iter().position(|elem| elem == &as_tuple) {
+            Some(pos) => pos,
+            None => {
+                self.0.push(as_tuple);
+                self.0.len() - 1
+            }
+        }
+    }
+
+    fn update_binding(&mut self, binding: &mut SingleUniformBinding) {
+        let cur_group = binding.group;
+        let cur_binding = binding.binding;
+
+        let new_binding = self.get_or_insert(cur_group, cur_binding);
+
+        binding.group = 0;
+        binding.binding = new_binding;
+    }
+}
+
 pub(super) fn cross_to_opengl(shader: &mut Shader) -> Result<(), CrossOpenGLErr> {
     log::info!("Starting OpenGL cross compile for shader {}", shader.id);
+
+    let mut binding_map = BindingMap::new();
 
     let mut remapped_uniforms = HashMap::with_capacity(shader.uniforms.len());
 
@@ -39,6 +75,7 @@ pub(super) fn cross_to_opengl(shader: &mut Shader) -> Result<(), CrossOpenGLErr>
             vtx,
             naga::ShaderStage::Vertex,
             &shader.uniforms,
+            &mut binding_map,
             &mut remapped_uniforms,
         )?;
     } else {
@@ -51,20 +88,12 @@ pub(super) fn cross_to_opengl(shader: &mut Shader) -> Result<(), CrossOpenGLErr>
             frag,
             naga::ShaderStage::Fragment,
             &shader.uniforms,
+            &mut binding_map,
             &mut remapped_uniforms,
         )?;
     } else {
         log::debug!("No fragment shader to cross compile");
     }
-
-    // for k in shader.uniforms.keys() {
-    //     if !remapped_uniforms.contains_key(k) {
-    //         return Err(CrossOpenGLErr::MissingUniform(
-    //             k.clone(),
-    //             Box::new(shader.uniforms.get(k).unwrap().clone()),
-    //         ));
-    //     }
-    // }
 
     shader.target = ShaderTarget::OpenGL;
     shader.uniforms = remapped_uniforms;
@@ -76,6 +105,7 @@ fn cross_stage(
     stage_src: &mut ShaderStage,
     stage: naga::ShaderStage,
     uniforms: &HashMap<String, Uniform>,
+    binding_map: &mut BindingMap,
     remapped_uniforms: &mut HashMap<String, Uniform>,
 ) -> Result<(), CrossOpenGLErr> {
     log::trace!("Parsing stage");
@@ -154,6 +184,7 @@ fn cross_stage(
 
                         let mut new_sampler_binding = samp_binding.unwrap().clone();
                         new_sampler_binding.name = new_sampler_name.clone();
+                        binding_map.update_binding(&mut new_sampler_binding);
 
                         let mut new_uform_val = uform_val.clone();
                         new_uform_val.binding = UniformBinding::Texture {
@@ -199,6 +230,7 @@ fn cross_stage(
 
             let mut new_binding = input_binding.clone();
             new_binding.name = new_binding_name;
+            binding_map.update_binding(&mut new_binding);
 
             log::trace!("New binding for {} is {:#?}", uform_name, new_binding);
 
