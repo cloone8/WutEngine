@@ -219,6 +219,7 @@ impl Window {
                 self.context.make_current();
                 extensions::set_global(self.extensions);
             }
+            checkerr!(&self.bindings);
         }
     }
 
@@ -272,6 +273,16 @@ impl Window {
         let gl = &self.bindings;
 
         let _gl_dbg_marker = debug::debug_marker_group(gl, || "Render Window");
+
+        // MacOS seems to be late with creating the framebuffer
+
+        unsafe {
+            if cfg!(target_os = "macos")
+                && gl.CheckFramebufferStatus(opengl::FRAMEBUFFER) != opengl::FRAMEBUFFER_COMPLETE
+            {
+                return;
+            }
+        }
 
         // First we transform the projection matrix depth range from the universal [0..1] to OpenGL [-1..1]
         const DEPTH_REMAP_MAT: Mat4 = Mat4::from_cols(
@@ -395,12 +406,14 @@ impl Window {
                         gl.BindBuffer(opengl::ELEMENT_ARRAY_BUFFER, mesh.index.handle().get());
                     }
 
+                    checkerr!(gl);
                     vao.set_layout(gl, &mesh.vertex_layout, shader.get_vertex_layout().clone());
                 }
 
                 unsafe {
                     gl.UseProgram(shader.handle().get());
                 }
+                checkerr!(gl);
 
                 // Set the constants
                 for (&builtin, builtin_bindings) in &shader.builtins {
@@ -528,6 +541,7 @@ impl Window {
                 unsafe {
                     gl.BindVertexArray(0);
                 }
+                checkerr!(gl);
             }
         }
 
