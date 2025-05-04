@@ -2,7 +2,7 @@
 
 use wutengine_core::identifiers::WindowIdentifier;
 use wutengine_graphics::renderer::WutEngineRenderer;
-use wutengine_graphics::renderer::{Renderable, Viewport};
+use wutengine_graphics::renderer::{DrawCall, Viewport};
 use wutengine_graphics::shader::ShaderResolver;
 
 pub(crate) mod shader_resolver;
@@ -31,7 +31,7 @@ impl WutEngineRenderer for HeadlessRenderer {
 
     fn destroy_window(&mut self, _id: &WindowIdentifier) {}
 
-    fn render(&mut self, _render_context: &Viewport, _objects: &[Renderable]) {}
+    fn render(&mut self, _render_context: &Viewport, _objects: &[DrawCall]) {}
 
     fn build<R: ShaderResolver>(_shaders: R) -> Self {
         Self
@@ -46,11 +46,11 @@ impl WutEngineRenderer for HeadlessRenderer {
     ) {
     }
 
-    fn dispose_texture(&mut self, _id: wutengine_graphics::renderer::RendererTextureId) {}
+    fn dispose_texture2d(&mut self, _id: wutengine_graphics::renderer::RendererTexture2DId) {}
 
-    fn update_texture(
+    fn update_texture2d(
         &mut self,
-        _id: wutengine_graphics::renderer::RendererTextureId,
+        _id: wutengine_graphics::renderer::RendererTexture2DId,
         _data: &wutengine_graphics::texture::TextureData,
     ) {
     }

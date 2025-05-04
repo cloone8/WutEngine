@@ -6,7 +6,7 @@ use wutengine_graphics::renderer::WutEngineRenderer;
 
 use crate::log::LogConfig;
 use crate::plugins::WutEnginePlugin;
-use crate::renderer::shader_resolver::EmbeddedShaderResolver;
+use crate::renderer::shader_resolver::InMemoryShaderResolver;
 use crate::runtime::Runtime;
 use crate::time::Time;
 use crate::windowing::WindowingEvent;
@@ -129,7 +129,7 @@ impl RuntimeInitializer {
             eventloop: event_loop.create_proxy(),
             started: false,
             plugins: self.plugins,
-            renderer: R::build(EmbeddedShaderResolver::new()),
+            renderer: R::build(InMemoryShaderResolver::new_embedded()),
         };
 
         event_loop.run_app(&mut runtime).unwrap();

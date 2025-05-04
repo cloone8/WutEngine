@@ -1,10 +1,12 @@
 //! The various WutEngine builtin shader resolvers.
 
 use std::collections::HashMap;
-use wutengine_graphics::shader::ShaderTarget::{self};
+use wutengine_graphics::shader::builtins::ShaderBuiltins;
+use wutengine_graphics::shader::uniform::{
+    SingleUniformBinding, Uniform, UniformBinding, UniformType,
+};
 use wutengine_graphics::shader::{
-    Shader, ShaderId, ShaderStages, ShaderVertexLayout, SingleUniformBinding, Uniform,
-    UniformBinding, UniformType,
+    RawShader, Shader, ShaderId, ShaderStages, ShaderVertexLayout, ValidKeywordValues,
 };
 use wutengine_graphics::shader::{ShaderResolver, ShaderStage};
 
@@ -12,20 +14,23 @@ use crate::map;
 
 /// The embedded shader resolver. Will use shaders from the [crate::embedded] module
 /// only.
-pub(crate) struct EmbeddedShaderResolver {
+pub(crate) struct InMemoryShaderResolver {
     sets: HashMap<ShaderId, Shader>,
 }
 
-impl EmbeddedShaderResolver {
-    /// Creates a new [EmbeddedShaderResolver] with all default embedded shaders
-    pub(crate) fn new() -> Self {
+impl InMemoryShaderResolver {
+    /// Creates a new [InMemoryShaderResolver] with all default embedded shaders
+    pub(crate) fn new_embedded() -> Self {
         let mut sets = HashMap::default();
 
         sets.insert(
-            ShaderId::new("unlit"),
-            Shader {
-                id: ShaderId::new("unlit"),
-                target: ShaderTarget::Raw,
+            ShaderId::new_no_keywords("unlit"),
+            Shader::Raw(RawShader {
+                ident: "unlit".to_string(),
+                available_keywords: map![
+                    "HAS_COLOR_MAP" => ValidKeywordValues::Bool
+                ],
+                builtins: ShaderBuiltins::INSTANCE_CONSTS | ShaderBuiltins::VIEWPORT_CONSTS,
                 source: ShaderStages {
                     vertex: Some(ShaderStage {
                         source: include_str!(concat!(
@@ -50,25 +55,6 @@ impl EmbeddedShaderResolver {
                     ..Default::default()
                 },
                 uniforms: map![
-                    "wuteng_vp" => Uniform {
-                        ty: UniformType::Struct(map![
-                            "view" => UniformType::Mat4,
-                            "projection" => UniformType::Mat4
-                        ]),
-                        binding: UniformBinding::Standard(SingleUniformBinding {
-                            name: "wuteng_vp".to_string(),
-                            group: 0,
-                            binding: 0
-                        }),
-                    },
-                    "wuteng_model" => Uniform {
-                        ty: UniformType::Mat4,
-                        binding: UniformBinding::Standard(SingleUniformBinding {
-                            name: "wuteng_model".to_string(),
-                            group: 0,
-                            binding: 1
-                        }),
-                    },
                     "base_color" => Uniform {
                         ty: UniformType::Vec4,
                         binding: UniformBinding::Standard(SingleUniformBinding {
@@ -91,24 +77,16 @@ impl EmbeddedShaderResolver {
                                 binding: 1
                             })
                         },
-                    },
-                    "has_color_map" => Uniform {
-                        ty: UniformType::Uint32,
-                        binding: UniformBinding::Standard(SingleUniformBinding {
-                            name: "has_color_map".to_string(),
-                            group: 1,
-                            binding: 3
-                        }),
                     }
                 ],
-            },
+            }),
         );
 
         Self { sets }
     }
 }
 
-impl ShaderResolver for EmbeddedShaderResolver {
+impl ShaderResolver for InMemoryShaderResolver {
     fn find_set(&self, id: &ShaderId) -> Option<&Shader> {
         self.sets.get(id)
     }

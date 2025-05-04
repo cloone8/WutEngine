@@ -1,9 +1,14 @@
 //! OpenGL mesh and mesh buffer functionality, and mappings to/from WutEngine generic mesh types
 
+use core::ffi::c_void;
+
 use thiserror::Error;
 use wutengine_graphics::mesh::{IndexBuffer, IndexType, MeshData};
 
-use crate::buffer::{ArrayBuffer, ElementArrayBuffer, GlBuffer};
+use crate::buffer::{self, GlBuffer};
+use crate::debug;
+use crate::error::checkerr;
+use crate::gltypes::GlVec;
 use crate::opengl::types::{GLenum, GLint, GLsizei, GLuint, GLushort};
 use crate::opengl::{self, Gl};
 
@@ -11,13 +16,13 @@ use crate::opengl::{self, Gl};
 #[derive(Debug)]
 pub(crate) struct GlMeshBuffers {
     /// The vertex buffer
-    pub(crate) vertex: GlBuffer<ArrayBuffer>,
+    pub(crate) vertex: GlBuffer,
 
     /// The layout of the vertex buffer
     pub(crate) vertex_layout: MeshBufferLayout,
 
     /// The index buffer
-    pub(crate) index: GlBuffer<ElementArrayBuffer>,
+    pub(crate) index: GlBuffer,
 
     /// The amount of elements in the index buffer
     pub(crate) num_elements: usize,
@@ -109,37 +114,81 @@ impl GlMeshBuffers {
         })
     }
 
+    fn buffer_debug_names(dbg_name: impl AsRef<str>) -> (Option<String>, Option<String>) {
+        if cfg!(not(debug_assertions)) {
+            (None, None)
+        } else {
+            let as_ref = dbg_name.as_ref();
+
+            (
+                Some(format!("{}:vertex_buffer", as_ref)),
+                Some(format!("{}:index_buffer", as_ref)),
+            )
+        }
+    }
+
     /// Uploads the given data to this set of OpenGL mesh buffers. Discards
     /// the current data and fully replaces it with the new data.
     /// Note that this might change the mesh vertex buffer layout
     pub(crate) fn upload_data(&mut self, gl: &Gl, data: &MeshData) {
         log::trace!("Uploading mesh data");
+        let _dbg_marker = debug::debug_marker_group(gl, || "Upload Mesh Data");
 
         let (interleaved_vec, layout) = create_interleaved_mesh_vec(data);
 
-        self.vertex.bind(gl);
-        self.vertex.buffer_data(gl, &interleaved_vec);
-        self.vertex.unbind(gl);
+        unsafe {
+            gl.BindBuffer(opengl::ARRAY_BUFFER, self.vertex.handle().get());
+            gl.BufferData(
+                opengl::ARRAY_BUFFER,
+                interleaved_vec.size_bytes(),
+                interleaved_vec.void_ptr(),
+                opengl::STATIC_DRAW,
+            );
+            gl.BindBuffer(opengl::ARRAY_BUFFER, 0);
+        }
+
+        checkerr!(gl);
 
         std::mem::drop(interleaved_vec);
 
         self.vertex_layout = layout;
 
-        self.index.bind(gl);
+        unsafe {
+            gl.BindBuffer(opengl::ELEMENT_ARRAY_BUFFER, self.index.handle().get());
+        }
 
         match &data.indices {
             IndexBuffer::U16(items) => {
-                self.index.buffer_data(gl, items);
+                unsafe {
+                    gl.BufferData(
+                        opengl::ELEMENT_ARRAY_BUFFER,
+                        items.size_bytes(),
+                        items.void_ptr(),
+                        opengl::STATIC_DRAW,
+                    );
+                }
+                checkerr!(gl);
                 self.num_elements = items.len();
                 self.index_size = index_size_to_gl::<u16>();
             }
             IndexBuffer::U32(items) => {
-                self.index.buffer_data(gl, items);
+                unsafe {
+                    gl.BufferData(
+                        opengl::ELEMENT_ARRAY_BUFFER,
+                        items.size_bytes(),
+                        items.void_ptr(),
+                        opengl::STATIC_DRAW,
+                    );
+                }
+                checkerr!(gl);
                 self.num_elements = items.len();
                 self.index_size = index_size_to_gl::<u32>();
             }
         }
-        self.index.unbind(gl);
+
+        unsafe {
+            gl.BindBuffer(opengl::ELEMENT_ARRAY_BUFFER, 0);
+        }
 
         self.element_type = data.index_type;
 

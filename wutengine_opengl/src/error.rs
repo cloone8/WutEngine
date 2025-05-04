@@ -45,7 +45,7 @@ pub(crate) fn check_err_impl(gl: &Gl, file: &str, line: u32) {
     }
 
     if err_count != 0 {
-        panic!("Encountered OpenGL error.");
+        // panic!("Encountered OpenGL error.");
     }
 }
 

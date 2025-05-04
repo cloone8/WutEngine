@@ -9,30 +9,6 @@ use crate::opengl::{self, Gl};
 
 pub(crate) mod tex2d;
 
-/// A generic wrapper over the different kinds of OpenGL textures
-#[derive(Debug)]
-pub(crate) enum GlTexture {
-    /// A 2D texture
-    Tex2D(GlTexture2D),
-}
-
-#[profiling::all_functions]
-impl GlTexture {
-    /// Destroys this texture
-    pub(crate) fn destroy(self, gl: &Gl) {
-        match self {
-            GlTexture::Tex2D(tex2d) => tex2d.destroy(gl),
-        }
-    }
-
-    /// Uploads the given data to this texture
-    pub(crate) fn upload_data(&mut self, gl: &Gl, data: &TextureData) {
-        match self {
-            GlTexture::Tex2D(tex2d) => tex2d.upload_data(gl, data),
-        }
-    }
-}
-
 /// The OpenGL format for a [DynamicImage]. Get this with [determine_internal_format]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct GlImageFormat {

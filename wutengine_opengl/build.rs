@@ -10,9 +10,15 @@ fn gen_gl_bindings() {
     let mut gl_binding_dst =
         File::create(Path::new(&out_dir).join("gl_generated_bindings.rs")).unwrap();
 
-    Registry::new(Api::Gl, (4, 1), Profile::Core, Fallbacks::All, [])
-        .write_bindings(StructGenerator, &mut gl_binding_dst)
-        .unwrap();
+    Registry::new(
+        Api::Gl,
+        (4, 1),
+        Profile::Core,
+        Fallbacks::All,
+        ["GL_KHR_debug", "GL_EXT_debug_label", "GL_EXT_debug_marker"],
+    )
+    .write_bindings(StructGenerator, &mut gl_binding_dst)
+    .unwrap();
 }
 
 fn main() {

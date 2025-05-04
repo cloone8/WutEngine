@@ -32,7 +32,7 @@ pub struct Viewport {
 
 /// A renderable object
 #[derive(Debug)]
-pub struct Renderable {
+pub struct DrawCall {
     /// The mesh
     pub mesh: RendererMeshId,
 
@@ -49,8 +49,8 @@ generate_atomic_id! {
 }
 
 generate_atomic_id! {
-    /// An identifier for a texture in a [WutEngineRenderer]
-    RendererTextureId
+    /// An identifier for a 2D texture in a [WutEngineRenderer]
+    RendererTexture2DId
 }
 
 generate_atomic_id! {
@@ -85,10 +85,10 @@ pub trait WutEngineRenderer {
     fn update_mesh(&mut self, id: RendererMeshId, data: &MeshData);
 
     /// Disposes the GPU resources for the given texture
-    fn dispose_texture(&mut self, id: RendererTextureId);
+    fn dispose_texture2d(&mut self, id: RendererTexture2DId);
 
     /// Updates the data for the given texture
-    fn update_texture(&mut self, id: RendererTextureId, data: &TextureData);
+    fn update_texture2d(&mut self, id: RendererTexture2DId, data: &TextureData);
 
     /// Disposes an existing material
     fn dispose_material(&mut self, id: RendererMaterialId);
@@ -97,5 +97,5 @@ pub trait WutEngineRenderer {
     fn update_material(&mut self, id: RendererMaterialId, data: &MaterialData);
 
     /// Render the given objects into the given viewport
-    fn render(&mut self, viewport_context: &Viewport, objects: &[Renderable]);
+    fn render(&mut self, viewport_context: &Viewport, objects: &[DrawCall]);
 }

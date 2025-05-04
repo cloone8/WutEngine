@@ -6,6 +6,7 @@ use core::num::NonZero;
 use thiserror::Error;
 use wutengine_graphics::shader::ShaderVertexLayout;
 
+use crate::debug::{self, DebugObjType};
 use crate::error::checkerr;
 use crate::mesh::{GlMeshBuffers, MeshBufferLayout};
 use crate::opengl::types::GLuint;
@@ -45,6 +46,20 @@ impl Vao {
         })
     }
 
+    #[inline(always)]
+    pub(crate) fn set_debug_label<F, S>(&self, gl: &Gl, name_fn: F)
+    where
+        F: FnOnce() -> Option<S>,
+        S: Into<Vec<u8>>,
+    {
+        debug::add_debug_label(gl, self.handle.unwrap(), DebugObjType::VertexArray, name_fn);
+    }
+
+    #[inline(always)]
+    pub(crate) const fn handle(&self) -> NonZero<GLuint> {
+        self.handle.expect("VAO already freed")
+    }
+
     /// Checks if the currently configured layout
     /// matches the given mesh and shader layouts
     pub(crate) fn layout_matches(
@@ -60,48 +75,24 @@ impl Vao {
         }
     }
 
-    /// Binds the VAO
-    pub(crate) fn bind(&mut self, gl: &Gl) {
-        unsafe {
-            let handle_int = self.handle.unwrap().get();
-
-            gl.BindVertexArray(handle_int);
-        }
-        checkerr!(gl);
-    }
-
-    /// Unbinds the VAO
-    pub(crate) fn unbind(&mut self, gl: &Gl) {
-        unsafe {
-            gl.BindVertexArray(0);
-        }
-        checkerr!(gl);
-    }
-
     /// Sets the given layout and associates with the given mesh buffers.
     /// Binds and unbinds this VAO, so no buffer is bound after this call returns
     pub(crate) fn set_layout(
         &mut self,
         gl: &Gl,
-        mesh: &mut GlMeshBuffers,
+        mesh_layout: &MeshBufferLayout,
         shader_layout: ShaderVertexLayout,
     ) {
         log::trace!("Setting VAO layout");
 
-        let mesh_vtx_layout = &mesh.vertex_layout;
-        let mesh_vtx_stride = mesh_vtx_layout.calculate_stride_for_layout();
+        let mesh_vtx_stride = mesh_layout.calculate_stride_for_layout();
 
-        log::trace!("Mesh layout: {:#?}", mesh_vtx_layout);
+        log::trace!("Mesh layout: {:#?}", mesh_layout);
         log::trace!("Mesh layout stride: {}", mesh_vtx_stride);
         log::trace!("Shader layout: {:#?}", shader_layout);
 
-        self.bind(gl);
-
-        mesh.vertex.bind(gl);
-        mesh.index.bind(gl);
-
         if let (Some(shader_attr_pos), Some(mesh_attr_pos)) =
-            (shader_layout.position, mesh_vtx_layout.position)
+            (shader_layout.position, mesh_layout.position)
         {
             unsafe {
                 gl.VertexAttribPointer(
@@ -119,7 +110,7 @@ impl Vao {
             }
         }
 
-        if let (Some(shader_attr_uv), Some(mesh_attr_uv)) = (shader_layout.uv, mesh_vtx_layout.uv) {
+        if let (Some(shader_attr_uv), Some(mesh_attr_uv)) = (shader_layout.uv, mesh_layout.uv) {
             unsafe {
                 gl.VertexAttribPointer(
                     shader_attr_uv as GLuint,
@@ -136,9 +127,7 @@ impl Vao {
             }
         }
 
-        self.unbind(gl);
-
-        self.current_layout = Some((mesh_vtx_layout.clone(), shader_layout));
+        self.current_layout = Some((mesh_layout.clone(), shader_layout));
     }
 
     /// Destroys this VAO

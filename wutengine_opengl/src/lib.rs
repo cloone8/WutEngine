@@ -9,8 +9,8 @@ use wutengine_graphics::image::metadata::Orientation;
 use wutengine_graphics::material::MaterialData;
 use wutengine_graphics::mesh::MeshData;
 use wutengine_graphics::renderer::{
-    HasDisplayHandle, HasWindowHandle, Renderable, RendererMaterialId, RendererMeshId,
-    RendererTextureId, Viewport, WindowIdentifier, WutEngineRenderer,
+    DrawCall, HasDisplayHandle, HasWindowHandle, RendererMaterialId, RendererMeshId,
+    RendererTexture2DId, Viewport, WindowIdentifier, WutEngineRenderer,
 };
 use wutengine_graphics::shader::ShaderResolver;
 use wutengine_graphics::texture::TextureData;
@@ -22,12 +22,14 @@ mod opengl {
 }
 
 mod buffer;
+mod debug;
 mod error;
+mod extensions;
 mod gltypes;
+mod material;
 mod mesh;
 mod shader;
 mod texture;
-mod utils;
 mod vao;
 mod window;
 
@@ -46,7 +48,7 @@ pub struct OpenGLRenderer {
     materials: HashMap<RendererMaterialId, Option<MaterialData>>,
 
     /// All currently active textures and their data
-    textures: HashMap<RendererTextureId, Option<TextureData>>,
+    textures: HashMap<RendererTexture2DId, Option<TextureData>>,
 }
 
 #[profiling::all_functions]
@@ -74,7 +76,7 @@ impl WutEngineRenderer for OpenGLRenderer {
             return;
         }
 
-        let mut new_window = Window::new(self.shader_resolver.clone(), window, phys_size);
+        let mut new_window = Window::new(id, self.shader_resolver.clone(), window, phys_size);
 
         // Insert all currently existing resources to make the window up-to-date
         for (&id, data) in &self.meshes {
@@ -94,10 +96,10 @@ impl WutEngineRenderer for OpenGLRenderer {
         }
 
         for (&id, data) in &self.textures {
-            new_window.create_texture(id);
+            new_window.create_texture2d(id);
 
             if let Some(data) = data.as_ref() {
-                new_window.update_texture(id, data);
+                new_window.update_texture2d(id, data);
             }
         }
 
@@ -132,7 +134,7 @@ impl WutEngineRenderer for OpenGLRenderer {
         }
     }
 
-    fn render(&mut self, render_context: &Viewport, objects: &[Renderable]) {
+    fn render(&mut self, render_context: &Viewport, objects: &[DrawCall]) {
         log::trace!(
             "Rendering window {} with {} objects",
             render_context.window,
@@ -177,24 +179,24 @@ impl WutEngineRenderer for OpenGLRenderer {
         self.meshes.insert(id, Some(data.clone()));
     }
 
-    fn dispose_texture(&mut self, id: RendererTextureId) {
-        log::debug!("Deleting texture with id {}", id);
+    fn dispose_texture2d(&mut self, id: RendererTexture2DId) {
+        log::debug!("Deleting texture2d with id {}", id);
 
         for window in self.windows.values_mut() {
-            window.delete_texture(id);
+            window.delete_texture2d(id);
         }
 
         self.textures.remove(&id);
     }
 
-    fn update_texture(&mut self, id: RendererTextureId, data: &TextureData) {
-        log::debug!("Updating texture with id {}", id);
+    fn update_texture2d(&mut self, id: RendererTexture2DId, data: &TextureData) {
+        log::debug!("Updating texture2d with id {}", id);
 
         if !self.textures.contains_key(&id) {
             log::debug!("Texture is new, creating new texture with id {}", id);
 
             for window in self.windows.values_mut() {
-                window.create_texture(id);
+                window.create_texture2d(id);
             }
         }
 
@@ -206,7 +208,7 @@ impl WutEngineRenderer for OpenGLRenderer {
             .apply_orientation(Orientation::FlipVertical);
 
         for window in self.windows.values_mut() {
-            window.update_texture(id, &cloned);
+            window.update_texture2d(id, &cloned);
         }
 
         self.textures.insert(id, Some(cloned));

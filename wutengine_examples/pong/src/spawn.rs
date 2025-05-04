@@ -90,7 +90,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
     ));
 
     let mut player_material = Material::new();
-    player_material.set_shader(Some(ShaderId::new("unlit")));
+    player_material.set_shader(Some(ShaderId::new_no_keywords("unlit")));
     player_material.set_color("base_color", Color::BLUE);
 
     player.add_component(StaticMeshRenderer {
@@ -113,7 +113,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
     enemy.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
 
     let mut enemy_material = Material::new();
-    enemy_material.set_shader(Some(ShaderId::new("unlit")));
+    enemy_material.set_shader(Some(ShaderId::new_no_keywords("unlit")));
     enemy_material.set_color("base_color", Color::RED);
 
     enemy.add_component(StaticMeshRenderer {
@@ -147,10 +147,10 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     face_texture.set_filter(TextureFiltering::Nearest);
 
     let mut ball_material = Material::new();
-    ball_material.set_shader(Some(ShaderId::new("unlit")));
+    ball_material.set_shader(Some(ShaderId::new_no_keywords("unlit")));
     ball_material.set_color("base_color", Color::WHITE);
     ball_material.set_texture("color_map", face_texture);
-    ball_material.set_bool("has_color_map", true);
+    ball_material.set_u32("has_color_map", 1);
 
     ball.add_component(StaticMeshRenderer {
         mesh,

@@ -2,12 +2,13 @@
 
 use std::collections::HashMap;
 
-use glam::{Mat4, Vec4};
+use glam::{Mat4, Vec3, Vec4};
 use image::{DynamicImage, ImageBuffer};
 
 use crate::color::Color;
-use crate::renderer::RendererTextureId;
+use crate::renderer::RendererTexture2DId;
 use crate::shader::ShaderId;
+use crate::shader::uniform::UniformType;
 use crate::texture::{TextureData, TextureFiltering, TextureWrapping, WrappingMethod};
 
 /// The data of a material
@@ -23,17 +24,17 @@ pub struct MaterialData {
 /// The value of a material parameter in a [MaterialData]
 #[derive(Debug, Clone)]
 pub enum MaterialParameter {
-    /// A boolean
-    Boolean(bool),
+    /// A 32-bit unsigned integer
+    U32(u32),
 
-    /// An array of booleans
-    BooleanArray(Vec<bool>),
+    /// An array of 32-bit unsigned integers
+    U32Array(Vec<u32>),
 
-    /// A color
-    Color(Color),
+    /// A 3D vector
+    Vec3(Vec3),
 
-    /// An array of colors
-    ColorArray(Vec<Color>),
+    /// An array of 3D vectors,
+    Vec3Array(Vec<Vec3>),
 
     /// A 4D vector
     Vec4(Vec4),
@@ -48,30 +49,46 @@ pub enum MaterialParameter {
     Mat4Array(Vec<Mat4>),
 
     /// A texture
-    Texture(RendererTextureId),
+    Texture2D(RendererTexture2DId),
 
     /// An array of textures
-    TextureArray(Vec<RendererTextureId>),
+    Texture2DArray(Vec<RendererTexture2DId>),
 }
 
 impl MaterialParameter {
-    /// The default value for a missing [MaterialParameter::Boolean]
-    pub const DEFAULT_BOOL: MaterialParameter = MaterialParameter::Boolean(false);
-
-    /// The default value for a missing [MaterialParameter::Color]
-    pub const DEFAULT_COLOR: MaterialParameter = MaterialParameter::Color(Color::BLACK);
-
-    /// The default value for a missing [MaterialParameter::Vec4]
-    pub const DEFAULT_VEC4: MaterialParameter = MaterialParameter::Vec4(Vec4::ZERO);
-
-    /// The default value for a missing [MaterialParameter::Mat4]
-    pub const DEFAULT_MAT4: MaterialParameter = MaterialParameter::Mat4(Mat4::ZERO);
+    #[inline]
+    pub fn get_type(&self) -> UniformType {
+        match self {
+            MaterialParameter::U32(_) => UniformType::U32,
+            MaterialParameter::U32Array(items) => {
+                UniformType::Array(Box::new(UniformType::U32), items.len())
+            }
+            MaterialParameter::Vec3(_) => UniformType::Vec3,
+            MaterialParameter::Vec3Array(items) => {
+                UniformType::Array(Box::new(UniformType::Vec3), items.len())
+            }
+            MaterialParameter::Vec4(_) => UniformType::Vec4,
+            MaterialParameter::Vec4Array(items) => {
+                UniformType::Array(Box::new(UniformType::Vec4), items.len())
+            }
+            MaterialParameter::Mat4(_) => UniformType::Mat4,
+            MaterialParameter::Mat4Array(items) => {
+                UniformType::Array(Box::new(UniformType::Mat4), items.len())
+            }
+            MaterialParameter::Texture2D(_) => UniformType::Tex2D,
+            MaterialParameter::Texture2DArray(items) => {
+                UniformType::Array(Box::new(UniformType::Tex2D), items.len())
+            }
+        }
+    }
 }
 
 /// Returns a new copy of the default texture, which is a 2x2 repeating pink-green image
 #[profiling::function]
-pub fn get_default_texture<const SIZE: u32>() -> TextureData {
-    assert!(SIZE.is_power_of_two());
+pub fn get_default_texture2d<const SIZE: u32>() -> TextureData {
+    const {
+        assert!(SIZE.is_power_of_two());
+    }
 
     TextureData {
         imagedata: DynamicImage::ImageRgb8(ImageBuffer::from_fn(SIZE, SIZE, |x, y| {

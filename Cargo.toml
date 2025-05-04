@@ -79,6 +79,9 @@ glam = { version = "0.29.3", features = [
     "bytemuck",
 ] }
 
+# Hashers
+md-5 = { version = "0.10" }
+
 # Macro utilities
 syn = { version = "2.0.100", features = ["full", "parsing"] }
 quote = "1.0.40"
@@ -101,9 +104,13 @@ rapier2d = { version = "0.24.0", features = ["simd-stable", "parallel"] }
 rapier3d = { version = "0.24.0", features = ["simd-stable", "parallel"] }
 nalgebra = { version = "0.*", features = ["convert-glam029"] }
 
+# Parsing, lexing, and other string stuff
+logos = "0.15"
+
 # Others
 static_assertions = "1.1.0"
 bytemuck = "1.22.0"
+bitflags = { version = "2.9", features = ["bytemuck"] }
 
 [profile.dev]
 opt-level = 1

@@ -18,6 +18,8 @@ naga.workspace = true
 clap.workspace = true
 thiserror.workspace = true
 log.workspace = true
+logos.workspace = true
+bitflags.workspace = true
 
 [lints]
 workspace = true

@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use wutengine_graphics::image::DynamicImage;
-use wutengine_graphics::renderer::{RendererTextureId, WutEngineRenderer};
+use wutengine_graphics::renderer::{RendererTexture2DId, WutEngineRenderer};
 use wutengine_graphics::texture::{TextureData, TextureFiltering, TextureWrapping};
 
 use crate::asset::Asset;
@@ -14,7 +14,7 @@ impl Texture {
     /// Creates a new texture asset.
     pub fn new() -> Self {
         Self(Arc::new(RwLock::new(RawTexture {
-            renderer_id: RendererTextureId::new(),
+            renderer_id: RendererTexture2DId::new(),
             dirty: true,
             data: TextureData::default(),
         })))
@@ -79,7 +79,7 @@ impl Asset for Texture {}
 #[derive(Debug)]
 pub(crate) struct RawTexture {
     /// The renderer ID for this texture
-    pub(crate) renderer_id: RendererTextureId,
+    pub(crate) renderer_id: RendererTexture2DId,
 
     dirty: bool,
 
@@ -90,7 +90,7 @@ pub(crate) struct RawTexture {
 impl Clone for RawTexture {
     fn clone(&self) -> Self {
         Self {
-            renderer_id: RendererTextureId::new(),
+            renderer_id: RendererTexture2DId::new(),
             dirty: true,
             data: self.data.clone(),
         }
@@ -104,7 +104,7 @@ impl RawTexture {
             return;
         }
 
-        renderer.update_texture(self.renderer_id, &self.data);
+        renderer.update_texture2d(self.renderer_id, &self.data);
 
         self.dirty = false;
     }

@@ -2,8 +2,10 @@
 
 use core::num::NonZero;
 use std::collections::HashMap;
-use wutengine_graphics::shader::{Uniform, UniformBinding};
 
+use wutengine_graphics::shader::uniform::Uniform;
+
+use crate::error::checkerr;
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
 use crate::shader::reflection::{
@@ -13,6 +15,7 @@ use crate::shader::reflection::{
 use super::GlShaderUniform;
 
 /// Finds all uniforms in the given program, and returns information on them
+#[profiling::function]
 pub(crate) fn discover_uniforms(
     gl: &Gl,
     program: NonZero<GLuint>,
@@ -24,6 +27,7 @@ pub(crate) fn discover_uniforms(
 
     for (uform_name, uform_desc) in source {
         log::info!("Discovering uniform {}", uform_name);
+
         if let Some(discovered) = discover_uniform(gl, program, uform_name, uform_desc) {
             output.insert(uform_name.clone(), discovered);
         } else {
@@ -60,19 +64,8 @@ fn discover_texture(
 ) -> Option<GlShaderUniform> {
     assert!(desc.ty.is_texture_type());
 
-    let binding = match &desc.binding {
-        UniformBinding::Standard(b) => {
-            log::error!(
-                "Texture type uniform {} has non-texture binding {}. Cannot resolve",
-                name,
-                b
-            );
-            return None;
-        }
-        UniformBinding::Texture {
-            sampler,
-            texture: _,
-        } => match sampler {
+    let binding = match desc.binding.try_as_texture() {
+        Some((sampler, _)) => match sampler {
             Some(b) => b,
             None => {
                 log::error!(
@@ -82,7 +75,17 @@ fn discover_texture(
                 return None;
             }
         },
+        None => {
+            log::error!(
+                "Texture type uniform {} has non-texture binding {}. Cannot resolve",
+                name,
+                desc.binding
+            );
+            return None;
+        }
     };
+
+    assert_eq!(0, binding.group);
 
     let loc = get_uniform_location(gl, program, &binding.name);
 
@@ -98,7 +101,10 @@ fn discover_texture(
 
     let location = loc.unwrap();
 
-    Some(GlShaderUniform::Sampler { location })
+    Some(GlShaderUniform::Sampler {
+        location,
+        binding: binding.binding,
+    })
 }
 
 fn discover_block(
@@ -121,6 +127,8 @@ fn discover_block(
         }
     };
 
+    assert_eq!(0, binding.group);
+
     let index = match get_uniform_block_index(gl, program, &binding.name) {
         Some(i) => i,
         None => {
@@ -136,8 +144,16 @@ fn discover_block(
     let block_size =
         get_active_uniform_block_iv(gl, program, index, opengl::UNIFORM_BLOCK_DATA_SIZE) as usize;
 
+    unsafe {
+        gl.UniformBlockBinding(program.get(), index, binding.binding as GLuint);
+    }
+
+    checkerr!(gl);
+
     Some(GlShaderUniform::Block {
         index,
+        binding: binding.binding,
         size_bytes: block_size,
+        ty: desc.ty.clone(),
     })
 }

@@ -3,7 +3,7 @@ use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
-use wutengine_graphics::renderer::{Renderable, WutEngineRenderer};
+use wutengine_graphics::renderer::{DrawCall, WutEngineRenderer};
 
 use crate::builtins::assets::{RawMaterial, RawMesh};
 use crate::runtime::main::ComponentState;
@@ -112,7 +112,7 @@ impl<R: WutEngineRenderer> ApplicationHandler<WindowingEvent> for Runtime<R> {
 
                 graphics::internal::objects::queued_objects()
                     .into_iter()
-                    .map(|render_command| Renderable {
+                    .map(|render_command| DrawCall {
                         material: RawMaterial::flush_and_get_id(
                             &render_command.material,
                             &mut self.renderer,

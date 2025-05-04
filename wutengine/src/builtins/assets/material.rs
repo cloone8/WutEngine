@@ -42,23 +42,23 @@ impl Material {
         raw.dirty = true;
     }
 
-    /// Sets a boolean on this material to a new value
-    pub fn set_bool(&mut self, name: impl Into<String>, val: bool) {
-        let raw = self.get_raw_mut_cloned();
-
-        raw.data
-            .parameters
-            .insert(name.into(), MaterialParameter::Boolean(val));
-        raw.dirty = true;
-    }
-
     /// Sets a color value on this material to a new value
     pub fn set_color(&mut self, name: impl Into<String>, color: Color) {
         let raw = self.get_raw_mut_cloned();
 
         raw.data
             .parameters
-            .insert(name.into(), MaterialParameter::Color(color));
+            .insert(name.into(), MaterialParameter::Vec4(color.into()));
+        raw.dirty = true;
+    }
+
+    /// Sets a u32 value on this material to a new value
+    pub fn set_u32(&mut self, name: impl Into<String>, n: u32) {
+        let raw = self.get_raw_mut_cloned();
+
+        raw.data
+            .parameters
+            .insert(name.into(), MaterialParameter::U32(n));
         raw.dirty = true;
     }
 
@@ -69,7 +69,7 @@ impl Material {
 
         raw.data.parameters.insert(
             name.clone(),
-            MaterialParameter::Texture(texture.0.read().unwrap().renderer_id),
+            MaterialParameter::Texture2D(texture.0.read().unwrap().renderer_id),
         );
 
         raw.used_textures.insert(name, texture);

@@ -52,8 +52,20 @@ impl From<Vec3> for Color {
     }
 }
 
+impl From<Color> for Vec3 {
+    fn from(value: Color) -> Self {
+        Vec3::new(value.r, value.g, value.b)
+    }
+}
+
 impl From<Vec4> for Color {
     fn from(value: Vec4) -> Self {
         Self::rgba(value.x, value.y, value.z, value.w)
+    }
+}
+
+impl From<Color> for Vec4 {
+    fn from(value: Color) -> Self {
+        Vec4::new(value.r, value.g, value.b, value.a)
     }
 }

@@ -7,29 +7,33 @@ use std::collections::HashMap;
 use std::ffi::CString;
 
 use glam::Mat4;
-use reflection::{get_program_link_err, get_shader_compile_err};
+use reflection::{get_program_link_err, get_shader_compile_err, get_uniform_block_index};
 use thiserror::Error;
 use uniform::GlShaderUniform;
 use uniform::discovery::discover_uniforms;
 use wutengine_graphics::material::MaterialParameter;
-use wutengine_graphics::renderer::RendererTextureId;
-use wutengine_graphics::shader::SharedShaderUniform;
+use wutengine_graphics::renderer::RendererTexture2DId;
+use wutengine_graphics::shader::CompiledShader;
+use wutengine_graphics::shader::builtins::ShaderBuiltins;
+use wutengine_graphics::shader::uniform::SingleUniformBinding;
 use wutengine_graphics::shader::{Shader, ShaderVertexLayout};
 
+use crate::debug;
 use crate::error::checkerr;
 use crate::opengl::types::{GLchar, GLenum, GLint, GLuint};
 use crate::opengl::{self, Gl};
-use crate::texture::GlTexture;
+use crate::texture::tex2d::GlTexture2D;
 
 mod reflection;
-mod uniform;
+pub(crate) mod uniform;
 
 /// A fully-linked and ready to use OpenGL shader program..
 #[derive(Debug)]
 pub(crate) struct GlShaderProgram {
     handle: Option<NonZero<GLuint>>,
     vertex_layout: ShaderVertexLayout,
-    uniforms: HashMap<String, GlShaderUniform>,
+    pub(crate) builtins: HashMap<ShaderBuiltins, Vec<SingleUniformBinding>>,
+    pub(crate) uniforms: HashMap<String, GlShaderUniform>,
 }
 
 impl Drop for GlShaderProgram {
@@ -78,7 +82,10 @@ pub(crate) enum CompileErr {
 #[profiling::all_functions]
 impl GlShaderProgram {
     /// Creates, compiles, and links a new OpenGL shaderprogram from the given source
-    pub(crate) fn new(gl: &Gl, source: &Shader) -> Result<Self, CreateErr> {
+    pub(crate) fn new(gl: &Gl, source: &CompiledShader) -> Result<Self, CreateErr> {
+        let _dbg_marker =
+            debug::debug_marker_group(gl, || format!("Compile ShaderProgram {}", source.id));
+
         if !source.source.has_any() {
             return Err(CreateErr::Empty);
         }
@@ -145,43 +152,54 @@ impl GlShaderProgram {
             checkerr!(gl);
         }
 
+        // Everything should be linked now, so we can destroy the individual stages
+        if let Some(sh) = vertex {
+            destroy_stage(gl, sh)
+        }
+        if let Some(sh) = fragment {
+            destroy_stage(gl, sh)
+        }
+
         if success != (opengl::TRUE as GLint) {
             let err = get_program_link_err(gl, program);
 
             destroy_program(gl, program);
-            if let Some(sh) = vertex {
-                destroy_stage(gl, sh)
-            }
-            if let Some(sh) = fragment {
-                destroy_stage(gl, sh)
-            }
 
             return Err(CreateErr::Link(err));
         }
 
-        // Program succesfully compiled. Now find all uniforms as declared by the source shader
+        unsafe {
+            gl.UseProgram(program.get());
+        }
+
+        checkerr!(gl);
+
+        debug::add_debug_label(gl, program, debug::DebugObjType::ShaderProgram, || {
+            Some(format!("shaderprogram:{}", source.id))
+        });
+
+        // Program succesfully compiled. Now find all builtins and uniforms as declared by the source shader
+
+        let builtins = discover_builtins(gl, program, source);
         let gl_uniforms = discover_uniforms(gl, program, &source.uniforms);
 
         Ok(Self {
             handle: Some(program),
             vertex_layout: source.vertex_layout.clone(),
+            builtins,
             uniforms: gl_uniforms,
         })
+    }
+
+    #[inline(always)]
+    pub(crate) const fn handle(&self) -> NonZero<GLuint> {
+        self.handle.expect("ShaderProgram already freed")
     }
 
     /// Destroys this shader program
     pub(crate) fn destroy(mut self, gl: &Gl) {
         let handle = self.handle.take().unwrap();
         destroy_program(gl, handle);
-    }
-
-    /// Calls [Gl::UseProgram] with this shaderprogram
-    pub(crate) fn use_program(&self, gl: &Gl) {
-        let handle_int = self.handle.unwrap().get();
-
-        unsafe {
-            gl.UseProgram(handle_int);
-        }
     }
 
     /// Returns the vertex layout for this shader
@@ -197,7 +215,7 @@ impl GlShaderProgram {
         gl: &Gl,
         set_uniforms: &HashMap<String, P>,
         first_free_tex_unit: &mut GLenum,
-        default_texture: &mut GlTexture,
+        default_texture: &mut GlTexture2D,
     ) {
         return;
         // let mut fake_mappings = HashMap::new();
@@ -248,7 +266,7 @@ impl GlShaderProgram {
         gl: &Gl,
         uniforms: &HashMap<String, MaterialParameter>,
         first_free_tex_unit: &mut GLenum,
-        texture_mappings: &mut HashMap<RendererTextureId, GlTexture>,
+        texture_mappings: &mut HashMap<RendererTexture2DId, GlTexture2D>,
     ) {
         // uniform::set_uniforms(
         //     gl,
@@ -372,5 +390,50 @@ fn destroy_program(gl: &Gl, program: NonZero<GLuint>) {
     unsafe {
         gl.DeleteProgram(program.get());
         checkerr!(gl);
+    }
+}
+
+#[profiling::function]
+fn discover_builtins(
+    gl: &Gl,
+    program: NonZero<GLuint>,
+    shader: &CompiledShader,
+) -> HashMap<ShaderBuiltins, Vec<SingleUniformBinding>> {
+    let meta = shader.target_meta.as_opengl().unwrap();
+
+    let mut mapped_builtins = HashMap::new();
+
+    discover_builtins_stage(gl, program, &meta.builtins_vertex, &mut mapped_builtins);
+    discover_builtins_stage(gl, program, &meta.builtins_fragment, &mut mapped_builtins);
+
+    mapped_builtins
+}
+
+fn discover_builtins_stage(
+    gl: &Gl,
+    program: NonZero<GLuint>,
+    stage_builtins: &HashMap<ShaderBuiltins, SingleUniformBinding>,
+    output: &mut HashMap<ShaderBuiltins, Vec<SingleUniformBinding>>,
+) {
+    for (&builtin, binding) in stage_builtins {
+        let block_index = match get_uniform_block_index(gl, program, &binding.name) {
+            Some(i) => i,
+            None => {
+                log::error!(
+                    "Could not find index for builtin block {:#?} with binding {}",
+                    builtin,
+                    binding
+                );
+                continue;
+            }
+        };
+
+        unsafe {
+            gl.UniformBlockBinding(program.get(), block_index, binding.binding as GLuint);
+        }
+
+        checkerr!(gl);
+
+        output.entry(builtin).or_default().push(binding.clone());
     }
 }

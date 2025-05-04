@@ -2,53 +2,63 @@
 
 use core::fmt::Display;
 use core::hash::Hash;
-use std::collections::HashMap;
+use std::borrow::Cow;
+use std::collections::{HashMap, HashSet};
 
-use nohash_hasher::IsEnabled;
-
+pub mod builtins;
+mod compiled;
+mod id;
+mod raw;
 mod resolver;
-mod uniforms;
+pub mod uniform;
 
+use bitflags::bitflags;
+use md5::{Digest, Md5};
+
+pub use compiled::*;
+pub use id::*;
+pub use raw::*;
 pub use resolver::*;
-pub use uniforms::*;
-
-/// The ID of a [Shader]
-#[repr(transparent)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ShaderId(String);
-
-impl ShaderId {
-    /// Creates a new [ShaderId] from the given value
-    pub fn new(id: impl Into<String>) -> Self {
-        Self(id.into())
-    }
-}
-
-impl Display for ShaderId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl IsEnabled for ShaderId {}
 
 /// A struct representing a full shader program, including all pipeline stages
 #[derive(Debug, Clone)]
-pub struct Shader {
-    /// The ID of this shader
-    pub id: ShaderId,
+pub enum Shader {
+    /// A raw, uncompiled shader. Not yet usable by the backend
+    Raw(RawShader),
 
-    /// The target platform of the shader
-    pub target: ShaderTarget,
+    /// A compiled shader.
+    Compiled(CompiledShader),
+}
 
-    /// The source code of the shader and its stages
-    pub source: ShaderStages,
+impl Shader {
+    /// Returns the identifier of the shader, ignoring variants
+    pub fn ident(&self) -> &String {
+        match self {
+            Shader::Raw(r) => &r.ident,
+            Shader::Compiled(c) => c.id.ident(),
+        }
+    }
 
-    /// The expected layout of the vertex buffer
-    pub vertex_layout: ShaderVertexLayout,
+    pub fn id(&self) -> ShaderId {
+        match self {
+            Shader::Raw(raw_shader) => ShaderId::new_no_keywords(&raw_shader.ident),
+            Shader::Compiled(compiled_shader) => compiled_shader.id.clone(),
+        }
+    }
+}
 
-    /// The different uniforms
-    pub uniforms: HashMap<String, Uniform>,
+/// Returns whether the given string would be a valid shader keyword identifier
+pub fn is_valid_keyword(keyword: &str) -> bool {
+    if keyword.is_empty() {
+        return false;
+    }
+
+    let first_char_is_number = keyword.chars().next().unwrap().is_ascii_digit();
+    let all_chars_valid = keyword
+        .chars()
+        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_');
+
+    (!first_char_is_number) && all_chars_valid
 }
 
 /// A wrapper for the source code of the different stages of a [Shader]
@@ -94,168 +104,9 @@ pub struct ShaderVertexLayout {
     pub uv: Option<usize>,
 }
 
-/// The descriptor for a single generic [Shader] uniform, used by WutEngine
-/// graphics backends to properly map data to their shaders
-#[derive(Debug, Clone)]
-pub struct Uniform {
-    /// The uniform type
-    pub ty: UniformType,
-
-    /// The uniform "binding". This refers to the actual binding in the shader
-    pub binding: UniformBinding,
-}
-
-/// The type of a [Uniform]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UniformType {
-    /// An unsigned integer value
-    Uint32,
-
-    /// A three-f32 vector
-    Vec3,
-
-    /// A four-f32 vector
-    Vec4,
-
-    /// A 4x4 f32 matrix
-    Mat4,
-
-    /// A 2D texture
-    Tex2D,
-
-    /// A struct
-    Struct(HashMap<String, UniformType>),
-
-    /// An array
-    Array(Box<UniformType>, usize),
-}
-
-impl Display for UniformType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            UniformType::Uint32 => write!(f, "u32"),
-            UniformType::Vec3 => write!(f, "vec3<f32>"),
-            UniformType::Vec4 => write!(f, "vec4<f32>"),
-            UniformType::Mat4 => write!(f, "mat4x4<f32>"),
-            UniformType::Tex2D => write!(f, "texture_2d<f32>"),
-            UniformType::Struct(hash_map) => {
-                for (k, v) in hash_map {
-                    writeln!(f, "{}: {}", k, v)?;
-                }
-
-                Ok(())
-            }
-            UniformType::Array(uniform_type, len) => {
-                write!(f, "array<{}, {}>", uniform_type, len)
-            }
-        }
-    }
-}
-
-impl UniformType {
-    /// Returns whether this [UniformType] is any type of texture
-    pub const fn is_texture_type(&self) -> bool {
-        matches!(self, Self::Tex2D)
-    }
-}
-
-/// A binding description for a [Uniform]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum UniformBinding {
-    /// A single binding
-    Standard(SingleUniformBinding),
-
-    /// A texture binding. Some backends have seperate bindings for the
-    /// texture and the sampler, some do not.
-    Texture {
-        /// The sampler part of the texture
-        sampler: Option<SingleUniformBinding>,
-
-        /// The texture part of the texture
-        texture: Option<SingleUniformBinding>,
-    },
-}
-
-impl Display for UniformBinding {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            UniformBinding::Standard(s) => write!(f, "uniform({})", s),
-            UniformBinding::Texture { sampler, texture } => match (sampler, texture) {
-                (None, None) => write!(f, "texture_uniform(<none>)"),
-                (None, Some(t)) => {
-                    write!(f, "texture_uniform(sampler: <none>, texture: {})", t)
-                }
-                (Some(s), None) => {
-                    write!(f, "texture_uniform(sampler: {}, texture: <none>)", s)
-                }
-                (Some(s), Some(t)) => {
-                    write!(f, "texture_uniform(sampler: {}, texture: {})", s, t)
-                }
-            },
-        }
-    }
-}
-
-impl UniformBinding {
-    pub fn try_as_standard(&self) -> Option<&SingleUniformBinding> {
-        if let Self::Standard(b) = self {
-            Some(b)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_standard(&self) -> &SingleUniformBinding {
-        self.try_as_standard()
-            .expect("Uniform was not a standard uniform binding")
-    }
-
-    pub fn try_as_texture(
-        &self,
-    ) -> Option<(Option<&SingleUniformBinding>, Option<&SingleUniformBinding>)> {
-        if let Self::Texture { sampler, texture } = self {
-            Some((sampler.as_ref(), texture.as_ref()))
-        } else {
-            None
-        }
-    }
-
-    pub fn as_texture(&self) -> (Option<&SingleUniformBinding>, Option<&SingleUniformBinding>) {
-        self.try_as_texture()
-            .expect("Uniform was not a texture uniform binding")
-    }
-}
-
-/// The shader source binding for a [Uniform]. A combination of any/all of these
-/// values is used by the graphics backend
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SingleUniformBinding {
-    /// The name of the uniform in the shader
-    pub name: String,
-
-    /// The uniform group
-    pub group: usize,
-
-    /// The uniform binding
-    pub binding: usize,
-}
-
-impl Display for SingleUniformBinding {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{{{} @ group({}) binding({})}}",
-            self.name, self.group, self.binding
-        )
-    }
-}
-
 /// The target platform of a shader
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ShaderTarget {
-    /// A raw, uncompiled shader
-    Raw,
-
     /// A shader compiled for OpenGL
     OpenGL,
 }
@@ -263,7 +114,6 @@ pub enum ShaderTarget {
 impl Display for ShaderTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ShaderTarget::Raw => write!(f, "Raw"),
             ShaderTarget::OpenGL => write!(f, "OpenGL"),
         }
     }
