@@ -1,12 +1,21 @@
+//! OpenGL extension detection and handling
+
 use core::ffi::{CStr, c_char};
 
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
 
+/// A struct containing some of the extensions
+/// the OpenGL backend uses, and flags signalling whether they're supported or not
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct GlExtensions {
+    /// GL_KHR_debug
     pub(crate) khr_debug: bool,
+
+    /// GL_EXT_debug_label
     pub(crate) ext_debug_label: bool,
+
+    /// GL_EXT_debug_marker
     pub(crate) ext_debug_marker: bool,
 }
 
@@ -50,12 +59,15 @@ impl GlExtensions {
 
 static mut EXTENSIONS: GlExtensions = GlExtensions::new_empty();
 
+/// Sets the global set of extensions. Not thread safe. Assumes only
+/// a single OpenGL context is active at a time
 pub(crate) unsafe fn set_global(extensions: GlExtensions) {
     unsafe {
         (&raw mut EXTENSIONS).write(extensions);
     }
 }
 
+/// Returns the global set of extensions
 pub(crate) fn get_global() -> *const GlExtensions {
     &raw const EXTENSIONS
 }

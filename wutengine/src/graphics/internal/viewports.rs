@@ -1,3 +1,5 @@
+//! Viewport rendering functions
+
 use std::sync::Mutex;
 
 use wutengine_graphics::renderer::Viewport;

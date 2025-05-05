@@ -1,34 +1,29 @@
-use std::collections::HashMap;
+//! Shader uniforms and their handling
 
-use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::shader::uniform::UniformType;
 
-use crate::opengl::types::{GLboolean, GLfloat, GLint, GLintptr, GLsizeiptr, GLuint};
+use crate::opengl::types::GLint;
 
 pub(crate) mod const_blocks;
 pub(crate) mod discovery;
 pub(crate) mod std140;
 
-/// The description of a single OpenGL shader uniform
+/// The description of a single OpenGL shader uniform, and
+/// how to bind to it
 #[derive(Debug, Clone)]
 pub(crate) enum GlShaderUniform {
+    /// A sampler uniform. Returns its location, which can be used by [crate::opengl::Gl::Uniform1i]
     Sampler {
+        /// The location in the shader
         location: GLint,
-        binding: usize,
     },
+
+    /// An interface block uniform. Contains its binding point and the datatype
     Block {
-        index: GLuint,
+        /// The binding point of the block
         binding: usize,
-        size_bytes: usize,
+
+        /// The data type of the block
         ty: UniformType,
     },
-}
-
-impl GlShaderUniform {
-    pub(crate) const fn get_binding(&self) -> usize {
-        match self {
-            GlShaderUniform::Sampler { binding, .. } => *binding,
-            GlShaderUniform::Block { binding, .. } => *binding,
-        }
-    }
 }

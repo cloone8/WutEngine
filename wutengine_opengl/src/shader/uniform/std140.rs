@@ -1,12 +1,12 @@
-use core::convert::Infallible;
+//! OpenGL std140 data layout and conversion functions
 
 use bytemuck::NoUninit;
 use wutengine_graphics::material::MaterialParameter;
 
 use crate::gltypes::{GlMat4f, GlVec3f, GlVec4f};
-use crate::opengl::types::{GLboolean, GLfloat, GLuint};
+use crate::opengl::types::{GLfloat, GLuint};
 
-const fn vec2_size_align<T>() -> (usize, usize) {
+const fn _vec2_size_align<T>() -> (usize, usize) {
     (size_of::<T>() * 2, size_of::<T>() * 2)
 }
 
@@ -25,6 +25,7 @@ const fn std140_scalar_array_size_align(base_size: usize, count: usize) -> (usiz
     (size_element * count, size_element)
 }
 
+/// Given a [MaterialParameter], returns its size and alignment in std140 layout
 pub(crate) fn param_to_std140_size_align(param: &MaterialParameter) -> (usize, usize) {
     match param {
         MaterialParameter::U32(_) => (size_of::<GLuint>(), size_of::<GLuint>()),

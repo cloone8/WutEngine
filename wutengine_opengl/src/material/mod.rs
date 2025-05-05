@@ -1,45 +1,50 @@
+//! Material buffers and mapping
+
 use core::ffi::c_void;
 use std::collections::HashMap;
-use std::fmt::format;
 
 use wutengine_graphics::material::{MaterialData, MaterialParameter};
 use wutengine_graphics::renderer::{RendererMaterialId, RendererTexture2DId};
 use wutengine_graphics::shader::ShaderVariantId;
 
-use crate::buffer::{self, GlBuffer};
+use crate::buffer::GlBuffer;
 use crate::error::checkerr;
 use crate::opengl::{self, Gl};
 use crate::shader::GlShaderProgram;
 use crate::shader::uniform::GlShaderUniform;
 use crate::shader::uniform::std140::param_to_std140_buffer;
 
+/// A set of buffers and metadata for a single WutEngine material,
+/// and how it maps to OpenGL
 #[derive(Debug)]
 pub(crate) struct GlMaterialBuffers {
+    /// The shader this material is currently configured for
     pub(crate) target_shader: Option<ShaderVariantId>,
+
+    /// The underlying buffers assigned to each parameter
     pub(crate) parameter_values: HashMap<String, GlMaterialUniform>,
 }
 
 #[derive(Debug)]
 pub(crate) struct GlMaterialUniform {
-    binding: usize,
     value: GlMaterialUniformValue,
 }
 
 impl GlMaterialUniform {
-    #[inline(always)]
-    pub(crate) const fn binding(&self) -> usize {
-        self.binding
-    }
-
+    /// Getter for the value of a material uniform
     #[inline(always)]
     pub(crate) const fn value(&self) -> &GlMaterialUniformValue {
         &self.value
     }
 }
 
+/// The value for a single material uniform
 #[derive(Debug)]
 pub(crate) enum GlMaterialUniformValue {
+    /// A uniform block. Contains the buffer with the block data
     Block(GlBuffer),
+
+    /// A texture 2D (sampler). Contains the texture ID to be bound
     Texture2D(RendererTexture2DId),
 }
 
@@ -163,7 +168,6 @@ impl GlMaterialBuffers {
                 };
 
                 let uniform_data = GlMaterialUniform {
-                    binding: uniform.get_binding(),
                     value: uniform_value,
                 };
 

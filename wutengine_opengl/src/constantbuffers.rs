@@ -1,3 +1,5 @@
+//! Buffers for the WutEngine shader constant blocks
+
 use core::ptr::null;
 
 use crate::buffer::{CreateErr, GlBuffer};
@@ -8,13 +10,18 @@ use crate::shader::uniform::const_blocks::{
     WutEngineInstanceConstants, WutEngineViewportConstants,
 };
 
+/// Buffers for the constants used in most shaders
 #[derive(Debug)]
 pub(crate) struct ConstantBuffers {
+    /// Per-viewport constant buffer
     pub(crate) viewport_constants: GlBuffer,
+
+    /// Per-instance constant buffer
     pub(crate) instance_constants: GlBuffer,
 }
 
 impl ConstantBuffers {
+    /// Constructs the constant buffers and allocates their GPU memory
     pub(crate) fn new(gl: &Gl) -> Result<Self, CreateErr> {
         let vpc = GlBuffer::new(gl)?;
         let ic = match GlBuffer::new(gl) {
@@ -56,5 +63,11 @@ impl ConstantBuffers {
             viewport_constants: vpc,
             instance_constants: ic,
         })
+    }
+
+    /// Destroys the constant buffers
+    pub(crate) fn destroy(self, gl: &Gl) {
+        self.viewport_constants.destroy(gl);
+        self.instance_constants.destroy(gl);
     }
 }

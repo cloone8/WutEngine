@@ -2,8 +2,6 @@
 
 use core::fmt::Display;
 use core::hash::Hash;
-use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
 
 pub mod builtins;
 mod compiled;
@@ -11,9 +9,6 @@ mod id;
 mod raw;
 mod resolver;
 pub mod uniform;
-
-use bitflags::bitflags;
-use md5::{Digest, Md5};
 
 pub use compiled::*;
 pub use id::*;
@@ -39,6 +34,7 @@ impl Shader {
         }
     }
 
+    /// Returns the ID of this shader
     pub fn id(&self) -> ShaderVariantId {
         match self {
             Shader::Raw(raw_shader) => ShaderVariantId::new_no_keywords(&raw_shader.ident),

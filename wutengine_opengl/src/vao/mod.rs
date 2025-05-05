@@ -8,7 +8,7 @@ use wutengine_graphics::shader::ShaderVertexLayout;
 
 use crate::debug::{self, DebugObjType};
 use crate::error::checkerr;
-use crate::mesh::{GlMeshBuffers, MeshBufferLayout};
+use crate::mesh::MeshBufferLayout;
 use crate::opengl::types::GLuint;
 use crate::opengl::{self, Gl};
 

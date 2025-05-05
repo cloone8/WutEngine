@@ -1,3 +1,5 @@
+//! Internal GameObject functionality
+
 use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, RwLock};

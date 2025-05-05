@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use glam::{Mat4, Vec3, Vec4};
 use image::{DynamicImage, ImageBuffer};
 
-use crate::color::Color;
 use crate::renderer::RendererTexture2DId;
 use crate::shader::ShaderVariantId;
 use crate::shader::uniform::UniformType;
@@ -56,6 +55,7 @@ pub enum MaterialParameter {
 }
 
 impl MaterialParameter {
+    /// Returns the type of uniform this material value would currently map to
     #[inline]
     pub fn get_type(&self) -> UniformType {
         match self {

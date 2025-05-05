@@ -1,3 +1,5 @@
+//! Object rendering functions
+
 use std::sync::Mutex;
 
 use super::RenderCommand;

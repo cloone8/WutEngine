@@ -1,28 +1,23 @@
 //! Module for OpenGL shader functionality, and mapping from the abstract WutEngine [Shader] type
 
-use core::ffi::CStr;
 use core::num::NonZero;
-use core::ptr::{null, null_mut};
+use core::ptr::null;
 use std::collections::HashMap;
 use std::ffi::CString;
 
-use glam::Mat4;
 use reflection::{get_program_link_err, get_shader_compile_err, get_uniform_block_index};
 use thiserror::Error;
 use uniform::GlShaderUniform;
 use uniform::discovery::discover_uniforms;
-use wutengine_graphics::material::MaterialParameter;
-use wutengine_graphics::renderer::RendererTexture2DId;
 use wutengine_graphics::shader::CompiledShader;
+use wutengine_graphics::shader::ShaderVertexLayout;
 use wutengine_graphics::shader::builtins::ShaderBuiltins;
 use wutengine_graphics::shader::uniform::SingleUniformBinding;
-use wutengine_graphics::shader::{Shader, ShaderVertexLayout};
 
 use crate::debug;
 use crate::error::checkerr;
-use crate::opengl::types::{GLchar, GLenum, GLint, GLuint};
+use crate::opengl::types::{GLint, GLuint};
 use crate::opengl::{self, Gl};
-use crate::texture::tex2d::GlTexture2D;
 
 mod reflection;
 pub(crate) mod uniform;
@@ -32,7 +27,11 @@ pub(crate) mod uniform;
 pub(crate) struct GlShaderProgram {
     handle: Option<NonZero<GLuint>>,
     vertex_layout: ShaderVertexLayout,
+
+    /// The builtins this shader uses, and how they are bound
     pub(crate) builtins: HashMap<ShaderBuiltins, Vec<SingleUniformBinding>>,
+
+    /// The non-builtin uniforms, and how they are bound
     pub(crate) uniforms: HashMap<String, GlShaderUniform>,
 }
 
@@ -206,137 +205,6 @@ impl GlShaderProgram {
     #[profiling::skip]
     pub(crate) const fn get_vertex_layout(&self) -> &ShaderVertexLayout {
         &self.vertex_layout
-    }
-
-    /// Sets the default values for all uniforms on this shader _*NOT*_ in `set_uniforms`.
-    /// The program must currently be in use, by calling [Self::use_program]
-    pub(crate) fn set_uniform_defaults<P>(
-        &mut self,
-        gl: &Gl,
-        set_uniforms: &HashMap<String, P>,
-        first_free_tex_unit: &mut GLenum,
-        default_texture: &mut GlTexture2D,
-    ) {
-        return;
-        // let mut fake_mappings = HashMap::new();
-
-        // for (uform_name, uform) in &self.uniforms {
-        //     if set_uniforms.contains_key(uform_name) {
-        //         // No need to set a default because we're gonna set this value later
-        //         continue;
-        //     }
-
-        //     let default_val = match uform.uniform_type {
-        //         opengl::BOOL => MaterialParameter::DEFAULT_BOOL,
-        //         opengl::FLOAT_VEC4 => MaterialParameter::DEFAULT_VEC4,
-        //         opengl::FLOAT_MAT4 => MaterialParameter::DEFAULT_MAT4,
-        //         opengl::SAMPLER_2D => unsafe {
-        //             set_texture_from_buf(gl, default_texture, uform.location, first_free_tex_unit);
-        //             continue;
-        //         },
-        //         _ => panic!("Missing default value for type {}", uform.uniform_type),
-        //     };
-
-        //     let cur_tex_unit = *first_free_tex_unit;
-
-        //     let ok = uniform::set_uniform_value(
-        //         gl,
-        //         &default_val,
-        //         uform,
-        //         first_free_tex_unit,
-        //         &mut fake_mappings,
-        //     );
-
-        //     assert!(
-        //         ok,
-        //         "Failed to set default uniform value of uniform {} to {:#?}",
-        //         uform_name, default_val
-        //     );
-
-        //     debug_assert_eq!(
-        //         cur_tex_unit, *first_free_tex_unit,
-        //         "Set a texture when we didn't expect to"
-        //     );
-        // }
-    }
-
-    /// Sets the given uniforms on this program. The program must currently be in use, by calling [Self::use_program]
-    pub(crate) fn set_uniforms(
-        &mut self,
-        gl: &Gl,
-        uniforms: &HashMap<String, MaterialParameter>,
-        first_free_tex_unit: &mut GLenum,
-        texture_mappings: &mut HashMap<RendererTexture2DId, GlTexture2D>,
-    ) {
-        // uniform::set_uniforms(
-        //     gl,
-        //     self.handle.expect("Program destroyed"),
-        //     uniforms,
-        //     &self.uniforms,
-        //     first_free_tex_unit,
-        //     texture_mappings,
-        // );
-    }
-
-    /// Sets the model/view/projection matrix uniforms on this shader
-    pub(crate) fn set_mvp(&mut self, gl: &Gl, model: Mat4, view: Mat4, projection: Mat4) {
-        return;
-        assert!(self.handle.is_some(), "ShaderProgram already destroyed");
-
-        // let model_uform = self.uniforms.get(SharedShaderUniform::ModelMat.as_str());
-        // let view_uform = self.uniforms.get(SharedShaderUniform::ViewMat.as_str());
-        // let projection_uform = self
-        //     .uniforms
-        //     .get(SharedShaderUniform::ProjectionMat.as_str());
-
-        // // Fake variables. We're not using the texture units here anyway
-        // let mut tex_unit = 0;
-        // let mut tex_maps = HashMap::new();
-
-        // if let Some(model_uform) = model_uform {
-        //     uniform::set_uniform_value(
-        //         gl,
-        //         &MaterialParameter::Mat4(model),
-        //         model_uform,
-        //         &mut tex_unit,
-        //         &mut tex_maps,
-        //     );
-        // } else {
-        //     log::debug!(
-        //         "Model uniform not found on shaderprogram {}",
-        //         self.handle.unwrap()
-        //     );
-        // }
-
-        // if let Some(view_uform) = view_uform {
-        //     uniform::set_uniform_value(
-        //         gl,
-        //         &MaterialParameter::Mat4(view),
-        //         view_uform,
-        //         &mut tex_unit,
-        //         &mut tex_maps,
-        //     );
-        // } else {
-        //     log::debug!(
-        //         "View uniform not found on shaderprogram {}",
-        //         self.handle.unwrap()
-        //     );
-        // }
-
-        // if let Some(projection_uform) = projection_uform {
-        //     uniform::set_uniform_value(
-        //         gl,
-        //         &MaterialParameter::Mat4(projection),
-        //         projection_uform,
-        //         &mut tex_unit,
-        //         &mut tex_maps,
-        //     );
-        // } else {
-        //     log::debug!(
-        //         "Projection uniform not found on shaderprogram {}",
-        //         self.handle.unwrap()
-        //     );
-        // }
     }
 }
 

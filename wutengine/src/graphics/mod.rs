@@ -11,6 +11,7 @@ use crate::builtins::assets::{Material, Mesh};
 
 pub(crate) mod internal;
 
+/// Renders `mesh` with `material`, transforming it with `object_to_world` this frame.
 #[profiling::function]
 pub fn render_mesh(mesh: &Mesh, material: &Material, object_to_world: Mat4) {
     let mut locked = OBJECT_QUEUE.lock().unwrap();
@@ -22,6 +23,7 @@ pub fn render_mesh(mesh: &Mesh, material: &Material, object_to_world: Mat4) {
     });
 }
 
+/// Queues the rendering of `viewport` this frame
 #[profiling::function]
 pub fn render_viewport(viewport: Viewport) {
     let mut locked = VIEWPORT_QUEUE.lock().unwrap();

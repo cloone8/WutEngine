@@ -1,8 +1,5 @@
 //! Functionality and definitions for the main [GameObject] type
 
-use core::cell::RefCell;
-use core::fmt::Display;
-use core::sync::atomic::{AtomicU64, Ordering};
 use std::sync::RwLock;
 
 use crate::component::Component;
@@ -83,6 +80,7 @@ impl GameObject {
     }
 }
 
+/// Spawns the given [GameObject] as soon as possible
 #[profiling::function]
 pub fn spawn(go: GameObject) {
     internal::CREATION_QUEUE.lock().unwrap().push(go);

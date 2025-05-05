@@ -1,16 +1,13 @@
 //! Abstractions around OpenGL buffers
 
-use core::ffi::c_void;
-use core::marker::PhantomData;
 use core::num::NonZero;
-use core::ptr::null;
 
 use thiserror::Error;
 
 use crate::debug;
 use crate::error::checkerr;
-use crate::opengl::types::{GLenum, GLintptr, GLsizeiptr, GLuint};
-use crate::opengl::{self, Gl};
+use crate::opengl::Gl;
+use crate::opengl::types::GLuint;
 
 /// A generic OpenGL buffer
 #[derive(Debug)]

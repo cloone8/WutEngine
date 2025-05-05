@@ -6,11 +6,9 @@ use std::collections::HashMap;
 use wutengine_graphics::shader::uniform::Uniform;
 
 use crate::error::checkerr;
+use crate::opengl::Gl;
 use crate::opengl::types::GLuint;
-use crate::opengl::{self, Gl};
-use crate::shader::reflection::{
-    get_active_uniform_block_iv, get_uniform_block_index, get_uniform_location,
-};
+use crate::shader::reflection::{get_uniform_block_index, get_uniform_location};
 
 use super::GlShaderUniform;
 
@@ -101,10 +99,7 @@ fn discover_texture(
 
     let location = loc.unwrap();
 
-    Some(GlShaderUniform::Sampler {
-        location,
-        binding: binding.binding,
-    })
+    Some(GlShaderUniform::Sampler { location })
 }
 
 fn discover_block(
@@ -141,9 +136,6 @@ fn discover_block(
         }
     };
 
-    let block_size =
-        get_active_uniform_block_iv(gl, program, index, opengl::UNIFORM_BLOCK_DATA_SIZE) as usize;
-
     unsafe {
         gl.UniformBlockBinding(program.get(), index, binding.binding as GLuint);
     }
@@ -151,9 +143,7 @@ fn discover_block(
     checkerr!(gl);
 
     Some(GlShaderUniform::Block {
-        index,
         binding: binding.binding,
-        size_bytes: block_size,
         ty: desc.ty.clone(),
     })
 }

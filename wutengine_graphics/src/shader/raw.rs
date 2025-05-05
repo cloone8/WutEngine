@@ -27,11 +27,9 @@ pub struct RawShader {
     pub uniforms: HashMap<String, Uniform>,
 }
 
+/// A range of valid values for a shader keyword
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidKeywordValues {
-    /// Any value
-    Any,
-
     /// Either 0 or 1
     Bool,
 
@@ -43,9 +41,9 @@ pub enum ValidKeywordValues {
 }
 
 impl ValidKeywordValues {
+    /// Returns whether the given value is valid for this set
     pub fn is_valid(&self, val: u32) -> bool {
         match self {
-            ValidKeywordValues::Any => true,
             ValidKeywordValues::Bool => val == 0 || val == 1,
             ValidKeywordValues::Range(r) => r.contains(&val),
             ValidKeywordValues::Set(s) => s.contains(&val),

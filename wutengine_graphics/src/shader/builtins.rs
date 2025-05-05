@@ -17,6 +17,8 @@ bitflags! {
 }
 
 impl ShaderBuiltins {
+    /// Returns the binding for this [ShaderBuiltins], assuming it is
+    /// a single flag. Panics if there are multiple flags
     pub fn binding(self) -> SingleUniformBinding {
         assert!(!self.contains_unknown_bits());
         assert_eq!(

@@ -68,6 +68,7 @@ pub(super) fn get_program_link_err(gl: &Gl, program: NonZero<GLuint>) -> String 
         .to_string()
 }
 
+#[expect(unused)]
 pub(super) fn get_active_uniforms(gl: &Gl, program: NonZero<GLuint>) -> GLuint {
     let mut num_uniforms = 0;
 
@@ -86,12 +87,14 @@ pub(super) fn get_active_uniforms(gl: &Gl, program: NonZero<GLuint>) -> GLuint {
 }
 
 #[derive(Debug, Clone)]
+#[expect(unused)]
 pub(super) struct ActiveUniformInfo {
     pub(super) name: String,
     pub(super) size: usize,
     pub(super) ty: GLenum,
 }
 
+#[expect(unused)]
 pub(super) fn get_active_uniform(
     gl: &Gl,
     program: NonZero<GLuint>,
@@ -128,6 +131,7 @@ pub(super) fn get_active_uniform(
     }
 }
 
+#[expect(unused)]
 pub(super) fn get_active_uniform_blocks(gl: &Gl, program: NonZero<GLuint>) -> GLuint {
     let mut num_blocks = 0;
 
@@ -145,6 +149,7 @@ pub(super) fn get_active_uniform_blocks(gl: &Gl, program: NonZero<GLuint>) -> GL
     num_blocks as u32
 }
 
+#[expect(unused)]
 pub(super) fn get_active_uniform_block_uniforms(
     gl: &Gl,
     program: NonZero<GLuint>,
@@ -167,6 +172,7 @@ pub(super) fn get_active_uniform_block_uniforms(
     out as usize
 }
 
+#[expect(unused)]
 pub(super) fn get_active_uniform_block_name(
     gl: &Gl,
     program: NonZero<GLuint>,
@@ -194,6 +200,7 @@ pub(super) fn get_active_uniform_block_name(
     name_c.to_string()
 }
 
+#[expect(unused)]
 pub(super) fn get_active_uniform_block_iv(
     gl: &Gl,
     program: NonZero<GLuint>,
@@ -217,6 +224,7 @@ pub(super) fn get_active_uniform_block_iv(
     out
 }
 
+#[expect(unused)]
 pub(super) unsafe fn get_active_uniform_block_indices(
     gl: &Gl,
     program: NonZero<GLuint>,
@@ -235,6 +243,7 @@ pub(super) unsafe fn get_active_uniform_block_indices(
     checkerr!(gl);
 }
 
+#[expect(unused)]
 pub(super) fn get_active_uniforms_iv(
     gl: &Gl,
     program: NonZero<GLuint>,

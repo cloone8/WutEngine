@@ -1,3 +1,5 @@
+//! Internal WutEngine graphics functionality
+
 use std::sync::{Arc, RwLock};
 
 use glam::Mat4;

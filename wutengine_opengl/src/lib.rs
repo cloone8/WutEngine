@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use window::Window;
+use context::Context;
 use wutengine_graphics::image::metadata::Orientation;
 use wutengine_graphics::material::MaterialData;
 use wutengine_graphics::mesh::MeshData;
@@ -22,6 +22,8 @@ mod opengl {
 }
 
 mod buffer;
+mod constantbuffers;
+mod context;
 mod debug;
 mod error;
 mod extensions;
@@ -31,7 +33,6 @@ mod mesh;
 mod shader;
 mod texture;
 mod vao;
-mod window;
 
 /// Main OpenGL Renderer
 pub struct OpenGLRenderer {
@@ -39,7 +40,7 @@ pub struct OpenGLRenderer {
     shader_resolver: Rc<dyn ShaderResolver>,
 
     /// The active windows
-    windows: HashMap<WindowIdentifier, Window>,
+    windows: HashMap<WindowIdentifier, Context>,
 
     /// All currently active meshes and their data
     meshes: HashMap<RendererMeshId, Option<MeshData>>,
@@ -76,7 +77,7 @@ impl WutEngineRenderer for OpenGLRenderer {
             return;
         }
 
-        let mut new_window = Window::new(id, self.shader_resolver.clone(), window, phys_size);
+        let mut new_window = Context::new(id, self.shader_resolver.clone(), window, phys_size);
 
         // Insert all currently existing resources to make the window up-to-date
         for (&id, data) in &self.meshes {

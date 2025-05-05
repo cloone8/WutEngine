@@ -9,29 +9,24 @@ use core::ffi::c_void;
 pub(crate) use matrix::*;
 pub(crate) use vector::*;
 
-use crate::opengl;
-use crate::opengl::types::{GLenum, GLsizeiptr, GLuint};
+use crate::opengl::types::GLsizeiptr;
 
-pub(crate) fn size_of_gl(ty: GLenum) -> usize {
-    match ty {
-        opengl::UNSIGNED_INT => size_of::<GLuint>(),
-        opengl::FLOAT => size_of::<f32>(),
-        opengl::FLOAT_VEC3 => size_of::<GlVec3f>(),
-        opengl::FLOAT_VEC4 => size_of::<GlVec4f>(),
-        opengl::FLOAT_MAT4 => size_of::<GlMat4f>(),
-        _ => panic!("Unknown gl type: 0x{:X}", ty),
-    }
-}
-
+/// Convenience trait that can be implemented for types that
+/// can return their size in bytes and pointers in an OpenGL API compatible
+/// format
 pub(crate) trait GlVec {
+    /// Returns the size in bytes of the object
+    /// as an OpenGL sizeiptr
     fn size_bytes(&self) -> GLsizeiptr;
+
+    /// Returns a raw void pointer to the type
     fn void_ptr(&self) -> *const c_void;
 }
 
 impl<T> GlVec for [T] {
     #[inline(always)]
     fn size_bytes(&self) -> GLsizeiptr {
-        (self.len() * size_of::<T>()) as GLsizeiptr
+        std::mem::size_of_val(self) as GLsizeiptr
     }
 
     #[inline(always)]

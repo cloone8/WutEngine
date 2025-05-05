@@ -1,11 +1,9 @@
 //! Texture functionality for the WutEngine OpenGL renderer
 
-use tex2d::GlTexture2D;
 use wutengine_graphics::image::{ColorType, DynamicImage};
-use wutengine_graphics::texture::TextureData;
 
 use crate::opengl::types::GLenum;
-use crate::opengl::{self, Gl};
+use crate::opengl::{self};
 
 pub(crate) mod tex2d;
 

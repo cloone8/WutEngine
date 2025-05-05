@@ -1,11 +1,9 @@
 //! OpenGL mesh and mesh buffer functionality, and mappings to/from WutEngine generic mesh types
 
-use core::ffi::c_void;
-
 use thiserror::Error;
 use wutengine_graphics::mesh::{IndexBuffer, IndexType, MeshData};
 
-use crate::buffer::{self, GlBuffer};
+use crate::buffer::GlBuffer;
 use crate::debug;
 use crate::error::checkerr;
 use crate::gltypes::GlVec;

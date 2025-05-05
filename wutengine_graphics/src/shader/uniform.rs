@@ -1,7 +1,9 @@
+//! Uniform information for a [super::Shader]
+
 use core::fmt::Display;
 use std::collections::HashMap;
 
-/// The descriptor for a single generic [Shader] uniform, used by WutEngine
+/// The descriptor for a single generic [super::Shader] uniform, used by WutEngine
 /// graphics backends to properly map data to their shaders
 #[derive(Debug, Clone)]
 pub struct Uniform {
@@ -104,6 +106,7 @@ impl Display for UniformBinding {
 }
 
 impl UniformBinding {
+    /// Returns this binding as a standard binding, if it is one.
     pub fn try_as_standard(&self) -> Option<&SingleUniformBinding> {
         if let Self::Standard(b) = self {
             Some(b)
@@ -112,11 +115,13 @@ impl UniformBinding {
         }
     }
 
+    /// Returns this binding as a standard binding. Panics if it is not
     pub fn as_standard(&self) -> &SingleUniformBinding {
         self.try_as_standard()
             .expect("Uniform was not a standard uniform binding")
     }
 
+    /// Returns this binding as a texture binding, if it is one.
     pub fn try_as_texture(
         &self,
     ) -> Option<(Option<&SingleUniformBinding>, Option<&SingleUniformBinding>)> {
@@ -127,6 +132,7 @@ impl UniformBinding {
         }
     }
 
+    /// Returns this binding as a texture binding. Panics if it is not
     pub fn as_texture(&self) -> (Option<&SingleUniformBinding>, Option<&SingleUniformBinding>) {
         self.try_as_texture()
             .expect("Uniform was not a texture uniform binding")

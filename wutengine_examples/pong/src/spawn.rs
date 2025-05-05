@@ -52,10 +52,10 @@ impl WutEnginePlugin for PongStarterPlugin {
         rectangle_mesh.set_index_type(IndexType::Triangles);
 
         make_window(context);
-        make_camera(context);
-        make_player(context, rectangle_mesh.clone());
-        make_enemy(context, rectangle_mesh.clone());
-        make_ball(context, rectangle_mesh.clone());
+        make_camera();
+        make_player(rectangle_mesh.clone());
+        make_enemy(rectangle_mesh.clone());
+        make_ball(rectangle_mesh.clone());
 
         log::info!("Pong onstart done");
     }
@@ -77,7 +77,7 @@ fn make_window(context: &mut plugins::Context) {
 }
 
 /// Creates the player entity
-fn make_player(context: &mut plugins::Context, mesh: Mesh) {
+fn make_player(mesh: Mesh) {
     let mut player = GameObject::new(Some("Player".to_string()));
 
     player.add_component(InputHandler::new());
@@ -102,7 +102,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
 }
 
 /// Creates the enemy entity
-fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
+fn make_enemy(mesh: Mesh) {
     let mut enemy = GameObject::new(Some("Enemy".to_string()));
 
     enemy.add_component(Transform::with_pos_rot_scale(
@@ -126,7 +126,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
 }
 
 /// Creates the ball entity
-fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
+fn make_ball(mesh: Mesh) {
     let mut ball = GameObject::new(Some("Ball".to_string()));
 
     ball.add_component(BallData {
@@ -164,7 +164,7 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
 }
 
 /// Creates the camera entity
-fn make_camera(context: &mut plugins::Context) {
+fn make_camera() {
     let mut camera = GameObject::new(Some("Camera".to_string()));
 
     camera.add_component(FramerateCounter::new());

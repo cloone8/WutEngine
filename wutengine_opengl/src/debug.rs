@@ -1,8 +1,9 @@
 //! Debug functionality
 
 use core::ffi::c_void;
+use core::fmt::Debug;
 use core::num::NonZero;
-use core::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicU32, Ordering};
 use std::ffi::CString;
 
 use crate::error::checkerr;
@@ -10,10 +11,12 @@ use crate::opengl::Gl;
 use crate::opengl::types::{GLchar, GLenum, GLsizei, GLuint};
 use crate::{extensions, opengl};
 
+/// A callback function compatible with the OpenGL debug callback signature.
+/// Formats the logs slightly and outputs them with the normal Log function
 pub(crate) extern "system" fn opengl_log_callback(
     source: GLenum,
     gltype: GLenum,
-    id: GLuint,
+    _id: GLuint,
     severity: GLenum,
     length: GLsizei,
     message: *const GLchar,
@@ -78,14 +81,31 @@ const fn opengl_debug_log_type(t: GLenum) -> &'static str {
     }
 }
 
+/// A debug object type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DebugObjType {
+    /// Buffer object
     Buffer,
+
+    /// Shader object (not shader program)
+    #[expect(unused, reason = "later")]
     Shader,
+
+    /// Shader program object
     ShaderProgram,
+
+    /// Vertex array object
     VertexArray,
+
+    /// Texture object
     Texture,
+
+    /// Renderbuffer object
+    #[expect(unused, reason = "later")]
     RenderBuffer,
+
+    /// Framebuffer object
+    #[expect(unused, reason = "later")]
     FrameBuffer,
 }
 
@@ -184,6 +204,7 @@ pub(crate) fn add_debug_label<F, S>(
 /// Emits an OpenGL debug marker, if we are compiling
 /// with debug assertions in a context with the debug marker extension
 #[inline(always)]
+#[expect(unused, reason = "later")]
 pub(crate) fn debug_event_marker<F, S>(gl: &Gl, name_fn: F)
 where
     F: FnOnce() -> Option<S>,
@@ -275,6 +296,9 @@ where
 }
 
 impl<'gl> GlDebugMarkerGroup<'gl> {
+    /// Returns a new OpenGL marker group struct.
+    /// Automatically pops the debug group when dropped.
+    /// Only active in release builds
     #[cfg(not(debug_assertions))]
     #[inline(always)]
     pub(crate) fn new<F, S>(_gl: &'gl Gl, _name_fn: F) -> Self
@@ -287,6 +311,9 @@ impl<'gl> GlDebugMarkerGroup<'gl> {
         }
     }
 
+    /// Returns a new OpenGL marker group struct.
+    /// Automatically pops the debug group when dropped.
+    /// Only active in release builds
     #[cfg(debug_assertions)]
     #[inline(always)]
     pub(crate) fn new<F, S>(gl: &'gl Gl, name_fn: F) -> Self
