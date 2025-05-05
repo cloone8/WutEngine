@@ -11,7 +11,7 @@ use wutengine::builtins::components::{
 use wutengine::gameobject::{self, GameObject};
 use wutengine::graphics::color::Color;
 use wutengine::graphics::mesh::IndexType;
-use wutengine::graphics::shader::ShaderId;
+use wutengine::graphics::shader::ShaderVariantId;
 use wutengine::graphics::texture::TextureFiltering;
 use wutengine::math::{Quat, Vec2, Vec3, random, vec2, vec3};
 use wutengine::plugins::WutEnginePlugin;
@@ -90,7 +90,7 @@ fn make_player(context: &mut plugins::Context, mesh: Mesh) {
     ));
 
     let mut player_material = Material::new();
-    player_material.set_shader(Some(ShaderId::new_no_keywords("unlit")));
+    player_material.set_shader(Some(ShaderVariantId::new_no_keywords("unlit")));
     player_material.set_color("base_color", Color::BLUE);
 
     player.add_component(StaticMeshRenderer {
@@ -113,7 +113,7 @@ fn make_enemy(context: &mut plugins::Context, mesh: Mesh) {
     enemy.add_component(RectangleCollider2D::new(Vec2::ZERO, Vec2::ONE));
 
     let mut enemy_material = Material::new();
-    enemy_material.set_shader(Some(ShaderId::new_no_keywords("unlit")));
+    enemy_material.set_shader(Some(ShaderVariantId::new_no_keywords("unlit")));
     enemy_material.set_color("base_color", Color::RED);
 
     enemy.add_component(StaticMeshRenderer {
@@ -147,7 +147,10 @@ fn make_ball(context: &mut plugins::Context, mesh: Mesh) {
     face_texture.set_filter(TextureFiltering::Nearest);
 
     let mut ball_material = Material::new();
-    ball_material.set_shader(Some(ShaderId::new_no_keywords("unlit")));
+    ball_material.set_shader(Some(ShaderVariantId::new_with_keywords(
+        "unlit",
+        [("HAS_COLOR_MAP".to_string(), 1)],
+    )));
     ball_material.set_color("base_color", Color::WHITE);
     ball_material.set_texture("color_map", face_texture);
     ball_material.set_u32("has_color_map", 1);

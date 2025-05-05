@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 use wutengine_graphics::color::Color;
 use wutengine_graphics::material::{MaterialData, MaterialParameter};
 use wutengine_graphics::renderer::{RendererMaterialId, WutEngineRenderer};
-use wutengine_graphics::shader::ShaderId;
+use wutengine_graphics::shader::ShaderVariantId;
 
 use crate::asset::Asset;
 
@@ -36,7 +36,7 @@ impl Material {
     }
 
     /// Sets the shader of this material to a new value
-    pub fn set_shader(&mut self, shader: Option<ShaderId>) {
+    pub fn set_shader(&mut self, shader: Option<ShaderVariantId>) {
         let raw = self.get_raw_mut_cloned();
         raw.data.shader = shader;
         raw.dirty = true;

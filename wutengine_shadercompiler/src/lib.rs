@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use cross::{CrossCompileErr, do_cross_compile};
 use preprocess::{PreprocessErr, preprocess};
 use thiserror::Error;
-use wutengine_graphics::shader::{CompiledShader, RawShader, ShaderId, ShaderTarget};
+use wutengine_graphics::shader::{CompiledShader, RawShader, ShaderTarget, ShaderVariantId};
 
 mod cross;
 mod preprocess;
@@ -51,7 +51,7 @@ pub fn compile(
     log::debug!("After cross compiling {:#?}", working_shader);
 
     let compiled = CompiledShader {
-        id: ShaderId::new_with_keywords(shader.ident.clone(), keywords),
+        id: ShaderVariantId::new_with_keywords(shader.ident.clone(), keywords.clone()),
         target,
         target_meta: meta,
         source: working_shader.source,

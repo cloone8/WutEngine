@@ -21,7 +21,7 @@ use wutengine_graphics::renderer::{
 };
 use wutengine_graphics::shader::builtins::ShaderBuiltins;
 use wutengine_graphics::shader::{Shader, ShaderResolver};
-use wutengine_graphics::shader::{ShaderId, ShaderTarget};
+use wutengine_graphics::shader::{ShaderTarget, ShaderVariantId};
 use wutengine_graphics::texture::TextureData;
 
 use crate::error::checkerr;
@@ -58,7 +58,7 @@ pub(crate) struct Window {
 
     // === Resources ===
     /// Shaders
-    shaders: HashMap<ShaderId, GlShaderProgram>,
+    shaders: HashMap<ShaderVariantId, GlShaderProgram>,
 
     /// Meshes
     meshes: HashMap<RendererMeshId, GlMeshBuffers>,
@@ -441,7 +441,7 @@ impl Window {
                 }
 
                 // Set the uniforms
-                let mut first_free_texture_unit = opengl::TEXTURE0;
+                let mut first_free_texture_unit = 0;
 
                 for (uniform_name, uniform) in &shader.uniforms {
                     let param_value = match material.parameter_values.get(uniform_name) {
@@ -469,12 +469,13 @@ impl Window {
                             };
 
                             unsafe {
-                                gl.ActiveTexture(first_free_texture_unit);
+                                gl.ActiveTexture(opengl::TEXTURE0 + first_free_texture_unit);
+                                checkerr!(gl);
                                 gl.BindTexture(opengl::TEXTURE_2D, texture.handle().get());
+                                checkerr!(gl);
                                 gl.Uniform1i(*location, first_free_texture_unit as GLint);
+                                checkerr!(gl);
                             }
-
-                            checkerr!(gl);
 
                             first_free_texture_unit += 1;
                         }
@@ -794,7 +795,10 @@ enum FindCompileShaderErr {
 
 #[profiling::all_functions]
 impl Window {
-    fn find_and_compile_shader(&mut self, id: &ShaderId) -> Result<(), FindCompileShaderErr> {
+    fn find_and_compile_shader(
+        &mut self,
+        id: &ShaderVariantId,
+    ) -> Result<(), FindCompileShaderErr> {
         log::trace!("Finding and compiling shader with ID {}", id);
 
         debug_assert!(!self.shaders.contains_key(id));
@@ -808,9 +812,11 @@ impl Window {
         let shader_source = shader_source.unwrap();
 
         let compiled = match shader_source {
-            Shader::Raw(raw) => {
-                wutengine_shadercompiler::compile(raw, ShaderTarget::OpenGL, &HashMap::new())?
-            }
+            Shader::Raw(raw) => wutengine_shadercompiler::compile(
+                raw,
+                ShaderTarget::OpenGL,
+                &id.keywords().into_iter().cloned().collect(),
+            )?,
             Shader::Compiled(compiled) => {
                 assert_eq!(ShaderTarget::OpenGL, compiled.target);
                 compiled.clone()

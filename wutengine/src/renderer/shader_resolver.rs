@@ -6,7 +6,7 @@ use wutengine_graphics::shader::uniform::{
     SingleUniformBinding, Uniform, UniformBinding, UniformType,
 };
 use wutengine_graphics::shader::{
-    RawShader, Shader, ShaderId, ShaderStages, ShaderVertexLayout, ValidKeywordValues,
+    RawShader, Shader, ShaderStages, ShaderVariantId, ShaderVertexLayout, ValidKeywordValues,
 };
 use wutengine_graphics::shader::{ShaderResolver, ShaderStage};
 
@@ -15,7 +15,7 @@ use crate::map;
 /// The embedded shader resolver. Will use shaders from the [crate::embedded] module
 /// only.
 pub(crate) struct InMemoryShaderResolver {
-    sets: HashMap<ShaderId, Shader>,
+    sets: HashMap<ShaderVariantId, Shader>,
 }
 
 impl InMemoryShaderResolver {
@@ -24,7 +24,7 @@ impl InMemoryShaderResolver {
         let mut sets = HashMap::default();
 
         sets.insert(
-            ShaderId::new_no_keywords("unlit"),
+            ShaderVariantId::new_no_keywords("unlit"),
             Shader::Raw(RawShader {
                 ident: "unlit".to_string(),
                 available_keywords: map![
@@ -87,7 +87,11 @@ impl InMemoryShaderResolver {
 }
 
 impl ShaderResolver for InMemoryShaderResolver {
-    fn find_set(&self, id: &ShaderId) -> Option<&Shader> {
-        self.sets.get(id)
+    fn find_set(&self, id: &ShaderVariantId) -> Option<&Shader> {
+        if let Some(found) = self.sets.get(id) {
+            Some(found)
+        } else {
+            self.sets.get(&id.without_keywords())
+        }
     }
 }

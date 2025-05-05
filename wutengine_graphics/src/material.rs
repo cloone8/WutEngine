@@ -7,7 +7,7 @@ use image::{DynamicImage, ImageBuffer};
 
 use crate::color::Color;
 use crate::renderer::RendererTexture2DId;
-use crate::shader::ShaderId;
+use crate::shader::ShaderVariantId;
 use crate::shader::uniform::UniformType;
 use crate::texture::{TextureData, TextureFiltering, TextureWrapping, WrappingMethod};
 
@@ -15,7 +15,7 @@ use crate::texture::{TextureData, TextureFiltering, TextureWrapping, WrappingMet
 #[derive(Debug, Clone, Default)]
 pub struct MaterialData {
     /// The shader used to render this material. If [None], this material will not render
-    pub shader: Option<ShaderId>,
+    pub shader: Option<ShaderVariantId>,
 
     /// Any material parameters
     pub parameters: HashMap<String, MaterialParameter>,

@@ -4,7 +4,7 @@ use std::fmt::format;
 
 use wutengine_graphics::material::{MaterialData, MaterialParameter};
 use wutengine_graphics::renderer::{RendererMaterialId, RendererTexture2DId};
-use wutengine_graphics::shader::ShaderId;
+use wutengine_graphics::shader::ShaderVariantId;
 
 use crate::buffer::{self, GlBuffer};
 use crate::error::checkerr;
@@ -15,7 +15,7 @@ use crate::shader::uniform::std140::param_to_std140_buffer;
 
 #[derive(Debug)]
 pub(crate) struct GlMaterialBuffers {
-    pub(crate) target_shader: Option<ShaderId>,
+    pub(crate) target_shader: Option<ShaderVariantId>,
     pub(crate) parameter_values: HashMap<String, GlMaterialUniform>,
 }
 

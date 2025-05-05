@@ -39,9 +39,9 @@ impl Shader {
         }
     }
 
-    pub fn id(&self) -> ShaderId {
+    pub fn id(&self) -> ShaderVariantId {
         match self {
-            Shader::Raw(raw_shader) => ShaderId::new_no_keywords(&raw_shader.ident),
+            Shader::Raw(raw_shader) => ShaderVariantId::new_no_keywords(&raw_shader.ident),
             Shader::Compiled(compiled_shader) => compiled_shader.id.clone(),
         }
     }

@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use super::builtins::ShaderBuiltins;
 use super::uniform::{SingleUniformBinding, Uniform};
-use super::{ShaderId, ShaderStages, ShaderTarget, ShaderVertexLayout};
+use super::{ShaderVariantId, ShaderStages, ShaderTarget, ShaderVertexLayout};
 
 /// A compiled [super::Shader].
 #[derive(Debug, Clone)]
 pub struct CompiledShader {
     /// The variant ID of this compiled shader
-    pub id: ShaderId,
+    pub id: ShaderVariantId,
 
     /// The target backend for this compiled shader
     pub target: ShaderTarget,
