@@ -1,6 +1,6 @@
 [package]
-name = "wutengine_graphics"
-description = "Graphics stack for WutEngine"
+name = "wutengine_asset"
+description = "Asset loading and management for WutEngine"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -12,20 +12,17 @@ categories.workspace = true
 rust-version.workspace = true
 readme = "../README.md"
 
+[features]
+format_text = ["dep:serde_json"]
+
 [lints]
 workspace = true
 
-[features]
-dx12 = ["wgpu/dx12"]
-metal = ["wgpu/metal"]
-vulkan = ["wgpu/vulkan"]
-opengl = ["wgpu/gles"]
-
 [dependencies]
 wutengine_util.workspace = true
-wutengine_windowing.workspace = true
-wgpu.workspace = true
 log.workspace = true
-profiling.workspace = true
 thiserror.workspace = true
 cfg-if.workspace = true
+serde.workspace = true
+postcard.workspace = true
+serde_json = { workspace = true, optional = true }

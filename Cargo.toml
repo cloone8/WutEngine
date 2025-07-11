@@ -2,21 +2,17 @@
 resolver = "3"
 members = [
     "wutengine",
-    "wutengine/macro",
-    "wutengine_editor",
-    "wutengine_core",
-    "wutengine_examples/pong",
-    "wutengine_util/macro",
+    "wutengine_asset",
     "wutengine_graphics",
-    "wutengine_opengl",
-    "wutengine_shadercompiler",
-    "gl-from-raw-window-handle",
+    "wutengine_util",
+    "wutengine_util_macro",
+    "wutengine_windowing",
 ]
 
 [workspace.package]
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
-rust-version = "1.86"
+rust-version = "1.88"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
 repository = "https://github.com/cloone8/WutEngine"
@@ -26,105 +22,58 @@ categories = ["game-engines"]
 
 [workspace.dependencies]
 ### Workspace dependencies ###
-wutengine = { path = "wutengine", version = "0.5.0" }
-wutengine_macro = { path = "wutengine/macro", version = "0.5.0" }
-wutengine_core = { path = "wutengine_core", version = "0.5.0" }
-wutengine_util_macro = { path = "wutengine_util/macro", version = "0.5.0" }
-wutengine_graphics = { path = "wutengine_graphics", version = "0.5.0" }
-wutengine_opengl = { path = "wutengine_opengl", version = "0.5.0" }
-wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.5.0" }
-gl-from-raw-window-handle = { path = "gl-from-raw-window-handle", version = "0.1.4" }
+wutengine = { path = "wutengine", version = "0.6.0" }
+wutengine_asset = { path = "wutengine_asset", version = "0.6.0" }
+wutengine_graphics = { path = "wutengine_graphics", version = "0.6.0" }
+wutengine_windowing = { path = "wutengine_windowing", version = "0.6.0" }
+wutengine_util = { path = "wutengine_util", version = "0.6.0" }
+wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 
 ### External dependencies ###
-# OS
-cocoa = "0.26.0"
-objc = "0.2.7"
-core-foundation = "0.10.0"
-x11 = { version = "2.21.0", features = ["xlib", "glx"] }
-winapi = { version = "0.3.9", features = [
-    "libloaderapi",
-    "minwindef",
-    "ntdef",
-    "windef",
-    "wingdi",
-    "winnt",
-    "winuser",
+winit = { version = "0.30" }
+wgpu = { version = "26.0", default-features = false, features = [
+    "std",
+    "parking_lot",
 ] }
-uuid = { version = "1.16.0", features = ["v4"] }
 
-# Windowing 
-winit = { version = "0.30.9" }
-gl_generator = "0.14.0"
-raw-window-handle = "0.6.2"
+rayon = { version = "1.10" }
+pollster = { version = "0.4" }
 
-# Gamepad
-gilrs = { version = "0.11.0" }
+profiling = { version = "1.0" }
+puffin_http = { version = "0.16" }
 
-# Logging, errors and other info
-clap = { version = "4.5.37", features = ["derive"] }
-log = "0.4.27"
-simplelog = "0.12.2"
-thiserror = "2.0.12"
-profiling = "1.0.16"
-puffin_http = "0.16.1"
-puffin_egui = "0.29.0"
-
-# Math and algorithms
-nohash-hasher = { version = "0.2.0" }
-rand = { version = "0.9.1", features = ["std", "std_rng", "small_rng"] }
-itertools = "0.14.0"
-glam = { version = "0.29.3", features = [
+log = { version = "0.4", features = ["std"] }
+simplelog = { version = "0.12" }
+thiserror = { version = "2.0" }
+glam = { version = "0.29", features = [
     "std",
     "debug-glam-assert",
     "bytemuck",
+    "serde",
 ] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+postcard = { version = "1.1", features = ["use-std"] }
 
-# Hashers
-md-5 = { version = "0.10" }
+cfg-if = { version = "1.0.1" }
 
-# Macro utilities
-syn = { version = "2.0.100", features = ["full", "parsing"] }
-quote = "1.0.40"
-proc-macro2 = "1.0.95"
-darling = "0.20.11"
+quote = { version = "1" }
+syn = { version = "2", features = ["full"] }
 
-# Asset loading
-image = "0.25.6"
-# naga = { version = "25.0.0", features = ["wgsl-in", "glsl-out"] }
-naga = { git = "https://github.com/gfx-rs/wgpu.git", rev = "30b247a8d1c59cbce1a82958ac66764d3230a3fe", features = [
-    "wgsl-in",
-    "glsl-out",
-] }
+nohash-hasher = { version = "0.2" }
 
-# Parallellism
-rayon = "1.10.0"
-
-# Physics
-rapier2d = { version = "0.24.0", features = ["simd-stable", "parallel"] }
-rapier3d = { version = "0.24.0", features = ["simd-stable", "parallel"] }
-nalgebra = { version = "0.*", features = ["convert-glam029"] }
-
-# Parsing, lexing, and other string stuff
-logos = "0.15"
-
-# Others
-static_assertions = "1.1.0"
-bytemuck = "1.22.0"
-bitflags = { version = "2.9", features = ["bytemuck"] }
+image = { version = "0.25", features = ["serde"] }
 
 [profile.dev]
 opt-level = 1
+debug-assertions = true
 panic = "unwind"
 
 [profile.release]
 strip = true
 lto = true
 codegen-units = 1
-panic = "unwind"
-
-# The profile that 'cargo dist' will build with
-[profile.dist]
-inherits = "release"
+panic = "abort"
 
 [workspace.lints.rust]
 missing_docs = "warn"
@@ -133,3 +82,4 @@ unreachable_pub = "warn"
 
 [workspace.lints.clippy]
 missing_docs_in_private_items = "warn"
+missing_assert_messages = "warn"

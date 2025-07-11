@@ -16,39 +16,25 @@ readme = "../README.md"
 workspace = true
 
 [features]
-default = ["opengl"]
-opengl = ["dep:wutengine_opengl"]
-profiling = [
-    "profiling/profile-with-puffin",
-    "dep:puffin_http",
-    "dep:puffin_egui",
-]
+default = ["dx12", "metal", "vulkan", "opengl", "asset_format_text"]
+
+dx12 = ["wutengine_graphics/dx12"]
+metal = ["wutengine_graphics/metal"]
+vulkan = ["wutengine_graphics/vulkan"]
+opengl = ["wutengine_graphics/opengl"]
+asset_format_text = ["wutengine_asset/format_text"]
 
 [dependencies]
-# Core
-wutengine_core.workspace = true
 wutengine_graphics.workspace = true
-wutengine_macro.workspace = true
-wutengine_util_macro.workspace = true
-
-# Renderers
-wutengine_opengl = { workspace = true, optional = true }
-
-# External
-nohash-hasher.workspace = true
+wutengine_util.workspace = true
+wutengine_windowing.workspace = true
+wutengine_asset.workspace = true
 winit.workspace = true
+wgpu.workspace = true
 log.workspace = true
-itertools.workspace = true
-rand.workspace = true
-glam.workspace = true
-simplelog.workspace = true
-rayon.workspace = true
-rapier2d.workspace = true
-rapier3d.workspace = true
-nalgebra.workspace = true
-gilrs.workspace = true
-thiserror.workspace = true
 profiling.workspace = true
-
-puffin_http = { workspace = true, optional = true }
-puffin_egui = { workspace = true, optional = true }
+thiserror.workspace = true
+glam.workspace = true
+rayon.workspace = true
+cfg-if.workspace = true
+pollster.workspace = true

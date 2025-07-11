@@ -1,6 +1,6 @@
 [package]
-name = "wutengine_graphics"
-description = "Graphics stack for WutEngine"
+name = "wutengine_windowing"
+description = "Window and display management for WutEngine"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -15,17 +15,9 @@ readme = "../README.md"
 [lints]
 workspace = true
 
-[features]
-dx12 = ["wgpu/dx12"]
-metal = ["wgpu/metal"]
-vulkan = ["wgpu/vulkan"]
-opengl = ["wgpu/gles"]
-
 [dependencies]
 wutengine_util.workspace = true
-wutengine_windowing.workspace = true
-wgpu.workspace = true
+winit.workspace = true
 log.workspace = true
 profiling.workspace = true
 thiserror.workspace = true
-cfg-if.workspace = true

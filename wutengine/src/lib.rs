@@ -1,30 +1,81 @@
-//! The root of the WutEngine game engine. Use this crate as a dependency when building WutEngine games, at it
-//! re-exports all relevant subcrates.
+//! The WutEngine game engine
 
-#[doc(inline)]
-pub use wutengine_core::assert;
+use core::cell::UnsafeCell;
+use core::mem::MaybeUninit;
+use core::sync::atomic::{AtomicBool, Ordering};
 
+use thiserror::Error;
+use winit::event_loop::EventLoop;
+use winit::window::WindowAttributes;
+use wutengine_windowing::WutEngineWinitEvent;
+
+use crate::config::WutEngineConfig;
+use crate::winit_app::{WinitApp, WinitInitData};
+
+pub mod config;
+pub use wutengine_graphics as graphics;
+pub use wutengine_windowing::display;
+pub use wutengine_windowing::window;
 pub mod asset;
-pub mod builtins;
 pub mod component;
-pub mod context;
 pub mod gameobject;
-pub mod global;
-pub mod graphics;
-pub mod input;
-pub mod log;
-pub mod macros;
-pub mod math;
-pub mod physics;
-pub mod plugins;
-pub mod profiling;
-pub mod renderer;
-pub mod runtime;
+mod threading;
 pub mod time;
-pub(crate) mod util;
-pub mod windowing;
+mod winit_app;
 
-/// For use in engine plugins
-pub use winit;
+#[derive(Debug, Error)]
+pub enum InitErr {
+    /// WutEngine was already initialized
+    #[error("WutEngine was already initialized in this process")]
+    AlreadyInitialized,
 
-//NOTE: This top-level module will _not_ be logged due to level filtering difficulties. Put any logic in a submodule.
+    /// Error with graphics stack. Usually due to missing graphics devices or something
+    /// similar
+    #[error("Error initializing graphics stack: {0}")]
+    Graphics(#[from] crate::graphics::InitErr),
+}
+
+pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
+    static INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+    if INITIALIZED.swap(true, Ordering::AcqRel) {
+        return Err(InitErr::AlreadyInitialized);
+    }
+
+    log::info!("Initializing WutEngine");
+
+    // Rayon worker threads
+    threading::init_threadpool();
+
+    // Graphics stack
+    pollster::block_on(crate::graphics::init(config.backends))?;
+
+    // Time management
+    unsafe {
+        time::Time::initialize(config.fixed_timestep);
+    }
+
+    // GameObject and Component managers
+    gameobject::init();
+    component::init();
+    wutengine_asset::init(config.asset_loader, config.asset_format);
+
+    // Finally we start Winit, which runs the actual window/event loop
+    let event_loop = EventLoop::<WutEngineWinitEvent>::with_user_event()
+        .build()
+        .expect("Could not build winit EventLoop");
+
+    let mut winit_app = WinitApp::new(
+        event_loop.create_proxy(),
+        WinitInitData {
+            initial_window: config.initial_window,
+            post_init_callback: config.post_init,
+        },
+    );
+
+    event_loop
+        .run_app(&mut winit_app)
+        .expect("Error in Winit event loop");
+
+    Ok(())
+}

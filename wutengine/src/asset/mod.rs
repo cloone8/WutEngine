@@ -1,4 +1,4 @@
-//! Asset related functionality
+pub use wutengine_asset::*;
 
-/// Trait representing a loadable asset
-pub trait Asset: Send + Sync {}
+#[derive(Debug)]
+pub struct Texture {}
