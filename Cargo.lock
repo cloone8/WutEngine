@@ -2581,6 +2581,7 @@ dependencies = [
  "pollster",
  "profiling",
  "rayon",
+ "serde",
  "thiserror 2.0.12",
  "wgpu",
  "winit",

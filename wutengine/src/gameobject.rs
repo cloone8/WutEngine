@@ -3,9 +3,10 @@ use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
 use wutengine_util::nohash_hasher::IntMap;
-use wutengine_util::{GlobalManager, generate_atomic_id};
+use wutengine_util::{GlobalManager, unique_id_type};
 
-use crate::component::{Component, ComponentId};
+use crate::component::{self, Component, ComponentId};
+use crate::gameobject;
 
 #[derive(Debug)]
 struct GameObjectManager {
@@ -26,7 +27,69 @@ pub(crate) fn init() {
     GlobalManager::init(&GAMEOBJECT_MANAGER, GameObjectManager::new());
 }
 
-pub fn create_object() -> GameObjectId {
+#[profiling::function]
+pub(crate) fn handle_state_changes() {
+    log::trace!("Handling GameObject state changes");
+
+    let gameobjects = GAMEOBJECT_MANAGER.gameobjects.read().unwrap();
+
+    for gameobject in gameobjects.values() {
+        let mut private_data = gameobject.private.lock().unwrap();
+
+        debug_assert_ne!(
+            GameObjectState::Destroyed,
+            private_data.cur_state,
+            "{gameobject} is marked as destroyed in an active runtime"
+        );
+
+        let requested_state = *gameobject.requested_state.lock().unwrap();
+
+        if private_data.cur_state == requested_state {
+            // Nothing to do
+            continue;
+        }
+
+        log::trace!(
+            "{gameobject} transitioning from {} to {}",
+            private_data.cur_state,
+            requested_state
+        );
+
+        let requested_component_state = requested_state.to_component_state();
+        component::run_for::<true>(&private_data.components, |component| {
+            component.request_state(requested_component_state);
+        });
+
+        private_data.cur_state = requested_state;
+    }
+}
+
+#[profiling::function]
+pub(crate) fn cleanup_destroyed() {
+    log::trace!("Cleaning up destroyed GameObjects");
+
+    let mut gameobjects = GAMEOBJECT_MANAGER.gameobjects.write().unwrap();
+
+    gameobjects.retain(|_id, gameobject| {
+        let private_data = gameobject.private.lock().unwrap();
+
+        if private_data.cur_state != GameObjectState::Destroyed {
+            return true;
+        }
+
+        log::debug!("Destroying {gameobject}");
+
+        assert!(
+            private_data.components.is_empty(),
+            "Destroying GameObject while it still has components attached"
+        );
+
+        false
+    });
+}
+
+#[profiling::function]
+pub fn create_object(name: Option<String>) -> GameObjectId {
     log::trace!("Creating new GameObject");
 
     let mut gameobjects = GAMEOBJECT_MANAGER.gameobjects.write().unwrap();
@@ -36,8 +99,12 @@ pub fn create_object() -> GameObjectId {
         id,
         GameObject {
             id,
-            state: GameObjectState::Enabling,
-            components: RwLock::new(Vec::new()),
+            name: Mutex::new(name),
+            requested_state: Mutex::new(GameObjectState::Enabled),
+            private: Mutex::new(GameObjectPrivate {
+                cur_state: GameObjectState::Disabled,
+                components: Vec::new(),
+            }),
         },
     );
 
@@ -46,6 +113,7 @@ pub fn create_object() -> GameObjectId {
     id
 }
 
+#[profiling::function]
 pub fn add_component(gameobject: GameObjectId, component: Box<dyn Component>) {
     log::debug!("Adding Component to GameObject {}", gameobject);
 
@@ -60,42 +128,119 @@ pub fn add_component(gameobject: GameObjectId, component: Box<dyn Component>) {
 
     let component_id = crate::component::add_component(component, gameobject);
 
-    go.components.write().unwrap().push(component_id);
+    let mut private_data = go.private.lock().unwrap();
+    private_data.components.push(component_id);
+}
+
+pub fn destroy(id: GameObjectId) {
+    let gameobjects = GAMEOBJECT_MANAGER.gameobjects.read().unwrap();
+
+    let go = if let Some(go) = gameobjects.get(&id) {
+        go
+    } else {
+        log::error!("Tried to destroy unknown GameObject {id}");
+        return;
+    };
+
+    go.request_state(GameObjectState::Destroyed);
+}
+
+#[profiling::function]
+pub(crate) fn notify_component_destroyed(owner: GameObjectId, component: ComponentId) {
+    let gameobjects = GAMEOBJECT_MANAGER.gameobjects.read().unwrap();
+
+    let gameobject = gameobjects
+        .get(&owner)
+        .expect("Attempted to notify non-existing owner of component destruction");
+
+    let mut private_data = gameobject.private.lock().unwrap();
+
+    let to_remove = private_data
+        .components
+        .iter()
+        .position(|comp| *comp == component);
+
+    private_data
+        .components
+        .swap_remove(to_remove.expect("Component to remove was not found on the GameObject"));
 }
 
 #[derive(Debug)]
 pub struct GameObject {
     id: GameObjectId,
-    state: GameObjectState,
-    components: RwLock<Vec<ComponentId>>,
+    name: Mutex<Option<String>>,
+    requested_state: Mutex<GameObjectState>,
+    private: Mutex<GameObjectPrivate>,
+}
+
+impl GameObject {
+    pub(crate) fn request_state(&self, state: GameObjectState) {
+        let mut requested_state = self.requested_state.lock().unwrap();
+
+        if *requested_state == GameObjectState::Destroyed {
+            // Destruction is always permanent
+            return;
+        }
+
+        *requested_state = state;
+    }
+}
+
+#[derive(Debug)]
+struct GameObjectPrivate {
+    cur_state: GameObjectState,
+    components: Vec<ComponentId>,
+}
+
+impl core::fmt::Display for GameObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &*self.name.lock().unwrap() {
+            Some(name) => write!(f, "GameObject({name})"),
+            None => write!(f, "GameObject(id={})", self.id),
+        }
+    }
 }
 
 impl GameObject {
     #[inline(always)]
-    pub fn create() -> GameObjectId {
-        create_object()
+    pub fn create(name: Option<String>) -> GameObjectId {
+        create_object(name)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum GameObjectState {
-    /// Object disabled and not queued for activation
+    /// Object disabled
     Disabled,
-
-    /// Object disabled but queued for activation
-    Enabling,
 
     /// Object enabled. Normal state
     Enabled,
-
-    /// Object queued for deactivation
-    Disabling,
 
     /// Object queued for destruction. Final
     Destroyed,
 }
 
-generate_atomic_id! {
+impl core::fmt::Display for GameObjectState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GameObjectState::Disabled => write!(f, "Disabled"),
+            GameObjectState::Enabled => write!(f, "Enabled"),
+            GameObjectState::Destroyed => write!(f, "Destroyed"),
+        }
+    }
+}
+
+impl GameObjectState {
+    const fn to_component_state(self) -> component::ComponentState {
+        match self {
+            GameObjectState::Disabled => component::ComponentState::Disabled,
+            GameObjectState::Enabled => component::ComponentState::Enabled,
+            GameObjectState::Destroyed => component::ComponentState::Destroyed,
+        }
+    }
+}
+
+unique_id_type! {
     /// The ID of a [GameObject]
     GameObjectId
 }

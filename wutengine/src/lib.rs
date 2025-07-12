@@ -19,6 +19,7 @@ pub use wutengine_windowing::window;
 pub mod asset;
 pub mod component;
 pub mod gameobject;
+mod runtime;
 mod threading;
 pub mod time;
 mod winit_app;

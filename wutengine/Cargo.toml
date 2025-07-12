@@ -29,6 +29,7 @@ wutengine_graphics.workspace = true
 wutengine_util.workspace = true
 wutengine_windowing.workspace = true
 wutengine_asset.workspace = true
+serde.workspace = true
 winit.workspace = true
 wgpu.workspace = true
 log.workspace = true

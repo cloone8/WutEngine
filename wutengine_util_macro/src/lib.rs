@@ -20,7 +20,7 @@ impl Parse for GenerateAtomicIdInput {
 /// Generates a new atomic identifier type, which automatically increments itself
 /// whenever a new instance is created.
 #[proc_macro]
-pub fn generate_atomic_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn unique_id_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as GenerateAtomicIdInput);
 
     let ident_id = input.name;
