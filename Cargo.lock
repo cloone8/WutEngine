@@ -2684,6 +2684,7 @@ dependencies = [
  "profiling",
  "thiserror 2.0.12",
  "wgpu",
+ "wutengine_asset",
  "wutengine_util",
  "wutengine_windowing",
 ]

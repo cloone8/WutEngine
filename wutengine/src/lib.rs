@@ -13,12 +13,12 @@ use crate::config::WutEngineConfig;
 use crate::winit_app::{WinitApp, WinitInitData};
 
 pub mod config;
-pub use wutengine_graphics as graphics;
 pub use wutengine_windowing::display;
 pub use wutengine_windowing::window;
 pub mod asset;
 pub mod component;
 pub mod gameobject;
+pub mod graphics;
 pub mod profiling;
 mod runtime;
 mod threading;

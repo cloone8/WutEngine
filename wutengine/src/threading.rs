@@ -26,5 +26,5 @@ fn thread_start_handler(_index: usize) {
 }
 
 fn make_thread_name(index: usize) -> String {
-    format!("wutengine_worker_{}", index)
+    format!("wutengine_worker_{index}")
 }

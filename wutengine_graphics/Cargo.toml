@@ -24,6 +24,7 @@ opengl = ["wgpu/gles"]
 [dependencies]
 wutengine_util.workspace = true
 wutengine_windowing.workspace = true
+wutengine_asset.workspace = true
 wgpu.workspace = true
 log.workspace = true
 profiling.workspace = true

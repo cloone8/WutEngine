@@ -162,7 +162,9 @@ pub(crate) fn add_queued() {
 }
 
 #[profiling::function]
-pub(crate) fn run_update() {
+pub(crate) fn run_on_active_components(
+    mut func: impl FnMut(&mut Box<dyn Component>, ComponentContext),
+) {
     let components = COMPONENT_MANAGER.components.read().unwrap();
 
     for component in components.values() {
@@ -172,10 +174,13 @@ pub(crate) fn run_update() {
             continue;
         }
 
-        private.component.on_update(ComponentContext {
-            gameobject: component.gameobject,
-            this: component.id,
-        });
+        func(
+            &mut private.component,
+            ComponentContext {
+                gameobject: component.gameobject,
+                this: component.id,
+            },
+        );
     }
 }
 
@@ -213,6 +218,7 @@ pub trait Component: Any + TypeName + Send + Sync + core::fmt::Debug {
     fn on_create(&mut self, _context: ComponentContext) {}
     fn on_enable(&mut self, _context: ComponentContext) {}
     fn on_update(&mut self, _context: ComponentContext) {}
+    fn on_fixed_update(&mut self, _context: ComponentContext) {}
     fn on_disable(&mut self, _context: ComponentContext) {}
     fn on_destroy(&mut self, _context: ComponentContext) {}
 }
