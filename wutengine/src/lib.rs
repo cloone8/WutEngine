@@ -5,7 +5,7 @@ use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use thiserror::Error;
-use winit::event_loop::EventLoop;
+use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowAttributes;
 use wutengine_windowing::WutEngineWinitEvent;
 
@@ -19,6 +19,7 @@ pub use wutengine_windowing::window;
 pub mod asset;
 pub mod component;
 pub mod gameobject;
+pub mod profiling;
 mod runtime;
 mod threading;
 pub mod time;
@@ -65,6 +66,8 @@ pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
     let event_loop = EventLoop::<WutEngineWinitEvent>::with_user_event()
         .build()
         .expect("Could not build winit EventLoop");
+
+    event_loop.set_control_flow(ControlFlow::Poll);
 
     let mut winit_app = WinitApp::new(
         event_loop.create_proxy(),

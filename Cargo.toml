@@ -31,7 +31,7 @@ wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
-wgpu = { version = "26.0", default-features = false, features = [
+wgpu = { version = "26.0.1", default-features = false, features = [
     "std",
     "parking_lot",
 ] }

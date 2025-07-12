@@ -22,7 +22,10 @@ dx12 = ["wutengine_graphics/dx12"]
 metal = ["wutengine_graphics/metal"]
 vulkan = ["wutengine_graphics/vulkan"]
 opengl = ["wutengine_graphics/opengl"]
+
 asset_format_text = ["wutengine_asset/format_text"]
+
+profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
 
 [dependencies]
 wutengine_graphics.workspace = true
@@ -34,6 +37,9 @@ winit.workspace = true
 wgpu.workspace = true
 log.workspace = true
 profiling.workspace = true
+
+puffin_http = { workspace = true, optional = true }
+
 thiserror.workspace = true
 glam.workspace = true
 rayon.workspace = true

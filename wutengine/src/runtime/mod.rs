@@ -5,6 +5,7 @@ use crate::{component, gameobject};
 /// Runs a single frame
 pub(crate) fn frame() {
     profiling::finish_frame!();
+    profiling::function_scope!();
 
     log::trace!("Starting new frame");
 
