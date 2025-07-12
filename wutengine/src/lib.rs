@@ -54,7 +54,7 @@ pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
 
     // Time management
     unsafe {
-        time::Time::initialize(config.fixed_timestep);
+        time::init(config.fixed_timestep);
     }
 
     // GameObject and Component managers
