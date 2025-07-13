@@ -15,6 +15,9 @@ use wgpu::{
 use wutengine_util::GlobalManager;
 use wutengine_windowing::window::WindowIdentifier;
 
+pub mod mesh;
+pub mod texture;
+
 static GRAPHICS_MANAGER: GlobalManager<GraphicsManager> = GlobalManager::new();
 
 #[derive(Debug, Error)]

@@ -23,6 +23,9 @@ wutengine_util.workspace = true
 log.workspace = true
 thiserror.workspace = true
 cfg-if.workspace = true
+image.workspace = true
 serde.workspace = true
+serde_bytes.workspace = true
 postcard.workspace = true
 serde_json = { workspace = true, optional = true }
+bytemuck.workspace = true

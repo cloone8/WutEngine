@@ -1,4 +1,4 @@
-//! Time management and related functionality for WutEngine
+//! Time management
 
 use core::cell::UnsafeCell;
 use core::mem::MaybeUninit;

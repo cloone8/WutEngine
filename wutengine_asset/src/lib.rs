@@ -26,6 +26,8 @@ use serde::de::DeserializeOwned;
 use thiserror::Error;
 use wutengine_util::GlobalManager;
 
+pub mod serializers;
+
 static ASSET_MANAGER: GlobalManager<AssetManager> = GlobalManager::new();
 
 #[derive(Debug)]
