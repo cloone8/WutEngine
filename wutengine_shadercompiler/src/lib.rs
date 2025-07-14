@@ -2,6 +2,7 @@
 
 use core::ops::{Range, RangeInclusive};
 use std::collections::HashMap;
+use std::time::Instant;
 
 use rayon::prelude::*;
 use thiserror::Error;
@@ -77,10 +78,43 @@ pub fn compile<'a>(
     let jobs = gather_compile_jobs(keywords);
 
     log::info!("Running {} total compile jobs", jobs.len());
+    let start = Instant::now();
+
+    let output = jobs
+        .into_par_iter()
+        .map(|job_keywords| compile_single(raw_shader, job_keywords))
+        .collect();
+
+    log::info!(
+        "Done after {} seconds",
+        Instant::now().duration_since(start).as_secs_f32()
+    );
+
+    output
+}
+
+pub fn compile_with_callback<'a>(
+    raw_shader: &str,
+    keywords: &HashMap<&'a str, KeywordValue>,
+    callback: impl Fn(Result<ShaderOutput<'a>, Error>) + Sync + Send,
+) {
+    log::info!("Compiling shader with {} keywords", keywords.len());
+
+    let jobs = gather_compile_jobs(keywords);
+
+    log::info!("Running {} total compile jobs", jobs.len());
+    let start = Instant::now();
 
     jobs.into_par_iter()
         .map(|job_keywords| compile_single(raw_shader, job_keywords))
-        .collect()
+        .for_each(callback);
+
+    log::info!(
+        "Done after {} seconds",
+        Instant::now().duration_since(start).as_secs_f32()
+    );
+
+    ()
 }
 
 pub fn compile_single<'a>(
