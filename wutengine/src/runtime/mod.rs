@@ -1,9 +1,9 @@
 //! Main WutEngine runtime
 
-use crate::{component, gameobject, time};
+use crate::{component, gameobject, graphics, time};
 
 /// Runs a single frame
-pub(crate) fn frame() {
+pub(crate) fn run_step() {
     profiling::finish_frame!();
     profiling::function_scope!();
 
@@ -42,4 +42,11 @@ fn run_frame_phase(_name: &'static str, phase: impl FnOnce()) {
 
     component::handle_destruction();
     gameobject::cleanup_destroyed();
+}
+
+#[profiling::function]
+pub(crate) fn render() {
+    log::trace!("Rendering frame");
+
+    graphics::render_all_windows();
 }

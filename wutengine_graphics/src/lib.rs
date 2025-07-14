@@ -16,6 +16,7 @@ use wutengine_util::GlobalManager;
 use wutengine_windowing::window::WindowIdentifier;
 
 pub mod mesh;
+pub mod shader;
 pub mod texture;
 
 static GRAPHICS_MANAGER: GlobalManager<GraphicsManager> = GlobalManager::new();
@@ -125,6 +126,65 @@ pub fn resized(id: &WindowIdentifier, inner_size: (u32, u32)) {
 
     surface.inner_size = inner_size;
     surface.reconfigure(&GRAPHICS_MANAGER.device);
+}
+
+#[profiling::function]
+pub fn render_all_windows() {
+    let surfaces = GRAPHICS_MANAGER.surfaces.lock().unwrap();
+
+    for (id, surface) in surfaces.iter() {
+        render_window(id, surface);
+    }
+}
+
+#[profiling::function]
+fn render_window(id: &WindowIdentifier, surface: &GraphicsSurface) {
+    // Create texture view
+    let surface_texture = surface
+        .native
+        .get_current_texture()
+        .expect("failed to acquire next swapchain texture");
+    let texture_view = surface_texture
+        .texture
+        .create_view(&wgpu::TextureViewDescriptor {
+            // Without add_srgb_suffix() the image we will be working with
+            // might not be "gamma correct".
+            format: Some(surface.capabilities.formats[0]),
+            ..Default::default()
+        });
+
+    // Renders a GREEN screen
+    let mut encoder = GRAPHICS_MANAGER
+        .device
+        .create_command_encoder(&Default::default());
+
+    // Create the renderpass which will clear the screen.
+    let renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: None,
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: &texture_view,
+            depth_slice: None,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                store: wgpu::StoreOp::Store,
+            },
+        })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+    });
+
+    // If you wanted to call any drawing commands, they would go here.
+
+    // End the renderpass.
+    core::mem::drop(renderpass);
+
+    // Submit the command in the queue to execute
+    GRAPHICS_MANAGER.queue.submit([encoder.finish()]);
+
+    // self.window.pre_present_notify();
+    surface_texture.present();
 }
 
 #[derive(Debug)]

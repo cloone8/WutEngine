@@ -4,6 +4,7 @@ members = [
     "wutengine",
     "wutengine_asset",
     "wutengine_graphics",
+    "wutengine_shadercompiler",
     "wutengine_util",
     "wutengine_util_macro",
     "wutengine_windowing",
@@ -55,6 +56,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_bytes = { version = "0.11" }
 serde_json = { version = "1.0" }
 postcard = { version = "1.1", features = ["use-std"] }
+logos = "0.15"
 
 cfg-if = { version = "1.0.1" }
 
@@ -62,8 +64,9 @@ quote = { version = "1" }
 syn = { version = "2", features = ["full"] }
 
 nohash-hasher = { version = "0.2" }
+md-5 = { version = "0.10" }
 
-image = { version = "0.25", features = ["serde"] }
+image = { version = "0.25", features = [] }
 bytemuck = { version = "1.23", features = ["extern_crate_alloc"] }
 
 [profile.dev]

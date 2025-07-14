@@ -97,7 +97,8 @@ impl TryFrom<WindowOptions> for winit::window::WindowAttributes {
 
         Ok(Self::default()
             .with_fullscreen(fullscreen_mode)
-            .with_title(value.title))
+            .with_title(value.title)
+            .with_min_inner_size(winit::dpi::PhysicalSize::new(1, 1)))
     }
 }
 

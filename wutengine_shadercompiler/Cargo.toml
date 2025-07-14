@@ -1,22 +1,22 @@
 [package]
-name = "wutengine_util"
-description = "Internal utilities for WutEngine"
+name = "wutengine_shadercompiler"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 categories.workspace = true
-rust-version.workspace = true
-readme = "../README.md"
+
+[dependencies]
+log.workspace = true
+simplelog.workspace = true
+rayon.workspace = true
+thiserror.workspace = true
+wutengine_util.workspace = true
+logos.workspace = true
 
 [lints]
 workspace = true
-
-[dependencies]
-nohash-hasher.workspace = true
-md-5.workspace = true
-log.workspace = true
-wutengine_util_macro.workspace = true

@@ -126,7 +126,7 @@ pub(crate) unsafe fn update_to_now() -> usize {
     let cur_time = Instant::now();
     let prev_time = get();
     let delta = cur_time.duration_since(prev_time.frame_start).as_secs_f32();
-    let mut fixed_accumulator = prev_time.fixed_accumulator + delta;
+    let mut fixed_accumulator = prev_time.fixed_accumulator + (delta / prev_time.fixed_delta);
 
     let fixed_steps_to_run = fixed_accumulator.floor();
     fixed_accumulator -= fixed_steps_to_run;
