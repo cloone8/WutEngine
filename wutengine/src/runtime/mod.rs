@@ -28,6 +28,12 @@ pub(crate) fn run_step() {
             });
         }
     }
+
+    run_frame_phase("Render", || {
+        component::run_on_active_components(|component, context| {
+            component.on_render(context);
+        });
+    });
 }
 
 fn run_frame_phase(_name: &'static str, phase: impl FnOnce()) {

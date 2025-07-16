@@ -1,12 +1,10 @@
-use core::any::Any;
 use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
-use wutengine_util::nohash_hasher::IntMap;
+use wutengine_util::hash::nohash_hasher::IntMap;
 use wutengine_util::{GlobalManager, unique_id_type};
 
 use crate::component::{self, Component, ComponentId};
-use crate::gameobject;
 
 #[derive(Debug)]
 struct GameObjectManager {
@@ -205,6 +203,11 @@ impl GameObject {
     #[inline(always)]
     pub fn create(name: Option<String>) -> GameObjectId {
         create_object(name)
+    }
+
+    #[inline(always)]
+    pub fn add_component(id: GameObjectId, component: impl Component) {
+        add_component(id, Box::new(component));
     }
 }
 

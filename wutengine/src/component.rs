@@ -2,7 +2,7 @@ use core::any::Any;
 use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
-use wutengine_util::nohash_hasher::IntMap;
+use wutengine_util::hash::nohash_hasher::IntMap;
 use wutengine_util::{GlobalManager, TypeName, unique_id_type};
 
 use crate::gameobject::{self, GameObjectId};
@@ -218,6 +218,7 @@ pub trait Component: Any + TypeName + Send + Sync + core::fmt::Debug {
     fn on_create(&mut self, _context: ComponentContext) {}
     fn on_enable(&mut self, _context: ComponentContext) {}
     fn on_update(&mut self, _context: ComponentContext) {}
+    fn on_render(&mut self, _context: ComponentContext) {}
     fn on_fixed_update(&mut self, _context: ComponentContext) {}
     fn on_disable(&mut self, _context: ComponentContext) {}
     fn on_destroy(&mut self, _context: ComponentContext) {}

@@ -10,6 +10,9 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+serde = ["dep:serde"]
+
 [dependencies]
 log.workspace = true
 simplelog.workspace = true
@@ -17,6 +20,10 @@ rayon.workspace = true
 thiserror.workspace = true
 wutengine_util.workspace = true
 logos.workspace = true
+itertools.workspace = true
+naga = { workspace = true, features = ["wgsl-in"] }
+serde = { workspace = true, optional = true }
+profiling.workspace = true
 
 [lints]
 workspace = true

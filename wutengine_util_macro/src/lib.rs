@@ -4,12 +4,16 @@ use syn::parse::Parse;
 use syn::{parse_macro_input, Attribute, Ident};
 use quote::quote;
 
-struct GenerateAtomicIdInput {
+/// Input for the [unique_id_type] macro
+struct UniqueIdTypeInput {
+    /// Existing attributes to apply
     attrs: Vec<Attribute>,
+
+    /// Name of the new ID type
     name: Ident,
 }
 
-impl Parse for GenerateAtomicIdInput {
+impl Parse for UniqueIdTypeInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let attrs = input.call(Attribute::parse_outer)?;
         let name: Ident = input.parse()?;
@@ -21,7 +25,7 @@ impl Parse for GenerateAtomicIdInput {
 /// whenever a new instance is created.
 #[proc_macro]
 pub fn unique_id_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as GenerateAtomicIdInput);
+    let input = parse_macro_input!(input as UniqueIdTypeInput);
 
     let ident_id = input.name;
 
@@ -48,7 +52,7 @@ pub fn unique_id_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
         }
 
-        impl ::wutengine_util::nohash_hasher::IsEnabled for #ident_id {}
+        impl ::wutengine_util::hash::nohash_hasher::IsEnabled for #ident_id {}
 
         impl Default for #ident_id {
             fn default() -> Self {

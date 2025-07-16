@@ -16,14 +16,19 @@ pub mod config;
 pub use wutengine_windowing::display;
 pub use wutengine_windowing::window;
 pub mod asset;
+pub mod builtin;
 pub mod component;
 pub mod gameobject;
 pub mod graphics;
+pub mod math;
+pub mod prelude;
 pub mod profiling;
 mod runtime;
 mod threading;
 pub mod time;
 mod winit_app;
+
+pub use wutengine_util::map;
 
 #[derive(Debug, Error)]
 pub enum InitErr {

@@ -12,7 +12,9 @@ pub struct Texture {
     pub wrapping: TextureWrapping,
 }
 
-impl Asset for Texture {}
+impl Asset for Texture {
+    const FORCE_BINARY: bool = true;
+}
 
 /// The texture filtering method used in a [TextureData]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -25,11 +25,17 @@ opengl = ["wgpu/gles"]
 wutengine_util.workspace = true
 wutengine_windowing.workspace = true
 wutengine_asset.workspace = true
+wutengine_shadercompiler.workspace = true
 glam.workspace = true
 image.workspace = true
 serde.workspace = true
 wgpu.workspace = true
+naga = { workspace = true, features = ["serialize", "deserialize"] }
 log.workspace = true
 profiling.workspace = true
 thiserror.workspace = true
 cfg-if.workspace = true
+bytemuck.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

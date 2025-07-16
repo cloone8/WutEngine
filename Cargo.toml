@@ -8,6 +8,7 @@ members = [
     "wutengine_util",
     "wutengine_util_macro",
     "wutengine_windowing",
+    "tools/weshc",
 ]
 
 [workspace.package]
@@ -29,21 +30,25 @@ wutengine_graphics = { path = "wutengine_graphics", version = "0.6.0" }
 wutengine_windowing = { path = "wutengine_windowing", version = "0.6.0" }
 wutengine_util = { path = "wutengine_util", version = "0.6.0" }
 wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
+wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
 wgpu = { version = "26.0.1", default-features = false, features = [
     "std",
     "parking_lot",
+    "naga-ir",
 ] }
+naga = { version = "26" }
 
 rayon = { version = "1.10" }
+itertools = { version = "0.14" }
 pollster = { version = "0.4" }
 
 profiling = { version = "1.0" }
 puffin_http = { version = "0.16" }
 
-log = { version = "0.4", features = ["std"] }
+log = { version = "0.4" }
 simplelog = { version = "0.12" }
 thiserror = { version = "2.0" }
 glam = { version = "0.29", features = [
@@ -69,10 +74,7 @@ md-5 = { version = "0.10" }
 image = { version = "0.25", features = [] }
 bytemuck = { version = "1.23", features = ["extern_crate_alloc"] }
 
-[profile.dev]
-opt-level = 1
-debug-assertions = true
-panic = "unwind"
+clap = { version = "4.5", features = ["derive"] }
 
 [profile.release]
 strip = true

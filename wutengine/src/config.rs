@@ -40,7 +40,7 @@ impl Default for WutEngineConfig {
             fixed_timestep: 1.0 / 50.0,
             backends: WutEngineBackend::default(),
             initial_window: Some(InitialWindowConfig::default()),
-            asset_loader: Box::new(BasicAssetLoader {}),
+            asset_loader: Box::new(BasicAssetLoader::default()),
             asset_format: AssetSerializationFormat::Text,
             post_init: None,
         }

@@ -10,16 +10,19 @@ use thiserror::Error;
 use wgpu::wgt::DeviceDescriptor;
 use wgpu::{
     BackendOptions, Features, InstanceDescriptor, InstanceFlags, Limits, MemoryBudgetThresholds,
-    MemoryHints, PowerPreference, RequestAdapterOptions,
+    MemoryHints, PowerPreference, Queue, RequestAdapterOptions,
 };
 use wutengine_util::GlobalManager;
 use wutengine_windowing::window::WindowIdentifier;
 
+pub mod format;
+pub mod material;
 pub mod mesh;
+pub mod resource;
 pub mod shader;
 pub mod texture;
 
-static GRAPHICS_MANAGER: GlobalManager<GraphicsManager> = GlobalManager::new();
+pub(crate) static GRAPHICS_MANAGER: GlobalManager<GraphicsManager> = GlobalManager::new();
 
 #[derive(Debug, Error)]
 pub enum InitErr {
@@ -28,6 +31,11 @@ pub enum InitErr {
 
     #[error("Could not get device from adapter: {0}")]
     Device(#[from] wgpu::RequestDeviceError),
+}
+
+fn reinitialize_graphics() {
+    resource::increment_device_generation();
+    todo!();
 }
 
 pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
@@ -66,6 +74,15 @@ pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
             trace: wgpu::Trace::Off,
         })
         .await?;
+
+    device.set_device_lost_callback(|reason, msg| {
+        log::error!("Lost device due to {reason:#?}: {msg}");
+
+        reinitialize_graphics();
+    });
+
+    // Set device generation to 1: the main/first
+    resource::increment_device_generation();
 
     let manager = GraphicsManager {
         instance,
@@ -166,7 +183,7 @@ fn render_window(id: &WindowIdentifier, surface: &GraphicsSurface) {
             depth_slice: None,
             resolve_target: None,
             ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                 store: wgpu::StoreOp::Store,
             },
         })],
