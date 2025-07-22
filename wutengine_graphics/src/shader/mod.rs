@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 use wgpu::ShaderModule;
 use wutengine_asset::{Asset, AssetHandle};
 
+mod vertexlayout;
+
+pub use vertexlayout::ShaderVertexLayout;
+
 use crate::resource::GpuResource;
 
 #[derive(Debug, Clone)]
@@ -22,6 +26,7 @@ pub struct ShaderSource {
     pub name: String,
     pub code: String,
     pub available_keywords: HashMap<String, PossibleKeywordValue>,
+    pub vertex_layout: ShaderVertexLayout,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

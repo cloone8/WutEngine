@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use naga::keywords;
 use serde::{Deserialize, Serialize};
-use wgpu::ShaderModuleDescriptor;
+use wgpu::{
+    PipelineCompilationOptions, PipelineLayoutDescriptor, RenderPipelineDescriptor,
+    ShaderModuleDescriptor,
+};
 use wutengine_asset::{Asset, AssetHandle};
 use wutengine_shadercompiler::{CompileStage, ShaderOutput};
 
@@ -17,6 +20,43 @@ pub struct Material {
 }
 
 impl Asset for Material {}
+
+impl Material {
+    pub(crate) fn get_pipeline_layout(&self) -> wgpu::PipelineLayout {
+        let layout = GRAPHICS_MANAGER
+            .device
+            .create_pipeline_layout(&PipelineLayoutDescriptor {
+                label: Some("Material pipeline"),
+                bind_group_layouts: &[],
+                push_constant_ranges: &[],
+            });
+
+        layout
+    }
+
+    // pub(crate) fn get_render_pipeline(&self) -> wgpu::RenderPipeline {
+    //     let module = self.shader.as_ref().unwrap().get_shader_module().unwrap();
+
+    //     let pipeline = GRAPHICS_MANAGER
+    //         .device
+    //         .create_render_pipeline(&RenderPipelineDescriptor {
+    //             label: Some("Material render pipeline"),
+    //             layout: Some(&self.get_pipeline_layout()),
+    //             vertex: wgpu::VertexState {
+    //                 module: &module,
+    //                 entry_point: Some("vertex_main"),
+    //                 compilation_options: PipelineCompilationOptions::default(),
+    //                 buffers: ,
+    //             },
+    //             primitive: todo!(),
+    //             depth_stencil: todo!(),
+    //             multisample: todo!(),
+    //             fragment: todo!(),
+    //             multiview: todo!(),
+    //             cache: todo!(),
+    //         });
+    // }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShaderVariant {
@@ -86,5 +126,11 @@ impl ShaderVariant {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn get_shader_module(&self) -> Option<&wgpu::ShaderModule> {
+        self.compiled
+            .as_ref()
+            .and_then(|compiled| compiled.renderer_data.get())
     }
 }

@@ -3597,6 +3597,7 @@ dependencies = [
  "wgpu",
  "winit",
  "wutengine_asset",
+ "wutengine_event",
  "wutengine_graphics",
  "wutengine_util",
  "wutengine_windowing",
@@ -3615,6 +3616,14 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "thiserror 2.0.12",
+ "wutengine_util",
+]
+
+[[package]]
+name = "wutengine_event"
+version = "0.6.0"
+dependencies = [
+ "log",
  "wutengine_util",
 ]
 
@@ -3679,6 +3688,7 @@ version = "0.6.0"
 dependencies = [
  "log",
  "profiling",
+ "serde",
  "thiserror 2.0.12",
  "winit",
  "wutengine_util",

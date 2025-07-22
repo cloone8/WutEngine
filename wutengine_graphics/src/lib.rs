@@ -3,21 +3,24 @@
 mod backend;
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 
 pub use backend::WutEngineBackend;
 use thiserror::Error;
 use wgpu::wgt::DeviceDescriptor;
 use wgpu::{
-    BackendOptions, Features, InstanceDescriptor, InstanceFlags, Limits, MemoryBudgetThresholds,
-    MemoryHints, PowerPreference, Queue, RequestAdapterOptions,
+    BackendOptions, CommandBuffer, Features, InstanceDescriptor, InstanceFlags, Limits,
+    MemoryBudgetThresholds, MemoryHints, PowerPreference, Queue, RequestAdapterOptions,
+    SurfaceTexture,
 };
 use wutengine_util::GlobalManager;
 use wutengine_windowing::window::WindowIdentifier;
 
+pub mod color;
 pub mod format;
 pub mod material;
 pub mod mesh;
+pub(crate) mod passes;
 pub mod resource;
 pub mod shader;
 pub mod texture;
@@ -89,7 +92,7 @@ pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
         adapter,
         device,
         queue,
-        surfaces: Mutex::new(HashMap::new()),
+        surfaces: RwLock::new(HashMap::new()),
     };
 
     GlobalManager::init(&GRAPHICS_MANAGER, manager);
@@ -119,20 +122,19 @@ pub fn initialize_surface_for_window(
 
     let graphics_surface = GraphicsSurface {
         capabilities: surface.get_capabilities(&GRAPHICS_MANAGER.adapter),
-        inner_size,
         native: surface,
     };
 
-    graphics_surface.reconfigure(&GRAPHICS_MANAGER.device);
+    graphics_surface.reconfigure(&GRAPHICS_MANAGER.device, inner_size);
 
-    let mut locked = GRAPHICS_MANAGER.surfaces.lock().unwrap();
+    let mut locked = GRAPHICS_MANAGER.surfaces.write().unwrap();
     locked.insert(id, graphics_surface);
 
     Ok(())
 }
 
 pub fn resized(id: &WindowIdentifier, inner_size: (u32, u32)) {
-    let mut locked = GRAPHICS_MANAGER.surfaces.lock().unwrap();
+    let mut locked = GRAPHICS_MANAGER.surfaces.write().unwrap();
 
     let surface = if let Some(surface) = locked.get_mut(id) {
         surface
@@ -141,21 +143,19 @@ pub fn resized(id: &WindowIdentifier, inner_size: (u32, u32)) {
         return;
     };
 
-    surface.inner_size = inner_size;
-    surface.reconfigure(&GRAPHICS_MANAGER.device);
+    surface.reconfigure(&GRAPHICS_MANAGER.device, inner_size);
 }
 
 #[profiling::function]
-pub fn render_all_windows() {
-    let surfaces = GRAPHICS_MANAGER.surfaces.lock().unwrap();
+pub fn render_window(id: &WindowIdentifier) {
+    let surfaces = GRAPHICS_MANAGER.surfaces.read().unwrap();
+    let surface = match surfaces.get(id) {
+        Some(surface) => surface,
+        None => {
+            return;
+        }
+    };
 
-    for (id, surface) in surfaces.iter() {
-        render_window(id, surface);
-    }
-}
-
-#[profiling::function]
-fn render_window(id: &WindowIdentifier, surface: &GraphicsSurface) {
     // Create texture view
     let surface_texture = surface
         .native
@@ -177,7 +177,7 @@ fn render_window(id: &WindowIdentifier, surface: &GraphicsSurface) {
 
     // Create the renderpass which will clear the screen.
     let renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: None,
+        label: Some("Main pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
             view: &texture_view,
             depth_slice: None,
@@ -204,15 +204,40 @@ fn render_window(id: &WindowIdentifier, surface: &GraphicsSurface) {
     surface_texture.present();
 }
 
+pub fn get_window_surface_texture(id: &WindowIdentifier) -> Option<wgpu::SurfaceTexture> {
+    let surfaces = GRAPHICS_MANAGER.surfaces.read().unwrap();
+    let surface = match surfaces.get(id) {
+        Some(surface) => surface,
+        None => {
+            log::error!("Could not find surface for given window id {id}");
+            return None;
+        }
+    };
+
+    let surface_texture = surface
+        .native
+        .get_current_texture()
+        .expect("failed to acquire next swapchain texture");
+
+    Some(surface_texture)
+}
+
+pub fn create_command_encoder(desc: &wgpu::CommandEncoderDescriptor) -> wgpu::CommandEncoder {
+    GRAPHICS_MANAGER.device.create_command_encoder(desc)
+}
+
+pub fn submit_command_buffers<I: IntoIterator<Item = CommandBuffer>>(buffers: I) {
+    GRAPHICS_MANAGER.queue.submit(buffers);
+}
+
 #[derive(Debug)]
 struct GraphicsSurface {
     native: wgpu::Surface<'static>,
     capabilities: wgpu::SurfaceCapabilities,
-    inner_size: (u32, u32),
 }
 
 impl GraphicsSurface {
-    fn reconfigure(&self, device: &wgpu::Device) {
+    fn reconfigure(&self, device: &wgpu::Device, size: (u32, u32)) {
         let surface_format = self.capabilities.formats[0];
 
         let surface_config = wgpu::SurfaceConfiguration {
@@ -221,8 +246,8 @@ impl GraphicsSurface {
             // Request compatibility with the sRGB-format texture view we‘re going to create later.
             view_formats: vec![surface_format.add_srgb_suffix()],
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            width: self.inner_size.0,
-            height: self.inner_size.1,
+            width: size.0,
+            height: size.1,
             desired_maximum_frame_latency: 2,
             present_mode: wgpu::PresentMode::AutoVsync,
         };
@@ -237,5 +262,5 @@ struct GraphicsManager {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    surfaces: Mutex<HashMap<WindowIdentifier, GraphicsSurface>>,
+    surfaces: RwLock<HashMap<WindowIdentifier, GraphicsSurface>>,
 }

@@ -112,7 +112,7 @@ pub fn create_object(name: Option<String>) -> GameObjectId {
 }
 
 #[profiling::function]
-pub fn add_component(gameobject: GameObjectId, component: Box<dyn Component>) {
+pub fn add_component<C: Component>(gameobject: GameObjectId, component: C) {
     log::debug!("Adding Component to GameObject {}", gameobject);
 
     let gameobjects = GAMEOBJECT_MANAGER.gameobjects.read().unwrap();
@@ -124,7 +124,11 @@ pub fn add_component(gameobject: GameObjectId, component: Box<dyn Component>) {
         return;
     };
 
-    let component_id = crate::component::add_component(component, gameobject);
+    let component_id = crate::component::add_component(
+        Box::new(component),
+        core::any::TypeId::of::<C>(),
+        gameobject,
+    );
 
     let mut private_data = go.private.lock().unwrap();
     private_data.components.push(component_id);
@@ -201,13 +205,13 @@ impl core::fmt::Display for GameObject {
 
 impl GameObject {
     #[inline(always)]
-    pub fn create(name: Option<String>) -> GameObjectId {
-        create_object(name)
+    pub fn create(name: Option<impl ToString>) -> GameObjectId {
+        create_object(name.map(|n| n.to_string()))
     }
 
     #[inline(always)]
-    pub fn add_component(id: GameObjectId, component: impl Component) {
-        add_component(id, Box::new(component));
+    pub fn add_component<C: Component>(id: GameObjectId, component: C) {
+        add_component(id, component);
     }
 }
 
@@ -246,4 +250,11 @@ impl GameObjectState {
 unique_id_type! {
     /// The ID of a [GameObject]
     GameObjectId
+}
+
+impl GameObjectId {
+    #[inline(always)]
+    pub fn add_component<C: Component>(self, component: C) {
+        add_component(self, component)
+    }
 }

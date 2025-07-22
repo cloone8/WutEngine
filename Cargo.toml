@@ -8,6 +8,7 @@ members = [
     "wutengine_util",
     "wutengine_util_macro",
     "wutengine_windowing",
+    "wutengine_event",
     "tools/weshc",
 ]
 
@@ -26,6 +27,7 @@ categories = ["game-engines"]
 ### Workspace dependencies ###
 wutengine = { path = "wutengine", version = "0.6.0" }
 wutengine_asset = { path = "wutengine_asset", version = "0.6.0" }
+wutengine_event = { path = "wutengine_event", version = "0.6.0" }
 wutengine_graphics = { path = "wutengine_graphics", version = "0.6.0" }
 wutengine_windowing = { path = "wutengine_windowing", version = "0.6.0" }
 wutengine_util = { path = "wutengine_util", version = "0.6.0" }

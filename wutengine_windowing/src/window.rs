@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wutengine_util::GlobalManager;
 
@@ -131,12 +132,27 @@ pub fn identifier_for_native_id(id: &winit::window::WindowId) -> Option<WindowId
         .cloned()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub fn lock_windows<F>(cb: F)
+where
+    F: for<'a> FnOnce(Vec<(&'a WindowIdentifier, &'a winit::window::Window)>),
+{
+    let locked = WINDOW_MANAGER.windows.lock().unwrap();
+
+    let as_vec = locked
+        .wutengine_id_map
+        .iter()
+        .map(|(id, &index)| (id, locked.windows[index].as_ref()))
+        .collect();
+
+    cb(as_vec);
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WindowIdentifier(pub(crate) String);
 
 impl WindowIdentifier {
-    pub fn new(s: String) -> Self {
-        Self(s)
+    pub fn new(s: impl ToString) -> Self {
+        Self(s.to_string())
     }
 }
 

@@ -13,6 +13,7 @@ use crate::config::WutEngineConfig;
 use crate::winit_app::{WinitApp, WinitInitData};
 
 pub mod config;
+pub use wutengine_event as event;
 pub use wutengine_windowing::display;
 pub use wutengine_windowing::window;
 pub mod asset;
@@ -63,6 +64,7 @@ pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
     }
 
     // GameObject and Component managers
+    wutengine_event::init();
     gameobject::init();
     component::init();
     wutengine_asset::init(config.asset_loader, config.asset_format);

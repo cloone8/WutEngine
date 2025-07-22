@@ -136,7 +136,7 @@ impl Default for WutEngineBackend {
     fn default() -> Self {
         cfg_if! {
             if #[cfg(target_os = "windows")] {
-                Self::DX12
+                Self::VULKAN
             } else if #[cfg(target_os = "macos")] {
                 Self::METAL
             } else if #[cfg(target_os = "linux")] {

@@ -1,6 +1,7 @@
-use core::any::Any;
+use core::any::{Any, TypeId};
+use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::collections::HashMap;
-use std::sync::{Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use wutengine_util::hash::nohash_hasher::IntMap;
 use wutengine_util::{GlobalManager, TypeName, unique_id_type};
@@ -9,8 +10,8 @@ use crate::gameobject::{self, GameObjectId};
 
 #[derive(Debug)]
 struct ComponentManager {
-    components: RwLock<IntMap<ComponentId, ComponentData>>,
-    queued: Mutex<IntMap<ComponentId, ComponentData>>,
+    components: RwLock<IntMap<ComponentId, Arc<ComponentData>>>,
+    queued: Mutex<IntMap<ComponentId, Arc<ComponentData>>>,
 }
 
 impl ComponentManager {
@@ -40,30 +41,42 @@ pub(crate) fn handle_enable_disable() {
             this: component.id,
         };
 
-        let mut private_state = component.private.lock().unwrap();
-        let requested_state = *component.requested_state.lock().unwrap();
+        let cur_state = component.cur_state.get();
+        let requested_state = component.requested_state.get();
 
-        match (private_state.cur_state, requested_state) {
+        match (cur_state, requested_state) {
             (ComponentState::Destroyed, _) => {
                 unreachable!("Component current state cannot be 'Destroyed'")
             }
 
             (ComponentState::Disabled, ComponentState::Enabled) => {
-                if !private_state.started {
+                if !component.started.swap(true, Ordering::SeqCst) {
                     log::debug!("Starting Component {component}");
-                    private_state.component.on_create(context);
-                    private_state.started = true;
+                    component.implementation.lock().unwrap().on_create(context);
                 }
 
                 log::debug!("Enabling Component {component}");
 
-                private_state.component.on_enable(context);
-                private_state.cur_state = ComponentState::Enabled;
+                if component
+                    .cur_state
+                    .0
+                    .swap(ComponentState::Enabled as u8, Ordering::SeqCst)
+                    == ComponentState::Disabled as u8
+                {
+                    component.implementation.lock().unwrap().on_enable(context);
+                }
             }
             (ComponentState::Enabled, ComponentState::Disabled) => {
                 log::debug!("Disabling Component {component}");
-                private_state.component.on_disable(context);
-                private_state.cur_state = ComponentState::Disabled;
+
+                if component
+                    .cur_state
+                    .0
+                    .swap(ComponentState::Disabled as u8, Ordering::SeqCst)
+                    == ComponentState::Enabled as u8
+                {
+                    component.implementation.lock().unwrap().on_disable(context);
+                }
             }
 
             _ => (), // Nothing to do
@@ -80,9 +93,7 @@ pub(crate) fn handle_destruction() {
     let mut to_delete = Vec::new();
 
     for (id, component) in components.iter() {
-        let requested_state = *component.requested_state.lock().unwrap();
-
-        if requested_state != ComponentState::Destroyed {
+        if component.requested_state.get() != ComponentState::Destroyed {
             continue;
         }
 
@@ -93,15 +104,13 @@ pub(crate) fn handle_destruction() {
             this: component.id,
         };
 
-        let mut private_state = component.private.lock().unwrap();
+        let mut component_impl = component.implementation.lock().unwrap();
 
-        let cur_state = private_state.cur_state;
-
-        if cur_state == ComponentState::Enabled {
-            private_state.component.on_disable(context);
+        if component.cur_state.get() == ComponentState::Enabled {
+            component_impl.on_disable(context);
         }
 
-        private_state.component.on_destroy(context);
+        component_impl.on_destroy(context);
 
         gameobject::notify_component_destroyed(component.gameobject, *id);
 
@@ -116,7 +125,11 @@ pub(crate) fn handle_destruction() {
 }
 
 #[profiling::function]
-pub(crate) fn add_component(component: Box<dyn Component>, owner: GameObjectId) -> ComponentId {
+pub(crate) fn add_component(
+    component: Box<dyn Component>,
+    component_type: TypeId,
+    owner: GameObjectId,
+) -> ComponentId {
     let component_type_name = component.as_ref().type_name();
 
     log::trace!("Adding new Component of type {component_type_name} to GameObject {owner}",);
@@ -127,17 +140,16 @@ pub(crate) fn add_component(component: Box<dyn Component>, owner: GameObjectId) 
 
     components.insert(
         id,
-        ComponentData {
+        Arc::new(ComponentData {
             id,
             component_type_name,
+            component_type,
             gameobject: owner,
-            private: Mutex::new(ComponentPrivateData {
-                started: false,
-                cur_state: ComponentState::Disabled,
-                component,
-            }),
-            requested_state: Mutex::new(ComponentState::Enabled),
-        },
+            started: AtomicBool::new(false),
+            cur_state: AtomicComponentState::new(ComponentState::Disabled),
+            implementation: Mutex::new(component),
+            requested_state: AtomicComponentState::new(ComponentState::Enabled),
+        }),
     );
 
     log::debug!("Added new Component {id} of type {component_type_name} to GameObject {owner}",);
@@ -162,20 +174,18 @@ pub(crate) fn add_queued() {
 }
 
 #[profiling::function]
-pub(crate) fn run_on_active_components(
-    mut func: impl FnMut(&mut Box<dyn Component>, ComponentContext),
-) {
+pub(crate) fn run_on_active_components(mut func: impl FnMut(&mut dyn Component, ComponentContext)) {
     let components = COMPONENT_MANAGER.components.read().unwrap();
 
     for component in components.values() {
-        let mut private = component.private.lock().unwrap();
-
-        if private.cur_state != ComponentState::Enabled {
+        if component.cur_state.get() != ComponentState::Enabled {
             continue;
         }
 
+        let mut locked_component = component.implementation.lock().unwrap();
+
         func(
-            &mut private.component,
+            locked_component.as_mut(),
             ComponentContext {
                 gameobject: component.gameobject,
                 this: component.id,
@@ -197,14 +207,47 @@ pub(crate) fn run_for<const INCLUDE_INACTIVE: bool, 'id>(
             .expect("Could not find expected component");
 
         if !INCLUDE_INACTIVE {
-            let cur_state = component.private.lock().unwrap().cur_state;
-
-            if cur_state != ComponentState::Enabled {
+            if component.cur_state.get() != ComponentState::Enabled {
                 continue;
             }
         }
 
         func(component);
+    }
+}
+
+#[profiling::function]
+pub(crate) fn find_components(
+    filter: impl Fn(&ComponentData) -> bool,
+    out: &mut Vec<Arc<ComponentData>>,
+) {
+    let components = COMPONENT_MANAGER.components.read().unwrap();
+
+    for component in components.values() {
+        if filter(component) {
+            out.push(component.clone());
+        }
+    }
+}
+
+#[profiling::function]
+pub(crate) fn get_component(id: &ComponentId) -> Option<Arc<ComponentData>> {
+    COMPONENT_MANAGER
+        .components
+        .read()
+        .unwrap()
+        .get(id)
+        .cloned()
+}
+
+#[profiling::function]
+pub(crate) fn get_components_of_type<C: Component>(out: &mut Vec<Arc<ComponentData>>) {
+    let components = COMPONENT_MANAGER.components.read().unwrap();
+
+    for component in components.values() {
+        if component.component_type == TypeId::of::<C>() {
+            out.push(component.clone());
+        }
     }
 }
 
@@ -218,11 +261,16 @@ pub trait Component: Any + TypeName + Send + Sync + core::fmt::Debug {
     fn on_create(&mut self, _context: ComponentContext) {}
     fn on_enable(&mut self, _context: ComponentContext) {}
     fn on_update(&mut self, _context: ComponentContext) {}
-    fn on_render(&mut self, _context: ComponentContext) {}
     fn on_fixed_update(&mut self, _context: ComponentContext) {}
     fn on_disable(&mut self, _context: ComponentContext) {}
     fn on_destroy(&mut self, _context: ComponentContext) {}
+
+    fn as_renderer(&mut self) -> Option<&mut dyn Renderer> {
+        None
+    }
 }
+
+pub trait Renderer: Component {}
 
 pub fn destroy(id: ComponentId) {
     let components = COMPONENT_MANAGER.components.read().unwrap();
@@ -239,30 +287,29 @@ pub fn destroy(id: ComponentId) {
 
 #[derive(Debug)]
 pub(crate) struct ComponentData {
-    id: ComponentId,
-    component_type_name: &'static str,
-    gameobject: GameObjectId,
-    requested_state: Mutex<ComponentState>,
-    private: Mutex<ComponentPrivateData>,
-}
-
-#[derive(Debug)]
-struct ComponentPrivateData {
-    started: bool,
-    cur_state: ComponentState,
-    component: Box<dyn Component>,
+    pub(crate) id: ComponentId,
+    pub(crate) component_type_name: &'static str,
+    pub(crate) component_type: TypeId,
+    pub(crate) gameobject: GameObjectId,
+    pub(crate) started: AtomicBool,
+    pub(crate) requested_state: AtomicComponentState,
+    pub(crate) cur_state: AtomicComponentState,
+    pub(crate) implementation: Mutex<Box<dyn Component>>,
 }
 
 impl ComponentData {
     pub(crate) fn request_state(&self, state: ComponentState) {
-        let mut requested_state = self.requested_state.lock().unwrap();
-
-        if *requested_state == ComponentState::Destroyed {
-            // Destruction is always permanent
-            return;
-        }
-
-        *requested_state = state;
+        //TODO: Can we relax the SeqCst ordering?
+        self.requested_state
+            .0
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |val| {
+                if val == ComponentState::Destroyed as u8 {
+                    Some(ComponentState::Destroyed as u8)
+                } else {
+                    Some(state as u8)
+                }
+            })
+            .unwrap();
     }
 }
 
@@ -275,9 +322,10 @@ impl core::fmt::Display for ComponentData {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub(crate) enum ComponentState {
     /// Component disabled and not queued for activation
-    Disabled,
+    Disabled = 0,
 
     /// Component enabled. Normal state
     Enabled,
@@ -289,6 +337,36 @@ pub(crate) enum ComponentState {
 impl ComponentState {
     pub(crate) const fn is_inactive(self) -> bool {
         !matches!(self, ComponentState::Enabled)
+    }
+
+    pub(crate) const fn from_u8(val: u8) -> Self {
+        const DISABLED: u8 = ComponentState::Disabled as u8;
+        const ENABLED: u8 = ComponentState::Enabled as u8;
+        const DESTROYED: u8 = ComponentState::Destroyed as u8;
+
+        match val {
+            DISABLED => ComponentState::Disabled,
+            ENABLED => ComponentState::Enabled,
+            DESTROYED => ComponentState::Destroyed,
+            _ => panic!("Invalid component state given"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct AtomicComponentState(AtomicU8);
+
+impl AtomicComponentState {
+    const fn new(state: ComponentState) -> Self {
+        Self(AtomicU8::new(state as u8))
+    }
+
+    #[inline]
+    fn get(&self) -> ComponentState {
+        //TODO: Can we relax the seqcst?
+        let val = self.0.load(Ordering::SeqCst);
+
+        ComponentState::from_u8(val)
     }
 }
 
