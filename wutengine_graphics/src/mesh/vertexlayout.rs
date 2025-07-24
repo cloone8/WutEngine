@@ -1,6 +1,6 @@
 use wgpu::VertexAttribute;
 
-use crate::format::{VTX_NORMAL, VTX_POS, VTX_UV};
+use crate::format::{VTX_COLOR, VTX_NORMAL, VTX_POS, VTX_UV};
 use crate::mesh;
 use crate::shader::ShaderVertexLayout;
 
@@ -89,7 +89,7 @@ pub(crate) fn create_vertex_buffer_layout<'a>(
         buf[num_attrs] = VertexAttribute {
             offset: mesh_attr_offset,
             shader_location: shader_attr_loc,
-            format: todo!("What is the color format again?"),
+            format: VTX_COLOR,
         };
 
         num_attrs += 1;

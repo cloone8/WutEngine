@@ -6,6 +6,7 @@ use wgpu::wgt::BufferDescriptor;
 use wgpu::{Buffer, BufferUsages};
 use wutengine_asset::Asset;
 
+use crate::color::Color;
 use crate::mesh::vertexlayout::MeshVertexLayout;
 use crate::resource::GpuResource;
 use crate::{GRAPHICS_MANAGER, format};
@@ -17,6 +18,7 @@ pub struct Mesh {
     positions: Vec<Vec3>,
     normals: Vec<Vec3>,
     uvs: Vec<Vec2>,
+    colors: Vec<Color>,
     indices: IndexBuffer,
     geometry: Geometry,
 
@@ -37,6 +39,7 @@ impl Default for Mesh {
             positions: Vec::new(),
             normals: Vec::new(),
             uvs: Vec::new(),
+            colors: Vec::new(),
             indices: IndexBuffer::U16(Vec::new()),
             geometry: Geometry::Triangles,
             vertex_buffer: GpuResource::new(),
@@ -63,6 +66,11 @@ impl Mesh {
         if !self.uvs.is_empty() {
             layout.uv = Some(cur_offset);
             cur_offset += format::VTX_UV.size();
+        }
+
+        if !self.colors.is_empty() {
+            layout.color = Some(cur_offset);
+            cur_offset += format::VTX_COLOR.size();
         }
 
         layout.stride = cur_offset.next_multiple_of(wgpu::VERTEX_STRIDE_ALIGNMENT);
@@ -94,11 +102,27 @@ impl Mesh {
         }
 
         if !self.uvs.is_empty() {
+            match expected_size {
+                Some(expected) => {
+                    if self.uvs.len() != expected {
+                        log::error!(
+                            "Amount of UVs ({}) does not match the amount of vertices ({}). Not rendering",
+                            self.uvs.len(),
+                            expected
+                        );
+                        return false;
+                    }
+                }
+                None => expected_size = Some(self.uvs.len()),
+            }
+        }
+
+        if !self.colors.is_empty() {
             if let Some(expected) = expected_size {
-                if self.uvs.len() != expected {
+                if self.colors.len() != expected {
                     log::error!(
-                        "Amount of UVs ({}) does not match the amount of vertices ({}). Not rendering",
-                        self.uvs.len(),
+                        "Amount of colors ({}) does not match the amount of vertices ({}). Not rendering",
+                        self.colors.len(),
                         expected
                     );
                     return false;
@@ -185,8 +209,12 @@ impl Mesh {
                 }
 
                 // Colors
-                if let Some(_color_offset) = layout.color {
-                    todo!()
+                if let Some(color_offset) = layout.color {
+                    let color_offset = (vtx_offset + color_offset) as usize;
+                    let color_end = color_offset + format::VTX_COLOR.size() as usize;
+
+                    bufferview[color_offset..color_end]
+                        .copy_from_slice(bytemuck::bytes_of(&self.colors[vtx as usize]));
                 }
             }
         }
@@ -300,6 +328,23 @@ impl Mesh {
     /// Sets the vertex positions
     pub fn set_uvs(&mut self, uvs: Vec<Vec2>) {
         self.uvs = uvs;
+        self.update_vertex_buffer();
+    }
+
+    /// Returns a copy of the vertex colors of this [Mesh].
+    /// For a non-allocating version, see [Self::read_colors]
+    pub fn get_colors(&self) -> Vec<Color> {
+        self.colors.clone()
+    }
+
+    /// Returns the vertex colors by appending them to the current end of `buf`
+    pub fn read_colors(&self, buf: &mut Vec<Color>) {
+        buf.extend_from_slice(self.colors.as_slice());
+    }
+
+    /// Sets the vertex colors
+    pub fn set_colors(&mut self, colors: Vec<Color>) {
+        self.colors = colors;
         self.update_vertex_buffer();
     }
 

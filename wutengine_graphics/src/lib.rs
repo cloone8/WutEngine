@@ -238,6 +238,7 @@ struct GraphicsSurface {
 
 impl GraphicsSurface {
     fn reconfigure(&self, device: &wgpu::Device, size: (u32, u32)) {
+        dbg!(&self.capabilities.formats);
         let surface_format = self.capabilities.formats[0];
 
         let surface_config = wgpu::SurfaceConfiguration {

@@ -10,6 +10,7 @@ use thiserror::Error;
 use crate::preprocessor::PreprocessErr;
 
 pub mod compiler;
+pub mod constants;
 pub mod preprocessor;
 
 /// A value given to a shader keyword. Can be one specific value, or a range of values
