@@ -146,6 +146,14 @@ impl Material {
         self.shader.as_ref()
     }
 
+    pub fn get_keywords(&self) -> &HashMap<String, i64> {
+        &self.shader_keywords
+    }
+
+    pub fn get_keyword_hash(&self) -> u64 {
+        self.shader_keyword_hash
+    }
+
     pub fn set_shader(&mut self, shader: Option<impl Into<AssetHandle<ShaderSource>>>) {
         self.shader = shader.map(Into::into);
 

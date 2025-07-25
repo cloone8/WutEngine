@@ -3570,6 +3570,7 @@ name = "wutengine_event"
 version = "0.6.0"
 dependencies = [
  "log",
+ "profiling",
  "wutengine_util",
 ]
 
@@ -3589,6 +3590,7 @@ dependencies = [
  "thiserror 2.0.12",
  "wgpu",
  "wutengine_asset",
+ "wutengine_event",
  "wutengine_shadercompiler",
  "wutengine_util",
  "wutengine_windowing",

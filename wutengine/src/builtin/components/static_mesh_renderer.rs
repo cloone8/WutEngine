@@ -3,6 +3,7 @@ use wgpu::VertexAttribute;
 use wutengine_asset::AssetHandle;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::mesh::{Mesh, create_vertex_buffer_layout};
+use wutengine_graphics::pipeline::cache::PipelineCacheKey;
 use wutengine_graphics::resource::GpuResource;
 use wutengine_graphics::shader::ShaderVertexLayout;
 
@@ -80,39 +81,51 @@ impl Renderer for StaticMeshRenderer {
             return;
         };
 
-        // 16 chosen randomly. Should fit right?
-        let shader_layout = if let Some(sh) = material.get_shader() {
-            sh.vertex_layout
-        } else {
+        let Some(shader) = material.get_shader() else {
             return;
         };
 
-        let mesh_layout = mesh.get_layout();
-
-        let mut buf = vec![
-            VertexAttribute {
-                // Fill with random defaults
-                format: wgpu::VertexFormat::Uint8,
-                offset: 0,
-                shader_location: 0
-            };
-            shader_layout.num_attrs()
-        ];
-
-        let vertex_layout = if let Some(layout) =
-            create_vertex_buffer_layout(&mut buf, &mesh_layout, &shader_layout)
-        {
-            layout
-        } else {
-            log::debug!("Not rendering due to incompatible layout");
-            return;
+        let pipeline_cache_key = PipelineCacheKey {
+            shader: shader.name.clone(),
+            shader_keyword_hash: material.get_keyword_hash(),
+            mesh_layout: mesh.get_layout(),
         };
 
         let pipeline =
-            if let Some(pipeline) = material.get_render_pipeline(vertex_layout, target_format) {
-                pipeline
-            } else {
-                return;
+            match wutengine_graphics::pipeline::cache::get_cached_pipeline(&pipeline_cache_key) {
+                Some(cached) => cached,
+                None => {
+                    let mut buf = vec![
+                        VertexAttribute {
+                            // Fill with random defaults
+                            format: wgpu::VertexFormat::Uint8,
+                            offset: 0,
+                            shader_location: 0
+                        };
+                        shader.vertex_layout.num_attrs()
+                    ];
+                    let vertex_layout = if let Some(layout) = create_vertex_buffer_layout(
+                        &mut buf,
+                        &pipeline_cache_key.mesh_layout,
+                        &shader.vertex_layout,
+                    ) {
+                        layout
+                    } else {
+                        log::debug!("Not rendering due to incompatible layout");
+                        return;
+                    };
+
+                    let Some(pipeline) = material.get_render_pipeline(vertex_layout, target_format)
+                    else {
+                        log::warn!("Could not create material render pipeline");
+                        return;
+                    };
+
+                    wutengine_graphics::pipeline::cache::cache_pipeline(
+                        pipeline_cache_key,
+                        pipeline,
+                    )
+                }
             };
 
         pass.set_pipeline(&pipeline);

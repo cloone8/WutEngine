@@ -13,6 +13,7 @@ categories.workspace = true
 [dependencies]
 wutengine_util.workspace = true
 log.workspace = true
+profiling.workspace = true
 
 [lints]
 workspace = true

@@ -14,6 +14,7 @@ use wgpu::{
     MemoryBudgetThresholds, MemoryHints, PipelineCacheDescriptor, PowerPreference, Queue,
     RequestAdapterOptions, SurfaceTexture,
 };
+use wutengine_event::WutEngineEvent;
 use wutengine_util::GlobalManager;
 use wutengine_windowing::window::WindowIdentifier;
 
@@ -22,6 +23,7 @@ pub mod format;
 pub mod material;
 pub mod mesh;
 pub(crate) mod passes;
+pub mod pipeline;
 pub mod resource;
 pub mod shader;
 pub mod texture;
@@ -36,6 +38,11 @@ pub enum InitErr {
     #[error("Could not get device from adapter: {0}")]
     Device(#[from] wgpu::RequestDeviceError),
 }
+
+#[derive(Debug)]
+struct DeviceLostEvent;
+
+impl WutEngineEvent for DeviceLostEvent {}
 
 fn reinitialize_graphics() {
     resource::increment_device_generation();
@@ -81,6 +88,7 @@ pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
 
     device.set_device_lost_callback(|reason, msg| {
         log::error!("Lost device due to {reason:#?}: {msg}");
+        wutengine_event::publish(DeviceLostEvent);
 
         reinitialize_graphics();
     });
@@ -99,6 +107,7 @@ pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
         queue,
         surfaces: RwLock::new(HashMap::new()),
         shader_cache: shader::cache::ShaderCache::new(),
+        pipeline_cache: pipeline::cache::PipelineCache::new(),
     };
 
     GlobalManager::init(&GRAPHICS_MANAGER, manager);
@@ -213,4 +222,5 @@ struct GraphicsManager {
     queue: wgpu::Queue,
     surfaces: RwLock<HashMap<WindowIdentifier, GraphicsSurface>>,
     shader_cache: shader::cache::ShaderCache,
+    pipeline_cache: pipeline::cache::PipelineCache,
 }

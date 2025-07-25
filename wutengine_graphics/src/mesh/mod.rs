@@ -7,7 +7,6 @@ use wgpu::{Buffer, BufferUsages};
 use wutengine_asset::Asset;
 
 use crate::color::Color;
-use crate::mesh::vertexlayout::MeshVertexLayout;
 use crate::resource::GpuResource;
 use crate::{GRAPHICS_MANAGER, format};
 
@@ -526,4 +525,5 @@ impl From<IndexPrecision> for wgpu::IndexFormat {
     }
 }
 
+pub use vertexlayout::MeshVertexLayout;
 pub use vertexlayout::create_vertex_buffer_layout;

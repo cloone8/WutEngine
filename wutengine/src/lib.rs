@@ -56,6 +56,9 @@ pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
     // Rayon worker threads
     threading::init_threadpool();
 
+    // Event manager
+    wutengine_event::init();
+
     // Graphics stack
     pollster::block_on(crate::graphics::init(config.backends))?;
 
@@ -65,7 +68,6 @@ pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
     }
 
     // GameObject and Component managers
-    wutengine_event::init();
     gameobject::init();
     component::init();
     wutengine_asset::init(config.asset_loader, config.asset_format);
