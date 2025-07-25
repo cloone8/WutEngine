@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_shadercompiler"
+description = "Shader compiler library for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

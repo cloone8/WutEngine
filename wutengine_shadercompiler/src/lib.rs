@@ -56,7 +56,7 @@ pub enum ShaderOutput<'a> {
         source: String,
 
         /// Hash of the used keyword values
-        keyword_hash: u128,
+        keyword_hash: u64,
 
         /// Keywords used
         keywords: HashMap<&'a str, i64>,
@@ -68,7 +68,7 @@ pub enum ShaderOutput<'a> {
         source: Box<naga::Module>,
 
         /// Hash of the used keyword values
-        keyword_hash: u128,
+        keyword_hash: u64,
 
         /// Keywords used
         keywords: HashMap<&'a str, i64>,

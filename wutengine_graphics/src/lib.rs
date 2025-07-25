@@ -6,12 +6,13 @@ use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
 pub use backend::WutEngineBackend;
+use serde::de;
 use thiserror::Error;
 use wgpu::wgt::DeviceDescriptor;
 use wgpu::{
     BackendOptions, CommandBuffer, Features, InstanceDescriptor, InstanceFlags, Limits,
-    MemoryBudgetThresholds, MemoryHints, PowerPreference, Queue, RequestAdapterOptions,
-    SurfaceTexture,
+    MemoryBudgetThresholds, MemoryHints, PipelineCacheDescriptor, PowerPreference, Queue,
+    RequestAdapterOptions, SurfaceTexture,
 };
 use wutengine_util::GlobalManager;
 use wutengine_windowing::window::WindowIdentifier;
@@ -84,6 +85,10 @@ pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
         reinitialize_graphics();
     });
 
+    device.on_uncaptured_error(Box::new(|e| {
+        panic!("AAAA: {e}"); // Todo: replace once we find what triggers this
+    }));
+
     // Set device generation to 1: the main/first
     resource::increment_device_generation();
 
@@ -93,6 +98,7 @@ pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
         device,
         queue,
         surfaces: RwLock::new(HashMap::new()),
+        shader_cache: shader::cache::ShaderCache::new(),
     };
 
     GlobalManager::init(&GRAPHICS_MANAGER, manager);
@@ -144,64 +150,6 @@ pub fn resized(id: &WindowIdentifier, inner_size: (u32, u32)) {
     };
 
     surface.reconfigure(&GRAPHICS_MANAGER.device, inner_size);
-}
-
-#[profiling::function]
-pub fn render_window(id: &WindowIdentifier) {
-    let surfaces = GRAPHICS_MANAGER.surfaces.read().unwrap();
-    let surface = match surfaces.get(id) {
-        Some(surface) => surface,
-        None => {
-            return;
-        }
-    };
-
-    // Create texture view
-    let surface_texture = surface
-        .native
-        .get_current_texture()
-        .expect("failed to acquire next swapchain texture");
-    let texture_view = surface_texture
-        .texture
-        .create_view(&wgpu::TextureViewDescriptor {
-            // Without add_srgb_suffix() the image we will be working with
-            // might not be "gamma correct".
-            format: Some(surface.capabilities.formats[0]),
-            ..Default::default()
-        });
-
-    // Renders a GREEN screen
-    let mut encoder = GRAPHICS_MANAGER
-        .device
-        .create_command_encoder(&Default::default());
-
-    // Create the renderpass which will clear the screen.
-    let renderpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("Main pass"),
-        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-            view: &texture_view,
-            depth_slice: None,
-            resolve_target: None,
-            ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                store: wgpu::StoreOp::Store,
-            },
-        })],
-        depth_stencil_attachment: None,
-        timestamp_writes: None,
-        occlusion_query_set: None,
-    });
-
-    // If you wanted to call any drawing commands, they would go here.
-
-    // End the renderpass.
-    core::mem::drop(renderpass);
-
-    // Submit the command in the queue to execute
-    GRAPHICS_MANAGER.queue.submit([encoder.finish()]);
-
-    // self.window.pre_present_notify();
-    surface_texture.present();
 }
 
 pub fn get_window_surface_texture(id: &WindowIdentifier) -> Option<wgpu::SurfaceTexture> {
@@ -264,4 +212,5 @@ struct GraphicsManager {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surfaces: RwLock<HashMap<WindowIdentifier, GraphicsSurface>>,
+    shader_cache: shader::cache::ShaderCache,
 }

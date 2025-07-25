@@ -12,7 +12,7 @@ pub(crate) fn increment_device_generation() {
     GPU_DEVICE_GENERATION.fetch_add(1, Ordering::Release);
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct GpuResource<T> {
     inner: Option<T>,
 

@@ -1,3 +1,4 @@
+use core::fmt::Display;
 use core::ops::Deref;
 
 use glam::Mat4;
@@ -13,6 +14,7 @@ pub struct Camera {
     target: Option<CameraTarget>,
     projection: CameraProjection,
     background: CameraBackground,
+    viewport: CameraViewport,
     clipping_planes: (f32, f32),
 }
 
@@ -76,12 +78,6 @@ pub enum CameraBackground {
     Color(Color),
 }
 
-impl Default for Camera {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Debug)]
 pub(crate) enum CameraTargetTexture {
     Surface(wgpu::SurfaceTexture),
@@ -97,12 +93,57 @@ impl Deref for CameraTargetTexture {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct CameraViewport {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
+impl CameraViewport {
+    pub const FULL_WINDOW: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        w: 1.0,
+        h: 1.0,
+    };
+
+    pub fn is_valid(&self) -> bool {
+        self.x >= 0.0
+            && self.x < 1.0
+            && self.y >= 0.0
+            && self.y < 1.0
+            && self.w > 0.0
+            && self.w <= 1.0
+            && self.h > 0.0
+            && self.h <= 1.0
+    }
+}
+
+impl Default for CameraViewport {
+    fn default() -> Self {
+        Self::FULL_WINDOW
+    }
+}
+
+impl Display for CameraViewport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Viewport(offset=({}, {}), dimensions=({}, {}))",
+            self.x, self.y, self.w, self.h
+        )
+    }
+}
+
 impl Camera {
     pub fn new() -> Self {
         Self {
             target: None,
             projection: CameraProjection::Perspective(FieldOfView::Vertical(70.0)),
             background: CameraBackground::Color(Color::BLACK),
+            viewport: CameraViewport::FULL_WINDOW,
             clipping_planes: (0.1, 100.0),
         }
     }
@@ -113,6 +154,34 @@ impl Camera {
 
     pub fn set_background(&mut self, background: CameraBackground) {
         self.background = background;
+    }
+
+    pub fn set_viewport(&mut self, viewport: CameraViewport) {
+        if !viewport.is_valid() {
+            log::error!("Cannot set invalid viewport {viewport}");
+            return;
+        }
+
+        self.viewport = viewport;
+    }
+
+    pub fn set_clipping_planes(&mut self, near: f32, far: f32) {
+        if !near.is_normal() {
+            log::error!("Cannot set near plane to invalid value: {near}");
+            return;
+        }
+
+        if !far.is_normal() {
+            log::error!("Cannot set far plane to invalid value: {far}");
+            return;
+        }
+
+        if far <= near {
+            log::error!("Far plane ({far}) closer than near plane ({near})");
+            return;
+        }
+
+        self.clipping_planes = (near, far);
     }
 
     pub fn get_view_mat(&self) -> Mat4 {
@@ -157,6 +226,12 @@ impl Camera {
 
     pub fn get_background(&self) -> CameraBackground {
         self.background
+    }
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

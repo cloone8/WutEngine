@@ -17,17 +17,19 @@
 
 struct VertexOutput {
     @builtin(position) out_pos: vec4<f32>,
-    // @location(0) tex_coord: vec2<f32>
+    @location(0) color: vec4<f32>
 };
 
 @vertex
 fn vertex_main(
     @location(0) wuteng_position: vec3<f32>,
+    @location(1) vtx_color: vec4<f32>
     // @location(1) wuteng_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
 
     out.out_pos = vec4<f32>(wuteng_position, 1.0);
+    out.color = vtx_color;
     // out.out_pos = wuteng_vp_const_block.view_projection_mat * wuteng_instance_const_block.model_mat * vec4<f32>(wuteng_position, 1.0);
     // out.tex_coord = wuteng_uv;
 
@@ -54,6 +56,6 @@ fn fragment_main(
         return base_color * textureSample(color_map_tex, color_map, tex_coord);
     //!!ELSE
         // return base_color;
-        return vec4<f32>(1.0, 1.0, 0.0, 1.0);
+        return in.color;
     //!!ENDIF
 }

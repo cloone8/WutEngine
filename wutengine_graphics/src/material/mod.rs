@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use naga::keywords;
 use serde::{Deserialize, Serialize};
 use wgpu::{
-    PipelineCompilationOptions, PipelineLayoutDescriptor, RenderPipelineDescriptor,
-    ShaderModuleDescriptor,
+    BlendState, ColorWrites, MultisampleState, PipelineCompilationOptions,
+    PipelineLayoutDescriptor, PrimitiveState, RenderPipelineDescriptor, ShaderModuleDescriptor,
+    TextureFormat, VertexBufferLayout,
 };
 use wutengine_asset::{Asset, AssetHandle};
 use wutengine_shadercompiler::{CompileStage, ShaderOutput};
@@ -15,23 +16,80 @@ use crate::shader::{CompiledShader, ShaderSource};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Material {
-    shader: Option<ShaderVariant>,
-    keywords: HashMap<String, i64>,
+    shader: Option<AssetHandle<ShaderSource>>,
+    shader_keywords: HashMap<String, i64>,
+    shader_keyword_hash: u64,
 }
 
 impl Asset for Material {}
 
 impl Material {
-    pub(crate) fn get_pipeline_layout(&self) -> wgpu::PipelineLayout {
+    pub fn get_pipeline_layout(&self) -> Option<wgpu::PipelineLayout> {
+        if self.shader.is_none() {
+            return None;
+        }
+
         let layout = GRAPHICS_MANAGER
             .device
             .create_pipeline_layout(&PipelineLayoutDescriptor {
-                label: Some("Material pipeline"),
+                label: Some("Material pipeline layout"),
                 bind_group_layouts: &[],
                 push_constant_ranges: &[],
             });
 
-        layout
+        Some(layout)
+    }
+
+    pub fn get_render_pipeline(
+        &self,
+        vertex_layout: VertexBufferLayout,
+        target_format: TextureFormat,
+    ) -> Option<wgpu::RenderPipeline> {
+        let shader = self.shader.as_ref()?;
+
+        let module = crate::shader::get(shader, &self.shader_keywords, self.shader_keyword_hash)?;
+
+        let pipeline = GRAPHICS_MANAGER
+            .device
+            .create_render_pipeline(&RenderPipelineDescriptor {
+                label: Some("Material renderpipeline"),
+                layout: Some(
+                    &self
+                        .get_pipeline_layout()
+                        .expect("Could not create pipeline layout"),
+                ),
+                vertex: wgpu::VertexState {
+                    module: &module,
+                    entry_point: None,
+                    compilation_options: Default::default(),
+                    buffers: &[vertex_layout],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &module,
+                    entry_point: None,
+                    compilation_options: Default::default(),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: target_format,
+                        blend: Some(BlendState::REPLACE),
+                        write_mask: ColorWrites::all(),
+                    })],
+                }),
+                primitive: PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Cw,
+                    cull_mode: Some(wgpu::Face::Back),
+                    unclipped_depth: false,
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: MultisampleState::default(),
+                multiview: None,
+                cache: None,
+            });
+
+        Some(pipeline)
     }
 
     // pub(crate) fn get_render_pipeline(&self) -> wgpu::RenderPipeline {
@@ -56,81 +114,82 @@ impl Material {
     //             cache: todo!(),
     //         });
     // }
+
+    fn rehash_keywords(&mut self) {
+        self.shader_keyword_hash = wutengine_util::hash::keyword_hash(&self.shader_keywords);
+    }
+
+    fn discard_invalid_keywords(&mut self) {
+        let shader = if let Some(shader) = &self.shader {
+            shader
+        } else {
+            return;
+        };
+
+        //TODO: Discard invalid
+
+        self.rehash_keywords();
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShaderVariant {
-    pub source: AssetHandle<ShaderSource>,
-    pub keywords: HashMap<String, i64>,
-    pub compiled: Option<AssetHandle<CompiledShader>>,
-}
+/// Public API for a [Material]
+impl Material {
+    pub fn new() -> Self {
+        Material {
+            shader: None,
+            shader_keywords: HashMap::default(),
+            shader_keyword_hash: 0,
+        }
+    }
 
-impl ShaderVariant {
-    #[profiling::function]
-    pub fn ensure_compiled(&mut self) -> Result<(), wutengine_shadercompiler::Error> {
-        if self.compiled.is_none() {
-            log::debug!("Compiling shader variant");
+    pub fn get_shader(&self) -> Option<&AssetHandle<ShaderSource>> {
+        self.shader.as_ref()
+    }
 
-            let keywords = HashMap::from_iter(self.keywords.iter().map(|(k, v)| (k.as_ref(), *v)));
+    pub fn set_shader(&mut self, shader: Option<impl Into<AssetHandle<ShaderSource>>>) {
+        self.shader = shader.map(Into::into);
 
-            let compile_result = wutengine_shadercompiler::compile_single_shader(
-                &self.source.code,
-                keywords,
-                CompileStage::Full,
-            )?;
+        self.discard_invalid_keywords();
+    }
 
-            if let ShaderOutput::Compiled {
-                source,
-                keyword_hash,
-                keywords: _,
-            } = compile_result
-            {
-                self.compiled = Some(AssetHandle::from(CompiledShader {
-                    name: self.source.name.clone(),
-                    keyword_hash,
-                    renderer_data: GpuResource::default(),
-                    source: *source,
-                }));
-            } else {
-                unreachable!("Shader is fully compiled after compilation");
+    pub fn set_keyword(&mut self, keyword: &str, value: i64) {
+        if let Some(shader) = &self.shader {
+            // If we have a shader set, we can check for keyword values
+            match shader.available_keywords.get(keyword) {
+                Some(possible_values) => {
+                    if !possible_values.contains(&value) {
+                        log::error!(
+                            "Value {} is out of range for keyword {keyword} with possible values {}..={}",
+                            value,
+                            possible_values.start(),
+                            possible_values.end()
+                        );
+                        return;
+                    }
+                }
+                None => {
+                    log::error!("Keyword {keyword} does not exist on shader {}", shader.name);
+                    return;
+                }
             }
         }
 
-        let compiled = self
-            .compiled
-            .as_mut()
-            .expect("Shader should have been compiled now");
+        let cur_val = self.shader_keywords.get_mut(keyword);
 
-        if compiled.renderer_data.is_loaded() {
-            return Ok(());
-        }
+        match cur_val {
+            Some(cur) => {
+                *cur = value;
+            }
+            None => {
+                self.shader_keywords.insert(keyword.to_string(), value);
+            }
+        };
 
-        {
-            profiling::scope!("create_native_shader_module");
-
-            let keyword_hash = compiled.keyword_hash;
-            let source = compiled.source.clone();
-
-            compiled
-                .renderer_data
-                .set(
-                    GRAPHICS_MANAGER
-                        .device
-                        .create_shader_module(ShaderModuleDescriptor {
-                            label: Some(
-                                format!("{}::{:032x}", &self.source.name, keyword_hash).as_str(),
-                            ),
-                            source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(source)),
-                        }),
-                );
-        }
-
-        Ok(())
+        self.rehash_keywords();
     }
 
-    pub(crate) fn get_shader_module(&self) -> Option<&wgpu::ShaderModule> {
-        self.compiled
-            .as_ref()
-            .and_then(|compiled| compiled.renderer_data.get())
+    pub fn unset_keyword(&mut self, keyword: &str) {
+        self.shader_keywords.remove(keyword);
+        self.rehash_keywords();
     }
 }

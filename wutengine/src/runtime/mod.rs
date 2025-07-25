@@ -150,9 +150,10 @@ fn render_commands_for_camera(
         .expect("Invalid cast");
 
     let camera_texture = camera_component.get_target_texture()?;
+    let camera_texture_format = camera_texture.format();
 
     let camera_texture_view = camera_texture.create_view(&wgpu::TextureViewDescriptor {
-        format: Some(camera_texture.format()),
+        format: Some(camera_texture_format),
         label: Some(format!("Camera {} render target", camera.id).as_str()),
         ..Default::default()
     });
@@ -184,6 +185,13 @@ fn render_commands_for_camera(
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+
+        for renderer in renderers {
+            let mut renderer = renderer.lock().unwrap();
+            let as_renderer = renderer.as_mut().as_renderer().expect("Given non-renderer");
+
+            as_renderer.render_color(&mut color_pass, camera_texture_format);
+        }
     }
 
     Some((encoder.finish(), camera_texture))

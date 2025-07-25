@@ -12,21 +12,22 @@ use wutengine_windowing::WutEngineWinitEvent;
 use crate::config::WutEngineConfig;
 use crate::winit_app::{WinitApp, WinitInitData};
 
-pub mod config;
-pub use wutengine_event as event;
-pub use wutengine_windowing::display;
-pub use wutengine_windowing::window;
 pub mod asset;
 pub mod builtin;
 pub mod component;
+pub mod config;
+pub mod display;
+pub mod event;
 pub mod gameobject;
 pub mod graphics;
+pub mod jobs;
 pub mod math;
 pub mod prelude;
 pub mod profiling;
 mod runtime;
 mod threading;
 pub mod time;
+pub mod window;
 mod winit_app;
 
 pub use wutengine_util::map;

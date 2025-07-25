@@ -49,7 +49,7 @@ impl Default for Mesh {
 }
 
 impl Mesh {
-    fn get_layout(&self) -> MeshVertexLayout {
+    pub fn get_layout(&self) -> MeshVertexLayout {
         let mut cur_offset = 0;
         let mut layout = MeshVertexLayout::EMPTY;
 
@@ -262,6 +262,7 @@ impl Mesh {
     }
 }
 
+/// Public API for [Mesh]
 impl Mesh {
     /// Returns a new empty [Mesh] with triangle geometry
     pub fn new() -> Self {
@@ -278,6 +279,10 @@ impl Mesh {
         } else {
             0
         }
+    }
+
+    pub fn num_indices(&self) -> u32 {
+        self.indices.len() as u32
     }
 
     /// Returns a copy of the vertex positions of this [Mesh].
@@ -402,6 +407,14 @@ impl Mesh {
     pub fn set_index_type(&mut self, geometry: Geometry) {
         self.geometry = geometry;
     }
+
+    pub fn get_vertex_buffer(&self) -> Option<&wgpu::Buffer> {
+        self.vertex_buffer.get()
+    }
+
+    pub fn get_index_buffer(&self) -> Option<&wgpu::Buffer> {
+        self.index_buffer.get()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -441,6 +454,7 @@ impl From<&[u32]> for IndexBuffer {
 
 impl IndexBuffer {
     /// Returns the current precision of this [IndexBuffer]
+    #[inline(always)]
     pub const fn precision(&self) -> IndexPrecision {
         match self {
             IndexBuffer::U16(_) => IndexPrecision::U16,
@@ -448,6 +462,7 @@ impl IndexBuffer {
         }
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         match self {
             IndexBuffer::U16(items) => items.len(),
@@ -455,6 +470,7 @@ impl IndexBuffer {
         }
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         match self {
             IndexBuffer::U16(items) => items.is_empty(),
@@ -462,6 +478,7 @@ impl IndexBuffer {
         }
     }
 
+    #[inline]
     pub(crate) fn as_byte_slice(&self) -> &[u8] {
         match self {
             IndexBuffer::U16(items) => bytemuck::cast_slice(items),
@@ -498,3 +515,15 @@ impl IndexPrecision {
         }
     }
 }
+
+impl From<IndexPrecision> for wgpu::IndexFormat {
+    #[inline]
+    fn from(value: IndexPrecision) -> Self {
+        match value {
+            IndexPrecision::U16 => wgpu::IndexFormat::Uint16,
+            IndexPrecision::U32 => wgpu::IndexFormat::Uint32,
+        }
+    }
+}
+
+pub use vertexlayout::create_vertex_buffer_layout;

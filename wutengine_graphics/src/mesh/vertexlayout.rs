@@ -1,4 +1,4 @@
-use wgpu::VertexAttribute;
+use wgpu::{VertexAttribute, VertexFormat};
 
 use crate::format::{VTX_COLOR, VTX_NORMAL, VTX_POS, VTX_UV};
 use crate::mesh;
@@ -6,7 +6,7 @@ use crate::shader::ShaderVertexLayout;
 
 /// A descriptor for the layout of a mesh vertex buffer
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub(crate) struct MeshVertexLayout {
+pub struct MeshVertexLayout {
     /// The total stride between consecutive vertices
     pub stride: u64,
 
@@ -40,64 +40,98 @@ impl MeshVertexLayout {
     }
 }
 
-pub(crate) fn create_vertex_buffer_layout<'a>(
+fn set_attr(
+    buf: &mut [VertexAttribute],
+    shader_location: Option<u32>,
+    mesh_offset: Option<u64>,
+    num_attrs: &mut usize,
+    format: VertexFormat,
+) -> bool {
+    if let Some(shader_attr_loc) = shader_location {
+        let mesh_attr_offset = if let Some(mesh_attr_offset) = mesh_offset {
+            mesh_attr_offset
+        } else {
+            return false;
+        };
+
+        buf[*num_attrs] = VertexAttribute {
+            offset: mesh_attr_offset,
+            shader_location: shader_attr_loc,
+            format,
+        };
+
+        *num_attrs += 1;
+    }
+
+    true
+}
+
+/// Tries to create a vertex buffer layout for the combination of the given mesh and shader vertex layouts.
+/// If the mesh is missing vertex attributes, will return [None] instead.
+pub fn create_vertex_buffer_layout<'a>(
     buf: &'a mut [VertexAttribute],
     mesh_layout: &MeshVertexLayout,
     shader_layout: &ShaderVertexLayout,
-) -> wgpu::VertexBufferLayout<'a> {
+) -> Option<wgpu::VertexBufferLayout<'a>> {
     assert!(buf.len() >= shader_layout.num_attrs(), "Buffer too small");
 
     let mut num_attrs = 0;
 
-    if let (Some(mesh_attr_offset), Some(shader_attr_loc)) =
-        (mesh_layout.position, shader_layout.position)
-    {
-        buf[num_attrs] = VertexAttribute {
-            offset: mesh_attr_offset,
-            shader_location: shader_attr_loc,
-            format: VTX_POS,
-        };
-
-        num_attrs += 1;
+    if !set_attr(
+        buf,
+        shader_layout.position,
+        mesh_layout.position,
+        &mut num_attrs,
+        VTX_POS,
+    ) {
+        log::error!(
+            "Could not create vertex buffer layout because the mesh is missing the position attribute"
+        );
+        return None;
     }
 
-    if let (Some(mesh_attr_offset), Some(shader_attr_loc)) =
-        (mesh_layout.normal, shader_layout.normal)
-    {
-        buf[num_attrs] = VertexAttribute {
-            offset: mesh_attr_offset,
-            shader_location: shader_attr_loc,
-            format: VTX_NORMAL,
-        };
-
-        num_attrs += 1;
+    if !set_attr(
+        buf,
+        shader_layout.normal,
+        mesh_layout.normal,
+        &mut num_attrs,
+        VTX_NORMAL,
+    ) {
+        log::error!(
+            "Could not create vertex buffer layout because the mesh is missing the vertex normal attribute"
+        );
+        return None;
     }
 
-    if let (Some(mesh_attr_offset), Some(shader_attr_loc)) = (mesh_layout.uv, shader_layout.uv) {
-        buf[num_attrs] = VertexAttribute {
-            offset: mesh_attr_offset,
-            shader_location: shader_attr_loc,
-            format: VTX_UV,
-        };
-
-        num_attrs += 1;
+    if !set_attr(
+        buf,
+        shader_layout.uv,
+        mesh_layout.uv,
+        &mut num_attrs,
+        VTX_UV,
+    ) {
+        log::error!(
+            "Could not create vertex buffer layout because the mesh is missing the UV attribute"
+        );
+        return None;
     }
 
-    if let (Some(mesh_attr_offset), Some(shader_attr_loc)) =
-        (mesh_layout.color, shader_layout.color)
-    {
-        buf[num_attrs] = VertexAttribute {
-            offset: mesh_attr_offset,
-            shader_location: shader_attr_loc,
-            format: VTX_COLOR,
-        };
-
-        num_attrs += 1;
+    if !set_attr(
+        buf,
+        shader_layout.color,
+        mesh_layout.color,
+        &mut num_attrs,
+        VTX_COLOR,
+    ) {
+        log::error!(
+            "Could not create vertex buffer layout because the mesh is missing the vertex color attribute"
+        );
+        return None;
     }
 
-    wgpu::VertexBufferLayout {
+    Some(wgpu::VertexBufferLayout {
         array_stride: mesh_layout.stride,
         step_mode: wgpu::VertexStepMode::Vertex,
         attributes: &buf[..num_attrs],
-    }
+    })
 }

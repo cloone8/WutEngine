@@ -270,7 +270,13 @@ pub trait Component: Any + TypeName + Send + Sync + core::fmt::Debug {
     }
 }
 
-pub trait Renderer: Component {}
+pub trait Renderer: Component {
+    fn render_color<'a>(
+        &mut self,
+        encoder: &mut wgpu::RenderPass<'a>,
+        target_format: wgpu::TextureFormat,
+    );
+}
 
 pub fn destroy(id: ComponentId) {
     let components = COMPONENT_MANAGER.components.read().unwrap();
