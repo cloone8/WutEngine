@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use std::sync::mpsc::{Sender, channel};
 
 use clap::builder::Styles;
-use clap::builder::styling::{AnsiColor, Color, Effects, Style};
+use clap::builder::styling::{AnsiColor, Effects, Style};
 use clap::{Parser, ValueEnum};
 use log::LevelFilter;
 use simplelog::{ColorChoice, Config, TerminalMode};
@@ -210,8 +210,26 @@ fn main() -> ExitCode {
     )
     .unwrap();
 
-    let mut file = std::fs::File::open(&args.input).unwrap();
-    std::fs::create_dir_all(&args.output).unwrap();
+    let mut file = match std::fs::File::open(&args.input) {
+        Ok(file) => file,
+        Err(e) => {
+            log::error!(
+                "Failed to open input file {} due to error: {}",
+                args.input.to_string_lossy(),
+                e
+            );
+            return ExitCode::FAILURE;
+        }
+    };
+
+    if let Err(e) = std::fs::create_dir_all(&args.output) {
+        log::error!(
+            "Failed to recursively create output directory {} due to error: {}",
+            args.output.to_string_lossy(),
+            e
+        );
+        return ExitCode::FAILURE;
+    };
 
     let mut shader = String::new();
     file.read_to_string(&mut shader).unwrap();
