@@ -16,7 +16,7 @@ use wgpu::{
 };
 use wutengine_event::WutEngineEvent;
 use wutengine_util::GlobalManager;
-use wutengine_windowing::window::WindowIdentifier;
+use wutengine_windowing::window::{WindowIdentifier, WindowResizedEvent};
 
 pub mod color;
 pub mod format;
@@ -112,6 +112,10 @@ pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
 
     GlobalManager::init(&GRAPHICS_MANAGER, manager);
 
+    wutengine_event::subscribe_permanent::<wutengine_windowing::window::WindowResizedEvent>(
+        resized,
+    );
+
     Ok(())
 }
 
@@ -148,10 +152,13 @@ pub fn initialize_surface_for_window(
     Ok(())
 }
 
-pub fn resized(id: &WindowIdentifier, inner_size: (u32, u32)) {
-    let mut locked = GRAPHICS_MANAGER.surfaces.write().unwrap();
+fn resized(event: &WindowResizedEvent) {
+    let id = &event.window_id;
+    let inner_size = event.new_size;
 
-    let surface = if let Some(surface) = locked.get_mut(id) {
+    let mut surfaces = GRAPHICS_MANAGER.surfaces.write().unwrap();
+
+    let surface = if let Some(surface) = surfaces.get_mut(id) {
         surface
     } else {
         log::warn!("Resizing unknown surface {id}. Ignoring");
@@ -185,6 +192,10 @@ pub fn create_command_encoder(desc: &wgpu::CommandEncoderDescriptor) -> wgpu::Co
 
 pub fn submit_command_buffers<I: IntoIterator<Item = CommandBuffer>>(buffers: I) {
     GRAPHICS_MANAGER.queue.submit(buffers);
+}
+
+pub fn get_limits() -> wgpu::Limits {
+    GRAPHICS_MANAGER.device.limits()
 }
 
 #[derive(Debug)]

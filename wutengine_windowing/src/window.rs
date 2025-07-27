@@ -1,8 +1,11 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use winit::platform::windows::WindowAttributesExtWindows;
+use winit::window::{Cursor, Icon, WindowButtons};
+use wutengine_event::WutEngineEvent;
 use wutengine_util::GlobalManager;
 
 use crate::WutEngineWinitEvent;
@@ -14,38 +17,53 @@ pub(crate) static WINDOW_MANAGER: GlobalManager<WindowManager> = GlobalManager::
 pub(crate) struct WindowManager {
     event_loop: winit::event_loop::EventLoopProxy<WutEngineWinitEvent>,
 
-    windows: Mutex<WindowMap>,
+    windows: RwLock<WindowMap>,
 }
 
 #[derive(Debug, Default)]
 struct WindowMap {
     winit_id_map: HashMap<winit::window::WindowId, WindowIdentifier>,
-    wutengine_id_map: HashMap<WindowIdentifier, usize>,
-    windows: Vec<Arc<winit::window::Window>>,
+    windows: HashMap<WindowIdentifier, WindowData>,
+}
+
+#[derive(Debug)]
+struct WindowData {
+    native: Arc<winit::window::Window>,
+    inner_size: (u32, u32),
+}
+
+impl WindowData {
+    fn new(native: Arc<winit::window::Window>) -> Self {
+        let size = native.inner_size();
+        Self {
+            native,
+            inner_size: size.into(),
+        }
+    }
 }
 
 impl WindowManager {
     pub(crate) fn new(event_loop: winit::event_loop::EventLoopProxy<WutEngineWinitEvent>) -> Self {
         Self {
             event_loop,
-            windows: Mutex::new(WindowMap::default()),
+            windows: RwLock::new(WindowMap::default()),
         }
     }
 
     fn register_window(&self, identifier: WindowIdentifier, window: Arc<winit::window::Window>) {
-        let mut locked = self.windows.lock().unwrap();
+        let mut window_map = self.windows.write().unwrap();
 
-        if locked.wutengine_id_map.contains_key(&identifier) {
+        if window_map.windows.contains_key(&identifier) {
             log::error!("Window with ID {identifier} already exists. Not creating new one");
             return;
         }
 
-        let index = locked.windows.len();
         let winit_id = window.id();
 
-        locked.windows.push(window);
-        locked.winit_id_map.insert(winit_id, identifier.clone());
-        locked.wutengine_id_map.insert(identifier, index);
+        window_map.winit_id_map.insert(winit_id, identifier.clone());
+        window_map
+            .windows
+            .insert(identifier, WindowData::new(window));
     }
 }
 
@@ -125,7 +143,7 @@ pub fn create(id: WindowIdentifier, options: WindowOptions) {
 pub fn identifier_for_native_id(id: &winit::window::WindowId) -> Option<WindowIdentifier> {
     WINDOW_MANAGER
         .windows
-        .lock()
+        .read()
         .unwrap()
         .winit_id_map
         .get(id)
@@ -136,15 +154,25 @@ pub fn lock_windows<F>(cb: F)
 where
     F: for<'a> FnOnce(Vec<(&'a WindowIdentifier, &'a winit::window::Window)>),
 {
-    let locked = WINDOW_MANAGER.windows.lock().unwrap();
+    let locked = WINDOW_MANAGER.windows.read().unwrap();
 
     let as_vec = locked
-        .wutengine_id_map
+        .windows
         .iter()
-        .map(|(id, &index)| (id, locked.windows[index].as_ref()))
+        .map(|(id, index)| (id, index.native.as_ref()))
         .collect();
 
     cb(as_vec);
+}
+
+pub fn window_size(id: &WindowIdentifier) -> Option<(u32, u32)> {
+    WINDOW_MANAGER
+        .windows
+        .read()
+        .unwrap()
+        .windows
+        .get(id)
+        .map(|data| data.inner_size)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -158,7 +186,7 @@ impl WindowIdentifier {
 
 impl core::fmt::Display for WindowIdentifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        write!(f, "Window(\"{}\")", self.0)
     }
 }
 
@@ -168,3 +196,11 @@ pub enum WindowMode {
     BorderlessFullscreen(Option<DisplayIdentifier>),
     ExclusiveFullscreen(DisplayIdentifier, VideoMode),
 }
+
+#[derive(Debug)]
+pub struct WindowResizedEvent {
+    pub window_id: WindowIdentifier,
+    pub new_size: (u32, u32),
+}
+
+impl WutEngineEvent for WindowResizedEvent {}

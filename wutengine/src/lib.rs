@@ -16,22 +16,37 @@ pub mod asset;
 pub mod builtin;
 pub mod component;
 pub mod config;
-pub mod display;
-pub mod event;
+
+#[doc(inline)]
+pub use wutengine_windowing::display;
+
+#[doc(inline)]
+pub use wutengine_windowing::window;
+
+#[doc(inline)]
+pub use wutengine_event as event;
+
 pub mod gameobject;
-pub mod graphics;
-pub mod jobs;
+
+#[doc(inline)]
+pub use wutengine_graphics as graphics;
+
+#[doc(inline)]
+pub use wutengine_job as jobs;
+
+#[doc(inline)]
+pub use wutengine_time as time;
+
 pub mod math;
 pub mod prelude;
 pub mod profiling;
 mod runtime;
 mod threading;
-pub mod time;
-pub mod window;
 mod winit_app;
 
 pub use wutengine_util::map;
 
+/// An error while initializing the WutEngine runtime during a call to [run]
 #[derive(Debug, Error)]
 pub enum InitErr {
     /// WutEngine was already initialized
@@ -44,6 +59,11 @@ pub enum InitErr {
     Graphics(#[from] crate::graphics::InitErr),
 }
 
+/// The main entrypoint into WutEngine. Starts the runtime. Can only be called
+/// once in a process, and should be called on the main thread only.
+///
+/// Once this function returns, the engine runtime has stopped and the process
+/// should stop too
 pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
     static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
@@ -56,16 +76,14 @@ pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
     // Rayon worker threads
     threading::init_threadpool();
 
+    // Time manager
+    time::init(1.0 / 60.0, config.fixed_timestep);
+
     // Event manager
     wutengine_event::init();
 
     // Graphics stack
     pollster::block_on(crate::graphics::init(config.backends))?;
-
-    // Time management
-    unsafe {
-        time::init(config.fixed_timestep);
-    }
 
     // GameObject and Component managers
     gameobject::init();

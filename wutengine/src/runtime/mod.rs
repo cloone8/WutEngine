@@ -2,11 +2,17 @@
 
 use core::any::{Any, TypeId};
 use std::sync::Mutex;
+use std::time::Instant;
 
+use glam::Mat4;
 use rayon::prelude::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 use wgpu::wgt::CommandEncoderDescriptor;
+use wutengine_graphics::shader::ShaderConstants;
+use wutengine_graphics::shader::constants::{
+    InstanceConstants, RenderConstants, VIEWPORT_CONSTANTS_BIND_GROUP, ViewportConstants,
+};
 use wutengine_windowing::window::lock_windows;
 
 use crate::component::{ComponentData, find_components};
@@ -20,7 +26,7 @@ pub(crate) fn run_step() {
 
     log::trace!("Starting new frame");
 
-    let fixed_updates = unsafe { time::update_to_now() };
+    let fixed_updates = time::update_frame(Instant::now());
 
     run_frame_phase("Update", || {
         component::run_on_active_components(|component, context| {
@@ -36,6 +42,8 @@ pub(crate) fn run_step() {
                 component::run_on_active_components(|component, context| {
                     component.on_fixed_update(context);
                 });
+
+                time::update_fixed();
             });
         }
     }
@@ -125,7 +133,7 @@ pub(crate) fn render() {
         profiling::scope!("Swapping buffers");
 
         wutengine_windowing::window::lock_windows(|windows| {
-            for (window_id, window) in windows {
+            for (_window_id, window) in windows {
                 window.pre_present_notify();
             }
 
@@ -143,11 +151,13 @@ fn render_commands_for_camera(
     camera: &ComponentData,
     renderers: &[&Mutex<Box<dyn Component>>],
 ) -> Option<(wgpu::CommandBuffer, CameraTargetTexture)> {
-    let camera_component_locked = camera.implementation.lock().unwrap();
+    let mut camera_component_locked = camera.implementation.lock().unwrap();
 
-    let camera_component = (camera_component_locked.as_ref() as &dyn Any)
-        .downcast_ref::<Camera>()
+    let camera_component = (camera_component_locked.as_mut() as &mut dyn Any)
+        .downcast_mut::<Camera>()
         .expect("Invalid cast");
+
+    camera_component.remake_view_mat();
 
     let camera_texture = camera_component.get_target_texture()?;
     let camera_texture_format = camera_texture.format();
@@ -157,6 +167,20 @@ fn render_commands_for_camera(
         label: Some(format!("Camera {} render target", camera.id).as_str()),
         ..Default::default()
     });
+
+    let view_mat = camera_component.get_view_mat();
+    let projection_mat = camera_component.get_projection_mat();
+
+    let mut render_constants = RenderConstants {
+        viewport: ViewportConstants {
+            view_mat,
+            projection_mat,
+            view_projection_mat: view_mat * projection_mat,
+        },
+        instance: InstanceConstants {
+            model_mat: Mat4::IDENTITY,
+        },
+    };
 
     let mut encoder = graphics::create_command_encoder(&CommandEncoderDescriptor {
         label: Some(format!("Camera {} command encoder", camera.id).as_str()),
@@ -185,6 +209,8 @@ fn render_commands_for_camera(
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+
+        // color_pass.set_bind_group(VIEWPORT_CONSTANTS_BIND_GROUP, bind_group, &[]);
 
         for renderer in renderers {
             let mut renderer = renderer.lock().unwrap();

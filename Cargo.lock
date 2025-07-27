@@ -3545,6 +3545,7 @@ dependencies = [
  "wutengine_event",
  "wutengine_graphics",
  "wutengine_job",
+ "wutengine_time",
  "wutengine_util",
  "wutengine_windowing",
 ]
@@ -3622,6 +3623,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wutengine_time"
+version = "0.6.0"
+dependencies = [
+ "log",
+ "profiling",
+ "wutengine_util",
+]
+
+[[package]]
 name = "wutengine_util"
 version = "0.6.0"
 dependencies = [
@@ -3647,6 +3657,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.12",
  "winit",
+ "wutengine_event",
  "wutengine_util",
 ]
 

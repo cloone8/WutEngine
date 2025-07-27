@@ -1,3 +1,6 @@
+//! The [winit] application handler abstraction. Responds to [winit] callbacks and events, and calls
+//! the right functions in the main WutEngine runtime as a response.
+
 use core::fmt::Debug;
 use std::sync::Arc;
 
@@ -5,13 +8,17 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use wutengine_windowing::display;
 
-use crate::config::{InitialWindowConfig, WutEngineConfig};
+use crate::config::InitialWindowConfig;
 use crate::runtime::{render, run_step};
 use crate::window::{WindowMode, WindowOptions};
 use crate::{WutEngineWinitEvent, window};
 
+/// Data needed for the initial setup of the [winit] environment
 pub(crate) struct WinitInitData {
+    /// The initial window to create, if any
     pub(crate) initial_window: Option<InitialWindowConfig>,
+
+    /// The callback to call once the initial setup of the winit runtieme is done (in [winit::application::ApplicationHandler::resumed])
     pub(crate) post_init_callback: Option<Box<dyn FnOnce()>>,
 }
 
@@ -31,14 +38,17 @@ impl Debug for WinitInitData {
     }
 }
 
+/// The [winit] application handler. Calls the corresponding WutEngine runtime functions for each winit event
 #[derive(Debug)]
 pub(crate) struct WinitApp {
     /// If [Some], WutEngine hasn't been configured yet
     init_data: Option<WinitInitData>,
+
     event_loop: EventLoopProxy<WutEngineWinitEvent>,
 }
 
 impl WinitApp {
+    /// A new [WinitApp]
     pub(crate) fn new(
         event_loop: EventLoopProxy<WutEngineWinitEvent>,
         config: WinitInitData,
@@ -136,7 +146,10 @@ impl winit::application::ApplicationHandler<WutEngineWinitEvent> for WinitApp {
                 event_loop.exit();
             }
             WindowEvent::Resized(new_size) => {
-                wutengine_graphics::resized(&identifier, new_size.into());
+                wutengine_event::publish(wutengine_windowing::window::WindowResizedEvent {
+                    window_id: identifier,
+                    new_size: new_size.into(),
+                });
 
                 if cfg!(target_os = "windows") {
                     // hack for resizing bug in winit, remove once fixed
@@ -147,7 +160,7 @@ impl winit::application::ApplicationHandler<WutEngineWinitEvent> for WinitApp {
         };
     }
 
-    fn exiting(&mut self, event_loop: &ActiveEventLoop) {
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         log::info!("WutEngine shutting down");
 
         log::logger().flush();

@@ -1,12 +1,14 @@
+use core::num::NonZeroU64;
 use core::ops::RangeInclusive;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use wgpu::{ShaderModule, ShaderModuleDescriptor};
+use wgpu::{BindGroupLayoutDescriptor, ShaderModule, ShaderModuleDescriptor, ShaderStages};
 use wutengine_asset::Asset;
 
 pub(crate) mod cache;
+pub mod constants;
 mod vertexlayout;
 
 pub use vertexlayout::ShaderVertexLayout;
@@ -14,6 +16,9 @@ use wutengine_shadercompiler::{CompileStage, ShaderOutput};
 
 use crate::GRAPHICS_MANAGER;
 use crate::resource::GpuResource;
+use crate::shader::constants::{
+    InstanceConstants, VIEWPORT_CONSTANTS_BIND_GROUP, ViewportConstants,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShaderSource {
@@ -21,6 +26,78 @@ pub struct ShaderSource {
     pub source: String,
     pub available_keywords: HashMap<String, RangeInclusive<i64>>,
     pub vertex_layout: ShaderVertexLayout,
+    pub constants: ShaderConstants,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ShaderConstants {
+    /// The shader uses the viewport constants.
+    pub viewport: bool,
+
+    /// The shader uses the instance constants.
+    pub instance: bool,
+}
+
+impl ShaderConstants {
+    pub fn any(self) -> bool {
+        self.viewport || self.instance
+    }
+
+    pub fn len(self) -> usize {
+        self.viewport as usize + self.instance as usize
+    }
+
+    pub(crate) fn viewport_bind_group_layout() -> Arc<wgpu::BindGroupLayout> {
+        //TODO: Cache this
+        Arc::new(
+            GRAPHICS_MANAGER
+                .device
+                .create_bind_group_layout(&BindGroupLayoutDescriptor {
+                    label: Some("Viewport constants"),
+                    entries: &[Self::VIEWPORT_BIND_GROUP_LAYOUT_ENTRY],
+                }),
+        )
+    }
+
+    pub(crate) fn instance_bind_group_layout() -> Arc<wgpu::BindGroupLayout> {
+        //TODO: Cache this
+        Arc::new(
+            GRAPHICS_MANAGER
+                .device
+                .create_bind_group_layout(&BindGroupLayoutDescriptor {
+                    label: Some("Instance constants"),
+                    entries: &[Self::INSTANCE_BIND_GROUP_LAYOUT_ENTRY],
+                }),
+        )
+    }
+
+    const VIEWPORT_BIND_GROUP_LAYOUT_ENTRY: wgpu::BindGroupLayoutEntry =
+        wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: Some(
+                    NonZeroU64::new(size_of::<ViewportConstants>() as u64).unwrap(),
+                ),
+            },
+            count: None,
+        };
+
+    const INSTANCE_BIND_GROUP_LAYOUT_ENTRY: wgpu::BindGroupLayoutEntry =
+        wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: Some(
+                    NonZeroU64::new(size_of::<InstanceConstants>() as u64).unwrap(),
+                ),
+            },
+            count: None,
+        };
 }
 
 impl Asset for ShaderSource {}

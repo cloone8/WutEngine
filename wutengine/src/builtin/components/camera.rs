@@ -16,6 +16,13 @@ pub struct Camera {
     background: CameraBackground,
     viewport: CameraViewport,
     clipping_planes: (f32, f32),
+
+    // Cached values
+    #[serde(skip)]
+    projection_mat: Mat4,
+
+    #[serde(skip)]
+    view_mat: Mat4,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,6 +145,59 @@ impl Display for CameraViewport {
 }
 
 impl Camera {
+    pub(crate) fn remake_view_mat(&mut self) {
+        //TODO: Take from transform matrix of GameObject the camera is placed on
+        self.view_mat = Mat4::IDENTITY;
+    }
+
+    fn remake_proj_mat(&mut self) {
+        let phys_target_size = match self.target.as_ref() {
+            Some(CameraTarget::Window(window_id)) => {
+                let Some(phys_target_size) = crate::window::window_size(window_id) else {
+                    log::warn!(
+                        "Not recalculating projection matrix because the camera has an unknown window target: {window_id}"
+                    );
+                    return;
+                };
+
+                phys_target_size
+            }
+            None => {
+                log::warn!(
+                    "Not recalculating projection matrix because the camera does not have a target"
+                );
+                return;
+            }
+        };
+
+        let aspect_ratio: f32 = phys_target_size.0 as f32 / phys_target_size.1 as f32;
+
+        self.projection_mat = match self.projection {
+            CameraProjection::Perspective(fov) => Mat4::perspective_lh(
+                fov.get_vertical(aspect_ratio).to_radians() as f32,
+                aspect_ratio as f32,
+                self.clipping_planes.0,
+                self.clipping_planes.1,
+            ),
+            CameraProjection::Orthographic(size) => {
+                let half_size = size / 2.0;
+                let half_horizontal_size = half_size * aspect_ratio;
+
+                Mat4::orthographic_lh(
+                    -half_horizontal_size,
+                    half_horizontal_size,
+                    -half_size,
+                    half_size,
+                    self.clipping_planes.0,
+                    self.clipping_planes.1,
+                )
+            }
+        };
+    }
+}
+
+/// Public API for [Camera]
+impl Camera {
     pub fn new() -> Self {
         Self {
             target: None,
@@ -145,11 +205,14 @@ impl Camera {
             background: CameraBackground::Color(Color::BLACK),
             viewport: CameraViewport::FULL_WINDOW,
             clipping_planes: (0.1, 100.0),
+            projection_mat: Mat4::ZERO,
+            view_mat: Mat4::ZERO,
         }
     }
 
     pub fn set_window(&mut self, target: CameraTarget) {
         self.target = Some(target);
+        self.remake_proj_mat();
     }
 
     pub fn set_background(&mut self, background: CameraBackground) {
@@ -182,38 +245,17 @@ impl Camera {
         }
 
         self.clipping_planes = (near, far);
+        self.remake_proj_mat();
     }
 
+    #[inline(always)]
     pub fn get_view_mat(&self) -> Mat4 {
-        Mat4::IDENTITY
+        self.view_mat
     }
 
+    #[inline(always)]
     pub fn get_projection_mat(&self) -> Mat4 {
-        todo!();
-        // let phys_window_size = window.size;
-        // let aspect_ratio: f32 = phys_window_size.0 as f32 / phys_window_size.1 as f32;
-
-        // match self.projection {
-        //     CameraProjection::Perspective(fov) => Mat4::perspective_lh(
-        //         fov.get_vertical(aspect_ratio).to_radians() as f32,
-        //         aspect_ratio as f32,
-        //         0.1,
-        //         100.0,
-        //     ),
-        //     CameraProjection::Orthographic(size) => {
-        //         let half_size = size / 2.0;
-        //         let half_horizontal_size = half_size * aspect_ratio;
-
-        //         Mat4::orthographic_lh(
-        //             -half_horizontal_size as f32,
-        //             half_horizontal_size as f32,
-        //             -half_size as f32,
-        //             half_size as f32,
-        //             self.clipping_planes.0,
-        //             self.clipping_planes.1,
-        //         )
-        //     }
-        // }
+        self.projection_mat
     }
 
     pub(crate) fn get_target_texture(&self) -> Option<CameraTargetTexture> {

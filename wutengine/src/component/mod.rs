@@ -260,8 +260,8 @@ pub struct ComponentContext {
 pub trait Component: Any + TypeName + Send + Sync + core::fmt::Debug {
     fn on_create(&mut self, _context: ComponentContext) {}
     fn on_enable(&mut self, _context: ComponentContext) {}
-    fn on_update(&mut self, _context: ComponentContext) {}
     fn on_fixed_update(&mut self, _context: ComponentContext) {}
+    fn on_update(&mut self, _context: ComponentContext) {}
     fn on_disable(&mut self, _context: ComponentContext) {}
     fn on_destroy(&mut self, _context: ComponentContext) {}
 

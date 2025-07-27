@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use wutengine_graphics::shader::{ShaderSource, ShaderVertexLayout};
+use wutengine_graphics::shader::{ShaderConstants, ShaderSource, ShaderVertexLayout};
 use wutengine_util::map;
 
 /// The default unlit shader
@@ -15,5 +15,9 @@ pub static UNLIT: LazyLock<ShaderSource> = LazyLock::new(|| ShaderSource {
         normal: None,
         uv: None,
         color: Some(1),
+    },
+    constants: ShaderConstants {
+        viewport: true,
+        instance: false,
     },
 });

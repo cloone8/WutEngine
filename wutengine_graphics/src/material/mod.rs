@@ -1,18 +1,45 @@
 use std::collections::HashMap;
+use std::sync::{Arc, LazyLock, Mutex, RwLock};
 
 use naga::keywords;
 use serde::{Deserialize, Serialize};
 use wgpu::{
-    BlendState, ColorWrites, MultisampleState, PipelineCompilationOptions,
-    PipelineLayoutDescriptor, PrimitiveState, RenderPipelineDescriptor, ShaderModuleDescriptor,
-    TextureFormat, VertexBufferLayout,
+    BindGroupLayoutDescriptor, BlendState, ColorWrites, MultisampleState,
+    PipelineCompilationOptions, PipelineLayoutDescriptor, PrimitiveState, RenderPipelineDescriptor,
+    ShaderModuleDescriptor, TextureFormat, VertexBufferLayout,
 };
 use wutengine_asset::{Asset, AssetHandle};
 use wutengine_shadercompiler::{CompileStage, ShaderOutput};
 
 use crate::GRAPHICS_MANAGER;
 use crate::resource::GpuResource;
-use crate::shader::{CompiledShader, ShaderSource};
+use crate::shader::{CompiledShader, ShaderConstants, ShaderSource};
+
+fn empty_layout() -> Arc<wgpu::BindGroupLayout> {
+    static EMPTY_LAYOUT: RwLock<Option<Arc<wgpu::BindGroupLayout>>> = RwLock::new(None);
+
+    let layout = EMPTY_LAYOUT.read().unwrap();
+
+    match &*layout {
+        Some(layout) => layout.clone(),
+        None => {
+            drop(layout);
+
+            let mut layout_write = EMPTY_LAYOUT.write().unwrap();
+
+            let new_empty = Arc::new(GRAPHICS_MANAGER.device.create_bind_group_layout(
+                &BindGroupLayoutDescriptor {
+                    label: Some("Empty group layout"),
+                    entries: &[],
+                },
+            ));
+
+            *layout_write = Some(new_empty.clone());
+
+            new_empty
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Material {
@@ -25,15 +52,37 @@ impl Asset for Material {}
 
 impl Material {
     pub fn get_pipeline_layout(&self) -> Option<wgpu::PipelineLayout> {
-        if self.shader.is_none() {
-            return None;
-        }
+        let shader = self.shader.as_ref()?;
+        let empty_layout = empty_layout();
+
+        let bind_group_layouts: [Arc<wgpu::BindGroupLayout>; 3] =
+            core::array::from_fn(|i| match i {
+                0 => {
+                    if shader.constants.viewport {
+                        ShaderConstants::viewport_bind_group_layout().clone()
+                    } else {
+                        empty_layout.clone()
+                    }
+                }
+                1 => {
+                    //TODO: Actual material parameters here
+                    empty_layout.clone()
+                }
+                2 => {
+                    if shader.constants.instance {
+                        ShaderConstants::instance_bind_group_layout().clone()
+                    } else {
+                        empty_layout.clone()
+                    }
+                }
+                _ => unreachable!(),
+            });
 
         let layout = GRAPHICS_MANAGER
             .device
             .create_pipeline_layout(&PipelineLayoutDescriptor {
                 label: Some("Material pipeline layout"),
-                bind_group_layouts: &[],
+                bind_group_layouts: &Vec::from_iter(bind_group_layouts.iter().map(|x| x.as_ref())),
                 push_constant_ranges: &[],
             });
 

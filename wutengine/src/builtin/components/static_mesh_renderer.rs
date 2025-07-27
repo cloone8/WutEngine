@@ -6,6 +6,7 @@ use wutengine_graphics::mesh::{Mesh, create_vertex_buffer_layout};
 use wutengine_graphics::pipeline::cache::PipelineCacheKey;
 use wutengine_graphics::resource::GpuResource;
 use wutengine_graphics::shader::ShaderVertexLayout;
+use wutengine_graphics::shader::constants::RenderConstants;
 
 use crate::component::{Component, Renderer};
 
@@ -46,15 +47,6 @@ impl Component for StaticMeshRenderer {
     fn as_renderer(&mut self) -> Option<&mut dyn Renderer> {
         Some(self)
     }
-    // fn on_render(&mut self, _context: crate::prelude::ComponentContext) {
-    //     log::debug!("StaticMeshRenderer on_render");
-
-    //     let (mesh, material) = match (&mut self.mesh, &mut self.material) {
-    //         (Some(mesh), Some(mat)) => (mesh, mat),
-    //         // Nothing to do
-    //         _ => return,
-    //     };
-    // }
 }
 
 impl Renderer for StaticMeshRenderer {
