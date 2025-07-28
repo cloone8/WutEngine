@@ -1,19 +1,15 @@
 use std::collections::HashMap;
-use std::sync::{Arc, LazyLock, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
-use naga::keywords;
 use serde::{Deserialize, Serialize};
 use wgpu::{
-    BindGroupLayoutDescriptor, BlendState, ColorWrites, MultisampleState,
-    PipelineCompilationOptions, PipelineLayoutDescriptor, PrimitiveState, RenderPipelineDescriptor,
-    ShaderModuleDescriptor, TextureFormat, VertexBufferLayout,
+    BindGroupLayoutDescriptor, BlendState, ColorWrites, MultisampleState, PipelineLayoutDescriptor,
+    PrimitiveState, RenderPipelineDescriptor, TextureFormat, VertexBufferLayout,
 };
 use wutengine_asset::{Asset, AssetHandle};
-use wutengine_shadercompiler::{CompileStage, ShaderOutput};
 
 use crate::GRAPHICS_MANAGER;
-use crate::resource::GpuResource;
-use crate::shader::{CompiledShader, ShaderConstants, ShaderSource};
+use crate::shader::{ShaderConstants, ShaderSource};
 
 fn empty_layout() -> Arc<wgpu::BindGroupLayout> {
     static EMPTY_LAYOUT: RwLock<Option<Arc<wgpu::BindGroupLayout>>> = RwLock::new(None);
@@ -182,6 +178,12 @@ impl Material {
 }
 
 /// Public API for a [Material]
+impl Default for Material {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Material {
     pub fn new() -> Self {
         Material {

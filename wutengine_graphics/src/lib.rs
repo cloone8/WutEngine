@@ -1,14 +1,13 @@
 //! Graphics backend for WutEngine
 
 use std::collections::HashMap;
-use std::sync::{Mutex, RwLock};
+use std::sync::RwLock;
 
 use thiserror::Error;
 use wgpu::wgt::DeviceDescriptor;
 use wgpu::{
-    BackendOptions, CommandBuffer, Features, InstanceDescriptor, InstanceFlags, Limits,
-    MemoryBudgetThresholds, MemoryHints, PipelineCacheDescriptor, PowerPreference, Queue,
-    RequestAdapterOptions, SurfaceTexture,
+    BackendOptions, CommandBuffer, Features, InstanceDescriptor, Limits, MemoryBudgetThresholds,
+    MemoryHints, PowerPreference, RequestAdapterOptions,
 };
 use wutengine_event::WutEngineEvent;
 use wutengine_util::GlobalManager;

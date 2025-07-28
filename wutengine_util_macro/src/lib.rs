@@ -1,8 +1,8 @@
 //! Internal WutEngine macros
 
-use syn::parse::Parse;
-use syn::{parse_macro_input, Attribute, Ident};
 use quote::quote;
+use syn::parse::Parse;
+use syn::{Attribute, Ident, parse_macro_input};
 
 /// Input for the [unique_id_type] macro
 struct UniqueIdTypeInput {

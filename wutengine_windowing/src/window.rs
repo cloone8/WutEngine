@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use winit::platform::windows::WindowAttributesExtWindows;
-use winit::window::{Cursor, Icon, WindowButtons};
 use wutengine_event::WutEngineEvent;
 use wutengine_util::GlobalManager;
 
@@ -186,7 +184,7 @@ impl WindowIdentifier {
 }
 
 impl core::fmt::Display for WindowIdentifier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "Window(\"{}\")", self.0)
     }
 }

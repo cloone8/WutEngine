@@ -17,12 +17,11 @@ impl DisplayManager {
 
         let main_display = event_loop
             .primary_monitor()
-            .map(|primary| {
+            .and_then(|primary| {
                 displays
                     .iter()
                     .position(|display| display.raw_handle == primary)
             })
-            .flatten()
             .unwrap_or(0);
 
         Self {
@@ -84,7 +83,7 @@ impl Display {
 pub struct DisplayIdentifier(pub(crate) winit::monitor::MonitorHandle);
 
 impl core::fmt::Display for DisplayIdentifier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.0
             .name()
             .unwrap_or_else(|| "<unknown>".to_string())
@@ -100,7 +99,7 @@ pub struct VideoMode {
 }
 
 impl core::fmt::Display for VideoMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let hz_float: f64 = (self.refresh_rate_mhz as f64) / 1000.0;
 
         write!(

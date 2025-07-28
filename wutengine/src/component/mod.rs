@@ -206,10 +206,8 @@ pub(crate) fn run_for<const INCLUDE_INACTIVE: bool, 'id>(
             .get(id)
             .expect("Could not find expected component");
 
-        if !INCLUDE_INACTIVE {
-            if component.cur_state.get() != ComponentState::Enabled {
-                continue;
-            }
+        if !INCLUDE_INACTIVE && component.cur_state.get() != ComponentState::Enabled {
+            continue;
         }
 
         func(component);
@@ -320,7 +318,7 @@ impl ComponentData {
 }
 
 impl core::fmt::Display for ComponentData {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let component_typename = self.component_type_name;
 
         write!(f, "{component_typename}(id={})", self.id)

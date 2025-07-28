@@ -1,9 +1,4 @@
-use core::ops::Deref;
-use core::sync::atomic::{AtomicU16, Ordering, fence};
-
-use image::imageops::FilterType::Gaussian;
-use serde::{Deserialize, Serialize};
-use wutengine_asset::serializers::image::dynamic_image::serialize;
+use core::sync::atomic::{AtomicU16, Ordering};
 
 /// Every time we lose the GPU
 static GPU_DEVICE_GENERATION: AtomicU16 = AtomicU16::new(0);

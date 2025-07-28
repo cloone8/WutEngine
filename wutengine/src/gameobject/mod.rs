@@ -114,7 +114,7 @@ pub fn create_object(name: Option<String>) -> GameObjectId {
 
 #[profiling::function]
 pub fn add_component<C: Component>(gameobject: GameObjectId, component: C) {
-    log::debug!("Adding Component to GameObject {}", gameobject);
+    log::debug!("Adding Component to GameObject {gameobject}");
 
     let gameobjects = GAMEOBJECT_MANAGER.gameobjects.read().unwrap();
 
@@ -196,7 +196,7 @@ struct GameObjectPrivate {
 }
 
 impl core::fmt::Display for GameObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match &*self.name.lock().unwrap() {
             Some(name) => write!(f, "GameObject({name})"),
             None => write!(f, "GameObject(id={})", self.id),
@@ -229,7 +229,7 @@ pub(crate) enum GameObjectState {
 }
 
 impl core::fmt::Display for GameObjectState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             GameObjectState::Disabled => write!(f, "Disabled"),
             GameObjectState::Enabled => write!(f, "Enabled"),

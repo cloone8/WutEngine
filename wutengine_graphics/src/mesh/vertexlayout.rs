@@ -1,7 +1,6 @@
 use wgpu::{VertexAttribute, VertexFormat};
 
 use crate::format::{VTX_COLOR, VTX_NORMAL, VTX_POS, VTX_UV};
-use crate::mesh;
 use crate::shader::ShaderVertexLayout;
 
 /// A descriptor for the layout of a mesh vertex buffer

@@ -4,7 +4,6 @@ use wutengine_asset::AssetHandle;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::mesh::{Mesh, create_vertex_buffer_layout};
 use wutengine_graphics::pipeline::cache::PipelineCacheKey;
-use wutengine_graphics::resource::GpuResource;
 
 use crate::component::{Component, Renderer};
 

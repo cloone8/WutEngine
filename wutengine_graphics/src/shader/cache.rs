@@ -32,7 +32,7 @@ impl ShaderCache {
         compiled
             .get(shader_name)
             .and_then(|variants| variants.get(&keyword_hash))
-            .map(|variant| Arc::clone(variant))
+            .map(Arc::clone)
     }
 
     pub(crate) fn insert(

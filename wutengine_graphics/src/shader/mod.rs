@@ -16,9 +16,7 @@ use wutengine_shadercompiler::{CompileStage, ShaderOutput};
 
 use crate::GRAPHICS_MANAGER;
 use crate::resource::GpuResource;
-use crate::shader::constants::{
-    InstanceConstants, VIEWPORT_CONSTANTS_BIND_GROUP, ViewportConstants,
-};
+use crate::shader::constants::{InstanceConstants, ViewportConstants};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShaderSource {
@@ -127,7 +125,7 @@ pub fn get(
     let wutengine_shader = match compile_wutengine_shader(shader, keywords) {
         Ok(sh) => sh,
         Err(e) => {
-            log::error!("Failed to compile WutEngine shader: {}", e);
+            log::error!("Failed to compile WutEngine shader: {e}");
             return None;
         }
     };

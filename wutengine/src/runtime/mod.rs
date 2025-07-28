@@ -1,19 +1,15 @@
 //! Main WutEngine runtime
 
-use core::any::{Any, TypeId};
+use core::any::Any;
 use std::sync::Mutex;
 use std::time::Instant;
 
 use glam::Mat4;
-use rayon::prelude::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
-};
+use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use wgpu::wgt::CommandEncoderDescriptor;
-use wutengine_graphics::shader::ShaderConstants;
 use wutengine_graphics::shader::constants::{
-    InstanceConstants, RenderConstants, VIEWPORT_CONSTANTS_BIND_GROUP, ViewportConstants,
+    InstanceConstants, RenderConstants, ViewportConstants,
 };
-use wutengine_windowing::window::lock_windows;
 
 use crate::component::{ComponentData, find_components};
 use crate::prelude::{Camera, CameraTargetTexture, Component};
@@ -171,7 +167,7 @@ fn render_commands_for_camera(
     let view_mat = camera_component.get_view_mat();
     let projection_mat = camera_component.get_projection_mat();
 
-    let mut render_constants = RenderConstants {
+    let render_constants = RenderConstants {
         viewport: ViewportConstants {
             view_mat,
             projection_mat,
