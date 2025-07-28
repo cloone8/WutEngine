@@ -3,7 +3,7 @@
 pub use crate::asset::{Asset, AssetHandle};
 pub use crate::builtin::*;
 pub use crate::component::{Component, ComponentContext, ComponentId};
-pub use crate::config::WutEngineConfig;
+pub use crate::config::StaticRuntimeConfig;
 pub use crate::gameobject::{GameObject, GameObjectId};
 pub use crate::graphics::{material::Material, mesh::Mesh, texture::Texture};
 pub use crate::math::{

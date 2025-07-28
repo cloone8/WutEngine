@@ -57,6 +57,9 @@ impl AssetManager {
     }
 }
 
+/// Initializes the global asset manager. Should not be called by the user, only by the engine
+/// runtime
+#[doc(hidden)]
 pub fn init(loader: Box<dyn AssetLoader>, default_format: AssetSerializationFormat) {
     GlobalManager::init(&ASSET_MANAGER, AssetManager::new(loader, default_format));
 }

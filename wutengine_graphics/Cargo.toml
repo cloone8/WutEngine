@@ -27,6 +27,7 @@ wutengine_windowing.workspace = true
 wutengine_asset.workspace = true
 wutengine_shadercompiler.workspace = true
 wutengine_event.workspace = true
+wutengine_config.workspace = true
 glam.workspace = true
 image.workspace = true
 serde.workspace = true

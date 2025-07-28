@@ -176,6 +176,7 @@ pub fn window_size(id: &WindowIdentifier) -> Option<(u32, u32)> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct WindowIdentifier(pub(crate) String);
 
 impl WindowIdentifier {

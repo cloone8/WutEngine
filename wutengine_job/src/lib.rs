@@ -9,6 +9,9 @@ use std::sync::mpsc::{Receiver, sync_channel};
 /// Global Job ID counter. Automatically incremented every time a new job is started
 static NEXT_JOB_ID: AtomicU64 = AtomicU64::new(0);
 
+/// Starts a job on one of the WutEngine worker threads, and returns a handle to that job.
+/// The handle can be used to either block on the completion of the started job,
+/// or to non-blockingly check whether it is done.
 pub fn start_job<F, T>(job: F) -> JobHandle<T>
 where
     F: FnOnce() -> T + Send + 'static,
@@ -38,19 +41,27 @@ where
     handle
 }
 
+/// A handle to a started parallel job.
 #[derive(Debug)]
 pub struct JobHandle<T> {
+    /// The fully unique ID of the job
     job_id: u64,
+
+    /// The job return value and synchronization
     inner: Mutex<JobHandleInner<T>>,
 }
 
 #[derive(Debug)]
 enum JobHandleInner<T> {
+    /// Job is waiting to be done
     Waiting(Receiver<T>),
+
+    /// Job is complete
     Ready(T),
 }
 
 impl<T> JobHandle<T> {
+    /// Returns true if the job is complete and has its return value ready.
     pub fn ready(&self) -> bool {
         let mut inner = self.inner.lock().unwrap();
 
@@ -67,6 +78,7 @@ impl<T> JobHandle<T> {
         }
     }
 
+    /// Blocks until the job is complete, and returns the job return value
     pub fn result(self) -> T {
         match self.inner.into_inner().unwrap() {
             JobHandleInner::Waiting(receiver) => receiver.recv().expect("Job stopped"),
@@ -76,7 +88,7 @@ impl<T> JobHandle<T> {
 }
 
 impl<T> Display for JobHandle<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "JobHandle(id={:x})", self.job_id)
     }
 }

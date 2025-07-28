@@ -182,6 +182,7 @@ pub enum Error {
     #[error("Error during preprocessing: {0}")]
     Preprocess(#[from] PreprocessErr),
 
+    /// Parsing generated WGSL into a [naga] shader module failed
     #[error("Error parsing preprocessed WGSL shader: {0}")]
     Parse(#[from] naga::front::wgsl::ParseError),
 }

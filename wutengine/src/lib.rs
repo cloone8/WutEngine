@@ -3,19 +3,22 @@
 use core::cell::UnsafeCell;
 use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
+use std::path::PathBuf;
 
 use thiserror::Error;
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowAttributes;
 use wutengine_windowing::WutEngineWinitEvent;
 
-use crate::config::WutEngineConfig;
+use crate::config::StaticRuntimeConfig;
 use crate::winit_app::{WinitApp, WinitInitData};
 
 pub mod asset;
 pub mod builtin;
 pub mod component;
 pub mod config;
+
+pub use wutengine_config;
 
 #[doc(inline)]
 pub use wutengine_windowing::display;
@@ -64,7 +67,7 @@ pub enum InitErr {
 ///
 /// Once this function returns, the engine runtime has stopped and the process
 /// should stop too
-pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
+pub fn run(config: StaticRuntimeConfig) -> Result<(), InitErr> {
     static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
     if INITIALIZED.swap(true, Ordering::AcqRel) {
@@ -73,17 +76,20 @@ pub fn run(config: WutEngineConfig) -> Result<(), InitErr> {
 
     log::info!("Initializing WutEngine");
 
+    // Configuration
+    wutengine_config::init(Some(&PathBuf::from("wutengine.toml")));
+
     // Rayon worker threads
     threading::init_threadpool();
 
     // Time manager
-    time::init(1.0 / 60.0, config.fixed_timestep);
+    time::init();
 
     // Event manager
     wutengine_event::init();
 
     // Graphics stack
-    pollster::block_on(crate::graphics::init(config.backends))?;
+    pollster::block_on(crate::graphics::init())?;
 
     // GameObject and Component managers
     gameobject::init();

@@ -11,6 +11,7 @@ members = [
     "wutengine_event",
     "wutengine_job",
     "wutengine_time",
+    "wutengine_config",
     "tools/weshc",
 ]
 
@@ -37,6 +38,7 @@ wutengine_util = { path = "wutengine_util", version = "0.6.0" }
 wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
 wutengine_time = { path = "wutengine_time", version = "0.6.0" }
+wutengine_config = { path = "wutengine_config", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
@@ -66,6 +68,7 @@ glam = { version = "0.29", features = [
 serde = { version = "1.0", features = ["derive"] }
 serde_bytes = { version = "0.11" }
 serde_json = { version = "1.0" }
+toml = { version = "0.9" }
 postcard = { version = "1.1", features = ["use-std"] }
 logos = "0.15"
 
@@ -92,9 +95,9 @@ panic = "abort"
 missing_docs = "warn"
 unsafe_op_in_unsafe_fn = "warn"
 unreachable_pub = "warn"
-allow_attributes_without_reason = "warn"
-std_instead_of_core = "warn"
 
 [workspace.lints.clippy]
 missing_docs_in_private_items = "warn"
 missing_assert_messages = "warn"
+allow_attributes_without_reason = "warn"
+std_instead_of_core = "warn"

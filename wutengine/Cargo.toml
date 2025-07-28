@@ -35,6 +35,7 @@ wutengine_asset.workspace = true
 wutengine_event.workspace = true
 wutengine_job.workspace = true
 wutengine_time.workspace = true
+wutengine_config.workspace = true
 serde.workspace = true
 winit.workspace = true
 wgpu.workspace = true

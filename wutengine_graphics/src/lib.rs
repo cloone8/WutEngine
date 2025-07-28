@@ -1,12 +1,8 @@
 //! Graphics backend for WutEngine
 
-mod backend;
-
 use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
-pub use backend::WutEngineBackend;
-use serde::de;
 use thiserror::Error;
 use wgpu::wgt::DeviceDescriptor;
 use wgpu::{
@@ -18,7 +14,10 @@ use wutengine_event::WutEngineEvent;
 use wutengine_util::GlobalManager;
 use wutengine_windowing::window::{WindowIdentifier, WindowResizedEvent};
 
+use crate::config::{GraphicsBackend, WutEngineGraphicsConfig};
+
 pub mod color;
+mod config;
 pub mod format;
 pub mod material;
 pub mod mesh;
@@ -49,19 +48,20 @@ fn reinitialize_graphics() {
     todo!();
 }
 
-pub async fn init(backends: WutEngineBackend) -> Result<(), InitErr> {
+pub async fn init() -> Result<(), InitErr> {
     log::info!("Initializing WutEngine graphics stack");
+    let config = wutengine_config::get_wutengine::<WutEngineGraphicsConfig>("graphics");
 
-    log::debug!("Requested backends: {backends}");
-    log::debug!("Compiled backends: {}", WutEngineBackend::IN_BUILD);
+    log::debug!("Requested backends: {}", config.backend);
+    log::debug!("Compiled backends: {}", GraphicsBackend::IN_BUILD);
 
-    let usable_backends = backends & WutEngineBackend::IN_BUILD;
+    let usable_backends = config.backend & GraphicsBackend::IN_BUILD;
 
     log::info!("Using graphics backends: {usable_backends}");
 
     let instance = wgpu::Instance::new(&InstanceDescriptor {
         backends: usable_backends.into(),
-        flags: InstanceFlags::from_build_config(),
+        flags: config.debug_level.into(),
         memory_budget_thresholds: MemoryBudgetThresholds::default(),
         backend_options: BackendOptions::default(),
     });

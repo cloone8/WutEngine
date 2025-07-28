@@ -4,52 +4,54 @@ use core::fmt::Display;
 use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
 
 use cfg_if::cfg_if;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct WutEngineBackend {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct GraphicsBackend {
     pub dx12: bool,
     pub vulkan: bool,
     pub metal: bool,
     pub opengl: bool,
 }
 
-impl WutEngineBackend {
-    pub const ALL: Self = WutEngineBackend {
+impl GraphicsBackend {
+    pub const ALL: Self = GraphicsBackend {
         dx12: true,
         vulkan: true,
         metal: true,
         opengl: true,
     };
 
-    pub const DX12: Self = WutEngineBackend {
+    pub const DX12: Self = GraphicsBackend {
         dx12: true,
         vulkan: false,
         metal: false,
         opengl: false,
     };
 
-    pub const VULKAN: Self = WutEngineBackend {
+    pub const VULKAN: Self = GraphicsBackend {
         dx12: false,
         vulkan: true,
         metal: false,
         opengl: false,
     };
 
-    pub const METAL: Self = WutEngineBackend {
+    pub const METAL: Self = GraphicsBackend {
         dx12: false,
         vulkan: false,
         metal: true,
         opengl: false,
     };
 
-    pub const OPENGL: Self = WutEngineBackend {
+    pub const OPENGL: Self = GraphicsBackend {
         dx12: false,
         vulkan: false,
         metal: false,
         opengl: true,
     };
 
-    pub const IN_BUILD: Self = WutEngineBackend {
+    pub const IN_BUILD: Self = GraphicsBackend {
         dx12: cfg!(feature = "dx12"),
         vulkan: cfg!(feature = "vulkan"),
         metal: cfg!(feature = "metal"),
@@ -57,7 +59,7 @@ impl WutEngineBackend {
     };
 }
 
-impl BitOr for WutEngineBackend {
+impl BitOr for GraphicsBackend {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -70,13 +72,13 @@ impl BitOr for WutEngineBackend {
     }
 }
 
-impl BitOrAssign for WutEngineBackend {
+impl BitOrAssign for GraphicsBackend {
     fn bitor_assign(&mut self, rhs: Self) {
         *self = *self | rhs;
     }
 }
 
-impl BitAnd for WutEngineBackend {
+impl BitAnd for GraphicsBackend {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -89,13 +91,13 @@ impl BitAnd for WutEngineBackend {
     }
 }
 
-impl BitAndAssign for WutEngineBackend {
+impl BitAndAssign for GraphicsBackend {
     fn bitand_assign(&mut self, rhs: Self) {
         *self = *self & rhs;
     }
 }
 
-impl Not for WutEngineBackend {
+impl Not for GraphicsBackend {
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -108,8 +110,8 @@ impl Not for WutEngineBackend {
     }
 }
 
-impl Display for WutEngineBackend {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for GraphicsBackend {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let mut backends_strs = Vec::with_capacity(4);
 
         if self.dx12 {
@@ -132,7 +134,7 @@ impl Display for WutEngineBackend {
     }
 }
 
-impl Default for WutEngineBackend {
+impl Default for GraphicsBackend {
     fn default() -> Self {
         cfg_if! {
             if #[cfg(target_os = "windows")] {
@@ -148,8 +150,8 @@ impl Default for WutEngineBackend {
     }
 }
 
-impl From<WutEngineBackend> for wgpu::Backends {
-    fn from(value: WutEngineBackend) -> Self {
+impl From<GraphicsBackend> for wgpu::Backends {
+    fn from(value: GraphicsBackend) -> Self {
         let mut backends = wgpu::Backends::empty();
         if value.dx12 {
             backends |= wgpu::Backends::DX12;

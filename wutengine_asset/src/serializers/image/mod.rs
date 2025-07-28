@@ -1,22 +1,22 @@
-#![allow(missing_docs)]
+//! Custom [serde] serialization/deserialization implementations for types from the [image] crate
 
 use image::{ColorType, DynamicImage, ImageBuffer};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 /// A serializable [DynamicImage]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SerializedDynamicImage {
-    pub color_type: SerializedColorType,
+struct SerializedDynamicImage {
+    color_type: SerializedColorType,
 
-    pub dims: (u32, u32),
+    dims: (u32, u32),
 
     #[serde(with = "serde_bytes")]
-    pub bytes: Vec<u8>,
+    bytes: Vec<u8>,
 }
 
 /// A serializable [ColorType]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum SerializedColorType {
+enum SerializedColorType {
     L8,
     La8,
     Rgb8,
@@ -110,12 +110,14 @@ impl From<SerializedColorType> for ColorType {
     }
 }
 
+/// Implements [serde] serialization and deserialization for [image::DynamicImage]
 pub mod dynamic_image {
     use image::DynamicImage;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     use crate::serializers::image::SerializedDynamicImage;
 
+    /// [image::DynamicImage] [serde] serializaiton implementation
     pub fn serialize<S>(image: &DynamicImage, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -123,6 +125,7 @@ pub mod dynamic_image {
         SerializedDynamicImage::from(image).serialize(serializer)
     }
 
+    /// [image::DynamicImage] [serde] deserialization implementation
     pub fn deserialize<'de, D>(deserializer: D) -> Result<DynamicImage, D::Error>
     where
         D: Deserializer<'de>,

@@ -54,7 +54,7 @@ impl<T> GlobalManager<T> {
             if !self.initialized.load(Ordering::Acquire) {
                 panic!(
                     "Global manager of type {} not yet initialized!",
-                    std::any::type_name::<T>()
+                    core::any::type_name::<T>()
                 );
             }
         }
@@ -66,7 +66,7 @@ impl<T> GlobalManager<T> {
     pub fn init(target: &GlobalManager<T>, val: T) {
         ::log::debug!(
             "Initializing GlobalManager of type {}",
-            std::any::type_name::<T>()
+            core::any::type_name::<T>()
         );
 
         #[cfg(debug_assertions)]
@@ -76,7 +76,7 @@ impl<T> GlobalManager<T> {
             if target.initialized.swap(true, Ordering::AcqRel) {
                 panic!(
                     "Global manager of type {} already initialized!",
-                    std::any::type_name::<T>()
+                    core::any::type_name::<T>()
                 );
             }
         }
@@ -124,7 +124,7 @@ where
 ///
 /// Used like:
 /// ```
-/// use wutengine::map;
+/// use wutengine_util::map; // Or `wutengine::map` when using the full WutEngine engine crate
 /// use std::collections::HashMap;
 ///
 /// let new_map: HashMap<String, i32> = map![
