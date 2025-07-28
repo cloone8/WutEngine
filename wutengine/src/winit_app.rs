@@ -23,7 +23,7 @@ pub(crate) struct WinitInitData {
 }
 
 impl Debug for WinitInitData {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("WinitInitData")
             .field("initial_window", &self.initial_window)
             .field(

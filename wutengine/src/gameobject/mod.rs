@@ -21,6 +21,7 @@ impl GameObjectManager {
 
 static GAMEOBJECT_MANAGER: GlobalManager<GameObjectManager> = GlobalManager::new();
 
+/// Initializes the gameobject manager
 pub(crate) fn init() {
     GlobalManager::init(&GAMEOBJECT_MANAGER, GameObjectManager::new());
 }

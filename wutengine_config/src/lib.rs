@@ -65,6 +65,7 @@ pub fn init(config_path: Option<&Path>) {
 /// Returns a wutengine-internal configuration value. Mainly used by the engine runtime.
 /// For reading custom per-application config values instead, see [get] and [try_get]
 #[doc(hidden)]
+#[profiling::function]
 pub fn get_wutengine<'de, T>(value: &str) -> T
 where
     T: serde::Deserialize<'de>,
@@ -75,6 +76,7 @@ where
 
 /// Returns a config value from the given category and key. If it does not exist
 /// or is otherwise corrupt, returns [Default::default] for `T` instead
+#[profiling::function]
 pub fn get<'de, T>(category: &str, key: &str) -> T
 where
     T: serde::Deserialize<'de>,
@@ -85,6 +87,7 @@ where
 
 /// Returns a config value from the given category and key. If it does not exist
 /// or is otherwise corrupt, returns [None] instead
+#[profiling::function]
 pub fn try_get<'de, T>(category: &str, key: &str) -> Option<T>
 where
     T: serde::Deserialize<'de>,

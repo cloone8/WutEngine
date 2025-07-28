@@ -1,24 +1,20 @@
 //! The WutEngine game engine
 
-use core::cell::UnsafeCell;
-use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
-use std::path::PathBuf;
 
 use thiserror::Error;
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowAttributes;
 use wutengine_windowing::WutEngineWinitEvent;
 
 use crate::config::StaticRuntimeConfig;
 use crate::winit_app::{WinitApp, WinitInitData};
 
-pub mod asset;
 pub mod builtin;
 pub mod component;
 pub mod config;
 
-pub use wutengine_config;
+#[doc(inline)]
+pub use wutengine_asset as asset;
 
 #[doc(inline)]
 pub use wutengine_windowing::display;
@@ -44,7 +40,6 @@ pub mod math;
 pub mod prelude;
 pub mod profiling;
 mod runtime;
-mod threading;
 mod winit_app;
 
 pub use wutengine_util::map;
@@ -74,13 +69,15 @@ pub fn run(config: StaticRuntimeConfig) -> Result<(), InitErr> {
         return Err(InitErr::AlreadyInitialized);
     }
 
+    profiling::scope!("Engine Runtime Initialization");
+
     log::info!("Initializing WutEngine");
 
     // Configuration
-    wutengine_config::init(Some(&PathBuf::from("wutengine.toml")));
+    wutengine_config::init(config.config_file.as_deref());
 
-    // Rayon worker threads
-    threading::init_threadpool();
+    // Job system
+    jobs::init();
 
     // Time manager
     time::init();

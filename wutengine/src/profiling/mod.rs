@@ -8,7 +8,7 @@ pub use profiling::*;
 mod internal;
 
 /// Starts the profiler HTTP server at the given address and port
-#[allow(unused_variables)]
+#[allow(unused_variables, reason = "Does nothing in builds without profiling")]
 pub fn start_http_server(addr: Option<IpAddr>, port: Option<u16>) {
     #[cfg(feature = "profiling")]
     {
@@ -18,7 +18,7 @@ pub fn start_http_server(addr: Option<IpAddr>, port: Option<u16>) {
 }
 
 /// Stops the current profiler HTTP server
-#[allow(unused_variables)]
+#[allow(unused_variables, reason = "Does nothing in builds without profiling")]
 pub fn stop_http_server() {
     #[cfg(feature = "profiling")]
     {

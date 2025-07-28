@@ -12,6 +12,8 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+wutengine_config.workspace = true
+serde.workspace = true
 log.workspace = true
 profiling.workspace = true
 rayon.workspace = true

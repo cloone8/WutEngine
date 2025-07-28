@@ -3620,6 +3620,7 @@ name = "wutengine_config"
 version = "0.6.0"
 dependencies = [
  "log",
+ "profiling",
  "serde",
  "toml 0.9.2",
  "wutengine_util",
@@ -3664,6 +3665,8 @@ dependencies = [
  "log",
  "profiling",
  "rayon",
+ "serde",
+ "wutengine_config",
 ]
 
 [[package]]

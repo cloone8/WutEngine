@@ -5,8 +5,6 @@ use wutengine_graphics::material::Material;
 use wutengine_graphics::mesh::{Mesh, create_vertex_buffer_layout};
 use wutengine_graphics::pipeline::cache::PipelineCacheKey;
 use wutengine_graphics::resource::GpuResource;
-use wutengine_graphics::shader::ShaderVertexLayout;
-use wutengine_graphics::shader::constants::RenderConstants;
 
 use crate::component::{Component, Renderer};
 
@@ -14,9 +12,6 @@ use crate::component::{Component, Renderer};
 pub struct StaticMeshRenderer {
     mesh: Option<AssetHandle<Mesh>>,
     material: Option<AssetHandle<Material>>,
-
-    #[serde(skip)]
-    pipeline: GpuResource<wgpu::RenderPipeline>,
 }
 
 impl Default for StaticMeshRenderer {
@@ -30,7 +25,6 @@ impl StaticMeshRenderer {
         Self {
             mesh: None,
             material: None,
-            pipeline: GpuResource::new(),
         }
     }
 
