@@ -7,10 +7,6 @@ use std::time::Instant;
 use serde::Deserialize;
 use wutengine_util::GlobalManager;
 
-use crate::atomic::AtomicF64;
-
-mod atomic;
-
 /// The amount of nanoseconds in one second
 pub const NANOS_PER_SECOND: u64 = 1_000_000_000;
 
@@ -46,8 +42,8 @@ struct TimeManager {
     /// Internal values, meant to be accessed synchronized only
     internal: Mutex<TimeManagerInternal>,
 
-    /// The time scale used
-    time_scale: AtomicF64,
+    /// The time scale used, stored as a bitcast [f64] using [f64::to_bits] and [f64::from_bits]
+    time_scale: AtomicU64,
 
     /// The amount of frames that have passed in total since application start
     frame_num: AtomicUsize,
@@ -84,7 +80,7 @@ impl TimeManager {
                 requested_fixed_delta: fixed_delta_nanos,
                 fixed_accumulator: 0,
             }),
-            time_scale: AtomicF64::new(1.0),
+            time_scale: AtomicU64::new(1.0_f64.to_bits()),
             frame_num: AtomicUsize::new(0),
 
             time: AtomicU64::new(0),
@@ -180,7 +176,7 @@ pub fn init() {
 /// Returns the current time scaling factor
 #[inline(always)]
 pub fn time_scale() -> f64 {
-    TIME_MANAGER.time_scale.load(Ordering::Acquire)
+    f64::from_bits(TIME_MANAGER.time_scale.load(Ordering::Acquire))
 }
 
 /// Returns the current frame number
@@ -386,7 +382,7 @@ fn update_time_config(tm: &TimeManagerInternal) -> (f64, u64) {
 
     TIME_MANAGER
         .time_scale
-        .store(new_time_scale, Ordering::Release);
+        .store(new_time_scale.to_bits(), Ordering::Release);
 
     TIME_MANAGER
         .fixed_delta
@@ -465,8 +461,8 @@ pub fn update_frame(now: Instant) -> u64 {
 #[profiling::function]
 pub fn update_fixed() {
     let unscaled_delta = TIME_MANAGER.fixed_delta.load(Ordering::Acquire);
-    let scaled_delta =
-        ((unscaled_delta as f64) * TIME_MANAGER.time_scale.load(Ordering::Acquire)) as u64;
+    let time_scale = f64::from_bits(TIME_MANAGER.time_scale.load(Ordering::Acquire));
+    let scaled_delta = ((unscaled_delta as f64) * time_scale) as u64;
 
     TIME_MANAGER
         .fixed_time
