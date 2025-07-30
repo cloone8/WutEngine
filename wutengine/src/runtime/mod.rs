@@ -4,12 +4,13 @@ use core::any::Any;
 use std::sync::Mutex;
 use std::time::Instant;
 
-use glam::Mat4;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use wgpu::wgt::CommandEncoderDescriptor;
+use wutengine_graphics::shader::ShaderConstants;
 use wutengine_graphics::shader::constants::{
-    InstanceConstants, RenderConstants, ViewportConstants,
+    InstanceConstants, RenderConstants, VIEWPORT_CONSTANTS_BIND_GROUP, ViewportConstants,
 };
+use wutengine_graphics::wgpu::wgt::CommandEncoderDescriptor;
+use wutengine_math::Mat4;
 
 use crate::component::{ComponentData, find_components};
 use crate::prelude::{Camera, CameraTargetTexture, Component};
@@ -55,6 +56,8 @@ fn run_frame_phase(_name: &'static str, phase: impl FnOnce()) {
 
     phase();
 
+    // Handle any pending events, and then handle events published
+    // while handling those events, etc.
     loop {
         let any_handled = crate::event::handle_pending_events();
 
@@ -140,13 +143,16 @@ pub(crate) fn render() {
             }
         });
     }
+
+    // Mark any one-shot buffers we used this frame as available for the next frame
+    graphics::buffer::cache::recycle();
 }
 
 #[profiling::function]
 fn render_commands_for_camera(
     camera: &ComponentData,
     renderers: &[&Mutex<Box<dyn Component>>],
-) -> Option<(wgpu::CommandBuffer, CameraTargetTexture)> {
+) -> Option<(wutengine_graphics::wgpu::CommandBuffer, CameraTargetTexture)> {
     let mut camera_component_locked = camera.implementation.lock().unwrap();
 
     let camera_component = (camera_component_locked.as_mut() as &mut dyn Any)
@@ -154,29 +160,22 @@ fn render_commands_for_camera(
         .expect("Invalid cast");
 
     camera_component.remake_view_mat();
+    camera_component.update_viewport_buffer();
 
     let camera_texture = camera_component.get_target_texture()?;
     let camera_texture_format = camera_texture.format();
 
-    let camera_texture_view = camera_texture.create_view(&wgpu::TextureViewDescriptor {
-        format: Some(camera_texture_format),
-        label: Some(format!("Camera {} render target", camera.id).as_str()),
-        ..Default::default()
-    });
+    let camera_texture_view =
+        camera_texture.create_view(&wutengine_graphics::wgpu::TextureViewDescriptor {
+            format: Some(camera_texture_format),
+            label: Some(format!("Camera {} render target", camera.id).as_str()),
+            ..Default::default()
+        });
 
     let view_mat = camera_component.get_view_mat();
     let projection_mat = camera_component.get_projection_mat();
-
-    let render_constants = RenderConstants {
-        viewport: ViewportConstants {
-            view_mat,
-            projection_mat,
-            view_projection_mat: view_mat * projection_mat,
-        },
-        instance: InstanceConstants {
-            model_mat: Mat4::IDENTITY,
-        },
-    };
+    let vp_map = projection_mat * view_mat;
+    let viewport_bind_group = camera_component.get_viewport_bind_group();
 
     let mut encoder = graphics::create_command_encoder(&CommandEncoderDescriptor {
         label: Some(format!("Camera {} command encoder", camera.id).as_str()),
@@ -185,30 +184,38 @@ fn render_commands_for_camera(
     {
         profiling::scope!("Record color pass");
 
-        let mut color_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some(format!("Camera {} color pass", camera.id).as_str()),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &camera_texture_view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: match camera_component.get_background() {
-                        crate::prelude::CameraBackground::None => wgpu::LoadOp::Load,
-                        crate::prelude::CameraBackground::Color(color) => {
-                            wgpu::LoadOp::Clear(color.into())
-                        }
+        let mut color_pass =
+            encoder.begin_render_pass(&wutengine_graphics::wgpu::RenderPassDescriptor {
+                label: Some(format!("Camera {} color pass", camera.id).as_str()),
+                color_attachments: &[Some(wutengine_graphics::wgpu::RenderPassColorAttachment {
+                    view: &camera_texture_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wutengine_graphics::wgpu::Operations {
+                        load: match camera_component.get_background() {
+                            crate::prelude::CameraBackground::None => {
+                                wutengine_graphics::wgpu::LoadOp::Load
+                            }
+                            crate::prelude::CameraBackground::Color(color) => {
+                                wutengine_graphics::wgpu::LoadOp::Clear(color.into())
+                            }
+                        },
+                        store: wutengine_graphics::wgpu::StoreOp::Store,
                     },
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
 
-        // color_pass.set_bind_group(VIEWPORT_CONSTANTS_BIND_GROUP, bind_group, &[]);
+        color_pass.set_bind_group(VIEWPORT_CONSTANTS_BIND_GROUP, viewport_bind_group, &[]);
 
         for renderer in renderers {
+            let instance_constant_buffer =
+                graphics::buffer::cache::get_and_write_buffer(&InstanceConstants {
+                    model_mat: Mat4::IDENTITY,
+                    mvp_mat: vp_map * Mat4::IDENTITY,
+                });
             let mut renderer = renderer.lock().unwrap();
             let as_renderer = renderer.as_mut().as_renderer().expect("Given non-renderer");
 

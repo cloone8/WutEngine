@@ -16,6 +16,7 @@ readme = "../README.md"
 workspace = true
 
 [dependencies]
+profiling.workspace = true
 nohash-hasher.workspace = true
 log.workspace = true
 wutengine_util_macro.workspace = true

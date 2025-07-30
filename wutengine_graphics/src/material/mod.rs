@@ -9,6 +9,9 @@ use wgpu::{
 use wutengine_asset::{Asset, AssetHandle};
 
 use crate::GRAPHICS_MANAGER;
+use crate::shader::constants::{
+    INSTANCE_CONSTANTS_BIND_GROUP, MATERIAL_PARAMETERS_BIND_GROUP, VIEWPORT_CONSTANTS_BIND_GROUP,
+};
 use crate::shader::{ShaderConstants, ShaderSource};
 
 fn empty_layout() -> Arc<wgpu::BindGroupLayout> {
@@ -51,26 +54,26 @@ impl Material {
         let shader = self.shader.as_ref()?;
         let empty_layout = empty_layout();
 
-        let bind_group_layouts: [Arc<wgpu::BindGroupLayout>; 3] =
-            core::array::from_fn(|i| match i {
-                0 => {
+        let bind_group_layouts: [Arc<wgpu::BindGroupLayout>; 1] =
+            core::array::from_fn(|i| match i as u32 {
+                VIEWPORT_CONSTANTS_BIND_GROUP => {
                     if shader.constants.viewport {
                         ShaderConstants::viewport_bind_group_layout().clone()
                     } else {
                         empty_layout.clone()
                     }
                 }
-                1 => {
-                    //TODO: Actual material parameters here
-                    empty_layout.clone()
-                }
-                2 => {
-                    if shader.constants.instance {
-                        ShaderConstants::instance_bind_group_layout().clone()
-                    } else {
-                        empty_layout.clone()
-                    }
-                }
+                // MATERIAL_PARAMETERS_BIND_GROUP => {
+                //     //TODO: Actual material parameters here
+                //     empty_layout.clone()
+                // }
+                // INSTANCE_CONSTANTS_BIND_GROUP => {
+                //     if shader.constants.instance {
+                //         ShaderConstants::instance_bind_group_layout().clone()
+                //     } else {
+                //         empty_layout.clone()
+                //     }
+                // }
                 _ => unreachable!(),
             });
 
@@ -85,6 +88,7 @@ impl Material {
         Some(layout)
     }
 
+    #[profiling::function]
     pub fn get_render_pipeline(
         &self,
         vertex_layout: VertexBufferLayout,
@@ -137,29 +141,7 @@ impl Material {
         Some(pipeline)
     }
 
-    // pub(crate) fn get_render_pipeline(&self) -> wgpu::RenderPipeline {
-    //     let module = self.shader.as_ref().unwrap().get_shader_module().unwrap();
-
-    //     let pipeline = GRAPHICS_MANAGER
-    //         .device
-    //         .create_render_pipeline(&RenderPipelineDescriptor {
-    //             label: Some("Material render pipeline"),
-    //             layout: Some(&self.get_pipeline_layout()),
-    //             vertex: wgpu::VertexState {
-    //                 module: &module,
-    //                 entry_point: Some("vertex_main"),
-    //                 compilation_options: PipelineCompilationOptions::default(),
-    //                 buffers: ,
-    //             },
-    //             primitive: todo!(),
-    //             depth_stencil: todo!(),
-    //             multisample: todo!(),
-    //             fragment: todo!(),
-    //             multiview: todo!(),
-    //             cache: todo!(),
-    //         });
-    // }
-
+    #[profiling::function]
     fn rehash_keywords(&mut self) {
         self.shader_keyword_hash = wutengine_util::hash::keyword_hash(&self.shader_keywords);
     }

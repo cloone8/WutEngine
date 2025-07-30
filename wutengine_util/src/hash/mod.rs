@@ -88,6 +88,7 @@ impl core::hash::Hasher for KeywordHasher {
 }
 
 /// Provides a stable hash for the given set of keywords and values
+#[profiling::function]
 pub fn keyword_hash<K: AsRef<str> + core::hash::Hash + Eq, V: core::hash::Hash>(
     keywords: &HashMap<K, V>,
 ) -> u64 {

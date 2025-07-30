@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
 use wutengine_util::hash::nohash_hasher::IntMap;
-use wutengine_util::{GlobalManager, unique_id_type};
+use wutengine_util::{GlobalManager, unique_id_type64};
 
 use crate::component::{self, Component, ComponentId};
 
@@ -248,9 +248,9 @@ impl GameObjectState {
     }
 }
 
-unique_id_type! {
+unique_id_type64! {
     /// The ID of a [GameObject]
-    GameObjectId
+    pub GameObjectId
 }
 
 impl GameObjectId {

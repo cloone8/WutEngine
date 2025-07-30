@@ -11,7 +11,7 @@ struct wuteng_viewport_constants {
 @group(0) @binding(0)
 var<uniform> viewport_constants: wuteng_viewport_constants; 
 
-// @group(0) @binding(1)
+// @group(2) @binding(0)
 // var<uniform> instance_constants: wuteng_instance_constants;
 
 struct VertexOutput {
@@ -27,7 +27,7 @@ fn vertex_main(
 
     // out.out_pos = vec4<f32>(wuteng_position, 1.0);
     // out.out_pos = wuteng_vp_const_block.view_projection_mat * wuteng_instance_const_block.model_mat * vec4<f32>(wuteng_position, 1.0);
-    out.out_pos = wuteng_vp_const_block.view_projection_mat * vec4<f32>(wuteng_position, 1.0);
+    out.out_pos = viewport_constants.view_projection_mat * vec4<f32>(wuteng_position, 1.0);
     // out.tex_coord = wuteng_uv;
 
     return out;

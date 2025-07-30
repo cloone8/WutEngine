@@ -3579,7 +3579,6 @@ name = "wutengine"
 version = "0.6.0"
 dependencies = [
  "cfg-if",
- "glam",
  "log",
  "pollster",
  "profiling",
@@ -3587,13 +3586,13 @@ dependencies = [
  "rayon",
  "serde",
  "thiserror 2.0.12",
- "wgpu",
  "winit",
  "wutengine_asset",
  "wutengine_config",
  "wutengine_event",
  "wutengine_graphics",
  "wutengine_job",
+ "wutengine_math",
  "wutengine_time",
  "wutengine_util",
  "wutengine_windowing",
@@ -3641,7 +3640,6 @@ version = "0.6.0"
 dependencies = [
  "bytemuck",
  "cfg-if",
- "glam",
  "image",
  "log",
  "naga",
@@ -3653,6 +3651,7 @@ dependencies = [
  "wutengine_asset",
  "wutengine_config",
  "wutengine_event",
+ "wutengine_math",
  "wutengine_shadercompiler",
  "wutengine_util",
  "wutengine_windowing",
@@ -3667,6 +3666,13 @@ dependencies = [
  "rayon",
  "serde",
  "wutengine_config",
+]
+
+[[package]]
+name = "wutengine_math"
+version = "0.6.0"
+dependencies = [
+ "glam",
 ]
 
 [[package]]
@@ -3702,6 +3708,7 @@ version = "0.6.0"
 dependencies = [
  "log",
  "nohash-hasher",
+ "profiling",
  "wutengine_util_macro",
 ]
 

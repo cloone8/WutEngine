@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
-use glam::Vec4;
 use serde::{Deserialize, Serialize};
+use wutengine_math::Vec4;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize, Pod, Zeroable)]
 #[repr(C)]

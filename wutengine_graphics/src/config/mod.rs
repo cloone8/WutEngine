@@ -17,6 +17,9 @@ pub(crate) struct WutEngineGraphicsConfig {
 
     /// The graphics layer debug validation level
     pub(crate) debug_level: GraphicsValidationLevel,
+
+    /// Whether to ignore graphics layer validation errors and keep running
+    pub(crate) ignore_errors: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]

@@ -12,6 +12,7 @@ members = [
     "wutengine_job",
     "wutengine_time",
     "wutengine_config",
+    "wutengine_math",
     "tools/weshc",
 ]
 
@@ -39,6 +40,7 @@ wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
 wutengine_time = { path = "wutengine_time", version = "0.6.0" }
 wutengine_config = { path = "wutengine_config", version = "0.6.0" }
+wutengine_math = { path = "wutengine_math", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }

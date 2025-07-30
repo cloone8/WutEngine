@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
 use wutengine_util::hash::nohash_hasher::IntMap;
-use wutengine_util::{GlobalManager, TypeName, unique_id_type};
+use wutengine_util::{GlobalManager, TypeName, unique_id_type64};
 
 use crate::gameobject::{self, GameObjectId};
 
@@ -271,8 +271,8 @@ pub trait Component: Any + TypeName + Send + Sync + core::fmt::Debug {
 pub trait Renderer: Component {
     fn render_color<'a>(
         &mut self,
-        encoder: &mut wgpu::RenderPass<'a>,
-        target_format: wgpu::TextureFormat,
+        encoder: &mut crate::graphics::wgpu::RenderPass<'a>,
+        target_format: crate::graphics::wgpu::TextureFormat,
     );
 }
 
@@ -374,7 +374,7 @@ impl AtomicComponentState {
     }
 }
 
-unique_id_type! {
+unique_id_type64! {
     /// The ID of a [Component]
-    ComponentId
+    pub ComponentId
 }

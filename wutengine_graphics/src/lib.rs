@@ -15,8 +15,10 @@ use wutengine_windowing::window::{WindowIdentifier, WindowResizedEvent};
 
 use crate::config::{GraphicsBackend, WutEngineGraphicsConfig};
 
+pub mod buffer;
 pub mod color;
 mod config;
+pub(crate) mod debug;
 pub mod format;
 pub mod material;
 pub mod mesh;
@@ -25,6 +27,9 @@ pub mod pipeline;
 pub mod resource;
 pub mod shader;
 pub mod texture;
+pub mod viewport;
+
+pub use wgpu;
 
 pub(crate) static GRAPHICS_MANAGER: GlobalManager<GraphicsManager> = GlobalManager::new();
 
@@ -92,8 +97,12 @@ pub async fn init() -> Result<(), InitErr> {
         reinitialize_graphics();
     });
 
-    device.on_uncaptured_error(Box::new(|e| {
-        panic!("AAAA: {e}"); // Todo: replace once we find what triggers this
+    device.on_uncaptured_error(Box::new(move |e| {
+        log::error!("Encountered graphics device error: {e}");
+
+        if !config.ignore_errors {
+            panic!("Graphics validation error");
+        }
     }));
 
     // Set device generation to 1: the main/first
@@ -107,6 +116,7 @@ pub async fn init() -> Result<(), InitErr> {
         surfaces: RwLock::new(HashMap::new()),
         shader_cache: shader::cache::ShaderCache::new(),
         pipeline_cache: pipeline::cache::PipelineCache::new(),
+        buffer_cache: buffer::cache::BufferCache::new(),
     };
 
     GlobalManager::init(&GRAPHICS_MANAGER, manager);
@@ -205,7 +215,6 @@ struct GraphicsSurface {
 
 impl GraphicsSurface {
     fn reconfigure(&self, device: &wgpu::Device, size: (u32, u32)) {
-        dbg!(&self.capabilities.formats);
         let surface_format = self.capabilities.formats[0];
 
         let surface_config = wgpu::SurfaceConfiguration {
@@ -233,4 +242,5 @@ struct GraphicsManager {
     surfaces: RwLock<HashMap<WindowIdentifier, GraphicsSurface>>,
     shader_cache: shader::cache::ShaderCache,
     pipeline_cache: pipeline::cache::PipelineCache,
+    buffer_cache: buffer::cache::BufferCache,
 }

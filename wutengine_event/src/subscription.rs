@@ -5,9 +5,9 @@ use std::sync::Arc;
 
 use crate::EVENT_MANAGER;
 
-wutengine_util::unique_id_type!(
+wutengine_util::unique_id_type64!(
     /// The ID of a subscription to an event type
-    EventSubscriptionId
+    pub(crate) EventSubscriptionId
 );
 
 /// A subscription to a [WutEngineEvent](crate::WutEngineEvent). Internally ref counted, so cheap to clone. Once the last reference

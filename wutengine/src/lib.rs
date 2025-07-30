@@ -36,7 +36,9 @@ pub use wutengine_job as jobs;
 #[doc(inline)]
 pub use wutengine_time as time;
 
-pub mod math;
+#[doc(inline)]
+pub use wutengine_math as math;
+
 pub mod prelude;
 pub mod profiling;
 mod runtime;

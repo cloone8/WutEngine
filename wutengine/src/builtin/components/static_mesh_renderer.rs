@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use wgpu::VertexAttribute;
 use wutengine_asset::AssetHandle;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::mesh::{Mesh, create_vertex_buffer_layout};
 use wutengine_graphics::pipeline::cache::PipelineCacheKey;
+use wutengine_graphics::wgpu::VertexAttribute;
 
 use crate::component::{Component, Renderer};
 
@@ -45,8 +45,8 @@ impl Component for StaticMeshRenderer {
 impl Renderer for StaticMeshRenderer {
     fn render_color<'a>(
         &mut self,
-        pass: &mut wgpu::RenderPass<'a>,
-        target_format: wgpu::TextureFormat,
+        pass: &mut crate::graphics::wgpu::RenderPass<'a>,
+        target_format: crate::graphics::wgpu::TextureFormat,
     ) {
         let (mesh, material) = if let (Some(mesh), Some(material)) = (&self.mesh, &self.material) {
             (mesh, material)
@@ -83,7 +83,7 @@ impl Renderer for StaticMeshRenderer {
                     let mut buf = vec![
                         VertexAttribute {
                             // Fill with random defaults
-                            format: wgpu::VertexFormat::Uint8,
+                            format: crate::graphics::wgpu::VertexFormat::Uint8,
                             offset: 0,
                             shader_location: 0
                         };

@@ -1,10 +1,10 @@
 use core::num::NonZeroU64;
 
-use glam::{Vec2, Vec3};
 use serde::{Deserialize, Serialize};
 use wgpu::wgt::BufferDescriptor;
 use wgpu::{Buffer, BufferUsages};
 use wutengine_asset::Asset;
+use wutengine_math::{Vec2, Vec3};
 
 use crate::color::Color;
 use crate::resource::GpuResource;

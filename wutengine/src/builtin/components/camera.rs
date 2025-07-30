@@ -1,9 +1,15 @@
 use core::fmt::Display;
+use core::num::NonZero;
 use core::ops::Deref;
 
-use glam::Mat4;
 use serde::{Deserialize, Serialize};
+use wutengine_event::EventSubscription;
+use wutengine_graphics::buffer::GpuBuffer;
 use wutengine_graphics::color::Color;
+use wutengine_graphics::shader::constants::ViewportConstants;
+use wutengine_graphics::viewport::Viewport;
+use wutengine_graphics::wgpu::BufferUsages;
+use wutengine_math::Mat4;
 use wutengine_windowing::window::WindowIdentifier;
 
 use crate::graphics;
@@ -17,12 +23,42 @@ pub struct Camera {
     viewport: CameraViewport,
     clipping_planes: (f32, f32),
 
-    // Cached values
     #[serde(skip)]
-    projection_mat: Mat4,
+    runtime: CameraRuntimeData,
+}
 
-    #[serde(skip)]
+#[derive(Debug)]
+struct CameraRuntimeData {
+    projection_mat: Mat4,
     view_mat: Mat4,
+    viewport: Viewport,
+    viewport_dirty: bool,
+}
+
+impl Default for CameraRuntimeData {
+    fn default() -> Self {
+        Self {
+            projection_mat: Mat4::IDENTITY,
+            view_mat: Mat4::IDENTITY,
+            viewport: Viewport::new(None),
+            viewport_dirty: true,
+        }
+    }
+}
+
+impl Clone for CameraRuntimeData {
+    fn clone(&self) -> Self {
+        Self {
+            projection_mat: self.projection_mat,
+            view_mat: self.view_mat,
+            viewport: Viewport::new(Some(&ViewportConstants {
+                view_mat: self.view_mat,
+                projection_mat: self.projection_mat,
+                vp_mat: self.projection_mat * self.view_mat,
+            })),
+            viewport_dirty: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,11 +123,11 @@ pub enum CameraBackground {
 
 #[derive(Debug)]
 pub(crate) enum CameraTargetTexture {
-    Surface(wgpu::SurfaceTexture),
+    Surface(crate::graphics::wgpu::SurfaceTexture),
 }
 
 impl Deref for CameraTargetTexture {
-    type Target = wgpu::Texture;
+    type Target = crate::graphics::wgpu::Texture;
 
     fn deref(&self) -> &Self::Target {
         match self {
@@ -145,9 +181,33 @@ impl Display for CameraViewport {
 }
 
 impl Camera {
+    pub(crate) fn get_viewport_bind_group(&self) -> &graphics::wgpu::BindGroup {
+        assert!(
+            !self.runtime.viewport_dirty,
+            "Attempting to get bindings to dirty viewport. Engine error"
+        );
+
+        self.runtime.viewport.get_bind_group()
+    }
+
+    pub(crate) fn update_viewport_buffer(&mut self) {
+        if !self.runtime.viewport_dirty {
+            return;
+        }
+
+        self.runtime.viewport.update(&ViewportConstants {
+            view_mat: self.runtime.view_mat,
+            projection_mat: self.runtime.projection_mat,
+            vp_mat: self.runtime.view_mat * self.runtime.projection_mat,
+        });
+
+        self.runtime.viewport_dirty = false;
+    }
+
     pub(crate) fn remake_view_mat(&mut self) {
         //TODO: Take from transform matrix of GameObject the camera is placed on
-        self.view_mat = Mat4::IDENTITY;
+        self.runtime.view_mat = Mat4::IDENTITY;
+        self.runtime.viewport_dirty = true;
     }
 
     fn remake_proj_mat(&mut self) {
@@ -172,7 +232,7 @@ impl Camera {
 
         let aspect_ratio: f32 = phys_target_size.0 as f32 / phys_target_size.1 as f32;
 
-        self.projection_mat = match self.projection {
+        self.runtime.projection_mat = match self.projection {
             CameraProjection::Perspective(fov) => Mat4::perspective_lh(
                 fov.get_vertical(aspect_ratio).to_radians() as f32,
                 aspect_ratio as f32,
@@ -193,6 +253,8 @@ impl Camera {
                 )
             }
         };
+
+        self.runtime.viewport_dirty = true;
     }
 }
 
@@ -205,9 +267,13 @@ impl Camera {
             background: CameraBackground::Color(Color::BLACK),
             viewport: CameraViewport::FULL_WINDOW,
             clipping_planes: (0.1, 100.0),
-            projection_mat: Mat4::ZERO,
-            view_mat: Mat4::ZERO,
+            runtime: CameraRuntimeData::default(),
         }
+    }
+
+    pub fn set_projection(&mut self, projection: CameraProjection) {
+        self.projection = projection;
+        self.remake_proj_mat();
     }
 
     pub fn set_window(&mut self, target: CameraTarget) {
@@ -250,12 +316,12 @@ impl Camera {
 
     #[inline(always)]
     pub fn get_view_mat(&self) -> Mat4 {
-        self.view_mat
+        self.runtime.view_mat
     }
 
     #[inline(always)]
     pub fn get_projection_mat(&self) -> Mat4 {
-        self.projection_mat
+        self.runtime.projection_mat
     }
 
     pub(crate) fn get_target_texture(&self) -> Option<CameraTargetTexture> {
