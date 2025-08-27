@@ -64,7 +64,7 @@ pub fn init(loader: Box<dyn AssetLoader>, default_format: AssetSerializationForm
     GlobalManager::init(&ASSET_MANAGER, AssetManager::new(loader, default_format));
 }
 
-pub fn load_cached<A: Asset>(path: &str) -> Option<A> {
+fn load_cached<A: Asset>(path: &str) -> Option<A> {
     let cache = ASSET_MANAGER.asset_cache.read().unwrap();
 
     let cached = if let Some(c) = cache.get(path) {

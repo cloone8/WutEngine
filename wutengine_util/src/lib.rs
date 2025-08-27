@@ -4,6 +4,8 @@ use core::any::Any;
 use core::cell::UnsafeCell;
 use core::mem::MaybeUninit;
 use core::ops::Deref;
+use std::sync::Mutex;
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 pub use wutengine_util_macro::*;
 
@@ -104,6 +106,57 @@ impl<T> Deref for GlobalManager<T> {
     }
 }
 
+/// Asynchronous thread-safe queue. Allows sending from many threads at once,
+/// and receiving on one thread at a time
+#[derive(Debug)]
+pub struct Queue<T> {
+    /// The receiver
+    recv: Mutex<Receiver<T>>,
+
+    /// The sender
+    send: Sender<T>,
+}
+
+impl<T> Default for Queue<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Queue<T> {
+    /// Creates a new, empty, queue
+    pub fn new() -> Self {
+        let (send, recv) = channel::<T>();
+
+        Self {
+            recv: Mutex::new(recv),
+            send,
+        }
+    }
+
+    /// Gathers all elements currently in the queue, emptying the queue in the process. Blocking
+    #[inline]
+    pub fn gather(&self) -> Vec<T> {
+        let recv = self.recv.lock().unwrap();
+
+        Vec::from_iter(recv.try_iter())
+    }
+
+    /// Processes and empties the queue by running the given closure once for each element. Blocking
+    #[inline]
+    pub fn for_each(&self, func: impl FnMut(T)) {
+        let recv = self.recv.lock().unwrap();
+
+        recv.try_iter().for_each(func);
+    }
+
+    /// Sends an element to the queue. Does not block
+    #[inline]
+    pub fn send(&self, val: T) {
+        self.send.send(val).expect("Queue should not be closed");
+    }
+}
+
 /// Trait for being able to retrieve the type name of dynamic trait objects
 pub trait TypeName {
     /// Returns the type name of this object
@@ -142,5 +195,24 @@ macro_rules! map {
         )*
 
         new_hashmap
+    }};
+}
+
+/// Macro that marks the current spot as unreachable. Checked in debug builds,
+/// unchecked in release builds.
+#[macro_export]
+macro_rules! unreachable_dbg {
+    ($($arg:tt)*) => {{
+        // Dummy unsafe no-op to force unsafe{} around this macro
+        #[allow(clippy::useless_transmute, reason = "Dummy op")]
+        {
+        _ = ::core::mem::transmute::<(), ()>(());
+        }
+
+        #[cfg(debug_assertions)]
+        unreachable!($($arg)*);
+
+        #[cfg(not(debug_assertions))]
+        ::core::hint::unreachable_unchecked();
     }};
 }

@@ -54,6 +54,7 @@ naga = { version = "26" }
 rayon = { version = "1.10" }
 itertools = { version = "0.14" }
 pollster = { version = "0.4" }
+arc-swap = { version = "1.7", features = ["serde"] }
 
 profiling = { version = "1.0" }
 puffin_http = { version = "0.16" }
@@ -75,6 +76,7 @@ postcard = { version = "1.1", features = ["use-std"] }
 logos = "0.15"
 
 cfg-if = { version = "1.0.1" }
+derive_more = { version = "2" }
 
 quote = { version = "1" }
 syn = { version = "2", features = ["full"] }
@@ -103,3 +105,4 @@ missing_docs_in_private_items = "warn"
 missing_assert_messages = "warn"
 allow_attributes_without_reason = "warn"
 std_instead_of_core = "warn"
+cargo = "warn"

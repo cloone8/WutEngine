@@ -5,7 +5,7 @@ use wutengine_graphics::mesh::{Mesh, create_vertex_buffer_layout};
 use wutengine_graphics::pipeline::cache::PipelineCacheKey;
 use wutengine_graphics::wgpu::VertexAttribute;
 
-use crate::component::{Component, Renderer};
+use crate::component::{Component, ComponentCallbacks, renderer::Renderer};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StaticMeshRenderer {
@@ -39,6 +39,13 @@ impl StaticMeshRenderer {
 impl Component for StaticMeshRenderer {
     fn as_renderer(&mut self) -> Option<&mut dyn Renderer> {
         Some(self)
+    }
+
+    fn wanted_callbacks() -> crate::component::ComponentCallbacks
+    where
+        Self: Sized,
+    {
+        ComponentCallbacks::empty()
     }
 }
 

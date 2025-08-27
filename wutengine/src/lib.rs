@@ -91,8 +91,7 @@ pub fn run(config: StaticRuntimeConfig) -> Result<(), InitErr> {
     pollster::block_on(crate::graphics::init())?;
 
     // GameObject and Component managers
-    gameobject::init();
-    component::init();
+    gameobject::manager::init();
     wutengine_asset::init(config.asset_loader, config.asset_format);
 
     // Finally we start Winit, which runs the actual window/event loop

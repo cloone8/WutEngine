@@ -12,8 +12,9 @@ use wutengine_graphics::shader::constants::{
 use wutengine_graphics::wgpu::wgt::CommandEncoderDescriptor;
 use wutengine_math::Mat4;
 
-use crate::component::{ComponentData, find_components};
-use crate::prelude::{Camera, CameraTargetTexture, Component};
+use crate::component::ComponentData;
+use crate::gameobject::manager::GAMEOBJECT_MANAGER;
+use crate::prelude::{Camera, CameraTargetTexture, Component, ComponentContext};
 use crate::{component, gameobject, graphics, time};
 
 /// Runs a single frame
@@ -26,7 +27,7 @@ pub(crate) fn run_step() {
     let fixed_updates = time::update_frame(Instant::now());
 
     run_frame_phase("Update", || {
-        component::run_on_active_components(|component, context| {
+        run_on_active_components(|context, component| {
             component.on_update(context);
         });
     });
@@ -36,7 +37,7 @@ pub(crate) fn run_step() {
 
         for _ in 0..fixed_updates {
             run_frame_phase("Fixed update", || {
-                component::run_on_active_components(|component, context| {
+                run_on_active_components(|context, component| {
                     component.on_fixed_update(context);
                 });
 
@@ -58,6 +59,7 @@ fn run_frame_phase(_name: &'static str, phase: impl FnOnce()) {
 
     // Handle any pending events, and then handle events published
     // while handling those events, etc.
+
     loop {
         let any_handled = crate::event::handle_pending_events();
 
@@ -224,4 +226,27 @@ fn render_commands_for_camera(
     }
 
     Some((encoder.finish(), camera_texture))
+}
+
+fn run_on_active_components(func: impl Fn(ComponentContext, &mut dyn Component) + Sync + Send) {
+    let gameobjects = GAMEOBJECT_MANAGER.gameobjects.read().unwrap();
+
+    gameobjects
+        .par_iter()
+        .filter(|(_, go)| go.is_enabled())
+        .for_each(|(id, go)| {
+            go.components
+                .par_iter()
+                .filter(|(_, component)| component.is_enabled())
+                .for_each(|(component_id, component)| {
+                    let context = ComponentContext {
+                        gameobject: *id,
+                        this: *component_id,
+                    };
+
+                    let mut implementation = component.implementation.lock().unwrap();
+
+                    func(context, implementation.as_mut());
+                });
+        });
 }

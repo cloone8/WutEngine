@@ -41,6 +41,13 @@ serde.workspace = true
 winit.workspace = true
 log.workspace = true
 profiling.workspace = true
+bitflags.workspace = true
+arc-swap.workspace = true
+derive_more = { workspace = true, features = [
+    "is_variant",
+    "unwrap",
+    "try_unwrap",
+] }
 
 puffin_http = { workspace = true, optional = true }
 
