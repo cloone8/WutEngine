@@ -12,3 +12,6 @@ target/
 
 # MacOS
 .DS_Store
+
+# Docs
+docs/book

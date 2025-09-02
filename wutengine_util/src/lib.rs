@@ -65,7 +65,7 @@ impl<T> GlobalManager<T> {
     /// Initializes the global manager to the given value.
     /// Must be called exactly once, and only once.
     /// This is checked in debug builds
-    pub fn init(target: &GlobalManager<T>, val: T) {
+    pub fn init(target: &Self, val: T) {
         ::log::debug!(
             "Initializing GlobalManager of type {}",
             core::any::type_name::<T>()
@@ -90,7 +90,7 @@ impl<T> GlobalManager<T> {
     /// Must only be called after calling [Self::init] once. This is only
     /// checked in debug builds.
     #[inline(always)]
-    pub fn get(target: &GlobalManager<T>) -> &T {
+    pub fn get(target: &Self) -> &T {
         target.assert_initialized();
 
         unsafe { target.inner.get().as_ref().unwrap().assume_init_ref() }

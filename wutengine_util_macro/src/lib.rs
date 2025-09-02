@@ -4,11 +4,12 @@ use quote::quote;
 use syn::parse::Parse;
 use syn::{Attribute, Ident, Visibility, parse_macro_input};
 
-/// Input for the [unique_id_type] macro
+/// Input for the [unique_id_type32] and [unique_id_type64] macros
 struct UniqueIdTypeInput {
     /// Existing attributes to apply
     attrs: Vec<Attribute>,
 
+    /// The visibility to assign to the generated type
     vis: Option<Visibility>,
 
     /// Name of the new ID type
