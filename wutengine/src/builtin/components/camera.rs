@@ -12,7 +12,6 @@ use wutengine_graphics::wgpu::BufferUsages;
 use wutengine_math::Mat4;
 use wutengine_windowing::window::WindowIdentifier;
 
-use crate::component::ComponentCallbacks;
 use crate::graphics;
 use crate::prelude::Component;
 
@@ -344,14 +343,7 @@ impl Default for Camera {
     }
 }
 
-impl Component for Camera {
-    fn wanted_callbacks() -> crate::component::ComponentCallbacks
-    where
-        Self: Sized,
-    {
-        ComponentCallbacks::empty()
-    }
-}
+impl Component for Camera {}
 
 #[cfg(test)]
 mod test {

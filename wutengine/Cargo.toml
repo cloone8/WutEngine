@@ -39,6 +39,7 @@ wutengine_config.workspace = true
 wutengine_math.workspace = true
 serde.workspace = true
 winit.workspace = true
+hecs.workspace = true
 log.workspace = true
 profiling.workspace = true
 bitflags.workspace = true

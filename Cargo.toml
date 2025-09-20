@@ -50,6 +50,7 @@ wgpu = { version = "26.0.1", default-features = false, features = [
     "naga-ir",
 ] }
 naga = { version = "26" }
+hecs = { version = "0.10" }
 
 rayon = { version = "1.10" }
 itertools = { version = "0.14" }

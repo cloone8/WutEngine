@@ -10,7 +10,6 @@ use crate::config::StaticRuntimeConfig;
 use crate::winit_app::{WinitApp, WinitInitData};
 
 pub mod builtin;
-pub mod component;
 pub mod config;
 
 #[doc(inline)]
@@ -25,8 +24,6 @@ pub use wutengine_windowing::window;
 #[doc(inline)]
 pub use wutengine_event as event;
 
-pub mod gameobject;
-
 #[doc(inline)]
 pub use wutengine_graphics as graphics;
 
@@ -39,10 +36,16 @@ pub use wutengine_time as time;
 #[doc(inline)]
 pub use wutengine_math as math;
 
+pub mod component;
+pub mod entity;
+pub mod system;
+
 pub mod prelude;
 pub mod profiling;
 mod runtime;
 mod winit_app;
+
+pub use hecs;
 
 pub use wutengine_util::map;
 
@@ -90,8 +93,10 @@ pub fn run(config: StaticRuntimeConfig) -> Result<(), InitErr> {
     // Graphics stack
     pollster::block_on(crate::graphics::init())?;
 
-    // GameObject and Component managers
-    gameobject::manager::init();
+    // Runtime managers
+    system::init();
+    runtime::init();
+
     wutengine_asset::init(config.asset_loader, config.asset_format);
 
     // Finally we start Winit, which runs the actual window/event loop

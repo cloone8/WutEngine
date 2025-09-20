@@ -139,3 +139,36 @@ pub fn unique_id_type32(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     }
     .into()
 }
+
+/// Adds a `Self::VARIANT_COUNT` field containing the number of variants of the provided enum, with
+/// the same visibility as the enum itself
+#[proc_macro_derive(VariantCount)]
+pub fn derive_variant_count(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let derive_input: syn::DeriveInput = syn::parse(input).unwrap();
+
+    let ident = derive_input.ident;
+    let generics = derive_input.generics.params;
+
+    let len = match derive_input.data {
+        syn::Data::Enum(enum_item) => enum_item.variants.len(),
+        _ => panic!("VariantCount only works on Enums"),
+    };
+
+    let vis = derive_input.vis;
+
+    let expanded = if generics.is_empty() {
+        quote! {
+            impl #ident {
+                #vis const VARIANT_COUNT: usize = #len;
+            }
+        }
+    } else {
+        quote! {
+            impl<#generics> #ident<#generics> {
+                #vis const VARIANT_COUNT: usize = #len;
+            }
+        }
+    };
+
+    expanded.into()
+}
