@@ -2,6 +2,7 @@
 
 use core::any::TypeId;
 use core::fmt::Display;
+use std::collections::HashSet;
 use std::marker::{Send, Sync};
 use std::sync::RwLock;
 
@@ -10,6 +11,7 @@ use wutengine_util::{GlobalManager, VariantCount};
 
 use rayon::prelude::*;
 
+use crate::prelude::Component;
 use crate::profiling;
 use crate::system::phase::SystemPhase;
 
@@ -58,24 +60,96 @@ pub(crate) fn run_systems_for_phase(phase: SystemPhase, world: &hecs::World) {
 
 pub fn register_system<
     F: for<'a> Fn(hecs::Entity, Q::Item<'a>) + Sync + Send + 'static,
-    Q: hecs::Query,
+    Q: hecs::Query + Queryable,
 >(
     sys: F,
     phase: SystemPhase,
 ) where
     for<'a> <Q as hecs::Query>::Item<'a>: Send,
 {
+    let mut exclusive = HashSet::new();
+    let mut shared = HashSet::new();
+
+    Q::register_borrows(&mut shared, &mut exclusive);
+
     let mut by_phase = SYSTEM_MANAGER.by_phase.write().unwrap();
 
     let new_system = System {
-        exclusive: Vec::new(),
-        shared: Vec::new(),
+        exclusive: Vec::from_iter(exclusive),
+        shared: Vec::from_iter(shared),
         func: Box::new(move |world| {
             for (entity, query_result) in world.query::<Q>().into_iter() {
-                sys(entity, query_result)
+                sys(entity, query_result);
             }
         }),
     };
 
     by_phase[phase as u8 as usize].0.push(vec![new_system]);
 }
+
+pub trait Queryable {
+    fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>);
+}
+
+impl<T> Queryable for &T
+where
+    T: Component,
+{
+    #[inline]
+    fn register_borrows(shared: &mut HashSet<TypeId>, _exclusive: &mut HashSet<TypeId>) {
+        shared.insert(TypeId::of::<T>());
+    }
+}
+
+impl<T> Queryable for &mut T
+where
+    T: Component,
+{
+    #[inline]
+    fn register_borrows(_shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
+        exclusive.insert(TypeId::of::<T>());
+    }
+}
+
+impl<T> Queryable for Option<T>
+where
+    T: Queryable,
+{
+    #[inline]
+    fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
+        T::register_borrows(shared, exclusive);
+    }
+}
+
+/// Generates tuple implementations for [Queryable]
+macro_rules! queryable_tuples {
+    ($t:ident) => {
+        impl<$t> Queryable for ($t,)
+        where
+            $t: Queryable,
+        {
+            #[inline]
+            fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
+                $t::register_borrows(shared, exclusive);
+            }
+        }
+    };
+
+    ($t:ident, $($others:ident),*) => {
+        impl<$t, $($others),*> Queryable for ($t, $($others),*)
+        where
+            $t: Queryable,
+            $($others: Queryable),*
+        {
+            #[inline]
+            fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
+                $t::register_borrows(shared, exclusive);
+                $($others::register_borrows(shared, exclusive));*;
+            }
+        }
+
+        queryable_tuples!($($others),*);
+    };
+}
+
+queryable_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
