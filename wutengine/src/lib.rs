@@ -2,13 +2,11 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use hecs::Entity;
 use thiserror::Error;
 use winit::event_loop::{ControlFlow, EventLoop};
 use wutengine_windowing::WutEngineWinitEvent;
 
 use crate::config::StaticRuntimeConfig;
-use crate::prelude::Component;
 use crate::winit_app::{WinitApp, WinitInitData};
 
 pub mod builtin;

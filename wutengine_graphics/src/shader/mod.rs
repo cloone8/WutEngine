@@ -15,7 +15,6 @@ pub use vertexlayout::ShaderVertexLayout;
 use wutengine_shadercompiler::{CompileStage, ShaderOutput};
 
 use crate::GRAPHICS_MANAGER;
-use crate::resource::GpuResource;
 use crate::shader::constants::{InstanceConstants, ViewportConstants};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,7 +106,7 @@ pub struct CompiledShader {
     pub source: naga::Module,
 
     #[serde(skip)]
-    pub(crate) renderer_data: GpuResource<ShaderModule>,
+    pub(crate) renderer_data: Option<ShaderModule>,
 }
 
 pub fn get(
@@ -160,7 +159,7 @@ fn compile_wutengine_shader(
         CompiledShader {
             name: shader_source.name.clone(),
             keyword_hash,
-            renderer_data: GpuResource::default(),
+            renderer_data: None,
             source: *source,
         }
     } else {

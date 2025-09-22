@@ -1,3 +1,5 @@
+//! [SystemPhase] related functionality
+
 use core::fmt::Display;
 
 use wutengine_util::VariantCount;

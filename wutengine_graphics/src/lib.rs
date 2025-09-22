@@ -9,7 +9,6 @@ use wgpu::{
     BackendOptions, CommandBuffer, Features, InstanceDescriptor, Limits, MemoryBudgetThresholds,
     MemoryHints, PowerPreference, RequestAdapterOptions,
 };
-use wutengine_event::WutEngineEvent;
 use wutengine_util::GlobalManager;
 use wutengine_windowing::window::{WindowIdentifier, WindowResizedEvent};
 
@@ -24,7 +23,6 @@ pub mod material;
 pub mod mesh;
 pub(crate) mod passes;
 pub mod pipeline;
-pub mod resource;
 pub mod shader;
 pub mod texture;
 pub mod viewport;
@@ -42,14 +40,10 @@ pub enum InitErr {
     Device(#[from] wgpu::RequestDeviceError),
 }
 
-#[derive(Debug)]
-struct DeviceLostEvent;
-
-impl WutEngineEvent for DeviceLostEvent {}
-
-fn reinitialize_graphics() {
-    resource::increment_device_generation();
-    todo!();
+/// Called by WGPU when we lose the graphics device. Pretty much fatal
+fn device_lost_callback(reason: wgpu::DeviceLostReason, message: String) {
+    log::error!("Lost device due to {reason:#?}: {message}");
+    panic!("Lost graphics device: {reason:#?}: {message}");
 }
 
 pub async fn init() -> Result<(), InitErr> {
@@ -90,12 +84,7 @@ pub async fn init() -> Result<(), InitErr> {
         })
         .await?;
 
-    device.set_device_lost_callback(|reason, msg| {
-        log::error!("Lost device due to {reason:#?}: {msg}");
-        wutengine_event::publish(DeviceLostEvent);
-
-        reinitialize_graphics();
-    });
+    device.set_device_lost_callback(device_lost_callback);
 
     device.on_uncaptured_error(Box::new(move |e| {
         log::error!("Encountered graphics device error: {e}");
@@ -104,9 +93,6 @@ pub async fn init() -> Result<(), InitErr> {
             panic!("Graphics validation error");
         }
     }));
-
-    // Set device generation to 1: the main/first
-    resource::increment_device_generation();
 
     let manager = GraphicsManager {
         instance,

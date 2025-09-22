@@ -1,34 +1,19 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use wutengine_event::EventSubscription;
-
-use crate::{DeviceLostEvent, GRAPHICS_MANAGER};
+use crate::GRAPHICS_MANAGER;
 
 #[derive(Debug)]
 pub(crate) struct PipelineCache {
-    device_lost_subscription: EventSubscription,
     cache: RwLock<HashMap<PipelineCacheKey, Arc<wgpu::RenderPipeline>>>,
 }
 
 impl PipelineCache {
     pub(crate) fn new() -> Self {
         Self {
-            device_lost_subscription: wutengine_event::subscribe::<DeviceLostEvent>(on_device_lost),
             cache: RwLock::new(HashMap::default()),
         }
     }
-}
-
-fn on_device_lost(_event: &DeviceLostEvent) {
-    log::warn!("Clearing GPU pipeline cache because the GPU device was lost");
-
-    GRAPHICS_MANAGER
-        .pipeline_cache
-        .cache
-        .write()
-        .unwrap()
-        .clear();
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -5,7 +5,10 @@ use std::time::Instant;
 use crate::prelude::SystemPhase;
 use crate::{system, time};
 
+mod render;
 pub(crate) mod world;
+
+pub(crate) use render::render_frame;
 
 /// Runs a single frame
 pub(crate) fn run_step() {

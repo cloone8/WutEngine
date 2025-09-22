@@ -1,13 +1,11 @@
 //! Types and functions for the "system" part of the WutEngine ECS
 
 use core::any::TypeId;
-use core::fmt::Display;
+use core::marker::{Send, Sync};
 use std::collections::HashSet;
-use std::marker::{Send, Sync};
 use std::sync::RwLock;
 
-use wutengine_util::hash::nohash_hasher;
-use wutengine_util::{GlobalManager, VariantCount};
+use wutengine_util::GlobalManager;
 
 use rayon::prelude::*;
 
@@ -17,6 +15,7 @@ use crate::system::phase::SystemPhase;
 
 pub mod phase;
 
+/// The manager of the various ECS systems, and their schedules
 pub(crate) struct SystemManager {
     by_phase: RwLock<[Schedule; SystemPhase::VARIANT_COUNT]>,
 }
@@ -37,8 +36,10 @@ struct System {
     func: Box<dyn Fn(&hecs::World) + Send + Sync>,
 }
 
+/// The global [SystemManager]
 pub(crate) static SYSTEM_MANAGER: GlobalManager<SystemManager> = GlobalManager::new();
 
+/// Initializes the global [SystemManager]
 pub(crate) fn init() {
     GlobalManager::init(&SYSTEM_MANAGER, SystemManager::new());
 }
@@ -60,6 +61,7 @@ pub(crate) fn run_systems_for_phase(phase: SystemPhase, world: &hecs::World) {
     }
 }
 
+/// Registers a new system to the WutEngine ECS runtime
 pub fn register_system<Q: hecs::Query + Queryable>(
     sys: impl for<'a> Fn(crate::prelude::Entity, Q::Item<'a>) + Send + Sync + 'static,
     phase: SystemPhase,
@@ -84,7 +86,9 @@ pub fn register_system<Q: hecs::Query + Queryable>(
     by_phase[phase as u8 as usize].0.push(vec![new_system]);
 }
 
+/// Helper trait that allows for better runtime scheduling of ECS systems
 pub trait Queryable {
+    /// Adds the borrows of this query to their corresponding maps
     fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>);
 }
 

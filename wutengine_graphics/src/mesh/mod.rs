@@ -7,7 +7,6 @@ use wutengine_asset::Asset;
 use wutengine_math::{Vec2, Vec3};
 
 use crate::color::Color;
-use crate::resource::GpuResource;
 use crate::{GRAPHICS_MANAGER, format};
 
 mod vertexlayout;
@@ -22,10 +21,10 @@ pub struct Mesh {
     geometry: Geometry,
 
     #[serde(skip)]
-    vertex_buffer: GpuResource<Buffer>,
+    vertex_buffer: Option<Buffer>,
 
     #[serde(skip)]
-    index_buffer: GpuResource<Buffer>,
+    index_buffer: Option<Buffer>,
 }
 
 impl Asset for Mesh {
@@ -41,8 +40,8 @@ impl Default for Mesh {
             colors: Vec::new(),
             indices: IndexBuffer::U16(Vec::new()),
             geometry: Geometry::Triangles,
-            vertex_buffer: GpuResource::new(),
-            index_buffer: GpuResource::new(),
+            vertex_buffer: None,
+            index_buffer: None,
         }
     }
 }
@@ -144,13 +143,13 @@ impl Mesh {
 
         if num_vertices == 0 {
             // No vertices, so nothing to do
-            self.vertex_buffer.clear();
+            self.vertex_buffer = None;
             return;
         }
 
         let expected_buffer_size = NonZeroU64::new(num_vertices * layout.stride).unwrap();
 
-        let needs_new_buffer = match self.vertex_buffer.get() {
+        let needs_new_buffer = match &self.vertex_buffer {
             Some(vtx_buf) => vtx_buf.size() < expected_buffer_size.get(),
             None => true,
         };
@@ -159,13 +158,12 @@ impl Mesh {
             profiling::scope!("Create new buffer");
             log::debug!("Creating new vertex buffer");
 
-            self.vertex_buffer
-                .set(GRAPHICS_MANAGER.device.create_buffer(&BufferDescriptor {
-                    label: Some("Mesh Vertex Buffer"),
-                    size: expected_buffer_size.get(),
-                    usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                }));
+            self.vertex_buffer = Some(GRAPHICS_MANAGER.device.create_buffer(&BufferDescriptor {
+                label: Some("Mesh Vertex Buffer"),
+                size: expected_buffer_size.get(),
+                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }));
         }
 
         {
@@ -173,7 +171,11 @@ impl Mesh {
 
             let mut bufferview = GRAPHICS_MANAGER
                 .queue
-                .write_buffer_with(self.vertex_buffer.get().unwrap(), 0, expected_buffer_size)
+                .write_buffer_with(
+                    self.vertex_buffer.as_ref().unwrap(),
+                    0,
+                    expected_buffer_size,
+                )
                 .expect("Failed to obtain writable buffer view");
 
             // Copy each vertex into the view
@@ -222,7 +224,7 @@ impl Mesh {
     #[profiling::function]
     fn update_index_buffer(&mut self) {
         if self.indices.is_empty() {
-            self.index_buffer.clear();
+            self.index_buffer = None;
         }
 
         let expected_buffer_size = NonZeroU64::new(
@@ -230,7 +232,7 @@ impl Mesh {
         )
         .unwrap();
 
-        let needs_new_buffer = match self.index_buffer.get() {
+        let needs_new_buffer = match &self.index_buffer {
             Some(idx_buf) => idx_buf.size() < expected_buffer_size.get(),
             None => true,
         };
@@ -239,13 +241,12 @@ impl Mesh {
             profiling::scope!("Create new buffer");
             log::debug!("Creating new index buffer");
 
-            self.index_buffer
-                .set(GRAPHICS_MANAGER.device.create_buffer(&BufferDescriptor {
-                    label: Some("Mesh Index Buffer"),
-                    size: expected_buffer_size.get(),
-                    usage: BufferUsages::INDEX | BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                }));
+            self.index_buffer = Some(GRAPHICS_MANAGER.device.create_buffer(&BufferDescriptor {
+                label: Some("Mesh Index Buffer"),
+                size: expected_buffer_size.get(),
+                usage: BufferUsages::INDEX | BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }));
         }
 
         {
@@ -253,7 +254,7 @@ impl Mesh {
 
             let mut bufferview = GRAPHICS_MANAGER
                 .queue
-                .write_buffer_with(self.index_buffer.get().unwrap(), 0, expected_buffer_size)
+                .write_buffer_with(self.index_buffer.as_ref().unwrap(), 0, expected_buffer_size)
                 .expect("Failed to obtain writable buffer view");
 
             bufferview.copy_from_slice(self.indices.as_byte_slice());
@@ -408,11 +409,11 @@ impl Mesh {
     }
 
     pub fn get_vertex_buffer(&self) -> Option<&wgpu::Buffer> {
-        self.vertex_buffer.get()
+        self.vertex_buffer.as_ref()
     }
 
     pub fn get_index_buffer(&self) -> Option<&wgpu::Buffer> {
-        self.index_buffer.get()
+        self.index_buffer.as_ref()
     }
 }
 

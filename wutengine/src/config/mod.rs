@@ -1,3 +1,5 @@
+//! Base WutEngine startup configuration
+
 use core::fmt::Debug;
 use std::path::PathBuf;
 

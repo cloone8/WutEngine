@@ -9,7 +9,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use wutengine_windowing::display;
 
 use crate::config::InitialWindowConfig;
-use crate::runtime::run_step;
+use crate::runtime::{render_frame, run_step};
 use crate::window::{WindowMode, WindowOptions};
 use crate::{WutEngineWinitEvent, window};
 
@@ -104,7 +104,7 @@ impl winit::application::ApplicationHandler<WutEngineWinitEvent> for WinitApp {
     #[profiling::skip]
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         run_step();
-        // render();
+        render_frame();
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: WutEngineWinitEvent) {
