@@ -47,8 +47,6 @@ pub mod profiling;
 mod runtime;
 mod winit_app;
 
-pub use hecs;
-
 pub use wutengine_util::map;
 
 /// An error while initializing the WutEngine runtime during a call to [run]
@@ -97,7 +95,7 @@ pub fn run(config: StaticRuntimeConfig) -> Result<(), InitErr> {
 
     // Runtime managers
     system::init();
-    runtime::init();
+    runtime::world::init();
 
     wutengine_asset::init(config.asset_loader, config.asset_format);
 

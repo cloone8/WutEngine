@@ -159,12 +159,14 @@ pub fn derive_variant_count(input: proc_macro::TokenStream) -> proc_macro::Token
     let expanded = if generics.is_empty() {
         quote! {
             impl #ident {
+                /// The amount of variants of [Self]
                 #vis const VARIANT_COUNT: usize = #len;
             }
         }
     } else {
         quote! {
             impl<#generics> #ident<#generics> {
+                /// The amount of variants of [Self]
                 #vis const VARIANT_COUNT: usize = #len;
             }
         }

@@ -3,15 +3,19 @@ use core::fmt::Display;
 use wutengine_util::VariantCount;
 use wutengine_util::hash::nohash_hasher;
 
+/// A phase in which a system can run
 #[derive(Debug, Clone, Copy, PartialEq, Eq, VariantCount)]
 #[repr(u8)]
 pub enum SystemPhase {
+    /// Run on update
     Update,
+
+    /// Run on fixed update
     FixedUpdate,
 }
 
 impl Display for SystemPhase {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             SystemPhase::Update => "Update".fmt(f),
             SystemPhase::FixedUpdate => "FixedUpdate".fmt(f),
@@ -20,7 +24,7 @@ impl Display for SystemPhase {
 }
 
 impl core::hash::Hash for SystemPhase {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         const {
             assert!(
                 size_of::<u8>() == size_of::<Self>(),

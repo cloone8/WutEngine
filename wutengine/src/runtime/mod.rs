@@ -1,59 +1,11 @@
 //! Main WutEngine runtime
 
-use core::any::Any;
-use core::ops::{Deref, DerefMut};
-use std::sync::{Mutex, RwLock};
 use std::time::Instant;
 
-use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use wutengine_graphics::shader::ShaderConstants;
-use wutengine_graphics::shader::constants::{
-    InstanceConstants, RenderConstants, VIEWPORT_CONSTANTS_BIND_GROUP, ViewportConstants,
-};
-use wutengine_graphics::wgpu::wgt::CommandEncoderDescriptor;
-use wutengine_math::Mat4;
-use wutengine_util::GlobalManager;
+use crate::prelude::SystemPhase;
+use crate::{system, time};
 
-use crate::prelude::{Camera, CameraTargetTexture, Component};
-use crate::{component, graphics, time};
-
-pub(crate) struct WorldManager {
-    world: RwLock<hecs::World>,
-}
-
-pub(crate) static WORLD_MANAGER: GlobalManager<WorldManager> = GlobalManager::new();
-
-impl WorldManager {
-    fn new() -> Self {
-        Self {
-            world: RwLock::new(hecs::World::new()),
-        }
-    }
-
-    pub(crate) fn shared(&self) -> impl Deref<Target = hecs::World> {
-        match self.world.try_read() {
-            Ok(lock_guard) => lock_guard,
-            Err(std::sync::TryLockError::WouldBlock) => {
-                panic!("World already exclusively locked. WutEngine internal error!")
-            }
-            Err(std::sync::TryLockError::Poisoned(e)) => panic!("World lock poisoned: {e}"),
-        }
-    }
-
-    pub(crate) fn exclusive(&self) -> impl DerefMut<Target = hecs::World> {
-        match self.world.try_write() {
-            Ok(lock_guard) => lock_guard,
-            Err(std::sync::TryLockError::WouldBlock) => {
-                panic!("World still shared locked. WutEngine internal error!")
-            }
-            Err(std::sync::TryLockError::Poisoned(e)) => panic!("World lock poisoned: {e}"),
-        }
-    }
-}
-
-pub(crate) fn init() {
-    GlobalManager::init(&WORLD_MANAGER, WorldManager::new());
-}
+pub(crate) mod world;
 
 /// Runs a single frame
 pub(crate) fn run_step() {
@@ -65,9 +17,7 @@ pub(crate) fn run_step() {
     let fixed_updates = time::update_frame(Instant::now());
 
     run_frame_phase("Update", || {
-        // run_on_active_components(|context, component| {
-        //     component.on_update(context);
-        // });
+        system::run_systems_for_phase(SystemPhase::Update, &world::WORLD_MANAGER.shared());
     });
 
     {
@@ -75,9 +25,10 @@ pub(crate) fn run_step() {
 
         for _ in 0..fixed_updates {
             run_frame_phase("Fixed update", || {
-                // run_on_active_components(|context, component| {
-                //     component.on_fixed_update(context);
-                // });
+                system::run_systems_for_phase(
+                    SystemPhase::FixedUpdate,
+                    &world::WORLD_MANAGER.shared(),
+                );
 
                 time::update_fixed();
             });
@@ -88,7 +39,7 @@ pub(crate) fn run_step() {
 fn run_frame_phase(_name: &'static str, phase: impl FnOnce()) {
     profiling::scope!(_name);
 
-    // component::add_queued();
+    world::run_spawn_queue();
 
     // gameobject::handle_state_changes();
     // component::handle_enable_disable();

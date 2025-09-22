@@ -45,6 +45,8 @@ pub(crate) fn init() {
 
 #[profiling::function]
 pub(crate) fn run_systems_for_phase(phase: SystemPhase, world: &hecs::World) {
+    log::trace!("Running systems for phase {phase}");
+
     let phases = SYSTEM_MANAGER.by_phase.read().unwrap();
 
     let schedule = &phases[phase as u8 as usize];
@@ -58,15 +60,10 @@ pub(crate) fn run_systems_for_phase(phase: SystemPhase, world: &hecs::World) {
     }
 }
 
-pub fn register_system<
-    F: for<'a> Fn(hecs::Entity, Q::Item<'a>) + Sync + Send + 'static,
-    Q: hecs::Query + Queryable,
->(
-    sys: F,
+pub fn register_system<Q: hecs::Query + Queryable>(
+    sys: impl for<'a> Fn(crate::prelude::Entity, Q::Item<'a>) + Send + Sync + 'static,
     phase: SystemPhase,
-) where
-    for<'a> <Q as hecs::Query>::Item<'a>: Send,
-{
+) {
     let mut exclusive = HashSet::new();
     let mut shared = HashSet::new();
 
@@ -79,7 +76,7 @@ pub fn register_system<
         shared: Vec::from_iter(shared),
         func: Box::new(move |world| {
             for (entity, query_result) in world.query::<Q>().into_iter() {
-                sys(entity, query_result);
+                sys(crate::prelude::Entity::from_hecs(entity), query_result);
             }
         }),
     };
