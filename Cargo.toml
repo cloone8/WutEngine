@@ -13,6 +13,7 @@ members = [
     "wutengine_time",
     "wutengine_config",
     "wutengine_math",
+    "wutengine_lua",
     "tools/weshc",
 ]
 
@@ -41,6 +42,7 @@ wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0
 wutengine_time = { path = "wutengine_time", version = "0.6.0" }
 wutengine_config = { path = "wutengine_config", version = "0.6.0" }
 wutengine_math = { path = "wutengine_math", version = "0.6.0" }
+wutengine_lua = { path = "wutengine_lua", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
@@ -51,6 +53,7 @@ wgpu = { version = "26.0.1", default-features = false, features = [
 ] }
 naga = { version = "26" }
 hecs = { version = "0.10" }
+mlua = { version = "0.11" }
 
 rayon = { version = "1.10" }
 itertools = { version = "0.14" }

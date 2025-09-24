@@ -37,6 +37,8 @@ wutengine_job.workspace = true
 wutengine_time.workspace = true
 wutengine_config.workspace = true
 wutengine_math.workspace = true
+wutengine_lua.workspace = true
+
 serde.workspace = true
 winit.workspace = true
 hecs.workspace = true

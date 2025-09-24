@@ -15,6 +15,7 @@ use wutengine_windowing::window::WindowIdentifier;
 use crate::graphics;
 use crate::prelude::Component;
 
+/// A camera, rendering the scene from its viewport
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Camera {
     target: Option<CameraTarget>,
@@ -136,15 +137,24 @@ impl Deref for CameraTargetTexture {
     }
 }
 
+/// The configuration for the viewport of a camera
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CameraViewport {
+    /// Location of the left side of the viewport, as expressed as a fraction of the window. From 0.0-1.0
     pub x: f32,
+
+    /// Location of the bottom of the viewport, as expressed as a fraction of the window. From 0.0-1.0
     pub y: f32,
+
+    /// Width of the viewport, as expressed as a fraction of the window. From 0.0-1.0
     pub w: f32,
+
+    /// Height viewport, as expressed as a fraction of the window. From 0.0-1.0
     pub h: f32,
 }
 
 impl CameraViewport {
+    /// Camera viewport representing an entire window
     pub const FULL_WINDOW: Self = Self {
         x: 0.0,
         y: 0.0,
@@ -152,7 +162,8 @@ impl CameraViewport {
         h: 1.0,
     };
 
-    pub fn is_valid(&self) -> bool {
+    /// Checks that the viewport is configured to valid values
+    pub const fn is_valid(&self) -> bool {
         self.x >= 0.0
             && self.x < 1.0
             && self.y >= 0.0

@@ -4,6 +4,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use thiserror::Error;
 use winit::event_loop::{ControlFlow, EventLoop};
+use wutengine_lua::overrides::LuaPrint;
 use wutengine_windowing::WutEngineWinitEvent;
 
 use crate::config::StaticRuntimeConfig;
@@ -36,6 +37,9 @@ pub use wutengine_time as time;
 #[doc(inline)]
 pub use wutengine_math as math;
 
+#[doc(inline)]
+pub use wutengine_lua as lua;
+
 pub mod component;
 pub mod entity;
 pub mod system;
@@ -44,6 +48,8 @@ pub mod prelude;
 pub mod profiling;
 mod runtime;
 mod winit_app;
+
+mod scripting;
 
 pub use wutengine_util::map;
 
@@ -58,6 +64,14 @@ pub enum InitErr {
     /// similar
     #[error("Error initializing graphics stack: {0}")]
     Graphics(#[from] crate::graphics::InitErr),
+}
+
+struct LogPrinter;
+
+impl LuaPrint for LogPrinter {
+    fn print(&self, val: &str) {
+        log::info!("{}", val);
+    }
 }
 
 /// The main entrypoint into WutEngine. Starts the runtime. Can only be called
@@ -97,6 +111,15 @@ pub fn run(config: StaticRuntimeConfig) -> Result<(), InitErr> {
     runtime::renderer::init();
 
     wutengine_asset::init(config.asset_loader, config.asset_format);
+
+    // Lua scripting backend
+    let overrides = wutengine_lua::overrides::LuaOverrides {
+        print: Some(Box::new(LogPrinter)),
+    };
+
+    wutengine_lua::init(overrides);
+
+    scripting::add_lua_modules();
 
     // Finally we start Winit, which runs the actual window/event loop
     let event_loop = EventLoop::<WutEngineWinitEvent>::with_user_event()
