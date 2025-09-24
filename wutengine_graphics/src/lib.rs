@@ -21,7 +21,7 @@ pub(crate) mod debug;
 pub mod format;
 pub mod material;
 pub mod mesh;
-pub(crate) mod passes;
+pub mod passes;
 pub mod pipeline;
 pub mod shader;
 pub mod texture;

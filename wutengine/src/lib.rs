@@ -94,6 +94,7 @@ pub fn run(config: StaticRuntimeConfig) -> Result<(), InitErr> {
     // Runtime managers
     system::init();
     runtime::world::init();
+    runtime::renderer::init();
 
     wutengine_asset::init(config.asset_loader, config.asset_format);
 
