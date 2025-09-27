@@ -16,12 +16,14 @@ readme = "../README.md"
 workspace = true
 
 [features]
-default = ["dx12", "metal", "vulkan", "opengl", "asset_format_text"]
+default = ["dx12", "metal", "vulkan", "opengl", "asset_format_text", "lua"]
 
 dx12 = ["wutengine_graphics/dx12"]
 metal = ["wutengine_graphics/metal"]
 vulkan = ["wutengine_graphics/vulkan"]
 opengl = ["wutengine_graphics/opengl"]
+
+lua = ["dep:wutengine_lua"]
 
 asset_format_text = ["wutengine_asset/format_text"]
 
@@ -37,7 +39,7 @@ wutengine_job.workspace = true
 wutengine_time.workspace = true
 wutengine_config.workspace = true
 wutengine_math.workspace = true
-wutengine_lua.workspace = true
+wutengine_lua = { workspace = true, optional = true }
 
 serde.workspace = true
 winit.workspace = true

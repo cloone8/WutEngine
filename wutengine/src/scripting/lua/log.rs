@@ -30,6 +30,13 @@ fn log_lua_with_level(
     args: mlua::MultiValue,
     level: log::Level,
 ) -> Result<(), mlua::Error> {
+    let logger = log::logger();
+    let log_target = "lua_script";
+
+    if !::log::log_enabled!(logger: logger, target: log_target, level) {
+        return Ok(());
+    }
+
     let Some((file, line, message)) = lua.inspect_stack(1, |dbg| {
         (
             dbg.source().short_src.map(|src| src.to_string()),
@@ -48,13 +55,13 @@ fn log_lua_with_level(
 
     let record = log::RecordBuilder::new()
         .level(level)
-        .target("lua_script")
+        .target(log_target)
         .file(Some(&file))
         .line(line.map(|line| line as u32))
         .args(message)
         .build();
 
-    log::logger().log(&record);
+    logger.log(&record);
 
     Ok(())
 }

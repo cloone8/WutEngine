@@ -1,6 +1,6 @@
 //! Lua scripting for WutEngine
 
-use mlua::{AsChunk, LuaOptions, StdLib};
+use mlua::{AsChunk, IntoLuaMulti, LuaOptions, StdLib};
 use wutengine_util::GlobalManager;
 
 use crate::overrides::LuaOverrides;
@@ -62,8 +62,17 @@ impl LuaManager {
     }
 }
 
-/// Runs a script
-pub fn run_script(script: impl AsChunk) {
+/// Shim for [run_script_with_args<R>(())] with zero arguments
+pub fn run_script<R: mlua::FromLuaMulti>(script: impl AsChunk) -> Result<R, mlua::Error> {
+    run_script_with_args::<R>(script, ())
+}
+
+/// Runs a script with the given arguments, converting the scripts return values to the type `R`
+pub fn run_script_with_args<R: mlua::FromLuaMulti>(
+    script: impl AsChunk,
+    args: impl IntoLuaMulti,
+) -> Result<R, mlua::Error> {
     let loaded = LUA_MANAGER.lua.load(script);
-    loaded.call::<()>(()).expect("Failed to run script");
+
+    loaded.call::<R>(args)
 }

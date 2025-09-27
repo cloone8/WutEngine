@@ -12,6 +12,7 @@ categories.workspace = true
 
 [dependencies]
 wutengine_util.workspace = true
+wutengine_math.workspace = true
 
 log.workspace = true
 mlua = { workspace = true, features = [
