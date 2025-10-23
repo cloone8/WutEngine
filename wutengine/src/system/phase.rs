@@ -9,18 +9,22 @@ use wutengine_util::hash::nohash_hasher;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, VariantCount)]
 #[repr(u8)]
 pub enum SystemPhase {
+    /// Run on fixed update
+    PhysicsUpdate,
+
     /// Run on update
     Update,
 
-    /// Run on fixed update
-    FixedUpdate,
+    /// Run right before rendering
+    PreRender,
 }
 
 impl Display for SystemPhase {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            SystemPhase::PhysicsUpdate => "PhysicsUpdate".fmt(f),
             SystemPhase::Update => "Update".fmt(f),
-            SystemPhase::FixedUpdate => "FixedUpdate".fmt(f),
+            SystemPhase::PreRender => "PreRender".fmt(f),
         }
     }
 }

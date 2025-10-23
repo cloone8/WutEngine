@@ -65,6 +65,23 @@ impl WindowManager {
     }
 }
 
+pub(crate) fn on_window_resized_event(event: &WindowResizedEvent) {
+    let mut windows = WINDOW_MANAGER.windows.write().unwrap();
+
+    match windows.windows.get_mut(&event.window_id) {
+        Some(window_data) => {
+            window_data.inner_size = event.new_size;
+        }
+        None => {
+            log::warn!(
+                "Window manager got resize event for unknown window {}",
+                event.window_id
+            );
+        }
+    }
+}
+
+/// REgisters a new native window created by [winit] with the [WindowManager]
 pub fn register_window(identifier: WindowIdentifier, window: Arc<winit::window::Window>) {
     WINDOW_MANAGER.register_window(identifier, window);
 }
@@ -84,8 +101,10 @@ impl Default for WindowOptions {
     }
 }
 
+/// An error while trying to create a new window
 #[derive(Debug, Error)]
 pub enum CreateWindowError {
+    /// The display does not support the requested video mode
     #[error("Display {0} does not support video mode {1}")]
     UnsupportedVideoMode(DisplayIdentifier, VideoMode),
 }
@@ -148,21 +167,6 @@ pub fn identifier_for_native_id(id: &winit::window::WindowId) -> Option<WindowId
         .cloned()
 }
 
-pub fn lock_windows<F>(cb: F)
-where
-    F: for<'a> FnOnce(Vec<(&'a WindowIdentifier, &'a winit::window::Window)>),
-{
-    let locked = WINDOW_MANAGER.windows.read().unwrap();
-
-    let as_vec = locked
-        .windows
-        .iter()
-        .map(|(id, index)| (id, index.native.as_ref()))
-        .collect();
-
-    cb(as_vec);
-}
-
 pub fn window_size(id: &WindowIdentifier) -> Option<(u32, u32)> {
     WINDOW_MANAGER
         .windows
@@ -196,9 +200,13 @@ pub enum WindowMode {
     ExclusiveFullscreen(DisplayIdentifier, VideoMode),
 }
 
-#[derive(Debug)]
+/// An event sent by the winit runtime whenever a window managed by WutEngine is resized.
+#[derive(Debug, Clone)]
 pub struct WindowResizedEvent {
+    /// The WutEngine window identifier of the resized window
     pub window_id: WindowIdentifier,
+
+    /// The new inner window size
     pub new_size: (u32, u32),
 }
 

@@ -40,13 +40,15 @@ pub use wutengine_math as math;
 #[doc(inline)]
 pub use wutengine_lua as lua;
 
+pub use log;
+
 pub mod component;
 pub mod entity;
 pub mod system;
 
 pub mod prelude;
 pub mod profiling;
-mod runtime;
+pub mod runtime;
 mod winit_app;
 
 pub mod scripting;

@@ -19,17 +19,13 @@ pub(crate) fn run_step() {
 
     let fixed_updates = time::update_frame(Instant::now());
 
-    run_frame_phase("Update", || {
-        system::run_systems_for_phase(SystemPhase::Update, &world::WORLD_MANAGER.shared());
-    });
-
     {
         profiling::scope!("Fixed updates");
 
         for _ in 0..fixed_updates {
             run_frame_phase("Fixed update", || {
                 system::run_systems_for_phase(
-                    SystemPhase::FixedUpdate,
+                    SystemPhase::PhysicsUpdate,
                     &world::WORLD_MANAGER.shared(),
                 );
 
@@ -37,6 +33,14 @@ pub(crate) fn run_step() {
             });
         }
     }
+
+    run_frame_phase("Update", || {
+        system::run_systems_for_phase(SystemPhase::Update, &world::WORLD_MANAGER.shared());
+    });
+
+    run_frame_phase("Pre Render", || {
+        system::run_systems_for_phase(SystemPhase::PreRender, &world::WORLD_MANAGER.shared());
+    });
 }
 
 fn run_frame_phase(_name: &'static str, phase: impl FnOnce()) {
@@ -44,24 +48,7 @@ fn run_frame_phase(_name: &'static str, phase: impl FnOnce()) {
 
     world::run_spawn_queue();
 
-    // gameobject::handle_state_changes();
-    // component::handle_enable_disable();
-
     phase();
-
-    // Handle any pending events, and then handle events published
-    // while handling those events, etc.
-
-    loop {
-        let any_handled = crate::event::handle_pending_events();
-
-        if !any_handled {
-            break;
-        }
-    }
-
-    // component::handle_destruction();
-    // gameobject::cleanup_destroyed();
 }
 
 // #[profiling::function]

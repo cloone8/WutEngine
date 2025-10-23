@@ -120,7 +120,7 @@ impl winit::application::ApplicationHandler<WutEngineWinitEvent> for WinitApp {
                     }
                 };
 
-                wutengine_graphics::initialize_surface_for_window(
+                wutengine_graphics::surface::initialize_for_window(
                     window_identifier.clone(),
                     window.inner_size().into(),
                     window.clone(),

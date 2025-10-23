@@ -13,6 +13,7 @@ use wutengine_util::GlobalManager;
 use wutengine_windowing::window::{WindowIdentifier, WindowResizedEvent};
 
 use crate::config::{GraphicsBackend, WutEngineGraphicsConfig};
+use crate::surface::{Surface, on_resized_event};
 
 pub mod buffer;
 pub mod color;
@@ -24,6 +25,7 @@ pub mod mesh;
 pub mod passes;
 pub mod pipeline;
 pub mod shader;
+pub mod surface;
 pub mod texture;
 pub mod viewport;
 
@@ -99,7 +101,6 @@ pub async fn init() -> Result<(), InitErr> {
         adapter,
         device,
         queue,
-        surfaces: RwLock::new(HashMap::new()),
         shader_cache: shader::cache::ShaderCache::new(),
         pipeline_cache: pipeline::cache::PipelineCache::new(),
         buffer_cache: buffer::cache::BufferCache::new(),
@@ -107,78 +108,16 @@ pub async fn init() -> Result<(), InitErr> {
 
     GlobalManager::init(&GRAPHICS_MANAGER, manager);
 
-    wutengine_event::subscribe_permanent::<wutengine_windowing::window::WindowResizedEvent>(
-        resized,
-    );
+    // Initialize the surface manager
+    surface::init();
+
+    wutengine_event::subscribe::<wutengine_windowing::window::WindowResizedEvent>(on_resized_event);
 
     Ok(())
 }
 
-#[derive(Debug, Error)]
-pub enum InitSurfaceErr {
-    #[error("Failed to create a rendering surface for the given window: {0}")]
-    CreateSurface(#[from] wgpu::CreateSurfaceError),
-
-    #[error("The current adapter does not support rendering to the window")]
-    UnsupportedAdapter,
-}
-
-pub fn initialize_surface_for_window(
-    id: WindowIdentifier,
-    inner_size: (u32, u32),
-    native: impl Into<wgpu::SurfaceTarget<'static>>,
-) -> Result<(), InitSurfaceErr> {
-    let surface = GRAPHICS_MANAGER.instance.create_surface(native)?;
-
-    if !GRAPHICS_MANAGER.adapter.is_surface_supported(&surface) {
-        return Err(InitSurfaceErr::UnsupportedAdapter);
-    }
-
-    let graphics_surface = GraphicsSurface {
-        capabilities: surface.get_capabilities(&GRAPHICS_MANAGER.adapter),
-        native: surface,
-    };
-
-    graphics_surface.reconfigure(&GRAPHICS_MANAGER.device, inner_size);
-
-    let mut locked = GRAPHICS_MANAGER.surfaces.write().unwrap();
-    locked.insert(id, graphics_surface);
-
-    Ok(())
-}
-
-fn resized(event: &WindowResizedEvent) {
-    let id = &event.window_id;
-    let inner_size = event.new_size;
-
-    let mut surfaces = GRAPHICS_MANAGER.surfaces.write().unwrap();
-
-    let surface = if let Some(surface) = surfaces.get_mut(id) {
-        surface
-    } else {
-        log::warn!("Resizing unknown surface {id}. Ignoring");
-        return;
-    };
-
-    surface.reconfigure(&GRAPHICS_MANAGER.device, inner_size);
-}
-
-pub fn get_window_surface_texture(id: &WindowIdentifier) -> Option<wgpu::SurfaceTexture> {
-    let surfaces = GRAPHICS_MANAGER.surfaces.read().unwrap();
-    let surface = match surfaces.get(id) {
-        Some(surface) => surface,
-        None => {
-            log::error!("Could not find surface for given window id {id}");
-            return None;
-        }
-    };
-
-    let surface_texture = surface
-        .native
-        .get_current_texture()
-        .expect("failed to acquire next swapchain texture");
-
-    Some(surface_texture)
+pub fn raw_device() -> &'static wgpu::Device {
+    &GRAPHICS_MANAGER.device
 }
 
 pub fn create_command_encoder(desc: &wgpu::CommandEncoderDescriptor) -> wgpu::CommandEncoder {
@@ -194,38 +133,11 @@ pub fn get_limits() -> wgpu::Limits {
 }
 
 #[derive(Debug)]
-struct GraphicsSurface {
-    native: wgpu::Surface<'static>,
-    capabilities: wgpu::SurfaceCapabilities,
-}
-
-impl GraphicsSurface {
-    fn reconfigure(&self, device: &wgpu::Device, size: (u32, u32)) {
-        let surface_format = self.capabilities.formats[0];
-
-        let surface_config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_format,
-            // Request compatibility with the sRGB-format texture view we‘re going to create later.
-            view_formats: vec![surface_format.add_srgb_suffix()],
-            alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            width: size.0,
-            height: size.1,
-            desired_maximum_frame_latency: 2,
-            present_mode: wgpu::PresentMode::AutoVsync,
-        };
-
-        self.native.configure(device, &surface_config);
-    }
-}
-
-#[derive(Debug)]
 struct GraphicsManager {
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    surfaces: RwLock<HashMap<WindowIdentifier, GraphicsSurface>>,
     shader_cache: shader::cache::ShaderCache,
     pipeline_cache: pipeline::cache::PipelineCache,
     buffer_cache: buffer::cache::BufferCache,

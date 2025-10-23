@@ -1,6 +1,6 @@
 //! Types and functions for the "system" part of the WutEngine ECS
 
-use core::any::TypeId;
+use core::any::{TypeId, type_name};
 use core::marker::{Send, Sync};
 use std::collections::HashSet;
 use std::sync::RwLock;
@@ -17,12 +17,15 @@ pub mod phase;
 
 /// The manager of the various ECS systems, and their schedules
 pub(crate) struct SystemManager {
+    /// The [Component] types for which the default systems have already been added
+    added_default_systems: RwLock<HashSet<TypeId>>,
     by_phase: RwLock<[Schedule; SystemPhase::VARIANT_COUNT]>,
 }
 
 impl SystemManager {
     fn new() -> Self {
         Self {
+            added_default_systems: RwLock::new(HashSet::new()),
             by_phase: RwLock::new(core::array::from_fn(|_| Schedule(Vec::new()))),
         }
     }
@@ -46,14 +49,18 @@ pub(crate) fn init() {
 
 #[profiling::function]
 pub(crate) fn run_systems_for_phase(phase: SystemPhase, world: &hecs::World) {
-    log::trace!("Running systems for phase {phase}");
+    log::debug!("Running systems for phase {phase}");
 
     let phases = SYSTEM_MANAGER.by_phase.read().unwrap();
 
     let schedule = &phases[phase as u8 as usize];
 
+    log::trace!("Running {} stages", schedule.0.len());
+
     for schedule_stage in schedule.0.iter() {
         profiling::scope!("System Stage");
+
+        log::trace!("Running {} systems in stage", schedule_stage.len());
 
         schedule_stage
             .par_iter()
@@ -61,11 +68,41 @@ pub(crate) fn run_systems_for_phase(phase: SystemPhase, world: &hecs::World) {
     }
 }
 
+/// Adds the default systems for a given component type, if not already added
+pub(crate) fn add_default_systems_for_component<T: Component>() {
+    let tid = TypeId::of::<T>();
+
+    let default_systems_read = SYSTEM_MANAGER.added_default_systems.read().unwrap();
+
+    if default_systems_read.contains(&tid) {
+        // Default systems already added
+        return;
+    }
+
+    drop(default_systems_read);
+
+    log::debug!(
+        "Adding default systems for component type {}",
+        type_name::<T>()
+    );
+
+    // Default systems not yet added. Get write lock and add
+    SYSTEM_MANAGER
+        .added_default_systems
+        .write()
+        .unwrap()
+        .insert(tid);
+
+    T::add_default_systems();
+}
+
 /// Registers a new system to the WutEngine ECS runtime
 pub fn register_system<Q: hecs::Query + Queryable>(
     sys: impl for<'a> Fn(crate::prelude::Entity, Q::Item<'a>) + Send + Sync + 'static,
     phase: SystemPhase,
 ) {
+    log::debug!("Registering new system in phase {}", phase);
+
     let mut exclusive = HashSet::new();
     let mut shared = HashSet::new();
 

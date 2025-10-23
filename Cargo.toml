@@ -14,6 +14,7 @@ members = [
     "wutengine_config",
     "wutengine_math",
     "wutengine_lua",
+    "wutengine_loader_obj",
     "tools/weshc",
 ]
 
@@ -43,6 +44,7 @@ wutengine_time = { path = "wutengine_time", version = "0.6.0" }
 wutengine_config = { path = "wutengine_config", version = "0.6.0" }
 wutengine_math = { path = "wutengine_math", version = "0.6.0" }
 wutengine_lua = { path = "wutengine_lua", version = "0.6.0" }
+wutengine_loader_obj = { path = "wutengine_loader_obj", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }

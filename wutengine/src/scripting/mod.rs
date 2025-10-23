@@ -1,3 +1,5 @@
+//! Scripting implementations for WutEngine
+
 #[cfg(feature = "lua")]
 pub mod lua;
 

@@ -187,6 +187,10 @@ where
 /// ```
 #[macro_export]
 macro_rules! map {
+    () => {
+        ::std::collections::HashMap::default()
+    };
+
     ($($key:expr => $val:expr),+) => {{
         let mut new_hashmap = ::std::collections::HashMap::default();
 

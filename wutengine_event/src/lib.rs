@@ -2,74 +2,72 @@
 //!
 //! Provides a global crate where any other WutEngine sub-crate (and by extension, WutEngine users) can hook into and publish new events.
 
-use core::any::TypeId;
-use core::fmt::Debug;
+use core::any::{Any, TypeId, type_name};
 use std::collections::HashMap;
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::RwLock;
 
 use wutengine_util::GlobalManager;
-use wutengine_util::hash::nohash_hasher::{IntMap, IntSet};
 
-mod api;
-mod subscription;
+/// A type that can be sent as an event through the WutEngine event system, and
+/// can also be listened for
+pub trait WutEngineEvent: Any + Send + Sync {}
 
-pub use api::*;
-pub use subscription::*;
+/// Publishes the event, notifying all subscribers
+#[profiling::function]
+pub fn publish<T: WutEngineEvent>(event: T) {
+    log::debug!("Sending event of type {}", type_name::<T>());
 
-/// The global [EventManager]
-static EVENT_MANAGER: GlobalManager<EventManager> = GlobalManager::new();
+    let callbacks = EVENT_MANAGER.callbacks.read().unwrap();
 
-/// The main event manager. Publishes events to a global channel, and then receives them
-/// and distributes them to subscribers once polled with [handle_pending_events].
-#[derive(Debug)]
-struct EventManager {
-    /// Receiver channel. Only read through [handle_pending_events]
-    event_recv: Mutex<Receiver<Box<dyn WutEngineEvent>>>,
+    let Some(callbacks_for_type) = callbacks.get(&TypeId::of::<T>()) else {
+        log::debug!("No callbacks registered");
+        return;
+    };
 
-    /// Event sender channel
-    event_send: Sender<Box<dyn WutEngineEvent>>,
+    log::debug!("Firing {} callbacks", callbacks_for_type.len());
 
-    /// Subscriber info
-    subscribers: Mutex<Subscribers>,
-}
-
-/// A dynamic (untyped) event callback. Type checking and casting is probably done within the callback
-type DynamicEventCallback = dyn Fn(&dyn WutEngineEvent) + Send + Sync;
-
-/// All event subscribers known to a single [EventManager]
-struct Subscribers {
-    /// A mapping between event [TypeId] and subscribers, to make handling events more performant
-    event_type_subscribers: HashMap<TypeId, IntSet<EventSubscriptionId>>,
-
-    /// Contains the callbacks for each actual subscription
-    subscribers: IntMap<EventSubscriptionId, Arc<DynamicEventCallback>>,
-}
-
-impl Subscribers {
-    /// A new, empty, [Subscribers] map
-    fn new() -> Self {
-        Self {
-            event_type_subscribers: HashMap::default(),
-            subscribers: HashMap::default(),
-        }
+    for cb in callbacks_for_type {
+        cb(&event);
     }
 }
 
-impl Debug for Subscribers {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Subscribers").finish()
-    }
+/// Subscribes to a given event type with the given callback
+#[profiling::function]
+pub fn subscribe<T: WutEngineEvent>(callback: impl Fn(&T) + Send + Sync + 'static) {
+    log::debug!("Subscribing to event of type {}", type_name::<T>());
+
+    let mut callbacks = EVENT_MANAGER.callbacks.write().unwrap();
+
+    let callbacks_for_type = callbacks.entry(TypeId::of::<T>()).or_default();
+
+    callbacks_for_type.push(Box::new(move |untyped_event| {
+        let untyped_as_any = untyped_event as &dyn Any;
+
+        let typed = untyped_as_any
+            .downcast_ref::<T>()
+            .expect("Invalid event type given");
+
+        callback(typed);
+    }));
+}
+
+/// Initializes the global [EventManager]. Should be called once, and only once, by the WutEngine runtime.
+/// Do not call manually
+#[doc(hidden)]
+pub fn init() {
+    GlobalManager::init(&EVENT_MANAGER, EventManager::new());
+}
+
+pub(crate) struct EventManager {
+    callbacks: RwLock<HashMap<TypeId, Vec<Box<dyn Fn(&dyn WutEngineEvent) + Send + Sync>>>>,
 }
 
 impl EventManager {
-    /// A new, empty, [EventManager]
     fn new() -> Self {
-        let (send, recv) = std::sync::mpsc::channel::<Box<dyn WutEngineEvent>>();
         Self {
-            event_recv: Mutex::new(recv),
-            event_send: send,
-            subscribers: Mutex::new(Subscribers::new()),
+            callbacks: RwLock::new(HashMap::new()),
         }
     }
 }
+
+pub(crate) static EVENT_MANAGER: GlobalManager<EventManager> = GlobalManager::new();
