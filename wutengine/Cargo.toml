@@ -15,48 +15,4 @@ readme = "../README.md"
 [lints]
 workspace = true
 
-[features]
-default = ["dx12", "metal", "vulkan", "opengl", "asset_format_text", "lua"]
-
-dx12 = ["wutengine_graphics/dx12"]
-metal = ["wutengine_graphics/metal"]
-vulkan = ["wutengine_graphics/vulkan"]
-opengl = ["wutengine_graphics/opengl"]
-
-lua = ["dep:wutengine_lua"]
-
-asset_format_text = ["wutengine_asset/format_text"]
-
-profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
-
 [dependencies]
-wutengine_graphics.workspace = true
-wutengine_util.workspace = true
-wutengine_windowing.workspace = true
-wutengine_asset.workspace = true
-wutengine_event.workspace = true
-wutengine_job.workspace = true
-wutengine_time.workspace = true
-wutengine_config.workspace = true
-wutengine_math.workspace = true
-wutengine_lua = { workspace = true, optional = true }
-
-serde.workspace = true
-winit.workspace = true
-hecs.workspace = true
-log.workspace = true
-profiling.workspace = true
-bitflags.workspace = true
-arc-swap.workspace = true
-derive_more = { workspace = true, features = [
-    "is_variant",
-    "unwrap",
-    "try_unwrap",
-] }
-
-puffin_http = { workspace = true, optional = true }
-
-thiserror.workspace = true
-rayon.workspace = true
-cfg-if.workspace = true
-pollster.workspace = true

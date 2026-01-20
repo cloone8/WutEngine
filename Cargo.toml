@@ -1,22 +1,6 @@
 [workspace]
 resolver = "3"
-members = [
-    "wutengine",
-    "wutengine_asset",
-    "wutengine_graphics",
-    "wutengine_shadercompiler",
-    "wutengine_util",
-    "wutengine_util_macro",
-    "wutengine_windowing",
-    "wutengine_event",
-    "wutengine_job",
-    "wutengine_time",
-    "wutengine_config",
-    "wutengine_math",
-    "wutengine_lua",
-    "wutengine_loader_obj",
-    "tools/weshc",
-]
+members = ["wutengine"]
 
 [workspace.package]
 version = "0.6.0"
@@ -32,19 +16,6 @@ categories = ["game-engines"]
 [workspace.dependencies]
 ### Workspace dependencies ###
 wutengine = { path = "wutengine", version = "0.6.0" }
-wutengine_asset = { path = "wutengine_asset", version = "0.6.0" }
-wutengine_event = { path = "wutengine_event", version = "0.6.0" }
-wutengine_graphics = { path = "wutengine_graphics", version = "0.6.0" }
-wutengine_windowing = { path = "wutengine_windowing", version = "0.6.0" }
-wutengine_job = { path = "wutengine_job", version = "0.6.0" }
-wutengine_util = { path = "wutengine_util", version = "0.6.0" }
-wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
-wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
-wutengine_time = { path = "wutengine_time", version = "0.6.0" }
-wutengine_config = { path = "wutengine_config", version = "0.6.0" }
-wutengine_math = { path = "wutengine_math", version = "0.6.0" }
-wutengine_lua = { path = "wutengine_lua", version = "0.6.0" }
-wutengine_loader_obj = { path = "wutengine_loader_obj", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
@@ -53,47 +24,18 @@ wgpu = { version = "26.0.1", default-features = false, features = [
     "parking_lot",
     "naga-ir",
 ] }
-naga = { version = "26" }
 hecs = { version = "0.10" }
-mlua = { version = "0.11" }
 
 rayon = { version = "1.10" }
-itertools = { version = "0.14" }
 pollster = { version = "0.4" }
-arc-swap = { version = "1.7", features = ["serde"] }
 
 profiling = { version = "1.0" }
-puffin_http = { version = "0.16" }
-
 log = { version = "0.4" }
-simplelog = { version = "0.12" }
 thiserror = { version = "2.0" }
-glam = { version = "0.29", features = [
-    "std",
-    "debug-glam-assert",
-    "bytemuck",
-    "serde",
-] }
-serde = { version = "1.0", features = ["derive"] }
-serde_bytes = { version = "0.11" }
-serde_json = { version = "1.0" }
-toml = { version = "0.9" }
-postcard = { version = "1.1", features = ["use-std"] }
-logos = "0.15"
+glam = { version = "0.29", features = ["std", "debug-glam-assert", "bytemuck"] }
 
-cfg-if = { version = "1.0.1" }
 derive_more = { version = "2" }
-
-quote = { version = "1" }
-syn = { version = "2", features = ["full"] }
-
 nohash-hasher = { version = "0.2" }
-
-image = { version = "0.25", features = [] }
-bytemuck = { version = "1.23", features = ["extern_crate_alloc"] }
-bitflags = { version = "2", features = ["std", "serde", "bytemuck"] }
-
-clap = { version = "4.5", features = ["derive"] }
 
 [profile.release]
 strip = true
@@ -102,13 +44,40 @@ codegen-units = 1
 panic = "abort"
 
 [workspace.lints.rust]
+# Groups
+future_incompatible = { level = "warn", priority = -1 }
+nonstandard_style = { level = "warn", priority = -1 }
+
+# Individual lints
 missing_docs = "warn"
 unsafe_op_in_unsafe_fn = "warn"
 unreachable_pub = "warn"
+unused_crate_dependencies = "deny"
+
 
 [workspace.lints.clippy]
-missing_docs_in_private_items = "warn"
 missing_assert_messages = "warn"
+cargo = "warn"
+missing_docs_in_private_items = "warn"
+missing_assert_message = "warn"
 allow_attributes_without_reason = "warn"
 std_instead_of_core = "warn"
-cargo = "warn"
+too_many_lines = "warn"
+unused_self = "warn"
+mutex_integer = "warn"
+large_stack_arrays = "warn"
+large_types_passed_by_value = "warn"
+borrow_as_ptr = "warn"
+doc_broken_link = "warn"
+empty_drop = "warn"
+fallible_impl_from = "warn"
+fn_params_excessive_bools = "warn"
+infinite_loop = "warn"
+verbose_file_reads = "warn"
+unneeded_field_pattern = "warn"
+unimplemented = "warn"
+todo = "warn"
+suspicious_operation_groupings = "warn"
+needless_collect = "warn"
+needless_pass_by_ref_mut = "warn"
+needless_raw_strings = "warn"
