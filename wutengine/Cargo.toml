@@ -16,3 +16,7 @@ readme = "../README.md"
 workspace = true
 
 [dependencies]
+log.workspace = true
+derive_more = { workspace = true, features = ["display", "error", "from"] }
+hecs.workspace = true
+winit.workspace = true
