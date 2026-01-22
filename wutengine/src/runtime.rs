@@ -6,9 +6,29 @@ use derive_more::{Display, Error, From};
 use winit::error::EventLoopError;
 use world::World;
 
+use crate::util::InitOnce;
+use crate::window::WindowManager;
+
 mod winit_app;
 pub(crate) mod world;
 
+pub(crate) use winit_app::WinitEvent;
+
+static EVENT_LOOP_PROXY: InitOnce<winit::event_loop::EventLoopProxy<WinitEvent>> = InitOnce::new();
+
+/// Notifies the main [winit] event loop of a given event.
+///
+/// If the loop was already closed, does nothing and logs an error
+pub(crate) fn notify_event_loop(event: WinitEvent) {
+    if let Err(e) = EVENT_LOOP_PROXY.send_event(event) {
+        log::error!(
+            "Failed to notify event loop of event {:#?} because it was already closed",
+            e.0
+        );
+    }
+}
+
+/// Data only relevant before/during application initialization in [winit::application::ApplicationHandler::resumed]
 pub(crate) struct InitializationData {
     post_start_callback: Option<Box<dyn FnOnce()>>,
 }
@@ -16,10 +36,13 @@ pub(crate) struct InitializationData {
 /// The main WutEngine runtime
 pub(crate) struct Runtime {
     /// Set to `true` if the `resumed` event was sent by [winit]
-    initialization_data: Option<InitializationData>,
+    initialization_data: Option<Box<InitializationData>>,
 
     /// The complete set of entities and components
     pub(crate) world: World,
+
+    /// The window manager, in charge of handling the lifetime and info of each native window
+    pub(crate) windows: WindowManager,
 }
 
 /// An error while starting the WutEngine runtime with [start]
@@ -34,13 +57,11 @@ pub enum RuntimeStartErr {
     EventLoop(EventLoopError),
 }
 
-/// Starts and runs the WutEngine runtime.
+/// Starts and runs the WutEngine runtime. MUST be called from the main thread
 ///
 /// Can only be called once per process
 pub fn run(post_start: Option<Box<dyn FnOnce()>>) -> Result<(), RuntimeStartErr> {
     static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
-
-    //TODO: Check if this is called from the main thread
 
     if WUTENGINE_RUNNING.swap(true, Ordering::AcqRel) {
         return Err(RuntimeStartErr::AlreadyRunning);
@@ -48,15 +69,20 @@ pub fn run(post_start: Option<Box<dyn FnOnce()>>) -> Result<(), RuntimeStartErr>
 
     log::info!("Starting WutEngine");
 
+    InitOnce::init(&crate::MAIN_THREAD_ID, std::thread::current().id());
+
     let mut runtime = Runtime {
-        initialization_data: Some(InitializationData {
+        initialization_data: Some(Box::new(InitializationData {
             post_start_callback: post_start,
-        }),
+        })),
         world: World::new(),
+        windows: WindowManager::new(),
     };
 
-    let event_loop = winit::event_loop::EventLoop::new()?;
+    let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event().build()?;
     let event_loop_proxy = event_loop.create_proxy();
+
+    InitOnce::init(&EVENT_LOOP_PROXY, event_loop_proxy);
 
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 

@@ -1,0 +1,168 @@
+#![doc = include_str!("../README.md")]
+#![allow(
+    clippy::missing_docs_in_private_items,
+    reason = "A lot of useless boilerplate in macro types"
+)]
+
+use proc_macro::Span;
+use quote::quote;
+use syn::parse::Parse;
+use syn::{Attribute, Ident, LitStr, Type, Visibility, parse_macro_input, parse_str};
+
+/// Input for the [unique_id_type32] and [unique_id_type64] macros
+struct UniqueIdTypeInput {
+    /// Existing attributes to apply
+    attrs: Vec<Attribute>,
+
+    /// The visibility to assign to the generated type
+    vis: Option<Visibility>,
+
+    /// Name of the new ID type
+    name: Ident,
+}
+
+impl Parse for UniqueIdTypeInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let attrs = input.call(Attribute::parse_outer)?;
+        let vis: Option<Visibility> = input.parse::<Visibility>().ok();
+        let name: Ident = input.parse()?;
+
+        Ok(Self { attrs, vis, name })
+    }
+}
+
+struct UniqueIdConfig {
+    ident_id: Ident,
+    attrs: Vec<Attribute>,
+    vis: Option<Visibility>,
+    atomic_type: Type,
+    inner_type: Type,
+    format_string: LitStr,
+    hash_write: Ident,
+}
+
+/// Generates a new 32-bit atomic identifier type, which automatically increments itself
+/// whenever a new instance is created.
+#[proc_macro]
+pub fn unique_id_type32(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as UniqueIdTypeInput);
+
+    unique_id_type(UniqueIdConfig {
+        ident_id: input.name,
+        attrs: input.attrs,
+        vis: input.vis,
+        atomic_type: parse_str("::core::sync::atomic::AtomicU32")
+            .expect("Failed to parse AtomicU32"),
+        inner_type: parse_str("::core::num::NonZeroU32").expect("Failed to parse NonZeroU32"),
+        format_string: LitStr::new("{:08x}", Span::call_site().into()),
+        hash_write: parse_str("write_u32").expect("Failed to parse writeu32"),
+    })
+}
+
+/// Generates a new 64-bit atomic identifier type, which automatically increments itself
+/// whenever a new instance is created.
+#[proc_macro]
+pub fn unique_id_type64(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as UniqueIdTypeInput);
+
+    unique_id_type(UniqueIdConfig {
+        ident_id: input.name,
+        attrs: input.attrs,
+        vis: input.vis,
+        atomic_type: parse_str("::core::sync::atomic::AtomicU64").unwrap(),
+        inner_type: parse_str("::core::num::NonZeroU64").unwrap(),
+        format_string: LitStr::new("{:016x}", Span::call_site().into()),
+        hash_write: parse_str("write_u64").unwrap(),
+    })
+}
+
+fn unique_id_type(config: UniqueIdConfig) -> proc_macro::TokenStream {
+    let ident_id = config.ident_id;
+
+    let id_overflow_err = format!("Overflow for ID of type `{ident_id}`");
+
+    let ident_new_doc = format!("Generate a new guaranteed unique [{ident_id}]");
+    let attrs = config.attrs;
+    let vis = config.vis;
+    let atomic_type = config.atomic_type;
+    let inner_type = config.inner_type;
+    let format_string = config.format_string;
+    let hash_write = config.hash_write;
+
+    quote! {
+        #(#attrs)*
+        #[repr(transparent)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+        #vis struct #ident_id(#inner_type);
+
+        impl ::std::fmt::Display for #ident_id {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                write!(f, #format_string, self.0)
+            }
+        }
+
+        impl ::core::hash::Hash for #ident_id {
+            fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+                state.#hash_write(self.0.get());
+            }
+        }
+
+        impl ::nohash_hasher::IsEnabled for #ident_id {}
+
+        impl Default for #ident_id {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
+        impl #ident_id {
+            #[doc = #ident_new_doc]
+            #[inline]
+            #vis fn new() -> Self {
+                static NEXT_ID: #atomic_type = #atomic_type::new(1);
+
+                let id_val = NEXT_ID.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed);
+
+                assert_ne!(0, id_val, #id_overflow_err);
+
+                Self(#inner_type::new(id_val).unwrap())
+            }
+        }
+    }
+    .into()
+}
+
+/// Adds a `Self::VARIANT_COUNT` field containing the number of variants of the provided enum, with
+/// the same visibility as the enum itself
+#[proc_macro_derive(VariantCount)]
+pub fn derive_variant_count(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let derive_input: syn::DeriveInput = syn::parse(input).unwrap();
+
+    let ident = derive_input.ident;
+    let generics = derive_input.generics.params;
+
+    let len = match derive_input.data {
+        syn::Data::Enum(enum_item) => enum_item.variants.len(),
+        _ => panic!("VariantCount only works on Enums"),
+    };
+
+    let vis = derive_input.vis;
+
+    let expanded = if generics.is_empty() {
+        quote! {
+            impl #ident {
+                /// The amount of variants of [Self]
+                #vis const VARIANT_COUNT: usize = #len;
+            }
+        }
+    } else {
+        quote! {
+            impl<#generics> #ident<#generics> {
+                /// The amount of variants of [Self]
+                #vis const VARIANT_COUNT: usize = #len;
+            }
+        }
+    };
+
+    expanded.into()
+}

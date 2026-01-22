@@ -16,7 +16,22 @@ readme = "../README.md"
 workspace = true
 
 [dependencies]
+wutengine_util_macro.workspace = true
+
 log.workspace = true
 derive_more = { workspace = true, features = ["display", "error", "from"] }
 hecs.workspace = true
 winit.workspace = true
+wgpu = { workspace = true, features = [
+    "wgsl",
+    "dx12",
+    "vulkan",
+    "metal",
+    "webgpu",
+    "std",
+    "web",
+    "parking_lot",
+] }
+nohash-hasher.workspace = true
+pollster.workspace = true
+image.workspace = true

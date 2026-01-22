@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["wutengine"]
+members = ["wutengine", "wutengine_util_macro"]
 
 [workspace.package]
 version = "0.6.0"
@@ -10,16 +10,17 @@ authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
 repository = "https://github.com/cloone8/WutEngine"
 license = "MPL-2.0"
-keywords = []
+keywords = ["2D", "3D", "game", "engine"]
 categories = ["game-engines"]
 
 [workspace.dependencies]
 ### Workspace dependencies ###
 wutengine = { path = "wutengine", version = "0.6.0" }
+wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
-wgpu = { version = "28" }
+wgpu = { version = "28", default-features = false }
 hecs = { version = "0.11" }
 
 rayon = { version = "1.11" }
@@ -31,6 +32,11 @@ glam = { version = "0.30", features = ["std", "debug-glam-assert"] }
 
 derive_more = { version = "2" }
 nohash-hasher = { version = "0.2" }
+
+quote = { version = "1" }
+syn = { version = "2", features = ["full"] }
+
+image = { version = "0.25" }
 
 [profile.release]
 strip = true
@@ -50,8 +56,8 @@ unreachable_pub = "warn"
 unused_crate_dependencies = "deny"
 
 [workspace.lints.clippy]
+cargo = { level = "warn", priority = -1 }
 missing_assert_messages = "warn"
-cargo = "warn"
 missing_docs_in_private_items = "warn"
 missing_assert_message = "warn"
 allow_attributes_without_reason = "warn"
