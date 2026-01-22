@@ -9,7 +9,7 @@ use core::ops::Deref;
 ///
 /// Used like:
 /// ```
-/// use wutengine_util::map; // Or `wutengine::map` when using the full WutEngine engine crate
+/// use wutengine::map; // Or `wutengine::map` when using the full WutEngine engine crate
 /// use std::collections::HashMap;
 ///
 /// let new_map: HashMap<String, i32> = map![

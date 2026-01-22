@@ -4,13 +4,13 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use derive_more::{Display, Error, From};
 use winit::error::EventLoopError;
-use world::World;
 
+use crate::entity::{self, EntityManager};
 use crate::util::InitOnce;
-use crate::window::WindowManager;
+use crate::window::manager::WindowManager;
+use crate::world;
 
 mod winit_app;
-pub(crate) mod world;
 
 pub(crate) use winit_app::WinitEvent;
 
@@ -38,11 +38,11 @@ pub(crate) struct Runtime {
     /// Set to `true` if the `resumed` event was sent by [winit]
     initialization_data: Option<Box<InitializationData>>,
 
-    /// The complete set of entities and components
-    pub(crate) world: World,
-
     /// The window manager, in charge of handling the lifetime and info of each native window
-    pub(crate) windows: WindowManager,
+    windows: WindowManager,
+
+    /// The entity manager. Spawns entities and components
+    entity_manager: EntityManager,
 }
 
 /// An error while starting the WutEngine runtime with [start]
@@ -75,9 +75,11 @@ pub fn run(post_start: Option<Box<dyn FnOnce()>>) -> Result<(), RuntimeStartErr>
         initialization_data: Some(Box::new(InitializationData {
             post_start_callback: post_start,
         })),
-        world: World::new(),
         windows: WindowManager::new(),
+        entity_manager: entity::initialize(),
     };
+
+    world::initialize();
 
     let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event().build()?;
     let event_loop_proxy = event_loop.create_proxy();

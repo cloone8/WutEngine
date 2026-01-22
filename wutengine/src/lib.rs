@@ -4,10 +4,13 @@ use std::thread::ThreadId;
 
 use util::InitOnce;
 
+pub mod component;
+pub mod entity;
 pub mod graphics;
 pub mod runtime;
 pub(crate) mod util;
 pub mod window;
+pub mod world;
 
 pub use log;
 pub use wgpu;
