@@ -25,8 +25,14 @@ hecs = { version = "0.11" }
 
 rayon = { version = "1.11" }
 pollster = { version = "0.4" }
+smallvec = { version = "1", features = [
+    "union",
+    "const_generics",
+    "const_new",
+] }
 
 profiling = { version = "1" }
+puffin_http = { version = "0.16" }
 log = { version = "0.4" }
 glam = { version = "0.30", features = ["std", "debug-glam-assert"] }
 

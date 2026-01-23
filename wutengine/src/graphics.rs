@@ -2,20 +2,40 @@
 
 use crate::util::InitOnce;
 
+/// The global [wgpu::Adapter]
+static GFX_ADAPTER: InitOnce<wgpu::Adapter> = InitOnce::new();
+
+/// The global [wgpu::Instance]
+static GFX_INSTANCE: InitOnce<wgpu::Instance> = InitOnce::new();
+
 /// The global [wgpu::Device]
 static GFX_DEVICE: InitOnce<wgpu::Device> = InitOnce::new();
 
 /// The global [wgpu::Queue]
 static GFX_QUEUE: InitOnce<wgpu::Queue> = InitOnce::new();
 
+/// Returns the global graphics adapter
+#[inline(always)]
+pub(crate) fn adapter() -> &'static wgpu::Adapter {
+    &GFX_ADAPTER
+}
+
+/// Returns the global graphics instance
+#[inline(always)]
+pub(crate) fn instance() -> &'static wgpu::Instance {
+    &GFX_INSTANCE
+}
+
 /// Returns the global graphics device
-pub(crate) fn device() -> wgpu::Device {
-    GFX_DEVICE.clone()
+#[inline(always)]
+pub(crate) fn device() -> &'static wgpu::Device {
+    &GFX_DEVICE
 }
 
 /// Returns the global graphics queue
-pub(crate) fn queue() -> wgpu::Queue {
-    GFX_QUEUE.clone()
+#[inline(always)]
+pub(crate) fn queue() -> &'static wgpu::Queue {
+    &GFX_QUEUE
 }
 
 /// Initializes the global graphics context for WutEngine. Acquires a graphics
@@ -73,6 +93,8 @@ pub(crate) fn initialize_graphics_context() -> bool {
             }
         };
 
+    InitOnce::init(&GFX_ADAPTER, adapter);
+    InitOnce::init(&GFX_INSTANCE, instance);
     InitOnce::init(&GFX_DEVICE, device);
     InitOnce::init(&GFX_QUEUE, queue);
 

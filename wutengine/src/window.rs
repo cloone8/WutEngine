@@ -11,8 +11,8 @@ pub use icon::*;
 pub(crate) mod manager;
 
 unique_id_type32! {
-    /// The unique ID for a single window
-    pub WindowId
+    /// The handle to a WutEngine window
+    pub Window
 }
 
 /// Config used to create a new window with [create]
@@ -138,9 +138,30 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
     }
 }
 
+/// Proxy APIs for usability purposes
+impl Window {
+    /// See [create]
+    #[inline(always)]
+    pub fn create(config: WindowConfig) -> Self {
+        create(config)
+    }
+
+    /// See [destroy]
+    #[inline(always)]
+    pub fn destroy(self) {
+        destroy(self)
+    }
+
+    /// See [set_icon]
+    #[inline(always)]
+    pub fn set_icon(self, icon: Icon) {
+        set_icon(self, icon)
+    }
+}
+
 /// Creates a new window with the given configuration
-pub fn create(mut config: WindowConfig) -> WindowId {
-    let id = WindowId::new();
+pub fn create(mut config: WindowConfig) -> Window {
+    let id = Window::new();
 
     if config.title.is_none() {
         config.title = Some(format!("Window {}", id.0));
@@ -157,14 +178,14 @@ pub fn create(mut config: WindowConfig) -> WindowId {
 }
 
 /// Closes the window with the given ID, if it is not already closed
-pub fn destroy(window: WindowId) {
+pub fn destroy(window: Window) {
     log::info!("Closing window with ID {window}");
 
     runtime::notify_event_loop(runtime::WinitEvent::CloseWindow(window));
 }
 
 /// Updates the icon of the given window to the provided one
-pub fn set_icon(window: WindowId, icon: Icon) {
+pub fn set_icon(window: Window, icon: Icon) {
     log::trace!("Updating icon for window {window}");
 
     if let Some(native_icon) = icon.into_native_icon() {

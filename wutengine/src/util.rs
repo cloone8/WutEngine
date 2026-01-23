@@ -109,7 +109,7 @@ impl<T> InitOnce<T> {
     /// This is checked in debug builds
     pub(crate) fn init(target: &Self, val: T) {
         ::log::debug!(
-            "Initializing GlobalManager of type {}",
+            "Initializing InitOnce of type {}",
             core::any::type_name::<T>()
         );
 

@@ -64,7 +64,9 @@ pub(crate) fn process_changes(world: &mut World, manager: &EntityManager) {
         num_added += 1;
     }
 
-    log::debug!("Added {num_added} new components");
+    if num_added > 0 {
+        log::debug!("Added {num_added} new components");
+    }
 
     let mut num_destroyed = 0;
 
@@ -77,7 +79,9 @@ pub(crate) fn process_changes(world: &mut World, manager: &EntityManager) {
         num_destroyed += 1;
     }
 
-    log::debug!("Destroyed {num_destroyed} entities");
+    if num_destroyed > 0 {
+        log::debug!("Destroyed {num_destroyed} entities");
+    }
 }
 
 /// The ID of a WutEngine entity
@@ -99,6 +103,27 @@ impl Hash for Entity {
 }
 
 impl nohash_hasher::IsEnabled for Entity {}
+
+/// Proxy APIs for usability purposes
+impl Entity {
+    /// See [spawn]
+    #[inline(always)]
+    pub fn spawn() -> Self {
+        spawn()
+    }
+
+    /// See [destroy]
+    #[inline(always)]
+    pub fn destroy(self) {
+        destroy(self)
+    }
+
+    /// See [add_component]
+    #[inline(always)]
+    pub fn add_component(self, component: impl Component) {
+        add_component(self, component)
+    }
+}
 
 /// Spawns a new entity in the game world
 pub fn spawn() -> Entity {

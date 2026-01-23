@@ -30,6 +30,7 @@ pub(crate) fn get_world_mut() -> impl DerefMut<Target = World> {
 
 /// Manager of all entities and components currently living in the game engine
 pub(crate) struct World {
+    /// The raw [hecs] world
     pub(crate) ecs: hecs::World,
 }
 

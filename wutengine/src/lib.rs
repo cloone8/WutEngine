@@ -7,6 +7,7 @@ use util::InitOnce;
 pub mod component;
 pub mod entity;
 pub mod graphics;
+pub mod profiling;
 pub mod runtime;
 pub(crate) mod util;
 pub mod window;

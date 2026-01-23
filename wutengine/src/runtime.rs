@@ -7,7 +7,7 @@ use winit::error::EventLoopError;
 
 use crate::entity::{self, EntityManager};
 use crate::util::InitOnce;
-use crate::window::manager::WindowManager;
+use crate::window::{self};
 use crate::world;
 
 mod winit_app;
@@ -37,9 +37,6 @@ pub(crate) struct InitializationData {
 pub(crate) struct Runtime {
     /// Set to `true` if the `resumed` event was sent by [winit]
     initialization_data: Option<Box<InitializationData>>,
-
-    /// The window manager, in charge of handling the lifetime and info of each native window
-    windows: WindowManager,
 
     /// The entity manager. Spawns entities and components
     entity_manager: EntityManager,
@@ -75,10 +72,10 @@ pub fn run(post_start: Option<Box<dyn FnOnce()>>) -> Result<(), RuntimeStartErr>
         initialization_data: Some(Box::new(InitializationData {
             post_start_callback: post_start,
         })),
-        windows: WindowManager::new(),
         entity_manager: entity::initialize(),
     };
 
+    window::manager::initialize();
     world::initialize();
 
     let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event().build()?;

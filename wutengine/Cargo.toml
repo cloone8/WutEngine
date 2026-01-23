@@ -12,6 +12,9 @@ categories.workspace = true
 rust-version.workspace = true
 readme = "../README.md"
 
+[features]
+profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
+
 [lints]
 workspace = true
 
@@ -35,3 +38,8 @@ wgpu = { workspace = true, features = [
 nohash-hasher.workspace = true
 pollster.workspace = true
 image.workspace = true
+profiling.workspace = true
+smallvec.workspace = true
+
+# Optional dependencies
+puffin_http = { workspace = true, optional = true } # Feature - profiling

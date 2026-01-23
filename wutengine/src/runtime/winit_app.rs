@@ -1,8 +1,14 @@
 //! Implements the [winit::application::ApplicationHandler] interface for [crate::runtime::Runtime],
 //! so that its execution can be driven by [winit]
 
-use crate::graphics;
-use crate::window::{WindowConfig, WindowId};
+use std::sync::Arc;
+
+use smallvec::SmallVec;
+use wgpu::wgt::{CommandEncoderDescriptor, TextureViewDescriptor};
+use wgpu::{Color, Operations, RenderPassColorAttachment, RenderPassDescriptor};
+
+use crate::window::{Window, WindowConfig};
+use crate::{entity, graphics, window, world};
 
 use super::Runtime;
 
@@ -12,13 +18,13 @@ use super::Runtime;
 #[derive(Debug)]
 pub(crate) enum WinitEvent {
     /// The creation of a new window with the given ID and config was requested
-    NewWindowRequested(WindowId, WindowConfig),
+    NewWindowRequested(Window, WindowConfig),
 
     /// A window was requested to be closed
-    CloseWindow(WindowId),
+    CloseWindow(Window),
 
     /// Update the icon of a window
-    UpdateIcon(WindowId, winit::window::Icon),
+    UpdateIcon(Window, winit::window::Icon),
 }
 
 impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
@@ -29,6 +35,8 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             // Already initialized
             return;
         };
+
+        profiling::scope!("Initialize");
 
         log::info!("Winit resume received, running runtime initialization code");
 
@@ -49,7 +57,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         native_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
-        let Some(id) = self.windows.find_id(native_id) else {
+        let Some(id) = window::manager::find_id(native_id) else {
             log::warn!(
                 "Could not find WutEngine window for native ID: {}",
                 u64::from(native_id)
@@ -59,10 +67,21 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
         match event {
             winit::event::WindowEvent::CloseRequested => {
+                profiling::scope!("Close Requested");
+
                 event_loop.exit();
             }
             winit::event::WindowEvent::Resized(_) => {
-                self.windows.refresh_cached_info(&id);
+                profiling::scope!("Resized");
+
+                window::manager::refresh_cached_info(&id);
+
+                if cfg!(windows) {
+                    // Workaround for https://github.com/rust-windowing/winit/issues/3272
+                    // The frame still freezes, but at least the whole window is redrawn once
+                    // to make sure it's filled
+                    self.about_to_wait(event_loop);
+                }
             }
             _ => {}
         }
@@ -79,26 +98,35 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
     fn user_event(&mut self, event_loop: &winit::event_loop::ActiveEventLoop, event: WinitEvent) {
         match event {
             WinitEvent::NewWindowRequested(window_id, window_config) => {
+                profiling::scope!("New Window Requested");
+
                 log::debug!("Handling window creation request for window {window_id}");
 
                 let native = match event_loop.create_window(window_config.into()) {
-                    Ok(native) => native,
+                    Ok(native) => Arc::new(native),
                     Err(e) => {
                         log::error!("Failed to create native window for window {window_id}: {e}");
                         return;
                     }
                 };
-                self.windows.new_window(window_id, native);
+
+                let surface = graphics::instance().create_surface(native.clone()).unwrap();
+
+                window::manager::new_window(window_id, native, surface);
             }
             WinitEvent::CloseWindow(window_id) => {
+                profiling::scope!("Close Window");
+
                 log::debug!("Handling close window request for window {window_id}");
 
-                self.windows.close_window(window_id);
+                window::manager::close_window(window_id);
             }
             WinitEvent::UpdateIcon(window_id, icon) => {
+                profiling::scope!("Update Icon");
+
                 log::debug!("Handling icon update request for window {window_id}");
 
-                self.windows.set_icon(window_id, icon);
+                window::manager::set_icon(window_id, icon);
             }
         }
     }
@@ -112,8 +140,56 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         let _ = (event_loop, device_id, event);
     }
 
+    // #[profiling::skip]
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        profiling::finish_frame!();
+        profiling::scope!("about_to_wait");
+
         let _ = event_loop;
+
+        entity::process_changes(&mut world::get_world_mut(), &self.entity_manager);
+
+        let mut buffers = SmallVec::<[_; 4]>::new_const();
+        let mut textures = SmallVec::<[_; 4]>::new_const();
+
+        window::manager::with_locked_surfaces(|surfaces| {
+            for (_window_id, surface) in surfaces {
+                let surface_texture = surface.get_current_texture().unwrap();
+                let tex = &surface_texture.texture;
+                let view = tex.create_view(&TextureViewDescriptor::default());
+
+                let mut encoder = graphics::device()
+                    .create_command_encoder(&CommandEncoderDescriptor { label: None });
+
+                let _pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                    label: None,
+                    color_attachments: &[Some(RenderPassColorAttachment {
+                        view: &view,
+                        depth_slice: None,
+                        resolve_target: None,
+                        ops: Operations {
+                            load: wgpu::LoadOp::Clear(Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                    multiview_mask: None,
+                });
+
+                drop(_pass);
+
+                buffers.push(encoder.finish());
+                textures.push(surface_texture);
+            }
+
+            graphics::queue().submit(buffers);
+
+            for surface in textures {
+                surface.present();
+            }
+        });
     }
 
     fn suspended(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
@@ -121,6 +197,8 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
     }
 
     fn exiting(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        profiling::scope!("Exiting");
+
         _ = event_loop;
 
         log::info!("Exiting WutEngine");

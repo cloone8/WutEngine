@@ -7,7 +7,9 @@
 use proc_macro::Span;
 use quote::quote;
 use syn::parse::Parse;
-use syn::{Attribute, Ident, LitStr, Type, Visibility, parse_macro_input, parse_str};
+use syn::{
+    Attribute, Ident, LitStr, Type, VisRestricted, Visibility, parse_macro_input, parse_str,
+};
 
 /// Input for the [unique_id_type32] and [unique_id_type64] macros
 struct UniqueIdTypeInput {
@@ -51,11 +53,10 @@ pub fn unique_id_type32(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         ident_id: input.name,
         attrs: input.attrs,
         vis: input.vis,
-        atomic_type: parse_str("::core::sync::atomic::AtomicU32")
-            .expect("Failed to parse AtomicU32"),
-        inner_type: parse_str("::core::num::NonZeroU32").expect("Failed to parse NonZeroU32"),
+        atomic_type: parse_str("::core::sync::atomic::AtomicU32").unwrap(),
+        inner_type: parse_str("::core::num::NonZeroU32").unwrap(),
         format_string: LitStr::new("{:08x}", Span::call_site().into()),
-        hash_write: parse_str("write_u32").expect("Failed to parse writeu32"),
+        hash_write: parse_str("write_u32").unwrap(),
     })
 }
 
@@ -84,6 +85,11 @@ fn unique_id_type(config: UniqueIdConfig) -> proc_macro::TokenStream {
     let ident_new_doc = format!("Generate a new guaranteed unique [{ident_id}]");
     let attrs = config.attrs;
     let vis = config.vis;
+    let vis_new = match &vis {
+        Some(Visibility::Public(_)) => Some(parse_str("pub(crate)").unwrap()),
+        Some(other) => Some(other.clone()),
+        None => None,
+    };
     let atomic_type = config.atomic_type;
     let inner_type = config.inner_type;
     let format_string = config.format_string;
@@ -118,7 +124,7 @@ fn unique_id_type(config: UniqueIdConfig) -> proc_macro::TokenStream {
         impl #ident_id {
             #[doc = #ident_new_doc]
             #[inline]
-            #vis fn new() -> Self {
+            #vis_new fn new() -> Self {
                 static NEXT_ID: #atomic_type = #atomic_type::new(1);
 
                 let id_val = NEXT_ID.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed);
