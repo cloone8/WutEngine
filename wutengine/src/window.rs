@@ -15,7 +15,7 @@ unique_id_type32! {
     pub Window
 }
 
-/// Config used to create a new window with [create]
+/// Config used to create a new window with [Window::create]
 #[derive(Debug, Clone)]
 pub struct WindowConfig {
     /// The title of the window.
@@ -140,55 +140,40 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
 
 /// Proxy APIs for usability purposes
 impl Window {
-    /// See [create]
-    #[inline(always)]
+    /// Creates a new window with the given configuration
     pub fn create(config: WindowConfig) -> Self {
-        create(config)
+        let mut config = config;
+        let id = Window::new();
+
+        if config.title.is_none() {
+            config.title = Some(format!("Window {}", id.0));
+        }
+
+        log::info!(
+            "Creating new window with ID {id} and title: {}",
+            config.title.as_ref().unwrap()
+        );
+
+        runtime::notify_event_loop(runtime::WinitEvent::NewWindowRequested(id, config));
+
+        id
     }
 
-    /// See [destroy]
-    #[inline(always)]
+    /// Closes the window with the given ID, if it is not already closed
     pub fn destroy(self) {
-        destroy(self)
+        let window = self;
+        log::info!("Closing window with ID {window}");
+
+        runtime::notify_event_loop(runtime::WinitEvent::CloseWindow(window));
     }
 
-    /// See [set_icon]
-    #[inline(always)]
+    /// Updates the icon of the given window to the provided one
     pub fn set_icon(self, icon: Icon) {
-        set_icon(self, icon)
-    }
-}
+        let window = self;
+        log::trace!("Updating icon for window {window}");
 
-/// Creates a new window with the given configuration
-pub fn create(mut config: WindowConfig) -> Window {
-    let id = Window::new();
-
-    if config.title.is_none() {
-        config.title = Some(format!("Window {}", id.0));
-    }
-
-    log::info!(
-        "Creating new window with ID {id} and title: {}",
-        config.title.as_ref().unwrap()
-    );
-
-    runtime::notify_event_loop(runtime::WinitEvent::NewWindowRequested(id, config));
-
-    id
-}
-
-/// Closes the window with the given ID, if it is not already closed
-pub fn destroy(window: Window) {
-    log::info!("Closing window with ID {window}");
-
-    runtime::notify_event_loop(runtime::WinitEvent::CloseWindow(window));
-}
-
-/// Updates the icon of the given window to the provided one
-pub fn set_icon(window: Window, icon: Icon) {
-    log::trace!("Updating icon for window {window}");
-
-    if let Some(native_icon) = icon.into_native_icon() {
-        runtime::notify_event_loop(runtime::WinitEvent::UpdateIcon(window, native_icon));
+        if let Some(native_icon) = icon.into_native_icon() {
+            runtime::notify_event_loop(runtime::WinitEvent::UpdateIcon(window, native_icon));
+        }
     }
 }

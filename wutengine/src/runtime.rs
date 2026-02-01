@@ -42,7 +42,7 @@ pub(crate) struct Runtime {
     entity_manager: EntityManager,
 }
 
-/// An error while starting the WutEngine runtime with [start]
+/// An error while starting the WutEngine runtime with [run]
 #[derive(Debug, Error, Display, From)]
 pub enum RuntimeStartErr {
     /// Another WutEngine runtime was already started in this process

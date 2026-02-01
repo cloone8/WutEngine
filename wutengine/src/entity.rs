@@ -106,56 +106,41 @@ impl nohash_hasher::IsEnabled for Entity {}
 
 /// Proxy APIs for usability purposes
 impl Entity {
-    /// See [spawn]
-    #[inline(always)]
+    /// Spawns a new entity in the game world
     pub fn spawn() -> Self {
-        spawn()
+        let id = crate::world::get_world().ecs.reserve_entity();
+
+        let new_entity = Entity(id);
+
+        log::debug!("Spawning new entity {new_entity}");
+
+        new_entity
     }
 
-    /// See [destroy]
-    #[inline(always)]
+    /// Destroys an entity and removes its components
     pub fn destroy(self) {
-        destroy(self)
+        let entity = self;
+        log::debug!("Destroying entity {entity}");
+
+        ENTITY_QUEUES
+            .destroy_entities_queue
+            .send(entity)
+            .expect("Runtime stopped");
     }
 
-    /// See [add_component]
-    #[inline(always)]
-    pub fn add_component(self, component: impl Component) {
-        add_component(self, component)
+    /// Adds a new component to the given entity.
+    /// The component is not actually inserted into the world immediately, and is instead processed
+    /// right before the next frame-phase callback.
+    pub fn add_component(self, component: impl Component) -> Self {
+        let mut builder = hecs::EntityBuilder::new();
+
+        builder.add(component);
+
+        ENTITY_QUEUES
+            .new_component_queue
+            .send((self, builder))
+            .expect("Runtime stopped");
+
+        self
     }
-}
-
-/// Spawns a new entity in the game world
-pub fn spawn() -> Entity {
-    let id = crate::world::get_world().ecs.reserve_entity();
-
-    let new_entity = Entity(id);
-
-    log::debug!("Spawning new entity {new_entity}");
-
-    new_entity
-}
-
-/// Destroys an entity and removes its components
-pub fn destroy(entity: Entity) {
-    log::debug!("Destroying entity {entity}");
-
-    ENTITY_QUEUES
-        .destroy_entities_queue
-        .send(entity)
-        .expect("Runtime stopped");
-}
-
-/// Adds a new component to the given entity.
-/// The component is not actually inserted into the world immediately, and is instead processed
-/// right before the next frame-phase callback.
-pub fn add_component(entity: Entity, component: impl Component) {
-    let mut builder = hecs::EntityBuilder::new();
-
-    builder.add(component);
-
-    ENTITY_QUEUES
-        .new_component_queue
-        .send((entity, builder))
-        .expect("Runtime stopped");
 }

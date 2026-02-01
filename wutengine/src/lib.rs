@@ -9,11 +9,18 @@ pub mod entity;
 pub mod graphics;
 pub mod profiling;
 pub mod runtime;
+pub mod system;
 pub(crate) mod util;
 pub mod window;
 pub mod world;
 
+#[doc(inline)]
+pub use hecs;
+
+#[doc(inline)]
 pub use log;
+
+#[doc(inline)]
 pub use wgpu;
 
 /// The ID of the main thread, used by [on_main_thread] and initialized right before the runtime

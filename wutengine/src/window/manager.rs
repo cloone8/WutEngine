@@ -3,6 +3,7 @@
 use std::sync::{Arc, RwLock};
 
 use nohash_hasher::IntMap;
+use smallvec::SmallVec;
 
 use crate::util::InitOnce;
 use crate::{assert_main_thread, graphics};
@@ -129,12 +130,14 @@ pub(crate) fn find_id(native_id: winit::window::WindowId) -> Option<Window> {
         .copied()
 }
 
+/// Locks the window manager and runs the provided callback. Used
+/// so the surfaces can be rendered to
 pub(crate) fn with_locked_surfaces(func: impl FnOnce(&[(Window, &wgpu::Surface<'static>)])) {
     profiling::function_scope!();
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
-    let surfaces: Vec<_> = window_manager
+    let surfaces: SmallVec<[_; 2]> = window_manager
         .windows
         .iter()
         .map(|(id, srfc)| (*id, &srfc.surface))

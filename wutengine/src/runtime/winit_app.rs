@@ -140,7 +140,6 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         let _ = (event_loop, device_id, event);
     }
 
-    // #[profiling::skip]
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         profiling::finish_frame!();
         profiling::scope!("about_to_wait");
