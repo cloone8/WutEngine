@@ -69,6 +69,7 @@ impl SystemManager {
         }
     }
 
+    /// Dumps the schedule of the system manager to a string
     pub(crate) fn dump(&self) -> String {
         let mut s = String::new();
 
@@ -85,6 +86,7 @@ impl SystemManager {
         s
     }
 
+    /// Runs all systems for a given phase, using the provided world
     pub(crate) fn run_systems_for_phase(&self, phase: Phase, world: &crate::world::World) {
         profiling::function_scope!(phase.str());
 
@@ -145,6 +147,9 @@ pub enum Phase {
 
     /// Called once each tick
     Update,
+
+    /// Called after all standard frame logic, right before rendering takes place
+    PreRender,
 }
 
 impl Phase {
@@ -153,6 +158,7 @@ impl Phase {
         match self {
             Self::FixedUpdate => "Fixed Update",
             Self::Update => "Update",
+            Self::PreRender => "Pre-render",
         }
     }
 }

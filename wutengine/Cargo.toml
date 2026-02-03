@@ -45,6 +45,7 @@ pollster.workspace = true
 image.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
+glam.workspace = true
 
 # Optional dependencies
 puffin_http = { workspace = true, optional = true } # Feature - profiling

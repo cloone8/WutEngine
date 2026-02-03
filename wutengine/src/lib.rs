@@ -4,9 +4,12 @@ use std::thread::ThreadId;
 
 use util::InitOnce;
 
+pub mod builtins;
+pub mod color;
 pub mod component;
 pub mod entity;
 pub mod graphics;
+pub mod math;
 pub mod profiling;
 pub mod runtime;
 pub mod system;

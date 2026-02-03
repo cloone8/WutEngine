@@ -23,26 +23,34 @@ impl SystemManifest {
         }
     }
 
+    /// Adds the default systems for the given component, using [crate::component::Component::insert_default_component_systems]
+    pub fn add_default_component_systems<C: crate::component::Component>(&mut self) {
+        C::insert_default_component_systems(self);
+    }
+
     /// Adds a system to the manifest
-    pub fn add_system<Q, F>(&mut self, phase: Phase, name: Option<&'static str>, sys: F) -> SystemId
+    pub fn add_system<Q>(
+        &mut self,
+        phase: Phase,
+        name: Option<&'static str>,
+        sys: impl for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
+    ) -> SystemId
     where
         Q: crate::hecs::Query + Queryable,
-        F: for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
     {
         self.add_system_with_dependency(phase, name, sys, &[])
     }
 
     /// Adds a system to the manifest that is dependent on one or more previously inserted systems
-    pub fn add_system_with_dependency<Q, F>(
+    pub fn add_system_with_dependency<Q>(
         &mut self,
         phase: Phase,
         name: Option<&'static str>,
-        sys: F,
+        sys: impl for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
         dependencies: &[SystemId],
     ) -> SystemId
     where
         Q: crate::hecs::Query + Queryable,
-        F: for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
     {
         let system_id = SystemId::next(phase);
 
@@ -95,7 +103,7 @@ impl Default for SystemManifest {
     fn default() -> Self {
         let mut manifest = Self::empty();
 
-        // TODO: Add engine default systems
+        manifest.add_default_component_systems::<crate::builtins::components::Camera>();
 
         manifest
     }
