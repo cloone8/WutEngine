@@ -2,13 +2,15 @@
 //! so that its execution can be driven by [winit]
 
 use std::sync::Arc;
+use std::time::Instant;
 
 use smallvec::SmallVec;
 use wgpu::wgt::{CommandEncoderDescriptor, TextureViewDescriptor};
 use wgpu::{Color, Operations, RenderPassColorAttachment, RenderPassDescriptor};
 
+use crate::system::Phase;
 use crate::window::{Window, WindowConfig};
-use crate::{entity, graphics, window, world};
+use crate::{entity, graphics, time, window, world};
 
 use super::Runtime;
 
@@ -44,6 +46,9 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             // We could not initialize the graphics context, so quit
             event_loop.exit();
         }
+
+        // Initialize the time manager later here, right before the runtime starts running frames
+        time::init();
 
         // Must be called last, so we know the engine setup is done
         if let Some(post_init_callback) = post_init.post_start_callback.take() {
@@ -146,7 +151,56 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
         let _ = event_loop;
 
+        self.run_frame_logic();
+
+        Self::render_all_windows();
+    }
+
+    fn suspended(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        let _ = event_loop;
+    }
+
+    fn exiting(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        profiling::scope!("Exiting");
+
+        _ = event_loop;
+
+        log::info!("Exiting WutEngine");
+
+        log::logger().flush();
+    }
+
+    fn memory_warning(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        let _ = event_loop;
+    }
+}
+
+impl Runtime {
+    fn run_frame_logic(&self) {
+        profiling::function_scope!();
+
+        let num_fixed_updates = time::update_frame(Instant::now());
+
+        for _ in 0..num_fixed_updates {
+            self.run_phase_systems(Phase::FixedUpdate);
+
+            time::update_fixed();
+        }
+
+        self.run_phase_systems(Phase::Update);
+    }
+
+    fn run_phase_systems(&self, phase: Phase) {
+        profiling::function_scope!(phase.str());
+
+        self.systems
+            .run_systems_for_phase(phase, &world::get_world());
+
         entity::process_changes(&mut world::get_world_mut(), &self.entity_manager);
+    }
+
+    fn render_all_windows() {
+        profiling::function_scope!();
 
         let mut buffers = SmallVec::<[_; 4]>::new_const();
         let mut textures = SmallVec::<[_; 4]>::new_const();
@@ -189,23 +243,5 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
                 surface.present();
             }
         });
-    }
-
-    fn suspended(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        let _ = event_loop;
-    }
-
-    fn exiting(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        profiling::scope!("Exiting");
-
-        _ = event_loop;
-
-        log::info!("Exiting WutEngine");
-
-        log::logger().flush();
-    }
-
-    fn memory_warning(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        let _ = event_loop;
     }
 }

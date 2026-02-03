@@ -6,11 +6,15 @@ use derive_more::{Display, Error, From};
 use winit::error::EventLoopError;
 
 use crate::entity::{self, EntityManager};
+use crate::system::{self, SystemManager};
 use crate::util::InitOnce;
 use crate::window::{self};
 use crate::world;
 
+mod system_builder;
 mod winit_app;
+
+pub use system_builder::*;
 
 pub(crate) use winit_app::WinitEvent;
 
@@ -40,6 +44,8 @@ pub(crate) struct Runtime {
 
     /// The entity manager. Spawns entities and components
     entity_manager: EntityManager,
+
+    systems: SystemManager,
 }
 
 /// An error while starting the WutEngine runtime with [run]
@@ -57,7 +63,10 @@ pub enum RuntimeStartErr {
 /// Starts and runs the WutEngine runtime. MUST be called from the main thread
 ///
 /// Can only be called once per process
-pub fn run(post_start: Option<Box<dyn FnOnce()>>) -> Result<(), RuntimeStartErr> {
+pub fn run(
+    systems: SystemManifest,
+    post_start: Option<Box<dyn FnOnce()>>,
+) -> Result<(), RuntimeStartErr> {
     static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
 
     if WUTENGINE_RUNNING.swap(true, Ordering::AcqRel) {
@@ -73,7 +82,12 @@ pub fn run(post_start: Option<Box<dyn FnOnce()>>) -> Result<(), RuntimeStartErr>
             post_start_callback: post_start,
         })),
         entity_manager: entity::initialize(),
+        systems: system::SystemManager::new(),
     };
+
+    runtime.systems.build_schedule(systems);
+
+    log::debug!("Final schedule:\n{}", runtime.systems.dump());
 
     window::manager::initialize();
     world::initialize();

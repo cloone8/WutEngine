@@ -45,6 +45,8 @@ pub(crate) fn initialize() -> EntityManager {
 
 /// Processes the entity changes queued in `manager`, into `world`
 pub(crate) fn process_changes(world: &mut World, manager: &EntityManager) {
+    profiling::function_scope!();
+
     log::trace!("Processing entity manager changes");
 
     // First we make sure all reserved entities are inserted
@@ -104,7 +106,6 @@ impl Hash for Entity {
 
 impl nohash_hasher::IsEnabled for Entity {}
 
-/// Proxy APIs for usability purposes
 impl Entity {
     /// Spawns a new entity in the game world
     pub fn spawn() -> Self {

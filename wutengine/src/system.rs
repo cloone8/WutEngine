@@ -1,145 +1,165 @@
 //! WutEngine ECS system registration and query helpers
 
 use core::any::TypeId;
+use core::fmt::Display;
+use core::sync::atomic::{AtomicU32, Ordering};
 use std::collections::HashSet;
 
-/// Helper trait that allows for better runtime scheduling of ECS systems
-pub trait Queryable {
-    /// Adds the borrows of this query to their corresponding maps
-    fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>);
-}
+mod queryable;
+mod scheduler;
 
-impl<T> Queryable for &T
-where
-    T: hecs::Component,
-{
+pub use queryable::*;
+
+use crate::world::World;
+
+/// The generic type used for a non-typed system callback.
+pub(crate) type GenericSystem = dyn Fn(&World) + Send + Sync + 'static;
+
+/// The ID of a system
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SystemId(u32, Phase);
+
+impl SystemId {
+    /// Returns a new SystemId, guaranteed to be higher than any previous ID
+    pub(crate) fn next(phase: Phase) -> Self {
+        static NEXT_SYSTEM_ID: AtomicU32 = AtomicU32::new(0);
+
+        // Must use AcqRel so we know that systems that were inserted later have a higher ID
+        SystemId(NEXT_SYSTEM_ID.fetch_add(1, Ordering::AcqRel), phase)
+    }
+
+    /// Returns the raw integer ID of this [SystemId]
     #[inline]
-    fn register_borrows(shared: &mut HashSet<TypeId>, _exclusive: &mut HashSet<TypeId>) {
-        shared.insert(TypeId::of::<T>());
+    pub(crate) const fn id(self) -> u32 {
+        self.0
+    }
+
+    /// Returns the phase to which this system belongs
+    #[inline]
+    pub const fn phase(self) -> Phase {
+        self.1
     }
 }
 
-impl<T> Queryable for &mut T
-where
-    T: hecs::Component,
-{
-    #[inline]
-    fn register_borrows(_shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
-        exclusive.insert(TypeId::of::<T>());
+impl PartialOrd for SystemId {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
-impl<T> Queryable for Option<T>
-where
-    T: Queryable,
-{
-    #[inline]
-    fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
-        T::register_borrows(shared, exclusive);
+impl Ord for SystemId {
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.cmp(&other.0)
     }
 }
 
-impl<L, R> Queryable for hecs::Or<L, R>
-where
-    L: Queryable,
-    R: Queryable,
-{
-    #[inline]
-    fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
-        L::register_borrows(shared, exclusive);
-        R::register_borrows(shared, exclusive);
-    }
+/// The system manager. Contains the full schedule of all systems, ordered by phase
+#[derive(Debug)]
+pub(crate) struct SystemManager {
+    by_phase: Vec<(Phase, Vec<SystemSet>)>,
 }
 
-impl<T> Queryable for hecs::Satisfies<T>
-where
-    T: Queryable,
-{
-    #[inline]
-    fn register_borrows(_shared: &mut HashSet<TypeId>, _exclusive: &mut HashSet<TypeId>) {}
-}
-
-impl<Q, R> Queryable for hecs::With<Q, R>
-where
-    Q: Queryable,
-    R: Queryable,
-{
-    #[inline]
-    fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
-        Q::register_borrows(shared, exclusive);
-    }
-}
-
-impl<Q, R> Queryable for hecs::Without<Q, R>
-where
-    Q: Queryable,
-    R: Queryable,
-{
-    #[inline]
-    fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
-        Q::register_borrows(shared, exclusive);
-    }
-}
-
-/// Generates tuple implementations for [Queryable]
-macro_rules! queryable_tuples {
-    ($t:ident) => {
-        impl<$t> Queryable for ($t,)
-        where
-            $t: Queryable,
-        {
-            #[inline]
-            fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
-                $t::register_borrows(shared, exclusive);
-            }
+impl SystemManager {
+    /// Creates a new [SystemManager] without any systems
+    pub(crate) fn new() -> Self {
+        Self {
+            by_phase: Vec::new(),
         }
-    };
+    }
 
-    ($t:ident, $($others:ident),*) => {
-        impl<$t, $($others),*> Queryable for ($t, $($others),*)
-        where
-            $t: Queryable,
-            $($others: Queryable),*
-        {
-            #[inline]
-            fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
-                $t::register_borrows(shared, exclusive);
-                $($others::register_borrows(shared, exclusive));*;
+    pub(crate) fn dump(&self) -> String {
+        let mut s = String::new();
+
+        for (phase, sets) in &self.by_phase {
+            s = format!("{s}Phase: {phase}\n");
+
+            for (stage, set) in sets.iter().enumerate() {
+                let set_fmt = set.system_names.join(", ");
+
+                s = format!("{s}\tStage {stage}: {set_fmt}\n");
             }
         }
 
-        queryable_tuples!($($others),*);
-    };
+        s
+    }
+
+    pub(crate) fn run_systems_for_phase(&self, phase: Phase, world: &crate::world::World) {
+        profiling::function_scope!(phase.str());
+
+        log::trace!("Running systems for phase {phase}");
+
+        let Some(sets) = self.find_sets_for_phase(phase) else {
+            return;
+        };
+
+        for set in sets {
+            //TODO: Parallelize
+            for sys in &set.systems {
+                sys(world);
+            }
+        }
+    }
+
+    fn find_sets_for_phase(&self, phase: Phase) -> Option<&[SystemSet]> {
+        for (set_phase, set) in self.by_phase.iter() {
+            if *set_phase == phase {
+                return Some(set.as_slice());
+            }
+        }
+
+        None
+    }
 }
 
-queryable_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+#[derive(derive_more::Debug)]
+struct SystemSet {
+    system_names: Vec<&'static str>,
+    system_ids: Vec<SystemId>,
+    shared_borrows: HashSet<TypeId>,
+    exclusive_borrows: HashSet<TypeId>,
+
+    #[debug("{} systems", systems.len())]
+    systems: Vec<Box<GenericSystem>>,
+}
+
+impl SystemSet {
+    fn new() -> Self {
+        Self {
+            system_names: Vec::new(),
+            system_ids: Vec::new(),
+            shared_borrows: HashSet::new(),
+            exclusive_borrows: HashSet::new(),
+            systems: Vec::new(),
+        }
+    }
+}
 
 /// Where, in the process of running a single tick, the system is called
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Phase {
-    /// Called once each tick
-    Update,
-
     /// Called once each fixed update. Depends on the configured fixed update time.
     /// Might be any number (or zero) times per frame
     FixedUpdate,
+
+    /// Called once each tick
+    Update,
 }
 
-pub fn register_system<Q, F>(phase: Phase, sys: F)
-where
-    Q: crate::hecs::Query + Queryable,
-    F: for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
-{
-    let mut borrows_read = HashSet::new();
-    let mut borrows_write = HashSet::new();
+impl Phase {
+    /// Returns the phase name as a static [str]
+    pub(crate) const fn str(self) -> &'static str {
+        match self {
+            Self::FixedUpdate => "Fixed Update",
+            Self::Update => "Update",
+        }
+    }
+}
 
-    Q::register_borrows(&mut borrows_read, &mut borrows_write);
-
-    // let world = hecs::World::new();
-
-    // let mut borrow = world.query::<(hecs::Entity, Q)>();
-
-    // for item in borrow.iter() {
-    //     sys(crate::entity::Entity(item.0), item.1)
-    // }
+impl Display for Phase {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.str().fmt(f)
+    }
 }

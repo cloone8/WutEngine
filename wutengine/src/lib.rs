@@ -10,6 +10,7 @@ pub mod graphics;
 pub mod profiling;
 pub mod runtime;
 pub mod system;
+pub mod time;
 pub(crate) mod util;
 pub mod window;
 pub mod world;
