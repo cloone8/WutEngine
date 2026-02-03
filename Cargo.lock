@@ -811,6 +811,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.30.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19fc433e8437a212d1b6f1e68c7824af3aed907da60afa994e7f542d18d12aa9"
+
+[[package]]
 name = "gpu-allocator"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3099,6 +3105,7 @@ name = "wutengine"
 version = "0.6.0"
 dependencies = [
  "derive_more",
+ "glam",
  "hecs",
  "image",
  "log",
