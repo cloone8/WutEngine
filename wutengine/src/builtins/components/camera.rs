@@ -2,16 +2,31 @@ use core::fmt::Display;
 
 use crate::color::Color;
 use crate::component::Component;
-use crate::entity::Entity;
+use crate::graphics;
 use crate::system::Phase;
+use crate::window::Window;
 
 /// A camera component. Renders a viewport
 #[derive(Debug)]
 pub struct Camera {
+    // == Configuration ==
+    /// The render target for this camera
+    target: Option<CameraTarget>,
+
+    /// The projection this camera uses
     projection: CameraProjection,
+
+    /// The background of this camera's viewport
     background: CameraBackground,
+
+    /// The viewport dimensions
     viewport: CameraViewport,
+
+    /// The near/far clipping planes
     clipping_planes: (f32, f32),
+
+    // == Runtime ==
+    render_target: Option<wgpu::Texture>,
 }
 
 impl Default for Camera {
@@ -25,17 +40,84 @@ impl Camera {
     /// Creates a new default camera component
     pub fn new() -> Self {
         Self {
+            target: None,
             projection: CameraProjection::Perspective(FieldOfView::Vertical(70.0)),
             background: CameraBackground::Color(Color::BLACK),
             viewport: CameraViewport::FULL_WINDOW,
             clipping_planes: (0.1, 100.0),
+            render_target: None,
         }
+    }
+
+    /// Updates the target surface of this camera
+    #[inline]
+    pub fn set_target(&mut self, target: Option<CameraTarget>) {
+        self.target = target;
     }
 }
 
 /// System implementations
 impl Camera {
-    fn on_pre_render(&self, entity: Entity) {}
+    fn update_render_target(&mut self) {
+        let Some(camera_target) = self.target else {
+            // If the camera has no target configured, free the render target
+            if let Some(render_target) = self.render_target.take() {
+                render_target.destroy();
+            }
+            return;
+        };
+
+        let target_size = self.viewport.scale_size(camera_target.size());
+
+        if target_size.0 == 0 || target_size.1 == 0 {
+            // Target has no size. Usually due to the fact that the window is not yet created,
+            // or already destroyed.
+            log::debug!(
+                "Camera not recreating render target because the camera target size cannot be determined"
+            );
+            return;
+        }
+
+        let needs_recreation = match &self.render_target {
+            Some(rt) => {
+                let cur_size = rt.size();
+
+                let recreate = target_size != (cur_size.width, cur_size.height);
+
+                if recreate {
+                    rt.destroy();
+                }
+
+                recreate
+            }
+            None => true,
+        };
+
+        if needs_recreation {
+            log::debug!(
+                "Recreating render target texture of size {}x{} for camera",
+                target_size.0,
+                target_size.1
+            );
+        }
+
+        let render_target_texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
+            label: Some("Camera render target texture"),
+            size: wgpu::Extent3d {
+                width: target_size.0,
+                height: target_size.1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+
+        self.render_target = Some(render_target_texture);
+    }
 }
 
 impl Component for Camera {
@@ -43,11 +125,26 @@ impl Component for Camera {
     where
         Self: Sized,
     {
-        manifest.add_system::<&Camera>(
+        manifest.add_system::<&mut Camera>(
             Phase::PreRender,
-            Some("Camera pre-render"),
-            |entity, camera| camera.on_pre_render(entity),
+            Some("Camera update render target"),
+            |_, camera| camera.update_render_target(),
         );
+    }
+}
+
+/// The target surface on which a [Camera] will render its viewport
+#[derive(Debug, Clone, Copy)]
+pub enum CameraTarget {
+    /// This camera renders to the given [Window]
+    Window(Window),
+}
+
+impl CameraTarget {
+    fn size(&self) -> (u32, u32) {
+        match self {
+            Self::Window(window) => window.get_size(),
+        }
     }
 }
 
@@ -147,6 +244,15 @@ impl CameraViewport {
             && self.w <= 1.0
             && self.h > 0.0
             && self.h <= 1.0
+    }
+
+    /// Given a full window size, returns the size that this viewport would take,
+    /// not accounting for any viewport areas that are cut off due to viewport positioning
+    pub const fn scale_size(self, full_size: (u32, u32)) -> (u32, u32) {
+        (
+            (self.w * (full_size.0 as f32)) as u32,
+            (self.h * (full_size.1 as f32)) as u32,
+        )
     }
 }
 

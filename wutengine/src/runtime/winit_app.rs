@@ -188,6 +188,8 @@ impl Runtime {
         }
 
         self.run_phase_systems(Phase::Update);
+
+        self.run_phase_systems(Phase::PreRender);
     }
 
     fn run_phase_systems(&self, phase: Phase) {

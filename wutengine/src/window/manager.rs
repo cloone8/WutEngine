@@ -38,6 +38,9 @@ pub(crate) fn new_window(
     window_manager.windows.insert(id, info);
 }
 
+/// Returns the size of the given window in pixels.
+///
+/// If the window does not exists, returns [None]
 pub(crate) fn get_size(id: Window) -> Option<(u32, u32)> {
     profiling::function_scope!();
 

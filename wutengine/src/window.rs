@@ -176,4 +176,11 @@ impl Window {
             runtime::notify_event_loop(runtime::WinitEvent::UpdateIcon(window, native_icon));
         }
     }
+
+    /// Returns the size of this window in pixels.
+    /// If the window is not yet created or is already destroyed, returns (0,0)
+    #[inline]
+    pub fn get_size(self) -> (u32, u32) {
+        crate::window::manager::get_size(self).unwrap_or((0, 0))
+    }
 }
