@@ -31,11 +31,16 @@ derive_more = { workspace = true, features = [
 hecs.workspace = true
 winit.workspace = true
 wgpu = { workspace = true, features = [
-    "wgsl",
+    # Shader languages
+    "naga-ir",
+
+    # Backends
     "dx12",
     "vulkan",
     "metal",
     "webgpu",
+
+    # Other features
     "std",
     "web",
     "parking_lot",

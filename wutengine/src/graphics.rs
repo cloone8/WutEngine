@@ -1,6 +1,14 @@
 //! WutEngine graphics layer
 
+mod init;
+pub mod shaders;
+
+use std::sync::mpsc::Sender;
+
+use crate::builtins::components::CameraId;
 use crate::util::InitOnce;
+
+pub(crate) use init::{initialize_command_queue, initialize_graphics_context};
 
 /// The global [wgpu::Adapter]
 static GFX_ADAPTER: InitOnce<wgpu::Adapter> = InitOnce::new();
@@ -13,6 +21,9 @@ static GFX_DEVICE: InitOnce<wgpu::Device> = InitOnce::new();
 
 /// The global [wgpu::Queue]
 static GFX_QUEUE: InitOnce<wgpu::Queue> = InitOnce::new();
+
+/// The global draw command queue
+static DRAW_COMMAND_QUEUE: InitOnce<Sender<DrawCommand>> = InitOnce::new();
 
 /// Returns the global graphics adapter
 #[inline(always)]
@@ -38,114 +49,15 @@ pub(crate) fn queue() -> &'static wgpu::Queue {
     &GFX_QUEUE
 }
 
-/// Initializes the global graphics context for WutEngine. Acquires a graphics
-/// device and configures it.
-pub(crate) fn initialize_graphics_context() -> bool {
-    log::debug!("Initializing graphics context");
-
-    log::trace!(
-        "Available graphics backends in build: {}",
-        backends_to_str(wgpu::Backends::all())
-    );
-
-    let wanted_backends = default_backends();
-
-    log::debug!("Using backends: {}", backends_to_str(wanted_backends));
-
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-        backends: wanted_backends,
-        flags: default_instance_flags(),
-        memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
-        backend_options: default_backend_options(),
-    });
-
-    let adapter = match pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-        power_preference: wgpu::PowerPreference::HighPerformance,
-        force_fallback_adapter: false,
-        compatible_surface: None,
-    })) {
-        Ok(a) => a,
-        Err(e) => {
-            log::error!("Failed to find a graphics adapter: {e}");
-            return false;
-        }
-    };
-
-    let adapter_info = adapter.get_info();
-
-    log::info!(
-        "Using graphics device '{}' with backend '{}' and driver '{} {}'",
-        adapter_info.name,
-        adapter_info.backend,
-        adapter_info.driver,
-        adapter_info.driver_info
-    );
-
-    let (device, queue) =
-        match pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("WutEngine Main GPU"),
-            ..Default::default()
-        })) {
-            Ok(dq) => dq,
-            Err(e) => {
-                log::error!("Failed to get a device from the graphics adapter: {e}");
-                return false;
-            }
-        };
-
-    InitOnce::init(&GFX_ADAPTER, adapter);
-    InitOnce::init(&GFX_INSTANCE, instance);
-    InitOnce::init(&GFX_DEVICE, device);
-    InitOnce::init(&GFX_QUEUE, queue);
-
-    true
+/// Submits a raw draw command to the command queue
+#[inline(always)]
+pub fn submit_raw_draw_command(command: DrawCommand) {
+    DRAW_COMMAND_QUEUE.send(command).expect("Runtime stopped")
 }
 
-fn backends_to_str(backends: wgpu::Backends) -> String {
-    backends
-        .iter_names()
-        .map(|be| be.0)
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn default_backend_options() -> wgpu::BackendOptions {
-    wgpu::BackendOptions {
-        gl: wgpu::GlBackendOptions::default(),
-        dx12: wgpu::Dx12BackendOptions {
-            shader_compiler: wgpu::Dx12Compiler::Fxc,
-            presentation_system: wgpu::Dx12SwapchainKind::DxgiFromHwnd,
-            latency_waitable_object: wgpu::Dx12UseFrameLatencyWaitableObject::Wait,
-        },
-        noop: wgpu::NoopBackendOptions { enable: false },
-    }
-}
-
-fn default_instance_flags() -> wgpu::InstanceFlags {
-    if cfg!(debug_assertions) {
-        wgpu::InstanceFlags::advanced_debugging()
-    } else {
-        wgpu::InstanceFlags::VALIDATION_INDIRECT_CALL
-    }
-}
-
-fn default_backends() -> wgpu::Backends {
-    if cfg!(target_arch = "wasm32") {
-        wgpu::Backends::BROWSER_WEBGPU
-    } else if cfg!(windows) {
-        wgpu::Backends::VULKAN.union(wgpu::Backends::DX12)
-    } else if cfg!(any(target_os = "macos", target_os = "ios")) {
-        wgpu::Backends::METAL
-    } else if cfg!(any(
-        target_os = "linux",
-        target_os = "android",
-        target_os = "freebsd"
-    )) {
-        wgpu::Backends::VULKAN
-    } else {
-        log::warn!(
-            "Could not determine appropriate backends for current platform. Using first available"
-        );
-        wgpu::Backends::all()
-    }
+/// A single draw command submitted to the WutEngine graphics backend.
+#[derive(Debug, Clone)]
+pub struct DrawCommand {
+    /// The camera this draw call applies to. If [None], renders on all cameras
+    pub camera: Option<CameraId>,
 }

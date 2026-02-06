@@ -1,10 +1,19 @@
 use core::fmt::Display;
 
+use image::GenericImageView;
+use wutengine_util_macro::unique_id_type32;
+
 use crate::color::Color;
 use crate::component::Component;
-use crate::graphics;
+use crate::graphics::shaders::CompiledShader;
 use crate::system::Phase;
 use crate::window::Window;
+use crate::{builtins, graphics};
+
+unique_id_type32! {
+    /// The ID of a [Camera]. Used for filtering in draw calls
+    pub CameraId
+}
 
 /// A camera component. Renders a viewport
 #[derive(Debug)]
@@ -26,7 +35,14 @@ pub struct Camera {
     clipping_planes: (f32, f32),
 
     // == Runtime ==
+    /// The ID of the camera. Used for filtering in draw calls
+    id: CameraId,
+
     render_target: Option<wgpu::Texture>,
+
+    blit_shader: Option<CompiledShader>,
+
+    fun_texture: Option<wgpu::Texture>,
 }
 
 impl Default for Camera {
@@ -46,13 +62,39 @@ impl Camera {
             viewport: CameraViewport::FULL_WINDOW,
             clipping_planes: (0.1, 100.0),
             render_target: None,
+            id: CameraId::new(),
+            blit_shader: None,
+            fun_texture: None,
         }
+    }
+
+    /// Returns the ID of this camera
+    #[inline]
+    pub const fn get_id(&self) -> CameraId {
+        self.id
     }
 
     /// Updates the target surface of this camera
     #[inline]
     pub fn set_target(&mut self, target: Option<CameraTarget>) {
         self.target = target;
+    }
+
+    /// Sets the background of this camera
+    #[inline]
+    pub fn set_background(&mut self, background: CameraBackground) {
+        self.background = background;
+    }
+
+    /// Sets the background of this camera
+    #[inline]
+    pub fn set_viewport(&mut self, viewport: CameraViewport) {
+        if !viewport.is_valid() {
+            log::error!("Given viewport is invalid and will not be set: {viewport}");
+            return;
+        }
+
+        self.viewport = viewport;
     }
 }
 
@@ -117,6 +159,251 @@ impl Camera {
         });
 
         self.render_target = Some(render_target_texture);
+    }
+}
+
+/// Internal functionality for rendering
+impl Camera {
+    pub(crate) fn begin_pass<'a>(
+        &self,
+        encoder: &'a mut wgpu::CommandEncoder,
+    ) -> Option<wgpu::RenderPass<'a>> {
+        let Some(render_target) = &self.render_target else {
+            // No render target means no rendering
+            return None;
+        };
+
+        let render_target_view = render_target.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Camera main render pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &render_target_view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: self.background.to_wgpu_load_op(),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+
+        Some(pass)
+    }
+
+    pub(crate) fn blit_to_target(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        windows: &[(Window, wgpu::SurfaceTexture)],
+    ) {
+        profiling::function_scope!();
+
+        let Some(target) = self.target else {
+            // No target means nowhere to blit to
+            return;
+        };
+
+        let blit_target_texture = match target {
+            CameraTarget::Window(window) => {
+                let Some((_, surface)) = windows.iter().find(|(win, _)| *win == window) else {
+                    // Target window is not within the given surfaces, so we can't blit to it.
+                    log::debug!(
+                        "Target window {window} did not have an entry in the windows map. Not blitting"
+                    );
+                    return;
+                };
+
+                surface.texture.clone()
+            }
+        };
+
+        let blit_target_view =
+            blit_target_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Camera Blit Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &blit_target_view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+
+        let bind_group_layout =
+            graphics::device().create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Texture sampler group layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                ],
+            });
+
+        let pipeline_layout =
+            graphics::device().create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Camera Blit Pipeline Layout"),
+                bind_group_layouts: &[&bind_group_layout],
+                immediate_size: 0,
+            });
+
+        if self.blit_shader.is_none() {
+            self.blit_shader = Some(builtins::shaders::BLIT.compile());
+        }
+
+        let texture = self.get_fun_texture();
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = graphics::device().create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let texture_bind_group = graphics::device().create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Fun texture bind group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+            ],
+        });
+
+        let module = self.blit_shader.as_mut().unwrap();
+        module.ensure_compiled();
+        let module = module.get_module();
+
+        let pipeline = graphics::device().create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Camera Blit Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module,
+                entry_point: None,
+                compilation_options: Default::default(),
+                buffers: &[],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module,
+                entry_point: None,
+                compilation_options: Default::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: blit_target_texture.format(),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview_mask: None,
+            cache: None,
+        });
+
+        render_pass.set_pipeline(&pipeline);
+        render_pass.set_bind_group(0, &texture_bind_group, &[]);
+
+        let actual_target_size = blit_target_texture.size();
+        render_pass.set_viewport(
+            self.viewport.x * (actual_target_size.width as f32),
+            self.viewport.y * (actual_target_size.height as f32),
+            self.viewport.w * (actual_target_size.width as f32),
+            self.viewport.h * (actual_target_size.height as f32),
+            0.0,
+            1.0,
+        );
+
+        render_pass.draw(0..3, 0..1);
+    }
+
+    fn get_fun_texture(&mut self) -> &wgpu::Texture {
+        if self.fun_texture.is_none() {
+            static RAW_TEXTURE: &[u8] = include_bytes!("../../../../../assets/Icon.png");
+            let img = image::load_from_memory(RAW_TEXTURE).unwrap();
+            let rgba = img.to_rgba8();
+
+            let dimensions = img.dimensions();
+
+            let size = wgpu::Extent3d {
+                width: dimensions.0,
+                height: dimensions.1,
+                depth_or_array_layers: 1,
+            };
+            let texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
+                label: Some("Fun texture"),
+                size,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats: &[],
+            });
+
+            graphics::queue().write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    aspect: wgpu::TextureAspect::All,
+                    texture: &texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                },
+                &rgba,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4 * dimensions.0),
+                    rows_per_image: Some(dimensions.1),
+                },
+                size,
+            );
+
+            self.fun_texture = Some(texture);
+        }
+
+        self.fun_texture.as_ref().unwrap()
     }
 }
 
@@ -207,6 +494,15 @@ pub enum CameraBackground {
 
     /// A specific background color
     Color(Color),
+}
+
+impl CameraBackground {
+    fn to_wgpu_load_op(self) -> wgpu::LoadOp<wgpu::Color> {
+        match self {
+            Self::None => wgpu::LoadOp::Load,
+            Self::Color(color) => wgpu::LoadOp::Clear(color.into()),
+        }
+    }
 }
 
 /// The configuration for the viewport of a [Camera]

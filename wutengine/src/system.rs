@@ -139,7 +139,7 @@ impl SystemSet {
 }
 
 /// Where, in the process of running a single tick, the system is called
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Phase {
     /// Called once each fixed update. Depends on the configured fixed update time.
     /// Might be any number (or zero) times per frame
