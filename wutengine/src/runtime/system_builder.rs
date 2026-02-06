@@ -81,6 +81,7 @@ impl SystemManifest {
             let mut query_borrowed = world.ecs.query::<(hecs::Entity, Q)>();
 
             for (entity, query_return) in query_borrowed.iter() {
+                profiling::scope!("System invocation");
                 sys(crate::entity::Entity(entity), query_return);
             }
         });

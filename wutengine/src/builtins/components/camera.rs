@@ -135,13 +135,15 @@ impl Camera {
             None => true,
         };
 
-        if needs_recreation {
-            log::debug!(
-                "Recreating render target texture of size {}x{} for camera",
-                target_size.0,
-                target_size.1
-            );
+        if !needs_recreation {
+            return;
         }
+
+        log::debug!(
+            "Recreating render target texture of size {}x{} for camera",
+            target_size.0,
+            target_size.1
+        );
 
         let render_target_texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
             label: Some("Camera render target texture"),
@@ -204,6 +206,11 @@ impl Camera {
 
         let Some(target) = self.target else {
             // No target means nowhere to blit to
+            return;
+        };
+
+        let Some(rendered_image) = &self.render_target else {
+            // No intermediate image we rendered to
             return;
         };
 
@@ -275,13 +282,14 @@ impl Camera {
             self.blit_shader = Some(builtins::shaders::BLIT.compile());
         }
 
-        let texture = self.get_fun_texture();
+        // let texture = self.get_fun_texture();
+        let texture = rendered_image;
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = graphics::device().create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
+            mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::MipmapFilterMode::Nearest,
             ..Default::default()
