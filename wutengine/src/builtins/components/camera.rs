@@ -6,7 +6,7 @@ use wutengine_util_macro::unique_id_type32;
 
 use crate::color::Color;
 use crate::component::Component;
-use crate::graphics::shaders::CompiledShader;
+use crate::graphics::shader::CompiledShader;
 use crate::system::Phase;
 use crate::window::Window;
 use crate::{builtins, graphics, map};

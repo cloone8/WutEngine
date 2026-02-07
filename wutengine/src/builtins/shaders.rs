@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, LazyLock};
 
-use crate::graphics::shaders::{Shader, ShaderId, ShaderParameter, ShaderParameterType};
+use crate::graphics::shader::{Shader, ShaderId, ShaderParameter, ShaderParameterType};
 use crate::map;
 
 /// Fullscreen blit shader

@@ -3,7 +3,7 @@
 pub(crate) mod cache;
 mod init;
 pub mod material;
-pub mod shaders;
+pub mod shader;
 pub mod texture;
 
 use std::sync::mpsc::Sender;

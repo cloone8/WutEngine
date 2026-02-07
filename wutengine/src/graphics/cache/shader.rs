@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, RwLock};
 
-use crate::graphics::shaders::CompiledShader;
+use crate::graphics::shader::CompiledShader;
 
 static SHADER_COMPILATION_CACHE: LazyLock<ShaderCompilationCache> = LazyLock::new(Default::default);
 

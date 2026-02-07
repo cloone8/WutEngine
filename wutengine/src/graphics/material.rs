@@ -8,7 +8,7 @@ use wutengine_util_macro::unique_id_type64;
 
 use crate::map;
 
-use super::shaders::{CompiledShader, Shader};
+use super::shader::{CompiledShader, Shader};
 
 unique_id_type64! {
     /// The unique identifier for a [NativeMaterial]
