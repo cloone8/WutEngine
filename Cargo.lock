@@ -3136,6 +3136,9 @@ version = "0.6.0"
 dependencies = [
  "derive_more",
  "naga",
+ "nohash-hasher",
+ "profiling",
+ "smallvec",
 ]
 
 [[package]]

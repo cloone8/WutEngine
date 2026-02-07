@@ -10,9 +10,15 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+profiling = []
+
 [dependencies]
 naga = { workspace = true, features = ["wgsl-in"] }
 derive_more = { workspace = true, features = ["error", "display", "from"] }
+smallvec.workspace = true
+nohash-hasher.workspace = true
+profiling.workspace = true
 
 [lints]
 workspace = true

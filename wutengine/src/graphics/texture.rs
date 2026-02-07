@@ -1,0 +1,110 @@
+//! Texture functionality
+
+/// The configuration for creating a new texture
+#[derive(Debug, Clone)]
+pub struct TextureConfig {
+    /// The width of the texture in pixels. Must be at least 1
+    pub width: u32,
+
+    /// The height of the texture in pixels. Must be at least 1
+    pub height: u32,
+
+    /// The texture format
+    pub format: TextureFormat,
+}
+
+/// The handle to a native [wgpu::Texture]
+#[derive(Debug)]
+pub(crate) struct NativeTexture(wgpu::Texture);
+
+impl NativeTexture {
+    /// Creates a new texture with the given format, without initial content
+    pub(crate) fn new(config: &TextureConfig) -> Self {
+        assert!(config.width >= 1, "Width must be at least 1");
+        assert!(config.height >= 1, "Height must be at least 1");
+
+        let format_wgpu: wgpu::TextureFormat = config.format.into();
+
+        Self(super::device().create_texture(&wgpu::TextureDescriptor {
+            label: None,
+            size: wgpu::Extent3d {
+                width: config.width,
+                height: config.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: format_wgpu,
+            usage: wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[
+                format_wgpu.add_srgb_suffix(),
+                format_wgpu.remove_srgb_suffix(),
+            ],
+        }))
+    }
+
+    /// Updates the data in this texture to the provided bytes. The bytes must
+    /// be in the format required by the texture format given during texture creation
+    pub(crate) fn set_data(&self, data: &[u8]) {
+        //TODO: Check somehow if data is the correct length
+        let size = self.0.size();
+        let format = self.0.format();
+        let queue = super::queue();
+
+        let bytes_per_pixel = format
+            .target_pixel_byte_cost()
+            .expect("Compressed texture formats not yet supported");
+
+        queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                aspect: wgpu::TextureAspect::All,
+                texture: &self.0,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+            },
+            data,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(bytes_per_pixel * size.width),
+                rows_per_image: None,
+            },
+            size,
+        );
+
+        // self.0.native
+    }
+}
+/// The format of a [Texture]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TextureFormat {
+    /// RGBA with 8-bits per component
+    Rgba8,
+
+    /// RGBA with 8-bits per component, with sRGB
+    Rgba8Srgb,
+
+    /// RGBA with 32-bit per color float components
+    Rgba32,
+}
+
+impl TextureFormat {
+    /// Returns whether this format is an sRGB format
+    #[inline]
+    pub fn is_srgb(self) -> bool {
+        self == TextureFormat::Rgba8Srgb
+    }
+}
+
+impl From<TextureFormat> for wgpu::TextureFormat {
+    #[inline]
+    fn from(value: TextureFormat) -> Self {
+        match value {
+            TextureFormat::Rgba8 => wgpu::TextureFormat::Rgba8Unorm,
+            TextureFormat::Rgba8Srgb => wgpu::TextureFormat::Rgba8UnormSrgb,
+            TextureFormat::Rgba32 => wgpu::TextureFormat::Rgba32Float,
+        }
+    }
+}

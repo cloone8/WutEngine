@@ -227,7 +227,10 @@ impl WindowInfo {
                 present_mode: wgpu::PresentMode::AutoVsync,
                 desired_maximum_frame_latency: 2,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
-                view_formats: vec![surface_format.add_srgb_suffix()],
+                view_formats: vec![
+                    surface_format.remove_srgb_suffix(),
+                    surface_format.add_srgb_suffix(),
+                ],
             },
         );
     }

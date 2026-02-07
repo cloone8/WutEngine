@@ -13,7 +13,11 @@ rust-version.workspace = true
 readme = "../README.md"
 
 [features]
-profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
+profiling = [
+    "dep:puffin_http",
+    "profiling/profile-with-puffin",
+    "wutengine_shadercompiler/profiling",
+]
 
 [lints]
 workspace = true
