@@ -1,0 +1,18 @@
+[package]
+name = "wutengine_shadercompiler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+naga = { workspace = true, features = ["wgsl-in"] }
+derive_more = { workspace = true, features = ["error", "display", "from"] }
+
+[lints]
+workspace = true

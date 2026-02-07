@@ -2371,6 +2371,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
 
 [[package]]
+name = "twox-hash"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ea3136b675547379c4bd395ca6b938e5ad3c3d20fad76e7fe85f9e0d011419c"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3114,9 +3123,19 @@ dependencies = [
  "profiling",
  "puffin_http",
  "smallvec",
+ "twox-hash",
  "wgpu",
  "winit",
+ "wutengine_shadercompiler",
  "wutengine_util_macro",
+]
+
+[[package]]
+name = "wutengine_shadercompiler"
+version = "0.6.0"
+dependencies = [
+ "derive_more",
+ "naga",
 ]
 
 [[package]]

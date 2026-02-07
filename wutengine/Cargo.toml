@@ -20,6 +20,7 @@ workspace = true
 
 [dependencies]
 wutengine_util_macro.workspace = true
+wutengine_shadercompiler.workspace = true
 
 log.workspace = true
 derive_more = { workspace = true, features = [
@@ -51,6 +52,7 @@ image.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
 glam.workspace = true
+twox-hash.workspace = true
 
 # Optional dependencies
 puffin_http = { workspace = true, optional = true } # Feature - profiling

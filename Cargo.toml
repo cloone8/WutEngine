@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["wutengine", "wutengine_util_macro"]
+members = ["wutengine", "wutengine_shadercompiler", "wutengine_util_macro"]
 
 [workspace.package]
 version = "0.6.0"
@@ -17,12 +17,14 @@ categories = ["game-engines"]
 ### Workspace dependencies ###
 wutengine = { path = "wutengine", version = "0.6.0" }
 wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
+wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
 wgpu = { version = "28", default-features = false, features = [
     "fragile-send-sync-non-atomic-wasm",
 ] }
+naga = { version = "28", default-features = false }
 hecs = { version = "0.11" }
 
 rayon = { version = "1.11" }
@@ -40,6 +42,7 @@ glam = { version = "0.30", features = ["std", "debug-glam-assert"] }
 
 derive_more = { version = "2" }
 nohash-hasher = { version = "0.2" }
+twox-hash = { version = "2" }
 
 quote = { version = "1" }
 syn = { version = "2", features = ["full"] }

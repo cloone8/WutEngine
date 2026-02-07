@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, channel};
 
 use crate::util::InitOnce;
@@ -69,12 +70,30 @@ pub(crate) fn initialize_graphics_context() -> bool {
             }
         };
 
+    device.set_device_lost_callback(on_device_lost);
+    device.on_uncaptured_error(Arc::new(on_uncaptured_error));
+
     InitOnce::init(&super::GFX_ADAPTER, adapter);
     InitOnce::init(&super::GFX_INSTANCE, instance);
     InitOnce::init(&super::GFX_DEVICE, device);
     InitOnce::init(&super::GFX_QUEUE, queue);
 
     true
+}
+
+fn on_device_lost(reason: wgpu::DeviceLostReason, message: String) {
+    let reason_str = match reason {
+        wgpu::DeviceLostReason::Unknown => "<unknown>",
+        wgpu::DeviceLostReason::Destroyed => "<device destroyed>",
+    };
+
+    //TODO: Make nicer?
+    panic!("DEVICE LOST DUE TO {reason_str}: {message}");
+}
+
+fn on_uncaptured_error(error: wgpu::Error) {
+    //TODO: Make nicer?
+    panic!("{}", error);
 }
 
 fn backends_to_str(backends: wgpu::Backends) -> String {

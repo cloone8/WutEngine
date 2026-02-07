@@ -1,5 +1,6 @@
 //! WutEngine graphics layer
 
+pub(crate) mod cache;
 mod init;
 pub mod shaders;
 

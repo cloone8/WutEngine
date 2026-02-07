@@ -1,4 +1,5 @@
 use core::fmt::Display;
+use std::sync::Arc;
 
 use image::GenericImageView;
 use wutengine_util_macro::unique_id_type32;
@@ -8,7 +9,7 @@ use crate::component::Component;
 use crate::graphics::shaders::CompiledShader;
 use crate::system::Phase;
 use crate::window::Window;
-use crate::{builtins, graphics};
+use crate::{builtins, graphics, map};
 
 unique_id_type32! {
     /// The ID of a [Camera]. Used for filtering in draw calls
@@ -40,9 +41,7 @@ pub struct Camera {
 
     render_target: Option<wgpu::Texture>,
 
-    blit_shader: Option<CompiledShader>,
-
-    fun_texture: Option<wgpu::Texture>,
+    blit_pipeline: Option<Arc<wgpu::RenderPipeline>>,
 }
 
 impl Default for Camera {
@@ -63,8 +62,7 @@ impl Camera {
             clipping_planes: (0.1, 100.0),
             render_target: None,
             id: CameraId::new(),
-            blit_shader: None,
-            fun_texture: None,
+            blit_pipeline: None,
         }
     }
 
@@ -228,8 +226,12 @@ impl Camera {
             }
         };
 
-        let blit_target_view =
-            blit_target_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view_format = blit_target_texture.format().add_srgb_suffix();
+
+        let blit_target_view = blit_target_texture.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(view_format),
+            ..Default::default()
+        });
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Camera Blit Pass"),
@@ -271,17 +273,6 @@ impl Camera {
                 ],
             });
 
-        let pipeline_layout =
-            graphics::device().create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Camera Blit Pipeline Layout"),
-                bind_group_layouts: &[&bind_group_layout],
-                immediate_size: 0,
-            });
-
-        if self.blit_shader.is_none() {
-            self.blit_shader = Some(builtins::shaders::BLIT.compile());
-        }
-
         // let texture = self.get_fun_texture();
         let texture = rendered_image;
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -310,9 +301,51 @@ impl Camera {
             ],
         });
 
-        let module = self.blit_shader.as_mut().unwrap();
-        module.ensure_compiled();
-        let module = module.get_module();
+        render_pass.set_pipeline(self.get_blit_pipeline(&bind_group_layout, view_format));
+        render_pass.set_bind_group(0, &texture_bind_group, &[]);
+
+        let actual_target_size = blit_target_texture.size();
+        render_pass.set_viewport(
+            self.viewport.x * (actual_target_size.width as f32),
+            self.viewport.y * (actual_target_size.height as f32),
+            self.viewport.w * (actual_target_size.width as f32),
+            self.viewport.h * (actual_target_size.height as f32),
+            0.0,
+            1.0,
+        );
+
+        render_pass.draw(0..3, 0..1);
+    }
+
+    fn get_blit_pipeline(
+        &mut self,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        target_format: wgpu::TextureFormat,
+    ) -> &wgpu::RenderPipeline {
+        profiling::function_scope!();
+
+        if self.blit_pipeline.is_some() {
+            return self.blit_pipeline.as_deref().unwrap();
+        }
+
+        let pipeline_cache_key = graphics::cache::pipeline::PipelineCacheKey {
+            shader: builtins::shaders::BLIT.create_shader_cache_key(&map![]),
+        };
+
+        if let Some(cached) = graphics::cache::pipeline::find(&pipeline_cache_key) {
+            self.blit_pipeline = Some(cached);
+            return self.blit_pipeline.as_deref().unwrap();
+        }
+
+        let pipeline_layout =
+            graphics::device().create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Camera Blit Pipeline Layout"),
+                bind_group_layouts: &[bind_group_layout],
+                immediate_size: 0,
+            });
+
+        let shader = builtins::shaders::BLIT.compile(&map![]);
+        let module = shader.get_module();
 
         let pipeline = graphics::device().create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Camera Blit Render Pipeline"),
@@ -328,7 +361,7 @@ impl Camera {
                 entry_point: None,
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: blit_target_texture.format(),
+                    format: target_format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
@@ -352,67 +385,58 @@ impl Camera {
             cache: None,
         });
 
-        render_pass.set_pipeline(&pipeline);
-        render_pass.set_bind_group(0, &texture_bind_group, &[]);
-
-        let actual_target_size = blit_target_texture.size();
-        render_pass.set_viewport(
-            self.viewport.x * (actual_target_size.width as f32),
-            self.viewport.y * (actual_target_size.height as f32),
-            self.viewport.w * (actual_target_size.width as f32),
-            self.viewport.h * (actual_target_size.height as f32),
-            0.0,
-            1.0,
-        );
-
-        render_pass.draw(0..3, 0..1);
+        self.blit_pipeline = Some(graphics::cache::pipeline::insert(
+            pipeline_cache_key,
+            pipeline,
+        ));
+        self.blit_pipeline.as_deref().unwrap()
     }
 
-    fn get_fun_texture(&mut self) -> &wgpu::Texture {
-        if self.fun_texture.is_none() {
-            static RAW_TEXTURE: &[u8] = include_bytes!("../../../../../assets/Icon.png");
-            let img = image::load_from_memory(RAW_TEXTURE).unwrap();
-            let rgba = img.to_rgba8();
+    // fn get_fun_texture(&mut self) -> &wgpu::Texture {
+    //     if self.fun_texture.is_none() {
+    //         static RAW_TEXTURE: &[u8] = include_bytes!("../../../../../assets/Icon.png");
+    //         let img = image::load_from_memory(RAW_TEXTURE).unwrap();
+    //         let rgba = img.to_rgba8();
 
-            let dimensions = img.dimensions();
+    //         let dimensions = img.dimensions();
 
-            let size = wgpu::Extent3d {
-                width: dimensions.0,
-                height: dimensions.1,
-                depth_or_array_layers: 1,
-            };
-            let texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
-                label: Some("Fun texture"),
-                size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                view_formats: &[],
-            });
+    //         let size = wgpu::Extent3d {
+    //             width: dimensions.0,
+    //             height: dimensions.1,
+    //             depth_or_array_layers: 1,
+    //         };
+    //         let texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
+    //             label: Some("Fun texture"),
+    //             size,
+    //             mip_level_count: 1,
+    //             sample_count: 1,
+    //             dimension: wgpu::TextureDimension::D2,
+    //             format: wgpu::TextureFormat::Rgba8UnormSrgb,
+    //             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+    //             view_formats: &[],
+    //         });
 
-            graphics::queue().write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    aspect: wgpu::TextureAspect::All,
-                    texture: &texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                },
-                &rgba,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * dimensions.0),
-                    rows_per_image: Some(dimensions.1),
-                },
-                size,
-            );
+    //         graphics::queue().write_texture(
+    //             wgpu::TexelCopyTextureInfo {
+    //                 aspect: wgpu::TextureAspect::All,
+    //                 texture: &texture,
+    //                 mip_level: 0,
+    //                 origin: wgpu::Origin3d::ZERO,
+    //             },
+    //             &rgba,
+    //             wgpu::TexelCopyBufferLayout {
+    //                 offset: 0,
+    //                 bytes_per_row: Some(4 * dimensions.0),
+    //                 rows_per_image: Some(dimensions.1),
+    //             },
+    //             size,
+    //         );
 
-            self.fun_texture = Some(texture);
-        }
+    //         self.fun_texture = Some(texture);
+    //     }
 
-        self.fun_texture.as_ref().unwrap()
-    }
+    //     self.fun_texture.as_ref().unwrap()
+    // }
 }
 
 impl Component for Camera {
