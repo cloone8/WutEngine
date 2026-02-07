@@ -1,15 +1,13 @@
 use core::fmt::Display;
-use std::sync::Arc;
 
-use image::GenericImageView;
 use wutengine_util_macro::unique_id_type32;
 
 use crate::color::Color;
 use crate::component::Component;
-use crate::graphics::shader::CompiledShader;
+use crate::graphics::material::NativeMaterial;
 use crate::system::Phase;
 use crate::window::Window;
-use crate::{builtins, graphics, map};
+use crate::{builtins, graphics};
 
 unique_id_type32! {
     /// The ID of a [Camera]. Used for filtering in draw calls
@@ -41,7 +39,7 @@ pub struct Camera {
 
     render_target: Option<wgpu::Texture>,
 
-    blit_pipeline: Option<Arc<wgpu::RenderPipeline>>,
+    blit_material: Option<NativeMaterial>,
 }
 
 impl Default for Camera {
@@ -62,7 +60,7 @@ impl Camera {
             clipping_planes: (0.1, 100.0),
             render_target: None,
             id: CameraId::new(),
-            blit_pipeline: None,
+            blit_material: None,
         }
     }
 
@@ -212,6 +210,8 @@ impl Camera {
             return;
         };
 
+        self.set_blit_material();
+
         let blit_target_texture = match target {
             CameraTarget::Window(window) => {
                 let Some((_, surface)) = windows.iter().find(|(win, _)| *win == window) else {
@@ -233,6 +233,15 @@ impl Camera {
             ..Default::default()
         });
 
+        let color_targets = [Some(wgpu::ColorTargetState {
+            format: view_format,
+            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+            write_mask: wgpu::ColorWrites::ALL,
+        })];
+
+        let blit_pipeline =
+            graphics::pipeline::get_pipeline(self.blit_material.as_ref().unwrap(), &color_targets);
+
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Camera Blit Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -250,59 +259,59 @@ impl Camera {
             multiview_mask: None,
         });
 
-        let bind_group_layout =
-            graphics::device().create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Texture sampler group layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                ],
-            });
+        // let bind_group_layout =
+        //     graphics::device().create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        //         label: Some("Texture sampler group layout"),
+        //         entries: &[
+        //             wgpu::BindGroupLayoutEntry {
+        //                 binding: 0,
+        //                 visibility: wgpu::ShaderStages::FRAGMENT,
+        //                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+        //                 count: None,
+        //             },
+        //             wgpu::BindGroupLayoutEntry {
+        //                 binding: 1,
+        //                 visibility: wgpu::ShaderStages::FRAGMENT,
+        //                 ty: wgpu::BindingType::Texture {
+        //                     sample_type: wgpu::TextureSampleType::Float { filterable: true },
+        //                     view_dimension: wgpu::TextureViewDimension::D2,
+        //                     multisampled: false,
+        //                 },
+        //                 count: None,
+        //             },
+        //         ],
+        //     });
 
-        // let texture = self.get_fun_texture();
-        let texture = rendered_image;
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = graphics::device().create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-            ..Default::default()
-        });
+        // // let texture = self.get_fun_texture();
+        // let texture = rendered_image;
+        // let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        // let sampler = graphics::device().create_sampler(&wgpu::SamplerDescriptor {
+        //     address_mode_u: wgpu::AddressMode::ClampToEdge,
+        //     address_mode_v: wgpu::AddressMode::ClampToEdge,
+        //     address_mode_w: wgpu::AddressMode::ClampToEdge,
+        //     mag_filter: wgpu::FilterMode::Linear,
+        //     min_filter: wgpu::FilterMode::Nearest,
+        //     mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+        //     ..Default::default()
+        // });
 
-        let texture_bind_group = graphics::device().create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Fun texture bind group"),
-            layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&view),
-                },
-            ],
-        });
+        // let texture_bind_group = graphics::device().create_bind_group(&wgpu::BindGroupDescriptor {
+        //     label: Some("Fun texture bind group"),
+        //     layout: &bind_group_layout,
+        //     entries: &[
+        //         wgpu::BindGroupEntry {
+        //             binding: 0,
+        //             resource: wgpu::BindingResource::Sampler(&sampler),
+        //         },
+        //         wgpu::BindGroupEntry {
+        //             binding: 1,
+        //             resource: wgpu::BindingResource::TextureView(&view),
+        //         },
+        //     ],
+        // });
 
-        render_pass.set_pipeline(self.get_blit_pipeline(&bind_group_layout, view_format));
-        render_pass.set_bind_group(0, &texture_bind_group, &[]);
+        render_pass.set_pipeline(&blit_pipeline);
+        // render_pass.set_bind_group(0, &texture_bind_group, &[]);
 
         let actual_target_size = blit_target_texture.size();
         render_pass.set_viewport(
@@ -317,126 +326,13 @@ impl Camera {
         render_pass.draw(0..3, 0..1);
     }
 
-    fn get_blit_pipeline(
-        &mut self,
-        bind_group_layout: &wgpu::BindGroupLayout,
-        target_format: wgpu::TextureFormat,
-    ) -> &wgpu::RenderPipeline {
-        profiling::function_scope!();
-
-        if self.blit_pipeline.is_some() {
-            return self.blit_pipeline.as_deref().unwrap();
+    fn set_blit_material(&mut self) {
+        if self.blit_material.is_some() {
+            return;
         }
 
-        let pipeline_cache_key = graphics::cache::pipeline::PipelineCacheKey {
-            shader: builtins::shaders::BLIT.create_shader_cache_key(&map![]),
-        };
-
-        if let Some(cached) = graphics::cache::pipeline::find(&pipeline_cache_key) {
-            self.blit_pipeline = Some(cached);
-            return self.blit_pipeline.as_deref().unwrap();
-        }
-
-        let pipeline_layout =
-            graphics::device().create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Camera Blit Pipeline Layout"),
-                bind_group_layouts: &[bind_group_layout],
-                immediate_size: 0,
-            });
-
-        let shader = builtins::shaders::BLIT.compile(&map![]);
-        let module = shader.get_module();
-
-        let pipeline = graphics::device().create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Camera Blit Render Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module,
-                entry_point: None,
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module,
-                entry_point: None,
-                compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: target_format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: None,
-                unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                conservative: false,
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            multiview_mask: None,
-            cache: None,
-        });
-
-        self.blit_pipeline = Some(graphics::cache::pipeline::insert(
-            pipeline_cache_key,
-            pipeline,
-        ));
-        self.blit_pipeline.as_deref().unwrap()
+        self.blit_material = Some(NativeMaterial::new(builtins::shaders::BLIT.clone()));
     }
-
-    // fn get_fun_texture(&mut self) -> &wgpu::Texture {
-    //     if self.fun_texture.is_none() {
-    //         static RAW_TEXTURE: &[u8] = include_bytes!("../../../../../assets/Icon.png");
-    //         let img = image::load_from_memory(RAW_TEXTURE).unwrap();
-    //         let rgba = img.to_rgba8();
-
-    //         let dimensions = img.dimensions();
-
-    //         let size = wgpu::Extent3d {
-    //             width: dimensions.0,
-    //             height: dimensions.1,
-    //             depth_or_array_layers: 1,
-    //         };
-    //         let texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
-    //             label: Some("Fun texture"),
-    //             size,
-    //             mip_level_count: 1,
-    //             sample_count: 1,
-    //             dimension: wgpu::TextureDimension::D2,
-    //             format: wgpu::TextureFormat::Rgba8UnormSrgb,
-    //             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-    //             view_formats: &[],
-    //         });
-
-    //         graphics::queue().write_texture(
-    //             wgpu::TexelCopyTextureInfo {
-    //                 aspect: wgpu::TextureAspect::All,
-    //                 texture: &texture,
-    //                 mip_level: 0,
-    //                 origin: wgpu::Origin3d::ZERO,
-    //             },
-    //             &rgba,
-    //             wgpu::TexelCopyBufferLayout {
-    //                 offset: 0,
-    //                 bytes_per_row: Some(4 * dimensions.0),
-    //                 rows_per_image: Some(dimensions.1),
-    //             },
-    //             size,
-    //         );
-
-    //         self.fun_texture = Some(texture);
-    //     }
-
-    //     self.fun_texture.as_ref().unwrap()
-    // }
 }
 
 impl Component for Camera {

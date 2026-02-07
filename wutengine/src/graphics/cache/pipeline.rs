@@ -3,6 +3,10 @@
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, RwLock};
 
+use smallvec::SmallVec;
+
+use crate::graphics::shader::CompiledShaderId;
+
 /// The global pipeline cache
 static PIPELINE_CACHE: LazyLock<PipelineCache> = LazyLock::new(Default::default);
 
@@ -12,10 +16,13 @@ struct PipelineCache {
 }
 
 /// The key identifying a [wgpu::RenderPipeline] in the pipeline cache
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct PipelineCacheKey {
     /// The shader the pipeline uses
-    pub(crate) shader: super::shader::ShaderCompilationCacheKey,
+    pub(crate) shader: CompiledShaderId,
+
+    /// The color targets the pipeline supports
+    pub(crate) color_targets: SmallVec<[Option<wgpu::ColorTargetState>; 2]>,
 }
 
 /// Tries to find a given shader variant in the global cache

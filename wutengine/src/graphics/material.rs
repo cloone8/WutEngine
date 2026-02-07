@@ -8,7 +8,7 @@ use wutengine_util_macro::unique_id_type64;
 
 use crate::map;
 
-use super::shader::{CompiledShader, Shader};
+use super::shader::{CompiledShaderId, Shader};
 
 unique_id_type64! {
     /// The unique identifier for a [NativeMaterial]
@@ -20,32 +20,52 @@ unique_id_type64! {
 pub(crate) struct NativeMaterial {
     id: MaterialId,
 
+    /// The cached compiled shader ID
+    compiled_shader_id: CompiledShaderId,
+
     /// The shader this material uses
     pub(crate) shader: Arc<Shader>,
 
     /// The overridden keywords in this material.
     /// Any keywords present in [Self::shader] but not present in this map
     /// are set to `0`
-    pub(crate) keywords: HashMap<String, u64>,
-
-    /// The compiled shader with the configuration set on this material
-    compiled_shader: Option<Arc<CompiledShader>>,
+    keywords: HashMap<String, u64>,
 }
 
 impl NativeMaterial {
+    /// Creates a new native material from the given shader, with no keywords set
+    pub(crate) fn new(shader: Arc<Shader>) -> Self {
+        let mut new_self = Self {
+            id: MaterialId::new(),
+            shader,
+            keywords: map![],
+            compiled_shader_id: CompiledShaderId(0),
+        };
+
+        new_self.recalculate_compiled_shader_id();
+
+        new_self
+    }
+
     /// Returns the ID of this material
     #[inline(always)]
     pub(crate) const fn id(&self) -> MaterialId {
         self.id
     }
-    /// Creates a new native material from the given shader, with no keywords set
-    pub(crate) fn new(shader: Arc<Shader>) -> Self {
-        Self {
-            id: MaterialId::new(),
-            shader,
-            keywords: map![],
-            compiled_shader: None,
-        }
+
+    /// Returns the ID of the compiled shader of this material
+    #[inline(always)]
+    pub(crate) const fn compiled_shader_id(&self) -> CompiledShaderId {
+        self.compiled_shader_id
+    }
+
+    /// Returns the keywords set on this material, including the values for default ones
+    pub(crate) fn get_keywords(&self) -> HashMap<String, u64> {
+        let mut keywords = self.keywords.clone();
+
+        Self::inject_defaults_for_shader(&self.shader, &mut keywords);
+
+        keywords
     }
 
     /// Updates the shader this material uses.
@@ -57,8 +77,7 @@ impl NativeMaterial {
             .retain(|k, _| shader.allowed_keywords.contains_key(k));
 
         self.shader = shader;
-
-        self.compiled_shader = None;
+        self.recalculate_compiled_shader_id();
     }
 
     /// Sets or updates a keyword value on this material. If the keyword was not
@@ -75,8 +94,7 @@ impl NativeMaterial {
         }
 
         self.keywords.insert(keyword.to_owned(), value);
-
-        self.compiled_shader = None;
+        self.recalculate_compiled_shader_id();
     }
 
     /// Unsets a keyword. Equivalent to setting its value to `0`
@@ -130,6 +148,13 @@ impl NativeMaterial {
 
         Ok(())
     }
+
+    fn recalculate_compiled_shader_id(&mut self) {
+        let mut keywords = self.keywords.clone();
+        Self::inject_defaults_for_shader(&self.shader, &mut keywords);
+
+        self.compiled_shader_id = self.shader.create_compiled_shader_id(&keywords);
+    }
 }
 
 /// Keywords on a material are not compatible with its shader
@@ -150,7 +175,7 @@ impl Clone for NativeMaterial {
             id: MaterialId::new(),
             shader: self.shader.clone(),
             keywords: self.keywords.clone(),
-            compiled_shader: self.compiled_shader.clone(),
+            compiled_shader_id: self.compiled_shader_id,
         }
     }
 }
