@@ -2,15 +2,9 @@
 //! so that its execution can be driven by [winit]
 
 use std::sync::Arc;
-use std::time::Instant;
 
-use smallvec::SmallVec;
-use wgpu::wgt::{CommandEncoderDescriptor, TextureViewDescriptor};
-use wgpu::{Color, Operations, RenderPassColorAttachment, RenderPassDescriptor};
-
-use crate::system::Phase;
 use crate::window::{Window, WindowConfig};
-use crate::{entity, graphics, time, window, world};
+use crate::{graphics, time, window};
 
 use super::Runtime;
 

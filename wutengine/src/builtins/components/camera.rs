@@ -239,8 +239,16 @@ impl Camera {
             write_mask: wgpu::ColorWrites::ALL,
         })];
 
-        let blit_pipeline =
-            graphics::pipeline::get_pipeline(self.blit_material.as_ref().unwrap(), &color_targets);
+        let blit_pipeline = match graphics::pipeline::get_pipeline(
+            self.blit_material.as_ref().unwrap(),
+            &color_targets,
+        ) {
+            Ok(bp) => bp,
+            Err(e) => {
+                log::error!("Failed to get camera blit pipeline. Not blitting: {e}");
+                return;
+            }
+        };
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Camera Blit Pass"),

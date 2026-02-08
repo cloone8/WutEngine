@@ -2,7 +2,9 @@
 
 use std::sync::{Arc, LazyLock};
 
-use crate::graphics::shader::{Shader, ShaderId, ShaderParameter, ShaderParameterType};
+use crate::graphics::shader::{
+    Shader, ShaderId, ShaderParameter, ShaderParameterBinding, ShaderParameterType,
+};
 use crate::map;
 
 /// Fullscreen blit shader
@@ -13,8 +15,8 @@ pub static BLIT: LazyLock<Arc<Shader>> = LazyLock::new(|| {
         source: include_str!("shaders/blit.wgsl").to_owned(),
         allowed_keywords: map![],
         parameters: map![
-            "source_sampler" => ShaderParameter { binding: (0, 0), ty: ShaderParameterType::Sampler, array_count: None },
-            "source_texture" => ShaderParameter { binding: (0, 1), ty: ShaderParameterType::Texture2D, array_count: None }
+            "source_sampler" => ShaderParameter { binding: ShaderParameterBinding::new(0, 0), ty: ShaderParameterType::Sampler, array_count: None },
+            "source_texture" => ShaderParameter { binding: ShaderParameterBinding::new(0, 1), ty: ShaderParameterType::Texture2D, array_count: None }
         ],
     })
 });

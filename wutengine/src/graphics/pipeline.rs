@@ -16,10 +16,21 @@ unique_id_type64! {
     PipelineId
 }
 
+#[derive(Debug, derive_more::Display, derive_more::From, derive_more::Error)]
+pub(crate) enum GetPipelineErr {
+    #[display("Error while compiling shader for pipeline: {}", _0)]
+    ShaderCompile(graphics::shader::CompileErr),
+}
+
+/// Given the set of input parameters, returns a matching [wgpu::RenderPipeline].
+/// A cached copy of the pipeline is returned if possible. If not, creates a new pipeline.
+///
+/// If a new pipeline is created, an attempt is made to get the cached copy of the compiled shader. If this
+/// cached copy does not exist, the shader is compiled and cached.
 pub(crate) fn get_pipeline(
     material: &NativeMaterial,
     color_targets: &[Option<wgpu::ColorTargetState>],
-) -> Arc<wgpu::RenderPipeline> {
+) -> Result<Arc<wgpu::RenderPipeline>, GetPipelineErr> {
     profiling::function_scope!();
 
     let pipeline_cache_key = PipelineCacheKey {
@@ -28,7 +39,7 @@ pub(crate) fn get_pipeline(
     };
 
     if let Some(cached_pipeline) = cache::pipeline::find(&pipeline_cache_key) {
-        return cached_pipeline;
+        return Ok(cached_pipeline);
     }
 
     let pipeline_id = PipelineId::new();
@@ -38,7 +49,7 @@ pub(crate) fn get_pipeline(
         material.compiled_shader_id()
     );
 
-    let compiled_shader = graphics::shader::compile(&material.shader, &material.get_keywords());
+    let compiled_shader = graphics::shader::compile(material.shader(), &material.get_keywords())?;
 
     let pipeline_layout = &compiled_shader.pipeline_layout;
 
@@ -48,7 +59,7 @@ pub(crate) fn get_pipeline(
         label: Some(
             format!(
                 "Shader {} variant {} pipeline {}",
-                material.shader.name,
+                material.shader().name,
                 material.compiled_shader_id(),
                 pipeline_id
             )
@@ -87,5 +98,5 @@ pub(crate) fn get_pipeline(
         cache: None,
     });
 
-    cache::pipeline::insert(pipeline_cache_key, pipeline)
+    Ok(cache::pipeline::insert(pipeline_cache_key, pipeline))
 }

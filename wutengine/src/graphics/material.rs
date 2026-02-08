@@ -8,6 +8,7 @@ use wutengine_util_macro::unique_id_type64;
 
 use crate::map;
 
+use super::sampler::Sampler;
 use super::shader::{CompiledShaderId, Shader};
 
 unique_id_type64! {
@@ -24,12 +25,26 @@ pub(crate) struct NativeMaterial {
     compiled_shader_id: CompiledShaderId,
 
     /// The shader this material uses
-    pub(crate) shader: Arc<Shader>,
+    shader: Arc<Shader>,
 
     /// The overridden keywords in this material.
     /// Any keywords present in [Self::shader] but not present in this map
     /// are set to `0`
     keywords: HashMap<String, u64>,
+
+    keywords_with_defaults: HashMap<String, u64>,
+
+    /// Any parameters set on this material. Must match
+    /// the supported parameters of the compiled shader variant
+    /// of this material
+    parameters: HashMap<String, Option<ParameterValue>>,
+}
+
+/// A possible parameter value for a material
+#[derive(Debug, Clone, derive_more::IsVariant, derive_more::Unwrap, derive_more::TryUnwrap)]
+pub enum ParameterValue {
+    /// A sampler parameter
+    Sampler(Sampler),
 }
 
 impl NativeMaterial {
@@ -37,12 +52,16 @@ impl NativeMaterial {
     pub(crate) fn new(shader: Arc<Shader>) -> Self {
         let mut new_self = Self {
             id: MaterialId::new(),
+            parameters: map![],
             shader,
             keywords: map![],
+            keywords_with_defaults: map![],
             compiled_shader_id: CompiledShaderId(0),
         };
 
         new_self.recalculate_compiled_shader_id();
+        new_self.reset_parameter_values();
+        new_self.recalculate_keywords_with_defaults();
 
         new_self
     }
@@ -59,18 +78,21 @@ impl NativeMaterial {
         self.compiled_shader_id
     }
 
+    /// Returns the shader this material uses
+    #[inline(always)]
+    pub(crate) fn shader(&self) -> &Shader {
+        &self.shader
+    }
+
     /// Returns the keywords set on this material, including the values for default ones
-    pub(crate) fn get_keywords(&self) -> HashMap<String, u64> {
-        let mut keywords = self.keywords.clone();
-
-        Self::inject_defaults_for_shader(&self.shader, &mut keywords);
-
-        keywords
+    #[inline(always)]
+    pub(crate) fn get_keywords(&self) -> &HashMap<String, u64> {
+        &self.keywords_with_defaults
     }
 
     /// Updates the shader this material uses.
     /// Removes all keywords not present on the new shader, but
-    /// retains the keywords that are
+    /// retains the keywords that are. Also resets all parameter values to [None].
     pub(crate) fn set_shader(&mut self, shader: Arc<Shader>) {
         // Remove all keywords not in the new shader
         self.keywords
@@ -78,6 +100,8 @@ impl NativeMaterial {
 
         self.shader = shader;
         self.recalculate_compiled_shader_id();
+        self.reset_parameter_values();
+        self.recalculate_keywords_with_defaults();
     }
 
     /// Sets or updates a keyword value on this material. If the keyword was not
@@ -95,9 +119,11 @@ impl NativeMaterial {
 
         self.keywords.insert(keyword.to_owned(), value);
         self.recalculate_compiled_shader_id();
+        self.recalculate_keywords_with_defaults();
     }
 
     /// Unsets a keyword. Equivalent to setting its value to `0`
+    #[inline]
     pub(crate) fn unset_keyword(&mut self, keyword: &str) {
         self.set_keyword(keyword, 0);
     }
@@ -108,7 +134,7 @@ impl NativeMaterial {
     ///
     /// NOTE: Does not verify that the already present keywords are correct. Calling [Self::verify_keywords]
     /// beforehand is recommended.
-    pub(crate) fn inject_defaults_for_shader(shader: &Shader, keywords: &mut HashMap<String, u64>) {
+    fn inject_defaults_for_shader(shader: &Shader, keywords: &mut HashMap<String, u64>) {
         for allowed_keyword in shader.allowed_keywords.keys() {
             if !keywords.contains_key(allowed_keyword) {
                 keywords.insert(allowed_keyword.clone(), 0);
@@ -155,6 +181,20 @@ impl NativeMaterial {
 
         self.compiled_shader_id = self.shader.create_compiled_shader_id(&keywords);
     }
+
+    fn reset_parameter_values(&mut self) {
+        self.parameters.clear();
+        self.parameters
+            .extend(self.shader.parameters.keys().map(|k| (k.clone(), None)));
+    }
+
+    fn recalculate_keywords_with_defaults(&mut self) {
+        self.keywords_with_defaults.clear();
+        self.keywords_with_defaults
+            .extend(self.keywords.iter().map(|(k, v)| (k.clone(), *v)));
+
+        Self::inject_defaults_for_shader(&self.shader, &mut self.keywords_with_defaults);
+    }
 }
 
 /// Keywords on a material are not compatible with its shader
@@ -175,7 +215,9 @@ impl Clone for NativeMaterial {
             id: MaterialId::new(),
             shader: self.shader.clone(),
             keywords: self.keywords.clone(),
+            keywords_with_defaults: self.keywords_with_defaults.clone(),
             compiled_shader_id: self.compiled_shader_id,
+            parameters: self.parameters.clone(),
         }
     }
 }

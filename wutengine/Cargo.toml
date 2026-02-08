@@ -32,6 +32,9 @@ derive_more = { workspace = true, features = [
     "error",
     "from",
     "debug",
+    "is_variant",
+    "unwrap",
+    "try_unwrap",
 ] }
 hecs.workspace = true
 winit.workspace = true

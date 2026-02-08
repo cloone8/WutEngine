@@ -98,7 +98,7 @@ pub enum Error {
 }
 
 /// Compile a single input shader
-pub fn compile<Id, H: ShaderHasher<Id>>(input: Input<Id>) -> Result<Box<Output>, Error> {
+pub fn compile<Id, H: ShaderHasher<Id>>(input: Input<Id>) -> Result<Box<Output>, Box<Error>> {
     profiling::function_scope!();
 
     let mut opts = Options::new();
@@ -106,7 +106,9 @@ pub fn compile<Id, H: ShaderHasher<Id>>(input: Input<Id>) -> Result<Box<Output>,
 
     let mut frontend = naga::front::wgsl::Frontend::new_with_options(opts);
 
-    let compiled = frontend.parse(input.source)?;
+    let compiled = frontend
+        .parse(input.source)
+        .map_err(|e| Box::new(Error::ParseError(e)))?;
 
     Ok(Box::new(Output {
         remaining_bindings: detect_bind_groups(input.all_bindings, &compiled)?,

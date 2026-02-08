@@ -1,6 +1,7 @@
 //! GPU Shaders
 
 use core::fmt::Display;
+use core::hash::Hash;
 use core::num::NonZero;
 use core::ops::RangeInclusive;
 use std::collections::HashMap;
@@ -12,7 +13,7 @@ use crate::graphics::cache;
 
 mod compile;
 
-pub(crate) use compile::compile;
+pub(crate) use compile::*;
 
 unique_id_type64! {
     /// Unique identifier for a [Shader]
@@ -20,8 +21,12 @@ unique_id_type64! {
 }
 
 /// A generic shader.
+///
 /// TODO: Find solution for if the shader is changed after some variants have already
 /// been compiled and cached
+///
+/// TODO: Allow duplicate bindings if only one remains after variant compilation?
+/// Seems to be more hassle that its worth
 #[derive(Debug)]
 pub struct Shader {
     /// The identifier of the shader
@@ -57,7 +62,7 @@ impl Shader {
 #[derive(Debug, Clone)]
 pub struct ShaderParameter {
     /// Bind group and binding within the group
-    pub binding: (u32, u32),
+    pub binding: ShaderParameterBinding,
 
     /// The type of the parameter
     pub ty: ShaderParameterType,
@@ -67,11 +72,61 @@ pub struct ShaderParameter {
     pub array_count: Option<NonZero<u32>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ShaderParameterBinding {
+    pub group: u32,
+    pub binding: u32,
+}
+
+impl ShaderParameterBinding {
+    #[inline]
+    pub const fn new(group: u32, binding: u32) -> Self {
+        Self { group, binding }
+    }
+}
+
+impl Display for ShaderParameterBinding {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "ShaderParameterBinding(group={}, binding={})",
+            self.group, self.binding
+        )
+    }
+}
+
+impl Hash for ShaderParameterBinding {
+    #[inline(always)]
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let as_u64 = ((self.group as u64) << 32) | (self.binding as u64);
+        state.write_u64(as_u64);
+    }
+}
+
+impl nohash_hasher::IsEnabled for ShaderParameterBinding {}
+
+impl From<ShaderParameterBinding> for wutengine_shadercompiler::Binding {
+    #[inline(always)]
+    fn from(value: ShaderParameterBinding) -> Self {
+        Self {
+            group: value.group,
+            binding: value.binding,
+        }
+    }
+}
+
+impl From<(u32, u32)> for ShaderParameterBinding {
+    #[inline]
+    fn from(value: (u32, u32)) -> Self {
+        Self::new(value.0, value.1)
+    }
+}
+
 impl ShaderParameter {
     #[inline]
     fn to_wgpu_layout_entry(&self) -> wgpu::BindGroupLayoutEntry {
         wgpu::BindGroupLayoutEntry {
-            binding: self.binding.1,
+            binding: self.binding.binding,
             visibility: wgpu::ShaderStages::all(),
             ty: self.ty.to_wgpu_binding_type(),
             count: self.array_count,
@@ -132,11 +187,13 @@ pub struct CompiledShader {
     pub(super) pipeline_layout: wgpu::PipelineLayout,
 }
 
+/// Unique ID for a [CompiledShader]. Generated based on the source [Shader] and the active keywords
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct CompiledShaderId(pub(crate) u128);
 
 impl CompiledShaderId {
+    /// Constructs a new [CompiledShaderId] based on the hashes of the source and keywords
     #[inline]
     pub const fn from_hashes(source_shader_hash: u64, keyword_hash: u64) -> Self {
         Self(((source_shader_hash as u128) << 64) | (keyword_hash as u128))
@@ -144,7 +201,7 @@ impl CompiledShaderId {
 }
 
 impl Display for CompiledShaderId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:032x}", self.0)
     }
 }

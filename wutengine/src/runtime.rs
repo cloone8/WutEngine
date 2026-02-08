@@ -6,7 +6,6 @@ use std::time::Instant;
 
 use derive_more::{Display, Error, From};
 use smallvec::SmallVec;
-use wgpu::wgt::CommandEncoderDescriptor;
 use winit::error::EventLoopError;
 
 use crate::builtins::components::Camera;
@@ -14,8 +13,7 @@ use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::system::{self, Phase, SystemManager};
 use crate::util::InitOnce;
-use crate::window::{self, Window};
-use crate::world::get_world_mut;
+use crate::window::{self};
 use crate::{graphics, time, world};
 
 mod system_builder;
