@@ -166,11 +166,6 @@ impl Runtime {
                 Self::render_camera(camera, &draw_commands).map(|encoder| encoder.finish())
             })
             .collect();
-        // for camera in world.ecs.query_mut::<&mut Camera>().par {
-        //     if let Some(encoder) = Self::render_camera(camera, &draw_commands) {
-        //         buffers.push(encoder.finish());
-        //     }
-        // }
 
         // Now that all the rendering is finished, we lock the window surfaces and have the cameras blit their
         // rendered contents onto their main target surface

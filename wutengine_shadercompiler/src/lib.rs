@@ -122,7 +122,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(input: Input<Id>) -> Result<Box<Output>,
 fn detect_bind_groups<const N: usize>(
     all_bindings: &[Binding],
     module: &naga::Module,
-) -> Result<SmallVec<[Binding; N]>, Error> {
+) -> Result<SmallVec<[Binding; N]>, Box<Error>> {
     profiling::function_scope!();
 
     let mut bind_groups = SmallVec::new_const();
@@ -139,12 +139,12 @@ fn detect_bind_groups<const N: usize>(
 
         if all_bindings.contains(&as_binding) {
             if bind_groups.contains(&as_binding) {
-                return Err(Error::DuplicateBinding(as_binding));
+                return Err(Box::new(Error::DuplicateBinding(as_binding)));
             }
 
             bind_groups.push(as_binding);
         } else {
-            return Err(Error::UnknownBinding(as_binding));
+            return Err(Box::new(Error::UnknownBinding(as_binding)));
         }
     }
 
