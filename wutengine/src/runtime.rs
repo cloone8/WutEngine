@@ -12,7 +12,7 @@ use crate::builtins::components::Camera;
 use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::system::{self, Phase, SystemManager};
-use crate::util::{self, InitOnce, current_function_name};
+use crate::util::{self, InitOnce};
 use crate::window::{self};
 use crate::{graphics, time, world};
 
@@ -26,6 +26,7 @@ pub use system_builder::*;
 pub(crate) use winit_app::WinitEvent;
 
 static EVENT_LOOP_PROXY: InitOnce<winit::event_loop::EventLoopProxy<WinitEvent>> = InitOnce::new();
+static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
 
 /// Notifies the main [winit] event loop of a given event.
 ///
@@ -78,8 +79,6 @@ pub fn run(
     systems: SystemManifest,
     post_start: Option<Box<dyn FnOnce()>>,
 ) -> Result<(), Box<RuntimeStartErr>> {
-    static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
-
     if WUTENGINE_RUNNING.swap(true, Ordering::AcqRel) {
         return Err(Box::new(RuntimeStartErr::AlreadyRunning));
     }
@@ -228,5 +227,23 @@ impl Runtime {
         drop(render_pass);
         encoder.pop_debug_group();
         Some(encoder)
+    }
+}
+
+/// Requests that the WutEngine runtime stops cleanly.
+/// This usually happens somewhere before the next frame.
+pub fn exit() {
+    if !WUTENGINE_RUNNING.load(Ordering::Acquire) {
+        log::error!("WutEngine runtime is not running. Cannot request exit");
+        return;
+    }
+
+    log::info!("Runtime exit requested.");
+
+    if EVENT_LOOP_PROXY
+        .send_event(WinitEvent::RuntimeExitRequested)
+        .is_err()
+    {
+        log::error!("Failed to send runtime exit event because the event loop was already closed");
     }
 }

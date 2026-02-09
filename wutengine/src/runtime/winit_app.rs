@@ -21,6 +21,9 @@ pub(crate) enum WinitEvent {
 
     /// Update the icon of a window
     UpdateIcon(Window, winit::window::Icon),
+
+    /// Someone requested the exit of the runtime through [crate::runtime::exit]
+    RuntimeExitRequested,
 }
 
 impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
@@ -128,6 +131,10 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 window::manager::set_icon(window_id, icon);
             }
+            WinitEvent::RuntimeExitRequested => {
+                log::debug!("Runtime exit was requested. Stopping");
+                event_loop.exit();
+            }
         }
     }
 
@@ -142,7 +149,6 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         profiling::finish_frame!();
-        profiling::scope!("about_to_wait");
 
         let _ = event_loop;
 
