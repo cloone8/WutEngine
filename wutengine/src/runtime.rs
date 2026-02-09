@@ -12,9 +12,11 @@ use crate::builtins::components::Camera;
 use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::system::{self, Phase, SystemManager};
-use crate::util::InitOnce;
+use crate::util::{self, InitOnce, current_function_name};
 use crate::window::{self};
 use crate::{graphics, time, world};
+
+use rayon::prelude::*;
 
 mod system_builder;
 mod winit_app;
@@ -75,16 +77,16 @@ pub enum RuntimeStartErr {
 pub fn run(
     systems: SystemManifest,
     post_start: Option<Box<dyn FnOnce()>>,
-) -> Result<(), RuntimeStartErr> {
+) -> Result<(), Box<RuntimeStartErr>> {
     static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
 
     if WUTENGINE_RUNNING.swap(true, Ordering::AcqRel) {
-        return Err(RuntimeStartErr::AlreadyRunning);
+        return Err(Box::new(RuntimeStartErr::AlreadyRunning));
     }
 
     log::info!("Starting WutEngine");
 
-    InitOnce::init(&crate::MAIN_THREAD_ID, std::thread::current().id());
+    util::set_cur_thread_as_main_thread();
 
     let mut runtime = Runtime {
         initialization_data: Some(Box::new(InitializationData {
@@ -102,14 +104,19 @@ pub fn run(
     window::manager::initialize();
     world::initialize();
 
-    let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event().build()?;
+    let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event()
+        .build()
+        .map_err(|e| Box::new(e.into()))?;
+
     let event_loop_proxy = event_loop.create_proxy();
 
     InitOnce::init(&EVENT_LOOP_PROXY, event_loop_proxy);
 
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
-    event_loop.run_app(&mut runtime)?;
+    event_loop
+        .run_app(&mut runtime)
+        .map_err(|e| Box::new(e.into()))?;
 
     Ok(())
 }
@@ -148,15 +155,23 @@ impl Runtime {
 
         log::trace!("Gathered {} draw commands this frame", draw_commands.len());
 
-        let mut buffers = SmallVec::<[_; 8]>::new_const();
-
         let mut world = world::get_world_mut();
 
-        for camera in world.ecs.query_mut::<&mut Camera>() {
-            if let Some(encoder) = Self::render_camera(camera, &draw_commands) {
-                buffers.push(encoder.finish());
-            }
-        }
+        // Render all camera's, giving each camera its own rendering thread
+        let mut buffers: Vec<_> = world
+            .ecs
+            .query_mut::<&mut Camera>()
+            .into_iter()
+            .par_bridge()
+            .filter_map(|camera| {
+                Self::render_camera(camera, &draw_commands).map(|encoder| encoder.finish())
+            })
+            .collect();
+        // for camera in world.ecs.query_mut::<&mut Camera>().par {
+        //     if let Some(encoder) = Self::render_camera(camera, &draw_commands) {
+        //         buffers.push(encoder.finish());
+        //     }
+        // }
 
         // Now that all the rendering is finished, we lock the window surfaces and have the cameras blit their
         // rendered contents onto their main target surface
@@ -173,9 +188,13 @@ impl Runtime {
                     label: Some("Camera Blit Command Encoder"),
                 });
 
+            blit_encoder.push_debug_group("Blitting camera's to main surfaces");
+
             for camera in world.ecs.query_mut::<&mut Camera>() {
                 camera.blit_to_target(&mut blit_encoder, &surface_texture_map);
             }
+
+            blit_encoder.pop_debug_group();
 
             buffers.push(blit_encoder.finish());
 
@@ -191,19 +210,23 @@ impl Runtime {
         camera: &mut Camera,
         draw_commands: &[DrawCommand],
     ) -> Option<wgpu::CommandEncoder> {
+        profiling::function_scope!();
+
         let mut encoder =
             graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Camera Rendering Command Encoder"),
             });
 
+        encoder.push_debug_group("Camera scene rendering");
         let Some(render_pass) = camera.begin_pass(&mut encoder) else {
-            //
+            encoder.pop_debug_group();
             return None;
         };
 
         //TODO: Execute draw commands
 
         drop(render_pass);
+        encoder.pop_debug_group();
         Some(encoder)
     }
 }

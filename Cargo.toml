@@ -34,6 +34,7 @@ smallvec = { version = "1", features = [
     "const_generics",
     "const_new",
 ] }
+arc-swap = { version = "1" }
 
 profiling = { version = "1" }
 puffin_http = { version = "0.16" }

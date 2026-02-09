@@ -47,10 +47,10 @@ pub(crate) enum CompileErr {
     ShaderCompilationError(Box<wutengine_shadercompiler::Error>),
 }
 
-impl From<Box<wutengine_shadercompiler::Error>> for CompileErr {
+impl From<Box<wutengine_shadercompiler::Error>> for Box<CompileErr> {
     #[inline]
     fn from(value: Box<wutengine_shadercompiler::Error>) -> Self {
-        Self::ShaderCompilationError(value)
+        Box::new(CompileErr::ShaderCompilationError(value))
     }
 }
 
@@ -59,7 +59,7 @@ impl From<Box<wutengine_shadercompiler::Error>> for CompileErr {
 pub(crate) fn compile(
     shader: &Shader,
     keywords: &HashMap<String, u64>,
-) -> Result<Arc<CompiledShader>, CompileErr> {
+) -> Result<Arc<CompiledShader>, Box<CompileErr>> {
     profiling::function_scope!();
 
     let cache_key = shader.create_compiled_shader_id(keywords);

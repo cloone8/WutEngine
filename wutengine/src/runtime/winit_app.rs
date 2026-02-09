@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use crate::window::{Window, WindowConfig};
-use crate::{graphics, time, window};
+use crate::{graphics, thread, time, window};
 
 use super::Runtime;
 
@@ -43,6 +43,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
         // Initialize the time manager later here, right before the runtime starts running frames
         time::init();
+        thread::init_thread_pool();
 
         // Must be called last, so we know the engine setup is done
         if let Some(post_init_callback) = post_init.post_start_callback.take() {

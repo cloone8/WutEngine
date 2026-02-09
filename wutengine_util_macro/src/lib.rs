@@ -106,6 +106,7 @@ fn unique_id_type(config: UniqueIdConfig) -> proc_macro::TokenStream {
         }
 
         impl ::core::hash::Hash for #ident_id {
+            #[inline]
             fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
                 state.#hash_write(self.0.get());
             }
@@ -164,6 +165,67 @@ pub fn derive_variant_count(input: proc_macro::TokenStream) -> proc_macro::Token
             impl<#generics> #ident<#generics> {
                 /// The amount of variants of [Self]
                 #vis const VARIANT_COUNT: usize = #len;
+            }
+        }
+    };
+
+    expanded.into()
+}
+
+/// Adds a `variant_name()` method that returns the name of the enum variant, with
+/// the same visibility as the enum itself
+#[proc_macro_derive(VariantName)]
+pub fn derive_variant_name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let derive_input: syn::DeriveInput = syn::parse(input).unwrap();
+
+    let ident = derive_input.ident;
+    let generics = derive_input.generics.params;
+
+    let variants = match derive_input.data {
+        syn::Data::Enum(enum_item) => enum_item.variants,
+        _ => panic!("VariantCount only works on Enums"),
+    };
+
+    let mut variant_names = Vec::new();
+    for variant in variants {
+        let name = variant.ident.to_string();
+        let ident = variant.ident;
+
+        match variant.fields {
+            syn::Fields::Named(_) => {
+                variant_names.push(quote! { Self::#ident {..} => #name, });
+            }
+            syn::Fields::Unnamed(_) => {
+                variant_names.push(quote! { Self::#ident(_) => #name, });
+            }
+            syn::Fields::Unit => {
+                variant_names.push(quote! { Self::#ident => #name, });
+            }
+        }
+    }
+
+    let vis = derive_input.vis;
+
+    let func_imp = quote! {
+        /// The name of the variant of [Self] as a static [str]
+        #[inline]
+        #vis const fn variant_name(&self) -> &'static str {
+            match self {
+                #(#variant_names)*
+            }
+        }
+    };
+
+    let expanded = if generics.is_empty() {
+        quote! {
+            impl #ident {
+                #func_imp
+            }
+        }
+    } else {
+        quote! {
+            impl<#generics> #ident<#generics> {
+                #func_imp
             }
         }
     };

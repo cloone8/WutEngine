@@ -2,7 +2,6 @@
 
 use std::sync::Arc;
 
-use smallvec::SmallVec;
 use wutengine_util_macro::unique_id_type64;
 
 use crate::graphics::{self, GFX_DEVICE};
@@ -16,10 +15,12 @@ unique_id_type64! {
     PipelineId
 }
 
+/// An error while trying to retrieve a render pipeline
 #[derive(Debug, derive_more::Display, derive_more::From, derive_more::Error)]
 pub(crate) enum GetPipelineErr {
+    /// Error during shader compilation
     #[display("Error while compiling shader for pipeline: {}", _0)]
-    ShaderCompile(graphics::shader::CompileErr),
+    ShaderCompile(Box<graphics::shader::CompileErr>),
 }
 
 /// Given the set of input parameters, returns a matching [wgpu::RenderPipeline].
@@ -49,7 +50,7 @@ pub(crate) fn get_pipeline(
         material.compiled_shader_id()
     );
 
-    let compiled_shader = graphics::shader::compile(material.shader(), &material.get_keywords())?;
+    let compiled_shader = graphics::shader::compile(material.shader(), material.get_keywords())?;
 
     let pipeline_layout = &compiled_shader.pipeline_layout;
 

@@ -4,12 +4,12 @@ use core::ops::RangeInclusive;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use wutengine_util_macro::unique_id_type64;
+use wutengine_util_macro::{VariantName, unique_id_type64};
 
 use crate::map;
 
 use super::sampler::Sampler;
-use super::shader::{CompiledShaderId, Shader};
+use super::shader::{self, CompiledShaderId, Shader};
 
 unique_id_type64! {
     /// The unique identifier for a [NativeMaterial]
@@ -41,12 +41,17 @@ pub(crate) struct NativeMaterial {
 }
 
 /// A possible parameter value for a material
-#[derive(Debug, Clone, derive_more::IsVariant, derive_more::Unwrap, derive_more::TryUnwrap)]
+#[derive(
+    Debug, Clone, derive_more::IsVariant, derive_more::Unwrap, derive_more::TryUnwrap, VariantName,
+)]
 pub enum ParameterValue {
     /// A sampler parameter
     Sampler(Sampler),
+    // /// A texture parameter
+    // Texture2D(Texture),
 }
 
+/// Public API
 impl NativeMaterial {
     /// Creates a new native material from the given shader, with no keywords set
     pub(crate) fn new(shader: Arc<Shader>) -> Self {
@@ -86,7 +91,7 @@ impl NativeMaterial {
 
     /// Returns the keywords set on this material, including the values for default ones
     #[inline(always)]
-    pub(crate) fn get_keywords(&self) -> &HashMap<String, u64> {
+    pub(crate) const fn get_keywords(&self) -> &HashMap<String, u64> {
         &self.keywords_with_defaults
     }
 
@@ -128,6 +133,56 @@ impl NativeMaterial {
         self.set_keyword(keyword, 0);
     }
 
+    pub(crate) fn set_parameter(&mut self, param: &str, value: Option<ParameterValue>) {
+        let Some(cur_value) = self.parameters.get_mut(param) else {
+            log::error!(
+                "Parameter \"{param}\" does not exist on shader {}",
+                self.shader.name
+            );
+            return;
+        };
+
+        let Some(new_value) = value else {
+            *cur_value = None;
+            return;
+        };
+
+        let param_descriptor = self
+            .shader
+            .parameters
+            .get(param)
+            .expect("Parameter should exist on the shader if it exists in the native material");
+
+        if !Self::verify_parameter_type(param_descriptor, &new_value) {
+            log::error!(
+                "Incompatible value type for shader parameter. Expected {}, got {}",
+                param_descriptor.ty,
+                new_value.variant_name()
+            );
+            return;
+        }
+
+        *cur_value = Some(new_value);
+    }
+
+    #[inline]
+    pub(crate) fn unset_parameter(&mut self, param: &str) {
+        self.set_parameter(param, None);
+    }
+}
+
+/// Private API
+impl NativeMaterial {
+    fn verify_parameter_type(
+        parameter: &shader::ShaderParameter,
+        new_value: &ParameterValue,
+    ) -> bool {
+        match parameter.ty {
+            shader::ShaderParameterType::Sampler => new_value.is_sampler(),
+            shader::ShaderParameterType::Texture2D => todo!(),
+        }
+    }
+
     /// Injects the default values for the missing keywords in `keywords`. A keyword is considered missing if
     /// it is part of the [allowed keywords](Shader::allowed_keywords) in `shader`, but is not
     /// in `keywords`
@@ -143,10 +198,10 @@ impl NativeMaterial {
     }
 
     /// Verifies that all keyword/value pairs in `to_verify` would be valid to set when using the given shader.
-    pub(crate) fn verify_keywords<'a>(
+    fn verify_keywords<'a>(
         to_verify: &'a HashMap<String, u64>,
         shader: &Shader,
-    ) -> Result<(), VerifyErr<'a>> {
+    ) -> Result<(), Box<VerifyErr<'a>>> {
         for (keyword, value) in to_verify.iter() {
             Self::verify_single_keyword(keyword.as_str(), *value, shader)?;
         }
@@ -155,21 +210,21 @@ impl NativeMaterial {
     }
 
     /// Verifies that a given keyword/value combination would be valid to set when using the given shader.
-    pub(crate) fn verify_single_keyword<'a>(
+    fn verify_single_keyword<'a>(
         key: &'a str,
         value: u64,
         shader: &Shader,
-    ) -> Result<(), VerifyErr<'a>> {
+    ) -> Result<(), Box<VerifyErr<'a>>> {
         if let Some(allowed_keyword_values) = shader.allowed_keywords.get(key) {
             if !allowed_keyword_values.contains(&value) {
-                return Err(VerifyErr::InvalidKeywordValue(
+                return Err(Box::new(VerifyErr::InvalidKeywordValue(
                     key,
                     value,
                     allowed_keyword_values.clone(),
-                ));
+                )));
             }
         } else {
-            return Err(VerifyErr::UnknownKeyword(key));
+            return Err(Box::new(VerifyErr::UnknownKeyword(key)));
         }
 
         Ok(())

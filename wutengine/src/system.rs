@@ -3,6 +3,7 @@
 use core::any::TypeId;
 use core::fmt::Display;
 use core::sync::atomic::{AtomicU32, Ordering};
+use rayon::prelude::*;
 use std::collections::HashSet;
 
 mod queryable;
@@ -10,6 +11,7 @@ mod scheduler;
 
 pub use queryable::*;
 
+use crate::util::assert_main_thread;
 use crate::world::World;
 
 /// The generic type used for a non-typed system callback.
@@ -90,6 +92,8 @@ impl SystemManager {
     pub(crate) fn run_systems_for_phase(&self, phase: Phase, world: &crate::world::World) {
         profiling::function_scope!(phase.str());
 
+        assert_main_thread!();
+
         log::trace!("Running systems for phase {phase}");
 
         let Some(sets) = self.find_sets_for_phase(phase) else {
@@ -97,10 +101,9 @@ impl SystemManager {
         };
 
         for set in sets {
-            //TODO: Parallelize
-            for sys in &set.systems {
+            set.systems.par_iter().for_each(|sys| {
                 sys(world);
-            }
+            });
         }
     }
 

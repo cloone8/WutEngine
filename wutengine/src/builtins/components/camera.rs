@@ -330,7 +330,6 @@ impl Camera {
             0.0,
             1.0,
         );
-
         render_pass.draw(0..3, 0..1);
     }
 
@@ -400,7 +399,7 @@ impl FieldOfView {
             FieldOfView::Horizontal(hfov) => {
                 let h_rad = hfov.to_radians();
 
-                let vfov_rad = 2.0 * f32::atan(f32::tan(h_rad * 0.5) * (1.0 / aspect_ratio));
+                let vfov_rad = 2.0 * f32::atan(f32::tan(h_rad * 0.5) / aspect_ratio);
 
                 vfov_rad.to_degrees()
             }

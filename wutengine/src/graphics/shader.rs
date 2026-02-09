@@ -72,13 +72,18 @@ pub struct ShaderParameter {
     pub array_count: Option<NonZero<u32>>,
 }
 
+/// The binding location for a [ShaderParameter]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ShaderParameterBinding {
+    /// The binding group index
     pub group: u32,
+
+    /// The binding within the group
     pub binding: u32,
 }
 
 impl ShaderParameterBinding {
+    /// Creates new [ShaderParameterBinding] from a group and binding index
     #[inline]
     pub const fn new(group: u32, binding: u32) -> Self {
         Self { group, binding }
@@ -97,7 +102,7 @@ impl Display for ShaderParameterBinding {
 
 impl Hash for ShaderParameterBinding {
     #[inline(always)]
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         let as_u64 = ((self.group as u64) << 32) | (self.binding as u64);
         state.write_u64(as_u64);
     }
@@ -135,7 +140,7 @@ impl ShaderParameter {
 }
 
 /// The type of a [ShaderParameter]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::Display)]
 pub enum ShaderParameterType {
     /// A texture sampler
     Sampler,

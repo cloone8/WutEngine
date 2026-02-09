@@ -44,6 +44,11 @@ where
         if let Some(existing) = cache.get(&key) {
             existing.clone()
         } else {
+            log::trace!(
+                "WARNING: Cache contention caused duplicate work for cache: {}",
+                core::any::type_name::<Self>()
+            );
+
             let as_arc = Arc::new(value);
             cache.insert(key, as_arc.clone());
 

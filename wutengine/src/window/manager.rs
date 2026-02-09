@@ -5,8 +5,8 @@ use std::sync::{Arc, RwLock};
 use nohash_hasher::IntMap;
 use smallvec::SmallVec;
 
-use crate::util::InitOnce;
-use crate::{assert_main_thread, graphics};
+use crate::graphics;
+use crate::util::{InitOnce, assert_main_thread};
 
 use super::Window;
 
@@ -28,7 +28,7 @@ pub(crate) fn new_window(
 ) {
     profiling::function_scope!();
 
-    assert_main_thread!("window::manager::new_window");
+    assert_main_thread!();
 
     let native_id = window.id();
     let info = WindowInfo::new(id, window, surface);
@@ -56,7 +56,7 @@ pub(crate) fn get_size(id: Window) -> Option<(u32, u32)> {
 pub(crate) fn close_window(id: crate::window::Window) {
     profiling::function_scope!();
 
-    assert_main_thread!("window::manager::close_window");
+    assert_main_thread!();
 
     let mut window_manager = WINDOW_MANAGER.write().unwrap();
 
@@ -79,7 +79,7 @@ pub(crate) fn close_window(id: crate::window::Window) {
 pub(crate) fn set_icon(id: crate::window::Window, icon: winit::window::Icon) {
     profiling::function_scope!();
 
-    assert_main_thread!("window::manager::set_icon");
+    assert_main_thread!();
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
@@ -106,7 +106,7 @@ pub(crate) fn set_icon(id: crate::window::Window, icon: winit::window::Icon) {
 pub(crate) fn refresh_cached_info(id: &crate::window::Window) {
     profiling::function_scope!();
 
-    assert_main_thread!("window::manager::refresh_cached_info");
+    assert_main_thread!();
 
     log::trace!("Refreshing cached window info for {id}");
 
@@ -196,7 +196,7 @@ impl WindowInfo {
 
     /// Refresh all cached window information
     fn refresh(&mut self) {
-        assert_main_thread!("WindowInfo::refresh");
+        assert_main_thread!();
 
         log::trace!("Refreshing cached information for window {}", self.id);
 

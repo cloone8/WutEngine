@@ -3122,6 +3122,7 @@ dependencies = [
  "pollster",
  "profiling",
  "puffin_http",
+ "rayon",
  "smallvec",
  "twox-hash",
  "wgpu",
