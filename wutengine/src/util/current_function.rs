@@ -1,3 +1,12 @@
+//! Utility module containing a macro (and some helper functions) for getting the current function name
+//!
+//! The whole thing is copied and adapted from [this puffin macro][puffin_code].
+//!
+//! [puffin] is licensed under the [MIT license](https://github.com/EmbarkStudios/puffin/blob/c5276b9d5264af37a9c9fb2655990a3a0b720a0b/LICENSE-MIT)
+//!
+//! [puffin]: https://github.com/EmbarkStudios/puffin/blob/c5276b9d5264af37a9c9fb2655990a3a0b720a0b
+//! [puffin_code]: https://github.com/EmbarkStudios/puffin/blob/c5276b9d5264af37a9c9fb2655990a3a0b720a0b/puffin/src/lib.rs#L178-L183
+
 #[doc(hidden)]
 #[inline(always)] // This was #[inline(never)]. Any reason?
 pub(crate) fn clean_function_name(name: &str) -> &str {
@@ -18,8 +27,6 @@ pub(crate) fn type_name_of<T>(_: T) -> &'static str {
     core::any::type_name::<T>()
 }
 /// Returns the name of the calling function without a long module path prefix
-///
-/// Adapted from [puffin](https://github.com/EmbarkStudios/puffin/blob/c5276b9d5264af37a9c9fb2655990a3a0b720a0b/puffin/src/lib.rs#L178-L183)
 macro_rules! current_function_name {
     () => {{
         fn __f() {}

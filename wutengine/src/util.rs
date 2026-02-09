@@ -3,57 +3,9 @@
 mod current_function;
 mod init_once;
 mod main_thread;
+mod small_macros;
 
 pub(crate) use current_function::*;
 pub(crate) use init_once::*;
 pub(crate) use main_thread::*;
-
-/// Creates a hashmap and inserts the given keys and values. [Into::into] is
-/// called on each key and value before it is inserted.
-///
-/// Used like:
-/// ```
-/// use wutengine::map; // Or `wutengine::map` when using the full WutEngine engine crate
-/// use std::collections::HashMap;
-///
-/// let new_map: HashMap<String, i32> = map![
-///     "a" => 1,
-///     "b" => 2
-/// ];
-/// ```
-#[macro_export]
-macro_rules! map {
-    () => {
-        ::std::collections::HashMap::default()
-    };
-
-    ($($key:expr => $val:expr),+) => {{
-        let mut new_hashmap = ::std::collections::HashMap::default();
-
-        $(
-            new_hashmap.insert($key.into(), $val.into());
-        )*
-
-        new_hashmap
-    }};
-}
-
-// /// Macro that marks the current spot as unreachable. Checked in debug builds,
-// /// unchecked in release builds.
-// macro_rules! unreachable_dbg {
-//     ($($arg:tt)*) => {{
-//         // Dummy unsafe no-op to force unsafe{} around this macro
-//         #[allow(clippy::useless_transmute, reason = "Dummy op")]
-//         {
-//         _ = ::core::mem::transmute::<(), ()>(());
-//         }
-
-//         #[cfg(debug_assertions)]
-//         unreachable!($($arg)*);
-
-//         #[cfg(not(debug_assertions))]
-//         ::core::hint::unreachable_unchecked();
-//     }};
-// }
-
-// pub(crate) use unreachable_dbg;
+pub(crate) use small_macros::*;
