@@ -44,6 +44,7 @@ glam = { version = "0.30", features = ["std", "debug-glam-assert"] }
 derive_more = { version = "2" }
 nohash-hasher = { version = "0.2" }
 twox-hash = { version = "2" }
+dashmap = { version = "6" }
 
 quote = { version = "1" }
 syn = { version = "2", features = ["full"] }

@@ -60,6 +60,7 @@ profiling.workspace = true
 smallvec.workspace = true
 glam.workspace = true
 twox-hash.workspace = true
+dashmap = { workspace = true, features = ["rayon"] }
 rayon.workspace = true
 
 # Optional dependencies
