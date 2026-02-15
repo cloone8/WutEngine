@@ -4,6 +4,7 @@ pub mod asset;
 pub mod builtins;
 pub mod color;
 pub mod component;
+pub mod config;
 pub mod entity;
 pub mod graphics;
 pub mod math;
