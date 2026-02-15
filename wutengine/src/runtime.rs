@@ -1,6 +1,8 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
 use core::sync::atomic::{AtomicBool, Ordering};
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
@@ -72,11 +74,27 @@ pub enum RuntimeStartErr {
     EventLoop(EventLoopError),
 }
 
+#[derive(Debug, Clone)]
+pub struct InitRuntimeConfig {
+    pub config_file: Option<PathBuf>,
+    pub config_overrides: HashMap<String, crate::config::toml::Value>,
+}
+
+impl Default for InitRuntimeConfig {
+    fn default() -> Self {
+        Self {
+            config_file: Some(PathBuf::try_from("wutengine.toml").unwrap()),
+            config_overrides: Default::default(),
+        }
+    }
+}
+
 /// Starts and runs the WutEngine runtime. MUST be called from the main thread
 ///
 /// Can only be called once per process
 pub fn run(
     systems: SystemManifest,
+    config: InitRuntimeConfig,
     post_start: Option<Box<dyn FnOnce()>>,
 ) -> Result<(), Box<RuntimeStartErr>> {
     if WUTENGINE_RUNNING.swap(true, Ordering::AcqRel) {
@@ -95,6 +113,16 @@ pub fn run(
         systems: system::SystemManager::new(),
         draw_commands: graphics::initialize_command_queue(),
     };
+
+    // Initialize the config manager first, so all other managers and engine systems
+    // can read from it to configure themselves
+    crate::config::init_and_load(config.config_file.as_deref());
+
+    for (key, val) in config.config_overrides {
+        if let Err(e) = crate::config::set_raw(&key, val) {
+            log::warn!("Failed to set config override `{key}` due to error: {e}");
+        }
+    }
 
     runtime.systems.build_schedule(systems);
 

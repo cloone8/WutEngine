@@ -1,11 +1,15 @@
 //! Runtime and loadtime configuration management
 
 use core::str::FromStr;
+use std::io::ErrorKind;
 use std::path::Path;
 
 use dashmap::DashMap;
 use serde::Deserialize;
 use smallvec::SmallVec;
+
+#[doc(inline)]
+pub use toml;
 
 use crate::util::InitOnce;
 
@@ -33,10 +37,20 @@ pub(crate) fn init_and_load(path: Option<&Path>) {
 fn load_from_file(path: &Path) -> DashMap<String, toml::Value> {
     let config_file_content = match std::fs::read_to_string(path) {
         Ok(content) => content,
+        Err(e) if e.kind() == ErrorKind::NotFound => {
+            log::info!(
+                "Config file \"{}\" not found. Assuming default configuration",
+                path.to_string_lossy()
+            );
+
+            return DashMap::default();
+        }
         Err(e) => {
             log::error!(
-                "Could not read config file due to error: {e}. Returning default values for all config requests"
+                "Could not read config file \"{}\" due to I/O error: {e}. Returning default values for all config requests",
+                path.to_string_lossy()
             );
+
             return DashMap::default();
         }
     };
@@ -45,7 +59,7 @@ fn load_from_file(path: &Path) -> DashMap<String, toml::Value> {
         Ok(config_toml) => config_toml,
         Err(e) => {
             log::error!(
-                "Could not read config file due to error: {e}. Returning default values for all config requests"
+                "Could not parse config file due to error: {e}. Returning default values for all config requests"
             );
             return DashMap::default();
         }
@@ -135,7 +149,11 @@ pub fn get_raw(key: &str) -> Option<toml::Value> {
 
 fn find_key<'a>(main_cat: &str, key: &str, tab: &'a toml::Table) -> Option<&'a toml::Value> {
     let keys = key.split('.').collect::<SmallVec<[_; 8]>>();
+
+    // All parts of the key before the last `.`
     let categories = &keys[..keys.len() - 1];
+
+    // The final part of the key after the last `.`
     let config_key = *&keys[keys.len() - 1];
 
     let mut containing_category_name = main_cat;
@@ -199,9 +217,13 @@ pub fn set_raw(key: &str, value: toml::Value) -> Result<(), ConfigKeyErr> {
 }
 
 fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
-    let keys = key.split('.').collect::<Vec<_>>();
+    let keys = key.split('.').collect::<SmallVec<[_; 8]>>();
+
+    // All parts of the key before the final `.`
     let categories = &keys[..keys.len() - 1];
-    let config_key = &keys[keys.len() - 1];
+
+    // The final string after the last `.`
+    let config_key = *&keys[keys.len() - 1];
 
     let mut cur_category = category;
 
@@ -212,17 +234,14 @@ fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
 
             let as_table = cur_category.as_table_mut().unwrap();
 
-            if as_table.contains_key(category) {
-                cur_category = as_table.get_mut(category).unwrap();
-            } else {
-                // We insert the new subcategory if it does not already exist
+            if !as_table.contains_key(category) {
                 as_table.insert(
                     category.to_owned(),
                     toml::Value::Table(toml::map::Map::default()),
                 );
-
-                cur_category = &mut as_table[category];
             }
+
+            cur_category = &mut as_table[category];
         } else {
             // If the value is not a table, we make it one and remove the existing values
 
@@ -238,17 +257,19 @@ fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
         }
     }
 
+    // We've traversed down the config tree, inserting new tables (or modifying entries into tables) while doing it.
+    // Now we insert the actual value at the final part of the key
     if cur_category.is_table() {
         let as_table = cur_category.as_table_mut().unwrap();
 
-        if as_table.contains_key(*config_key) {
-            as_table[*config_key] = val;
+        if as_table.contains_key(config_key) {
+            as_table[config_key] = val;
         } else {
-            as_table.insert((*config_key).to_owned(), val);
+            as_table.insert(config_key.to_owned(), val);
         }
     } else {
         let mut new_table = toml::map::Map::default();
-        new_table.insert((*config_key).to_owned(), val);
+        new_table.insert(config_key.to_owned(), val);
 
         *cur_category = toml::Value::Table(new_table);
     }
