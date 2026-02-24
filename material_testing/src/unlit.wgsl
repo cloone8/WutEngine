@@ -34,14 +34,14 @@ struct UserParams {
 
 @group(USER_PARAMS) @binding(0) var params: UserParams;
 
-//# if HAS_COLOR_MAP
+//# if HAS_COLOR_MAP != 0
 @group(USER_PARAMS) @binding(1) var source_sampler: sampler;
 @group(USER_PARAMS) @binding(2) var source_texture: texture_2d<f32>;
 //# endif
 
 @fragment fn fs(fs_input: VSOutput) -> @location(0) vec4f {
-    //# if HAS_COLOR_MAP
-    return textureSample(source_texture, source_sampler, fs_input.uv) * params.base_color;
+    //# if HAS_COLOR_MAP != 0
+    return textureSample(source_texture, source_sampler, fs_input.uv) * params.base_color * HAS_COLOR_MAP;
     //# else
     return params.base_color;
     //# endif

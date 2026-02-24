@@ -12,26 +12,25 @@
         {
             "kind": "buffer",
             "type": "vec4f",
-            "name": "base_color",
-            "condition": "HAS_COLOR_MAP"
+            "name": "base_color"
         },
         {
             "kind": "opaque",
             "type": "sampler",
             "name": "source_sampler",
             "binding": 1,
-            "condition": "HAS_COLOR_MAP"
+            "condition": "HAS_COLOR_MAP != 0"
         },
         {
             "kind": "opaque",
             "type": "texture_2d",
             "name": "source_texture",
             "binding": 2,
-            "condition": "HAS_COLOR_MAP"
+            "condition": "HAS_COLOR_MAP != 0"
         }
     ],
     "source": {
         "kind": "file",
-        "path": "./unlit.wgsl"
+        "path": "./material_testing/src/unlit.wgsl"
     }
 }
