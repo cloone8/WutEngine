@@ -28,7 +28,7 @@ pub struct CompInput<'a, Id> {
 
 #[derive(Debug)]
 pub struct CompOutput {
-    pub module: naga::Module,
+    pub module: Box<naga::Module>,
     pub source_id_hash: u64,
     pub keyword_hash: u64,
     pub remaining_params: HashSet<usize>,
@@ -67,7 +67,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
             parse_doc_comments: true,
         });
 
-    let module = naga_frontend.parse(&applied)?;
+    let module = Box::new(naga_frontend.parse(&applied)?);
 
     Ok(CompOutput {
         module,

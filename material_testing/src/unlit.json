@@ -4,8 +4,11 @@
     "instance_params": true,
     "keywords": {
         "HAS_COLOR_MAP": {
-            "start": 0,
-            "end": 1
+            "default": 0,
+            "allowed": {
+                "start": 0,
+                "end": 1
+            }
         }
     },
     "user_params": [
@@ -18,14 +21,12 @@
             "kind": "opaque",
             "type": "sampler",
             "name": "source_sampler",
-            "binding": 1,
             "condition": "HAS_COLOR_MAP != 0"
         },
         {
             "kind": "opaque",
             "type": "texture_2d",
             "name": "source_texture",
-            "binding": 2,
             "condition": "HAS_COLOR_MAP != 0"
         }
     ],
