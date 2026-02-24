@@ -1,0 +1,12 @@
+[package]
+name = "material_testing"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+material_shadercomp.workspace = true
+naga.workspace = true
+serde.workspace = true
+winit.workspace = true
+wgpu.workspace = true
+serde_json.workspace = true
