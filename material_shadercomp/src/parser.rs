@@ -211,10 +211,10 @@ impl<'src> Condition<'src> {
         Err(Box::new(ParseErr::UnmatchedOpeningBrace))
     }
 
-    pub fn eval<S: AsRef<str> + Hash + Eq + Borrow<str>>(
-        &self,
+    pub fn eval<'a, S: AsRef<str> + Hash + Eq + Borrow<str>>(
+        &'a self,
         keywords: &HashMap<S, u64>,
-    ) -> Option<bool> {
+    ) -> Result<bool, &'a str> {
         match self {
             Self::Single {
                 keyword,
@@ -222,7 +222,8 @@ impl<'src> Condition<'src> {
                 value,
             } => {
                 let condition_val = *value;
-                let actual_val = *keywords.get(*keyword)?;
+                let kw = *keyword;
+                let actual_val = *keywords.get(kw).ok_or(kw)?;
 
                 let result = match comparator {
                     ConditionComparator::Eq => actual_val == condition_val,
@@ -233,11 +234,11 @@ impl<'src> Condition<'src> {
                     ConditionComparator::Ge => actual_val >= condition_val,
                 };
 
-                Some(result)
+                Ok(result)
             }
             Self::Chain { left, op, right } => match op {
-                ConditionChain::And => Some(left.eval(keywords)? && right.eval(keywords)?),
-                ConditionChain::Or => Some(left.eval(keywords)? || right.eval(keywords)?),
+                ConditionChain::And => Ok(left.eval(keywords)? && right.eval(keywords)?),
+                ConditionChain::Or => Ok(left.eval(keywords)? || right.eval(keywords)?),
             },
         }
     }

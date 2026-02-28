@@ -652,6 +652,13 @@ impl Material {
     pub fn new(shader: Shader, keywords: HashMap<String, u64>, device: &wgpu::Device) -> Self {
         //TODO: Check cache
 
+        let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
+            shader
+                .vertex_attributes
+                .iter()
+                .map(|p| p.condition.as_ref().map(|c| c.0.as_str())),
+        );
+
         let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
             shader
                 .user_params
@@ -663,6 +670,7 @@ impl Material {
             id: shader.id as u64,
             source: shader.get_source(),
             keywords: &keywords,
+            vertex_attributes: &vertex_attr_conditions,
             user_params: &user_param_conditions,
             per_camera_block: include_str!("camera.wgsl"),
             per_instance_block: include_str!("instance.wgsl"),

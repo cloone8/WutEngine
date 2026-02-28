@@ -29,6 +29,7 @@ pub struct CompInput<'a, Id> {
     pub source: &'a str,
     pub keywords: &'a HashMap<String, u64>,
     pub user_params: &'a [Option<&'a str>],
+    pub vertex_attributes: &'a [Option<&'a str>],
     pub per_camera_block: &'a str,
     pub per_instance_block: &'a str,
 }
@@ -39,12 +40,22 @@ pub struct CompOutput {
     pub source_id_hash: u64,
     pub keyword_hash: u64,
     pub remaining_params: HashSet<usize>,
+    pub remaining_vertex_attributes: HashSet<usize>,
 }
 
 #[derive(Debug, derive_more::From, derive_more::Display, derive_more::Error)]
 pub enum CompileErr {
+    #[display("Failed to parse input shader: {}", _0)]
     Parse(Box<ParseErr>),
+
+    #[display("Directive mismatch: {}", _0)]
+    DirectiveMismatch(#[error(not(source))] &'static str),
+
+    #[display("Failed to compile preprocessed WGSL into a module: {}", _0)]
     CompileWgsl(naga::front::wgsl::ParseError),
+
+    #[display("Missing value for keyword \"{}\"", _0)]
+    MissingKeywordValue(#[error(not(source))] String),
 }
 
 pub fn compile<Id, H: ShaderHasher<Id>>(
@@ -67,6 +78,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
 
     // Find the set of remaining parameters based on the input parameter conditions
     let remaining_params = strip_parameters(input.user_params, input.keywords)?;
+    let remaining_vertex_attributes = strip_parameters(input.user_params, input.keywords)?;
 
     // Compile into a naga module
     let mut naga_frontend =
@@ -81,6 +93,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
         source_id_hash: H::hash_source_id(input.id),
         keyword_hash: H::hash_keywords(input.keywords),
         remaining_params,
+        remaining_vertex_attributes,
     })
 }
 
@@ -95,6 +108,8 @@ fn apply_directives(
     for stmt in file.0 {
         match stmt {
             parser::Statement::Source(s) => {
+                // Try to pop the state of the current #if/#else/#elif directive, if any.
+                // If no directive is active, we're not in a branch so we can just write the source
                 let active = branch_stack.last().copied().unwrap_or(true);
 
                 if active {
@@ -103,33 +118,45 @@ fn apply_directives(
             }
             parser::Statement::Directive(directive) => match directive {
                 parser::Directive::If(condition) => {
-                    let branch_active = condition.eval(keywords).expect("Missing keyword");
+                    let branch_active = condition
+                        .eval(keywords)
+                        .map_err(|e| CompileErr::MissingKeywordValue(e.to_owned()))?;
 
                     branch_stack.push(branch_active);
                 }
                 parser::Directive::Elif(condition) => {
-                    let was_active = branch_stack.pop().expect("Mismatched elif");
+                    let was_active = branch_stack
+                        .pop()
+                        .ok_or(CompileErr::DirectiveMismatch("\"elif\" without \"if\""))?;
 
                     if was_active {
                         branch_stack.push(false);
                     } else {
-                        branch_stack.push(condition.eval(keywords).expect("Missing keyword"));
+                        branch_stack.push(
+                            condition
+                                .eval(keywords)
+                                .map_err(|e| CompileErr::MissingKeywordValue(e.to_owned()))?,
+                        );
                     }
                 }
                 parser::Directive::Else => {
-                    let was_active = branch_stack.pop().expect("Mismatched else");
+                    let was_active = branch_stack
+                        .pop()
+                        .ok_or(CompileErr::DirectiveMismatch("\"else\" without \"if\""))?;
 
                     branch_stack.push(!was_active);
                 }
                 parser::Directive::Endif => {
-                    _ = branch_stack.pop().expect("Mismatched endif");
+                    _ = branch_stack
+                        .pop()
+                        .ok_or(CompileErr::DirectiveMismatch("\"endif\" without \"if\""))?;
                 }
             },
         }
     }
 
     if !branch_stack.is_empty() {
-        panic!("Mismatched branch");
+        return Err(CompileErr::DirectiveMismatch("\"if\" without \"endif\""));
     }
 
     Ok(out)
@@ -149,9 +176,9 @@ fn strip_parameters(
 
         let condition = parse_condition(condition_string)?;
 
-        let Some(active) = condition.eval(keywords) else {
-            panic!("Missing keyword for resolving parameter at index {i}");
-        };
+        let active = condition
+            .eval(keywords)
+            .map_err(|e| CompileErr::MissingKeywordValue(e.to_owned()))?;
 
         if active {
             set.insert(i);
