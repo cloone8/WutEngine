@@ -3,4 +3,4 @@ struct InstanceConstants {
     mvp: mat4x4<f32>,
 }
 
-@group(1) @binding(0) var<uniform> instance_params: InstanceConstants;
+@group(WUTENGINE_INSTANCE_GROUP) @binding(0) var<uniform> instance_params: InstanceConstants;

@@ -1,3 +1,4 @@
+use core::mem::MaybeUninit;
 use core::num::NonZero;
 use core::ops::RangeInclusive;
 use std::collections::{HashMap, HashSet};
@@ -8,7 +9,10 @@ use std::time::Instant;
 
 use bind_group::BindGroup;
 use glam::{Mat4, Quat, Vec2, Vec3, Vec4};
-use material_shadercomp::CompInput;
+use material_shadercomp::{
+    CAMERA_PARAMS_BIND_GROUP_INDEX, CompInput, INSTANCE_PARAMS_BIND_GROUP_INDEX,
+    MATERIAL_PARAMS_BIND_GROUP_INDEX,
+};
 use serde::{Deserialize, Serialize, de};
 use tobj::{LoadError, LoadOptions};
 use types::{GMat4x4, ShaderBufferParameterType, ShaderOpaqueParameterType};
@@ -349,7 +353,7 @@ impl ApplicationHandler for App {
         }
     }
 
-    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
         let win_size = self.window.as_ref().unwrap().inner_size();
 
         if let Some(srfc) = &self.surface
@@ -369,7 +373,6 @@ impl ApplicationHandler for App {
             };
 
             srfc.configure(self.device.as_ref().unwrap(), &config);
-            println!("Reconfigured");
             self.configured = true;
         }
 
@@ -394,11 +397,11 @@ impl ApplicationHandler for App {
 
             let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Unlit pipeline layout"),
-                bind_group_layouts: &[
+                bind_group_layouts: &sort_layouts(
                     &camera_bind_group.layout,
-                    &instance_bind_group.layout,
                     &material.user_bind_group.layout,
-                ],
+                    &instance_bind_group.layout,
+                ),
                 immediate_size: 0,
             });
 
@@ -514,19 +517,13 @@ impl ApplicationHandler for App {
         render_pass.set_index_buffer(idx_buf.slice(..), wgpu::IndexFormat::Uint32);
 
         render_pass.set_bind_group(
-            0,
+            CAMERA_PARAMS_BIND_GROUP_INDEX,
             Some(self.cam_bindgroup.as_ref().unwrap().get_bind_group()),
             &[],
         );
 
         render_pass.set_bind_group(
-            1,
-            Some(self.instance_bindgroup.as_ref().unwrap().get_bind_group()),
-            &[],
-        );
-
-        render_pass.set_bind_group(
-            2,
+            MATERIAL_PARAMS_BIND_GROUP_INDEX,
             Some(
                 self.unlit_mat
                     .as_ref()
@@ -534,6 +531,12 @@ impl ApplicationHandler for App {
                     .user_bind_group
                     .get_bind_group(),
             ),
+            &[],
+        );
+
+        render_pass.set_bind_group(
+            INSTANCE_PARAMS_BIND_GROUP_INDEX,
+            Some(self.instance_bindgroup.as_ref().unwrap().get_bind_group()),
             &[],
         );
 
@@ -547,9 +550,21 @@ impl ApplicationHandler for App {
             .submit(core::iter::once(encoder.finish()));
 
         output.present();
-
-        // material.set_parameter("base_colors", MaterialParameter::Vec4(Vec4::ONE), &queue);
     }
+}
+
+#[inline]
+fn sort_layouts<'a>(
+    cam: &'a wgpu::BindGroupLayout,
+    mat: &'a wgpu::BindGroupLayout,
+    instance: &'a wgpu::BindGroupLayout,
+) -> [&'a wgpu::BindGroupLayout; 3] {
+    core::array::from_fn(|i| match i as u32 {
+        CAMERA_PARAMS_BIND_GROUP_INDEX => cam,
+        MATERIAL_PARAMS_BIND_GROUP_INDEX => mat,
+        INSTANCE_PARAMS_BIND_GROUP_INDEX => instance,
+        _ => unreachable!(),
+    })
 }
 
 fn update_bind_groups(

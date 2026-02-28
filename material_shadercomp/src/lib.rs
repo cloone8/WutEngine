@@ -5,7 +5,14 @@ use parser::{ParseErr, ShaderFile, parse_condition};
 
 mod parser;
 
-const USER_PARAMS_BIND_GROUP_INDEX: u64 = 2;
+pub const CAMERA_PARAMS_BIND_GROUP_INDEX: u32 = 0;
+pub const CAMERA_PARAMS_BIND_GROUP_KEYWORD: &str = "WUTENGINE_CAMERA_GROUP";
+
+pub const MATERIAL_PARAMS_BIND_GROUP_INDEX: u32 = 1;
+pub const MATERIAL_PARAMS_BIND_GROUP_KEYWORD: &str = "WUTENGINE_MATERIAL_GROUP";
+
+pub const INSTANCE_PARAMS_BIND_GROUP_INDEX: u32 = 2;
+pub const INSTANCE_PARAMS_BIND_GROUP_KEYWORD: &str = "WUTENGINE_INSTANCE_GROUP";
 
 /// An implementation that provides deterministic hashes for a shader compilation
 pub trait ShaderHasher<Id> {
@@ -56,7 +63,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
     );
 
     // Replace all keyword references with their values
-    inject_keywords_as_constants::<USER_PARAMS_BIND_GROUP_INDEX>(&mut applied, input.keywords);
+    inject_keywords_as_constants(&mut applied, input.keywords);
 
     // Find the set of remaining parameters based on the input parameter conditions
     let remaining_params = strip_parameters(input.user_params, input.keywords)?;
@@ -154,15 +161,28 @@ fn strip_parameters(
     Ok(set)
 }
 
-fn inject_keywords_as_constants<const USER_PARAMS_GROUP: u64>(
-    source: &mut String,
-    keywords: &HashMap<String, u64>,
-) {
+fn inject_keywords_as_constants(source: &mut String, keywords: &HashMap<String, u64>) {
+    inject_keyword(
+        source,
+        CAMERA_PARAMS_BIND_GROUP_KEYWORD,
+        CAMERA_PARAMS_BIND_GROUP_INDEX as u64,
+    );
+
+    inject_keyword(
+        source,
+        MATERIAL_PARAMS_BIND_GROUP_KEYWORD,
+        MATERIAL_PARAMS_BIND_GROUP_INDEX as u64,
+    );
+
+    inject_keyword(
+        source,
+        INSTANCE_PARAMS_BIND_GROUP_KEYWORD,
+        INSTANCE_PARAMS_BIND_GROUP_INDEX as u64,
+    );
+
     for (keyword, &val) in keywords {
         inject_keyword(source, keyword, val);
     }
-
-    inject_keyword(source, "USER_PARAMS", USER_PARAMS_GROUP);
 }
 
 fn inject_keyword(source: &mut String, keyword: &str, val: u64) {

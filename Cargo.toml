@@ -20,6 +20,9 @@ bytemuck = { version = "*" }
 flexbuffers = { version = "25" }
 tobj = "4.0.3"
 
+[profile.dev]
+panic = "abort"
+
 [profile.release]
 lto = "fat"
 codegen-units = 1
