@@ -1,7 +1,5 @@
 {
     "name": "Unlit",
-    "camera_params": true,
-    "instance_params": true,
     "keywords": {
         "HAS_COLOR_MAP": {
             "default": 0,
@@ -11,6 +9,18 @@
             }
         }
     },
+    "vertex_attributes": [
+        {
+            "type": "position",
+            "location": 0
+        },
+        {
+            "type": "uv",
+            "location": 1,
+            "channel": 0,
+            "condition": "HAS_COLOR_MAP != 0"
+        }
+    ],
     "user_params": [
         {
             "kind": "buffer",

@@ -1,4 +1,3 @@
-use core::mem::MaybeUninit;
 use core::num::NonZero;
 use core::ops::RangeInclusive;
 use std::collections::{HashMap, HashSet};
@@ -13,9 +12,9 @@ use material_shadercomp::{
     CAMERA_PARAMS_BIND_GROUP_INDEX, CompInput, INSTANCE_PARAMS_BIND_GROUP_INDEX,
     MATERIAL_PARAMS_BIND_GROUP_INDEX,
 };
-use serde::{Deserialize, Serialize, de};
+use serde::{Deserialize, Serialize};
 use tobj::{LoadError, LoadOptions};
-use types::{GMat4x4, ShaderBufferParameterType, ShaderOpaqueParameterType};
+use types::{ShaderBufferParameterType, ShaderOpaqueParameterType};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::{
     BackendOptions, Backends, BufferUsages, Color, ColorWrites, InstanceFlags, ShaderStages,
@@ -35,8 +34,7 @@ struct Shader {
     #[serde(skip)]
     id: usize,
     name: String,
-    camera_params: bool,
-    instance_params: bool,
+    vertex_attributes: Vec<ShaderVertexAttribute>,
     keywords: HashMap<String, ShaderKeyword>,
     user_params: Vec<ShaderParameter>,
     source: ShaderSource,
@@ -57,6 +55,22 @@ impl Shader {
             panic!("Invalid source");
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ShaderVertexAttribute {
+    #[serde(flatten)]
+    ty: ShaderVertexAttributeType,
+    location: u32,
+    condition: Option<ShaderParameterCondition>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(tag = "type")]
+#[serde(rename_all = "lowercase")]
+enum ShaderVertexAttributeType {
+    Position,
+    Uv { channel: u8 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -233,8 +247,7 @@ impl ApplicationHandler for App {
                 }],
             });
 
-        let mut camera_bind_group =
-            BindGroup::new("Camera".to_string(), camera_layout, &camera_params);
+        let camera_bind_group = BindGroup::new("Camera".to_string(), camera_layout, &camera_params);
 
         let instance_params = [
             ShaderParameter::Buffer {
@@ -269,10 +282,12 @@ impl ApplicationHandler for App {
                 }],
             });
 
-        let mut instance_bind_group =
+        let instance_bind_group =
             BindGroup::new("Instance".to_string(), instance_layout, &instance_params);
 
         let mut desc: Shader = serde_json::from_str(include_str!("unlit.json")).unwrap();
+
+        dbg!(&desc);
 
         desc.load_source();
 
@@ -293,7 +308,7 @@ impl ApplicationHandler for App {
 
         let mut teapot_reader = BufReader::new(TEAPOT);
         let (teapot_model, _) =
-            tobj::load_obj_buf(&mut teapot_reader, &LoadOptions::default(), |mat| {
+            tobj::load_obj_buf(&mut teapot_reader, &LoadOptions::default(), |_| {
                 Err(LoadError::ReadError)
             })
             .unwrap();
@@ -492,6 +507,8 @@ impl ApplicationHandler for App {
                     label: Some("Encoder"),
                 });
 
+        // @ Camera init
+
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -509,38 +526,44 @@ impl ApplicationHandler for App {
             multiview_mask: None,
         });
 
-        render_pass.set_pipeline(self.unlit_pipeline.as_ref().unwrap());
-
-        let (vtx_buf, idx_buf) = self.mesh_bufs.as_ref().unwrap();
-
-        render_pass.set_vertex_buffer(0, vtx_buf.slice(..));
-        render_pass.set_index_buffer(idx_buf.slice(..), wgpu::IndexFormat::Uint32);
-
         render_pass.set_bind_group(
             CAMERA_PARAMS_BIND_GROUP_INDEX,
             Some(self.cam_bindgroup.as_ref().unwrap().get_bind_group()),
             &[],
         );
 
-        render_pass.set_bind_group(
-            MATERIAL_PARAMS_BIND_GROUP_INDEX,
-            Some(
-                self.unlit_mat
-                    .as_ref()
-                    .unwrap()
-                    .user_bind_group
-                    .get_bind_group(),
-            ),
-            &[],
-        );
+        // @ Material change
+        {
+            render_pass.set_pipeline(self.unlit_pipeline.as_ref().unwrap());
 
-        render_pass.set_bind_group(
-            INSTANCE_PARAMS_BIND_GROUP_INDEX,
-            Some(self.instance_bindgroup.as_ref().unwrap().get_bind_group()),
-            &[],
-        );
+            render_pass.set_bind_group(
+                MATERIAL_PARAMS_BIND_GROUP_INDEX,
+                Some(
+                    self.unlit_mat
+                        .as_ref()
+                        .unwrap()
+                        .user_bind_group
+                        .get_bind_group(),
+                ),
+                &[],
+            );
+        }
 
-        render_pass.draw_indexed(0..self.mesh.as_ref().unwrap().indices.len() as u32, 0, 0..1);
+        // @ Draw call
+        {
+            render_pass.set_bind_group(
+                INSTANCE_PARAMS_BIND_GROUP_INDEX,
+                Some(self.instance_bindgroup.as_ref().unwrap().get_bind_group()),
+                &[],
+            );
+
+            let (vtx_buf, idx_buf) = self.mesh_bufs.as_ref().unwrap();
+
+            render_pass.set_vertex_buffer(0, vtx_buf.slice(..));
+            render_pass.set_index_buffer(idx_buf.slice(..), wgpu::IndexFormat::Uint32);
+
+            render_pass.draw_indexed(0..self.mesh.as_ref().unwrap().indices.len() as u32, 0, 0..1);
+        }
 
         drop(render_pass);
 

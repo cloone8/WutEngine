@@ -22,10 +22,16 @@ enum ParamIndex {
     Opaque(u16),
 }
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum SetParamErr {
-    UnknownParameter,
-    InvalidConversion(&'static str, &'static str),
+    #[display("Unkown parameter in bind group: {}", _0)]
+    UnknownParameter(#[error(not(source))] String),
+
+    #[display("Cannot convert value of type {} to parameter type {}", from, to)]
+    InvalidConversion {
+        from: &'static str,
+        to: &'static str,
+    },
 }
 
 impl BindGroup {
@@ -118,7 +124,7 @@ impl BindGroup {
         queue: &wgpu::Queue,
     ) -> Result<(), SetParamErr> {
         let Some(param_index) = self.param_indices.get(param).copied() else {
-            return Err(SetParamErr::UnknownParameter);
+            return Err(SetParamErr::UnknownParameter(param.to_owned()));
         };
 
         match param_index {
@@ -128,7 +134,10 @@ impl BindGroup {
                 let conversion_ok = self.buffer_params[idx].set_from(value);
 
                 if !conversion_ok {
-                    return Err(SetParamErr::InvalidConversion("<TODO NAME>", "<TODO NAME>"));
+                    return Err(SetParamErr::InvalidConversion {
+                        from: "<TODO NAME>",
+                        to: "<TODO NAME>",
+                    });
                 }
 
                 if let Some(buffer) = self.native.as_ref().map(|n| &n.0) {
@@ -155,7 +164,10 @@ impl BindGroup {
                 let conversion_ok = self.opaque_params[idx as usize].set_from(value);
 
                 if !conversion_ok {
-                    return Err(SetParamErr::InvalidConversion("<TODO NAME>", "<TODO NAME>"));
+                    return Err(SetParamErr::InvalidConversion {
+                        from: "<TODO NAME>",
+                        to: "<TODO NAME>",
+                    });
                 }
 
                 // Rebinding opaque parameters requires recreating the whole bind group
@@ -199,6 +211,7 @@ impl BindGroup {
             // Increment the offset by the size of the type.
             offset += bytes.len();
         }
+
         drop(buf_slice);
         buffer.unmap();
 

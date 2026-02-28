@@ -2,7 +2,6 @@
 
 mod primitives;
 
-use glam::Vec2;
 pub use primitives::*;
 use serde::{Deserialize, Serialize};
 
@@ -211,49 +210,37 @@ impl ShaderBufferParameter {
             Self::Flt(cur) => {
                 if let MaterialParameter::Flt(f) = value {
                     *cur = f;
-                    true
-                } else {
-                    false
+                    return true;
                 }
             }
             Self::Uint(cur) => {
                 if let MaterialParameter::Uint(u) = value {
                     *cur = u;
-                    true
-                } else {
-                    false
+                    return true;
                 }
             }
             Self::Int(cur) => {
                 if let MaterialParameter::Int(i) = value {
                     *cur = i;
-                    true
-                } else {
-                    false
+                    return true;
                 }
             }
             Self::Vec2f(cur) => {
                 if let MaterialParameter::Vec2(v) = value {
                     *cur = v.into();
-                    true
-                } else {
-                    false
+                    return true;
                 }
             }
             Self::Vec3f(cur) => {
                 if let MaterialParameter::Vec3(v) = value {
                     *cur = v.into();
-                    true
-                } else {
-                    false
+                    return true;
                 }
             }
             Self::Vec4f(cur) => {
                 if let MaterialParameter::Vec4(v) = value {
                     *cur = v.into();
-                    true
-                } else {
-                    false
+                    return true;
                 }
             }
             Self::Vec2u(_) => todo!(),
@@ -265,12 +252,12 @@ impl ShaderBufferParameter {
             Self::Mat4x4(cur) => {
                 if let MaterialParameter::Mat4(mat) = value {
                     *cur = mat.into();
-                    true
-                } else {
-                    false
+                    return true;
                 }
             }
         }
+
+        false
     }
 }
 
@@ -301,7 +288,7 @@ impl ShaderOpaqueParameter {
     }
 
     #[inline]
-    pub(crate) fn to_binding_resource(&self) -> wgpu::BindingResource {
+    pub(crate) fn to_binding_resource(&self) -> wgpu::BindingResource<'_> {
         match self {
             Self::Texture2D(texture_view) => wgpu::BindingResource::TextureView(texture_view),
             Self::Sampler(sampler) => wgpu::BindingResource::Sampler(sampler),
