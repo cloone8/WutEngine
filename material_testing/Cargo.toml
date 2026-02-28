@@ -16,9 +16,10 @@ material_shadercomp.workspace = true
 naga.workspace = true
 serde.workspace = true
 winit.workspace = true
-wgpu.workspace = true
+wgpu = { workspace = true, features = ["naga-ir"] }
 serde_json.workspace = true
 pollster.workspace = true
 glam.workspace = true
 bytemuck = { workspace = true, features = ["const_zeroed"] }
 flexbuffers.workspace = true
+tobj.workspace = true

@@ -18,6 +18,7 @@ pollster = "*"
 glam = { version = "*", features = ["bytemuck"] }
 bytemuck = { version = "*" }
 flexbuffers = { version = "25" }
+tobj = "4.0.3"
 
 [profile.release]
 lto = "fat"

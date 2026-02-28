@@ -12,7 +12,7 @@ pub(crate) struct BindGroup {
     param_indices: HashMap<String, ParamIndex>,
     buffer_params: Vec<ShaderBufferParameter>,
     opaque_params: Vec<ShaderOpaqueParameter>,
-    layout: wgpu::BindGroupLayout,
+    pub(crate) layout: wgpu::BindGroupLayout,
     native: Option<(wgpu::Buffer, wgpu::BindGroup)>,
 }
 
@@ -168,6 +168,7 @@ impl BindGroup {
 
     pub(crate) fn update_bind_group(&mut self, device: &wgpu::Device) {
         if self.native.is_some() {
+            // Update is not required
             return;
         }
 
@@ -198,7 +199,7 @@ impl BindGroup {
             // Increment the offset by the size of the type.
             offset += bytes.len();
         }
-
+        drop(buf_slice);
         buffer.unmap();
 
         let mut entries: Vec<wgpu::BindGroupEntry> =
