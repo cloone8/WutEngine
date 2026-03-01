@@ -1,35 +1,48 @@
+//! WutEngine shader compiler directive parser
+
 use core::borrow::Borrow;
 use core::hash::Hash;
 use std::collections::HashMap;
 
 const DIRECTIVE_LEADER: &str = "//#";
 
+/// An error while parsing a WutEngine shader source file
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum ParseErr {
+    /// An unknown directive
     #[display("Unknown compiler directive given: {}", _0)]
     InvalidDirective(#[error(not(source))] String),
 
+    /// Malformed condition string
     #[display("Malformed condition string \"{}\", error: {}", condition, reason)]
     MalformedCondition {
+        /// The condition string
         condition: String,
+
+        /// The reason it was not able to be parsed
         reason: &'static str,
     },
 
+    /// Unmatched opening brace (`(`)
     #[display("Unmatched opening brace found")]
     UnmatchedOpeningBrace,
 
+    /// Unmatched closing brace (`)`)
     #[display("Unmatched closing brace found")]
     UnmatchedClosingBrace,
 
+    /// Invalid condition comparator (`==`, `!=`, etc.)
     #[display("Invalid condition comparator given: {}", _0)]
     InvalidConditionComparator(#[error(not(source))] String),
 }
 
+/// A parsed shader source file
 #[derive(Debug, Clone)]
-pub struct ShaderFile<'a>(pub Vec<Statement<'a>>);
+pub(crate) struct ShaderFile<'a>(pub Vec<Statement<'a>>);
 
 impl<'src> ShaderFile<'src> {
-    pub fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
+    /// Attempts to parse the string into a source file
+    pub(crate) fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
         profiling::function_scope!();
 
         Ok(Self(
@@ -41,14 +54,18 @@ impl<'src> ShaderFile<'src> {
     }
 }
 
+/// A single statement in a [ShaderFile]
 #[derive(Debug, Clone)]
-pub enum Statement<'a> {
+pub(crate) enum Statement<'a> {
+    /// Normal source code
     Source(&'a str),
+
+    /// A preprocessor directive
     Directive(Directive<'a>),
 }
 
 impl<'src> Statement<'src> {
-    pub fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
+    fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
         let trimmed = source.trim();
 
         if trimmed.starts_with(DIRECTIVE_LEADER) {
@@ -61,16 +78,23 @@ impl<'src> Statement<'src> {
     }
 }
 
+/// A preprocessor directive in a [ShaderFile]
 #[derive(Debug, Clone)]
-pub enum Directive<'a> {
+pub(crate) enum Directive<'a> {
+    /// `if` with the condition
     If(Condition<'a>),
+    /// `elif` with the condition
     Elif(Condition<'a>),
+
+    /// `else`
     Else,
+
+    /// `endif`
     Endif,
 }
 
 impl<'src> Directive<'src> {
-    pub fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
+    fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
         let trimmed = source.trim();
 
         if trimmed.starts_with("if") {
@@ -95,22 +119,38 @@ impl<'src> Directive<'src> {
     }
 }
 
+/// A condition that can be evaluated
 #[derive(Debug, Clone)]
-pub enum Condition<'a> {
+pub(crate) enum Condition<'a> {
+    /// A non-chained condition (`if FOO == 5`)
     Single {
+        /// The keyword to compare
         keyword: &'a str,
+        /// The comparator
         comparator: ConditionComparator,
+
+        /// The value to compare against
         value: u64,
     },
+
+    /// A chained condition (possibly nested) (`if FOO == 5 && BAR == 6`)
     Chain {
+        /// The left inner condition
         left: Box<Condition<'a>>,
+
+        /// The chaining operator (`&&`, `||`, etc.)
         op: ConditionChain,
+
+        /// The right inner condition
         right: Box<Condition<'a>>,
     },
 }
 
 impl<'src> Condition<'src> {
-    fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
+    /// Parses the given source string into a condition, if possible.
+    ///
+    /// Requires `source` to be pre-stripped of both the [directive leader](DIRECTIVE_LEADER) and the [Directive] (`if`, `elif`, etc.)
+    pub(crate) fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
         let s = source.trim();
 
         // strip outer parens if they enclose whole expression
@@ -213,7 +253,12 @@ impl<'src> Condition<'src> {
         Err(Box::new(ParseErr::UnmatchedOpeningBrace))
     }
 
-    pub fn eval<'a, S: AsRef<str> + Hash + Eq + Borrow<str>>(
+    /// Evaluates whether the condition is true or false, based on the given input
+    /// keywords.
+    ///
+    /// If the condition could not be fully evaluated due to a missing keyword value,
+    /// returns [Err] with the keyword that was missing
+    pub(crate) fn eval<'a, S: AsRef<str> + Hash + Eq + Borrow<str>>(
         &'a self,
         keywords: &HashMap<S, u64>,
     ) -> Result<bool, &'a str> {
@@ -246,13 +291,25 @@ impl<'src> Condition<'src> {
     }
 }
 
+/// A comparator for a [Condition]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ConditionComparator {
+pub(crate) enum ConditionComparator {
+    /// `==`
     Eq,
+
+    /// `!=`
     Ne,
+
+    /// `<`
     Lt,
+
+    /// `<=`
     Le,
+
+    /// `>`
     Gt,
+
+    /// `>=`
     Ge,
 }
 
@@ -274,12 +331,12 @@ impl ConditionComparator {
     }
 }
 
+/// An operator to chain multiple [Conditions](Condition)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ConditionChain {
+pub(crate) enum ConditionChain {
+    /// `&&`
     And,
-    Or,
-}
 
-pub fn parse_condition(s: &str) -> Result<Condition<'_>, Box<ParseErr>> {
-    Condition::parse(s)
+    /// `||`
+    Or,
 }

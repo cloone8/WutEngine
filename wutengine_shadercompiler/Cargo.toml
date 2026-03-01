@@ -17,6 +17,7 @@ profiling = []
 [dependencies]
 naga = { workspace = true, features = ["wgsl-in"] }
 derive_more = { workspace = true, features = ["error", "display", "from"] }
+log.workspace = true
 smallvec.workspace = true
 nohash-hasher.workspace = true
 profiling.workspace = true
