@@ -11,7 +11,7 @@ use wutengine_shadercompiler::Input;
 use crate::graphics::GFX_DEVICE;
 use crate::graphics::shader::{CompiledShaderId, ShaderId, XXHashShaderHasher};
 
-use super::{CompiledShader, Shader, ShaderParameter, ShaderParameterBinding};
+use super::{CompiledShader, ParameterBinding, Shader, ShaderParameter};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub(crate) enum CompileErr {
@@ -41,7 +41,7 @@ pub(crate) enum CompileErr {
         _1,
         _2
     )]
-    DuplicateParameterBinding(ShaderParameterBinding, String, String),
+    DuplicateParameterBinding(ParameterBinding, String, String),
 
     #[display("An error was encountered during shader compilation: {}", _0)]
     ShaderCompilationError(Box<wutengine_shadercompiler::Error>),
@@ -93,17 +93,16 @@ pub(crate) fn compile(
     }
 
     let variant_name = format!("{}#{:016x}", shader.name, compile_output.keyword_hash);
-    let bind_group_layouts =
-        create_bind_group_layout(shader, &variant_name, &compile_output.remaining_bindings);
+    let parameters_after_compilation = filter_bindings(shader, &compile_output.remaining_bindings);
+    let bind_group_layouts = create_bind_group_layout(&variant_name, &parameters_after_compilation);
 
     let compiled = CompiledShader {
-        source_hash: compile_output.source_id_hash,
-        keyword_hash: compile_output.keyword_hash,
-        id: CompiledShaderId(
-            ((compile_output.source_id_hash as u128) << 64) | (compile_output.keyword_hash as u128),
+        id: CompiledShaderId::from_hashes(
+            compile_output.source_id_hash,
+            compile_output.keyword_hash,
         ),
         pipeline_layout: create_pipeline_layout(&variant_name, &bind_group_layouts),
-        bind_group_layouts,
+        user_param_group_layout: bind_group_layouts,
         module,
         name: variant_name,
     };
@@ -216,25 +215,25 @@ fn create_pipeline_layout(
     })
 }
 
-fn create_bind_group_layout(
+fn filter_bindings(
     shader: &Shader,
-    variant_name: &str,
     remaining_bindings: &[wutengine_shadercompiler::Binding],
-) -> Vec<wgpu::BindGroupLayout> {
-    profiling::function_scope!();
-
-    let remaining_bindings: HashMap<&str, _> = shader
+) -> HashMap<String, ShaderParameter> {
+    shader
         .parameters
         .iter()
         .filter(|(_, param)| remaining_bindings.contains(&(param.binding.into())))
-        .map(|(param_name, param)| (param_name.as_str(), param))
-        .collect();
+        .map(|(param_name, param)| (param_name.clone(), param.clone()))
+        .collect()
+}
 
-    let Some(highest_group) = remaining_bindings
-        .values()
-        .map(|param| param.binding.group)
-        .max()
-    else {
+fn create_bind_group_layout(
+    variant_name: &str,
+    bindings: &HashMap<String, ShaderParameter>,
+) -> Vec<wgpu::BindGroupLayout> {
+    profiling::function_scope!();
+
+    let Some(highest_group) = bindings.values().map(|param| param.binding.group).max() else {
         // No bind groups, so we can just create an empty layout
         return Vec::new();
     };
@@ -244,7 +243,7 @@ fn create_bind_group_layout(
     let mut bind_group_layout_labels = Vec::with_capacity(highest_group as usize);
 
     for bind_group_idx in 0..highest_group {
-        let layout_entries: Vec<_> = remaining_bindings
+        let layout_entries: Vec<_> = bindings
             .values()
             .filter(|param| param.binding.group == bind_group_idx)
             .map(|param| param.to_wgpu_layout_entry())

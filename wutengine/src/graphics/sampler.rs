@@ -3,75 +3,93 @@
 use std::sync::Arc;
 
 use crate::graphics::GFX_DEVICE;
+use crate::graphics::cache::sampler::SamplerCacheKey;
 
 use super::cache;
 
 /// A texture sampler descriptor.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-pub struct Sampler {
-    /// What filtering method the sampler uses when the texture takes
-    /// up more space on the screen than it has pixels
-    pub filter: Filtering,
+#[derive(Debug, Clone)]
+pub struct Sampler(pub(super) Arc<wgpu::Sampler>);
+// /// What filtering method the sampler uses when the texture takes
+// /// up more space on the screen than it has pixels
+// pub filter: Filtering,
 
-    /// How the sampler treats out-of-bounds accesses
-    pub wrapping: WrapModeType,
-}
+// /// How the sampler treats out-of-bounds accesses
+// pub wrapping: WrapModeType,
 
 /// Some predefined common sampler types
 impl Sampler {
-    /// Linear filtering sampler that clamps to the texture edge
-    pub const LINEAR_CLAMP: Self = Self {
-        filter: Filtering::Linear,
-        wrapping: WrapModeType::Single(WrapMode::Clamp),
-    };
+    // /// Linear filtering sampler that clamps to the texture edge
+    // pub const LINEAR_CLAMP: Self = Self {
+    //     filter: Filtering::Linear,
+    //     wrapping: WrapModeType::Single(WrapMode::Clamp),
+    // };
 
-    /// Linear filtering sampler that repeats the texture
-    pub const LINEAR_REPEAT: Self = Self {
-        filter: Filtering::Linear,
-        wrapping: WrapModeType::Single(WrapMode::Repeat),
-    };
+    // /// Linear filtering sampler that repeats the texture
+    // pub const LINEAR_REPEAT: Self = Self {
+    //     filter: Filtering::Linear,
+    //     wrapping: WrapModeType::Single(WrapMode::Repeat),
+    // };
 
-    /// Linear filtering sampler that mirror-repeats the texture edge
-    pub const LINEAR_MIRROR: Self = Self {
-        filter: Filtering::Linear,
-        wrapping: WrapModeType::Single(WrapMode::MirrorRepeat),
-    };
+    // /// Linear filtering sampler that mirror-repeats the texture edge
+    // pub const LINEAR_MIRROR: Self = Self {
+    //     filter: Filtering::Linear,
+    //     wrapping: WrapModeType::Single(WrapMode::MirrorRepeat),
+    // };
 
-    /// Nearest-neighbour filtering sampler that clamps to the texture edge
-    pub const NEAREST_CLAMP: Self = Self {
-        filter: Filtering::Nearest,
-        wrapping: WrapModeType::Single(WrapMode::Clamp),
-    };
+    // /// Nearest-neighbour filtering sampler that clamps to the texture edge
+    // pub const NEAREST_CLAMP: Self = Self {
+    //     filter: Filtering::Nearest,
+    //     wrapping: WrapModeType::Single(WrapMode::Clamp),
+    // };
 
-    /// Nearest-neighbour filtering sampler that repeats the texture
-    pub const NEAREST_REPEAT: Self = Self {
-        filter: Filtering::Nearest,
-        wrapping: WrapModeType::Single(WrapMode::Repeat),
-    };
+    // /// Nearest-neighbour filtering sampler that repeats the texture
+    // pub const NEAREST_REPEAT: Self = Self {
+    //     filter: Filtering::Nearest,
+    //     wrapping: WrapModeType::Single(WrapMode::Repeat),
+    // };
 
-    /// Nearest-neighbour filtering sampler that mirror-repeats the texture edge
-    pub const NEAREST_MIRROR: Self = Self {
-        filter: Filtering::Nearest,
-        wrapping: WrapModeType::Single(WrapMode::MirrorRepeat),
-    };
+    // /// Nearest-neighbour filtering sampler that mirror-repeats the texture edge
+    // pub const NEAREST_MIRROR: Self = Self {
+    //     filter: Filtering::Nearest,
+    //     wrapping: WrapModeType::Single(WrapMode::MirrorRepeat),
+    // };
 }
 
 impl Sampler {
-    /// Returns the (preferably cached) native [wgpu::Sampler] object
-    /// matching this [Sampler]
-    pub(crate) fn get_wgpu(&self) -> Arc<wgpu::Sampler> {
+    pub(crate) fn new(filtering: Filtering, wrapping: WrapModeType) -> Self {
         profiling::function_scope!();
 
-        if let Some(cached) = cache::sampler::find(self) {
-            return cached;
+        let cache_key = SamplerCacheKey {
+            filtering,
+            wrapping,
+        };
+
+        if let Some(cached) = cache::sampler::find(&cache_key) {
+            return Self(cached);
         };
 
         log::debug!("Creating new sampler object");
 
-        let desc = self.to_wgpu_sampler_descriptor();
+        let desc = wgpu::wgt::SamplerDescriptor {
+            label: None,
+            address_mode_u: wrapping.get_u().to_wgpu(),
+            address_mode_v: wrapping.get_v().to_wgpu(),
+            address_mode_w: wrapping.get_w().to_wgpu(),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+            ..Default::default()
+        };
+
         let new_sampler = GFX_DEVICE.create_sampler(&desc);
 
-        cache::sampler::insert(self.clone(), new_sampler)
+        Self(cache::sampler::insert(cache_key, new_sampler))
+    }
+
+    #[inline]
+    pub(crate) fn get_wgpu(&self) -> &wgpu::Sampler {
+        &self.0
     }
 }
 
@@ -161,22 +179,6 @@ impl WrapMode {
             Self::Clamp => wgpu::AddressMode::ClampToEdge,
             Self::Repeat => wgpu::AddressMode::Repeat,
             Self::MirrorRepeat => wgpu::AddressMode::MirrorRepeat,
-        }
-    }
-}
-
-impl Sampler {
-    /// Generates a [wgpu::SamplerDescriptor] based on this sampler
-    pub(crate) fn to_wgpu_sampler_descriptor(&self) -> wgpu::SamplerDescriptor<'static> {
-        wgpu::wgt::SamplerDescriptor {
-            label: None,
-            address_mode_u: self.wrapping.get_u().to_wgpu(),
-            address_mode_v: self.wrapping.get_v().to_wgpu(),
-            address_mode_w: self.wrapping.get_w().to_wgpu(),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-            ..Default::default()
         }
     }
 }

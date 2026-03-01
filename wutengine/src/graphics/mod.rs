@@ -1,16 +1,19 @@
 //! WutEngine graphics layer
 
+mod api;
 mod cache;
 mod init;
 pub mod material;
+pub mod mesh;
 pub(crate) mod pipeline;
 pub mod sampler;
 pub mod shader;
 pub mod texture;
 
+pub use api::*;
+
 use std::sync::mpsc::Sender;
 
-use crate::builtins::components::CameraId;
 use crate::util::InitOnce;
 
 pub(crate) use init::{initialize_command_queue, initialize_graphics_context};
@@ -52,17 +55,4 @@ pub(crate) fn device() -> &'static wgpu::Device {
 #[inline(always)]
 pub(crate) fn queue() -> &'static wgpu::Queue {
     &GFX_QUEUE
-}
-
-/// Submits a raw draw command to the command queue
-#[inline(always)]
-pub fn submit_raw_draw_command(command: DrawCommand) {
-    DRAW_COMMAND_QUEUE.send(command).expect("Runtime stopped")
-}
-
-/// A single draw command submitted to the WutEngine graphics backend.
-#[derive(Debug, Clone)]
-pub struct DrawCommand {
-    /// The camera this draw call applies to. If [None], renders on all cameras
-    pub camera: Option<CameraId>,
 }

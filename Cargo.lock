@@ -830,6 +830,9 @@ name = "glam"
 version = "0.30.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19fc433e8437a212d1b6f1e68c7824af3aed907da60afa994e7f542d18d12aa9"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "gpu-allocator"
@@ -3173,6 +3176,7 @@ checksum = "d7249219f66ced02969388cf2bb044a09756a083d0fab1e566056b04d9fbcaa5"
 name = "wutengine"
 version = "0.6.0"
 dependencies = [
+ "bytemuck",
  "dashmap",
  "derive_more",
  "glam",

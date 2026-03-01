@@ -40,6 +40,7 @@ profiling = { version = "1" }
 puffin_http = { version = "0.16" }
 log = { version = "0.4" }
 glam = { version = "0.30", features = ["std", "debug-glam-assert"] }
+bytemuck = { version = "1" }
 
 derive_more = { version = "2" }
 nohash-hasher = { version = "0.2" }
@@ -97,5 +98,5 @@ suspicious_operation_groupings = "warn"
 needless_collect = "warn"
 needless_pass_by_ref_mut = "warn"
 needless_raw_strings = "warn"
-mod_module_files = "deny"
+self_named_module_files = "deny"
 missing_fields_in_debug = "warn"

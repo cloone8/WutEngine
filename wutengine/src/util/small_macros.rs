@@ -5,7 +5,6 @@
 ///
 /// Used like:
 /// ```
-/// use wutengine::map; // Or `wutengine::map` when using the full WutEngine engine crate
 /// use std::collections::HashMap;
 ///
 /// let new_map: HashMap<String, i32> = map![
@@ -13,7 +12,6 @@
 ///     "b" => 2
 /// ];
 /// ```
-#[macro_export]
 macro_rules! map {
     () => {
         ::std::collections::HashMap::default()
@@ -29,6 +27,8 @@ macro_rules! map {
         new_hashmap
     }};
 }
+
+pub(crate) use map;
 
 // /// Macro that marks the current spot as unreachable. Checked in debug builds,
 // /// unchecked in release builds.

@@ -4,10 +4,10 @@ use wutengine_util_macro::unique_id_type32;
 
 use crate::color::Color;
 use crate::component::Component;
-use crate::graphics::material::NativeMaterial;
+use crate::graphics::material::Material;
 use crate::system::Phase;
 use crate::window::Window;
-use crate::{builtins, graphics};
+use crate::{builtins, graphics, map};
 
 unique_id_type32! {
     /// The ID of a [Camera]. Used for filtering in draw calls
@@ -39,7 +39,7 @@ pub struct Camera {
 
     render_target: Option<wgpu::Texture>,
 
-    blit_material: Option<NativeMaterial>,
+    blit_material: Option<Material>,
 }
 
 impl Default for Camera {
@@ -303,20 +303,20 @@ impl Camera {
         //     ..Default::default()
         // });
 
-        // let texture_bind_group = graphics::device().create_bind_group(&wgpu::BindGroupDescriptor {
-        //     label: Some("Fun texture bind group"),
-        //     layout: &bind_group_layout,
-        //     entries: &[
-        //         wgpu::BindGroupEntry {
-        //             binding: 0,
-        //             resource: wgpu::BindingResource::Sampler(&sampler),
-        //         },
-        //         wgpu::BindGroupEntry {
-        //             binding: 1,
-        //             resource: wgpu::BindingResource::TextureView(&view),
-        //         },
-        //     ],
-        // });
+        let texture_bind_group = graphics::device().create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Fun texture bind group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+            ],
+        });
 
         render_pass.set_pipeline(&blit_pipeline);
         // render_pass.set_bind_group(0, &texture_bind_group, &[]);
@@ -338,7 +338,8 @@ impl Camera {
             return;
         }
 
-        self.blit_material = Some(NativeMaterial::new(builtins::shaders::BLIT.clone()));
+        self.blit_material =
+            Some(Material::new(builtins::shaders::BLIT.clone(), map![], &[]).unwrap());
     }
 }
 

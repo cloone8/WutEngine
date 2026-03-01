@@ -15,9 +15,12 @@ pub struct TextureConfig {
 
 /// The handle to a native [wgpu::Texture]
 #[derive(Debug)]
-pub(crate) struct NativeTexture(wgpu::Texture);
+pub(crate) struct Texture {
+    tex: wgpu::Texture,
+    view: wgpu::TextureView,
+}
 
-impl NativeTexture {
+impl Texture {
     /// Creates a new texture with the given format, without initial content
     pub(crate) fn new(config: &TextureConfig) -> Self {
         assert!(config.width >= 1, "Width must be at least 1");
@@ -25,7 +28,7 @@ impl NativeTexture {
 
         let format_wgpu: wgpu::TextureFormat = config.format.into();
 
-        Self(super::device().create_texture(&wgpu::TextureDescriptor {
+        let tex = super::device().create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {
                 width: config.width,
@@ -43,15 +46,20 @@ impl NativeTexture {
                 format_wgpu.add_srgb_suffix(),
                 format_wgpu.remove_srgb_suffix(),
             ],
-        }))
+        });
+
+        Self {
+            view: tex.create_view(&wgpu::TextureViewDescriptor::default()),
+            tex,
+        }
     }
 
     /// Updates the data in this texture to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
     pub(crate) fn set_data(&self, data: &[u8]) {
         //TODO: Check somehow if data is the correct length
-        let size = self.0.size();
-        let format = self.0.format();
+        let size = self.tex.size();
+        let format = self.tex.format();
         let queue = super::queue();
 
         let bytes_per_pixel = format
@@ -61,7 +69,7 @@ impl NativeTexture {
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 aspect: wgpu::TextureAspect::All,
-                texture: &self.0,
+                texture: &self.tex,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
@@ -76,7 +84,13 @@ impl NativeTexture {
 
         // self.0.native
     }
+
+    #[inline]
+    pub(crate) const fn get_view(&self) -> &wgpu::TextureView {
+        &self.view
+    }
 }
+
 /// The format of a [Texture]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TextureFormat {

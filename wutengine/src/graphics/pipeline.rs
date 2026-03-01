@@ -8,7 +8,7 @@ use crate::graphics::{self, GFX_DEVICE};
 
 use super::cache;
 use super::cache::pipeline::PipelineCacheKey;
-use super::material::NativeMaterial;
+use super::material::Material;
 
 unique_id_type64! {
     /// Unique ID for a render pipeline. Mostly used for debug labels
@@ -29,7 +29,7 @@ pub(crate) enum GetPipelineErr {
 /// If a new pipeline is created, an attempt is made to get the cached copy of the compiled shader. If this
 /// cached copy does not exist, the shader is compiled and cached.
 pub(crate) fn get_pipeline(
-    material: &NativeMaterial,
+    material: &Material,
     color_targets: &[Option<wgpu::ColorTargetState>],
 ) -> Result<Arc<wgpu::RenderPipeline>, GetPipelineErr> {
     profiling::function_scope!();
@@ -50,7 +50,7 @@ pub(crate) fn get_pipeline(
         material.compiled_shader_id()
     );
 
-    let compiled_shader = graphics::shader::compile(material.shader(), material.get_keywords())?;
+    let compiled_shader = material.compiled_shader.as_ref();
 
     let pipeline_layout = &compiled_shader.pipeline_layout;
 
@@ -59,10 +59,8 @@ pub(crate) fn get_pipeline(
     let pipeline = GFX_DEVICE.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(
             format!(
-                "Shader {} variant {} pipeline {}",
-                material.shader().name,
-                material.compiled_shader_id(),
-                pipeline_id
+                "Shader variant {} pipeline {}",
+                compiled_shader.name, pipeline_id
             )
             .as_str(),
         ),

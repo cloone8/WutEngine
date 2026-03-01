@@ -58,12 +58,19 @@ pollster.workspace = true
 image.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
-glam.workspace = true
+glam = { workspace = true, features = ["bytemuck"] }
 twox-hash.workspace = true
 dashmap = { workspace = true, features = ["rayon"] }
 rayon.workspace = true
 serde = { workspace = true, features = ["derive"] }
 toml.workspace = true
+bytemuck = { workspace = true, features = [
+    "derive",
+    "wasm_simd",
+    "aarch64_simd",
+    "min_const_generics",
+    "must_cast",
+] }
 
 # Optional dependencies
 puffin_http = { workspace = true, optional = true } # Feature - profiling
