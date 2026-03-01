@@ -1,58 +1,18 @@
 //! Shader compilation. The conversion of a [Shader](super::Shader) into a [CompiledShader](super::CompiledShader)
 
-use core::ops::RangeInclusive;
-use std::borrow::Cow;
+use core::num::NonZero;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use nohash_hasher::{IntMap, IntSet};
-use wutengine_shadercompiler::Input;
+use nohash_hasher::IntSet;
 
-use crate::graphics::GFX_DEVICE;
-use crate::graphics::shader::{CompiledShaderId, ShaderId, XXHashShaderHasher};
+use crate::graphics::shader::{CompiledShaderId, WutEngineShaderHasher};
+use crate::graphics::{BindGroup, GFX_DEVICE, cache};
 
-use super::{CompiledShader, ParameterBinding, Shader, ShaderParameter};
+use super::{Shader, ShaderBufferParameterType, ShaderParameter, ShaderVertexAttributeType};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-pub(crate) enum CompileErr {
-    #[display(
-        "Shader keyword \"{}\" has a name with invalid characters. Only a-zA-Z and \"_\" are allowed.",
-        _0
-    )]
-    InvalidKeywordName(#[error(not(source))] String),
-
-    #[display(
-        "Shader parameter \"{}\" has a name with invalid characters. Only a-zA-Z and \"_\" are allowed.",
-        _0
-    )]
-    InvalidParameterName(#[error(not(source))] String),
-
-    #[display("Unknown shader keyword was given: {}", _0)]
-    UnknownKeyword(#[error(not(source))] String),
-
-    #[display(
-        "Shader keyword \"{}\" with allowed value range {}-{} was given an invalid value: {}", _0, _2.start(), _2.end(), _1
-    )]
-    InvalidKeywordValue(String, u64, RangeInclusive<u64>),
-
-    #[display(
-        "A duplicate parameter binding was encountered: {}. Parameters with this binding: {}, {}",
-        _0,
-        _1,
-        _2
-    )]
-    DuplicateParameterBinding(ParameterBinding, String, String),
-
-    #[display("An error was encountered during shader compilation: {}", _0)]
-    ShaderCompilationError(Box<wutengine_shadercompiler::Error>),
-}
-
-impl From<Box<wutengine_shadercompiler::Error>> for Box<CompileErr> {
-    #[inline]
-    fn from(value: Box<wutengine_shadercompiler::Error>) -> Self {
-        Box::new(CompileErr::ShaderCompilationError(value))
-    }
-}
+pub(crate) enum CompileErr {}
 
 /// Compiles `shader` with the provided set of active keywords and inserts it into the shader cache. If the shader
 /// has already been compiled previously, returns the cached copy.
@@ -62,213 +22,147 @@ pub(crate) fn compile(
 ) -> Result<Arc<CompiledShader>, Box<CompileErr>> {
     profiling::function_scope!();
 
-    let cache_key = shader.create_compiled_shader_id(keywords);
+    let variant_id = crate::graphics::shader::calculate_variant_id(shader.id, &keywords);
 
-    if let Some(cached) = super::cache::shader::find(&cache_key) {
+    if let Some(cached) = cache::shader::find(&variant_id) {
         return Ok(cached);
     }
 
-    log::debug!("Compiling shader: variant {cache_key} of {}", shader.name);
-    log::trace!("Variant {cache_key} keywords:\n{}", dump_keywords(keywords));
+    profiling::scope!(
+        "Compile shader from source",
+        variant_id.to_string().as_str()
+    );
 
-    check_shader_valid(shader, keywords)?;
+    log::debug!("Compiling shader {variant_id}");
 
-    // Shader not yet in cache. Compile it
+    let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
+        shader
+            .vertex_attributes
+            .iter()
+            .map(|p| p.condition.as_ref().map(|c| c.0.as_str())),
+    );
 
-    let compile_output =
-        wutengine_shadercompiler::compile::<ShaderId, XXHashShaderHasher>(Input {
-            source_id: shader.id,
-            source: &shader.source,
-            active_keywords: keywords,
-            all_bindings: &to_shadercompiler_bindings(&shader.parameters),
-        })?;
+    let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
+        shader
+            .user_params
+            .iter()
+            .map(|p| p.get_condition().map(|c| c.0.as_str())),
+    );
 
-    let module = GFX_DEVICE.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Compiled shader"),
-        source: wgpu::ShaderSource::Naga(Cow::Owned(compile_output.module)),
-    });
+    let output = wutengine_shadercompiler::compile::<_, WutEngineShaderHasher>(
+        wutengine_shadercompiler::CompInput {
+            id: shader.id,
+            source: shader.get_source(),
+            keywords: &keywords,
+            parameters: &user_param_conditions,
+            vertex_attributes: &vertex_attr_conditions,
+            per_camera_block: include_str!("camera.wgsl"),
+            per_instance_block: include_str!("instance.wgsl"),
+        },
+    )
+    .unwrap();
 
-    if cfg!(debug_assertions) {
-        log_shader_compilation_info(&module);
-    }
+    assert_eq!(
+        variant_id, output.variant_id,
+        "Incorrect variant ID returned"
+    );
 
-    let variant_name = format!("{}#{:016x}", shader.name, compile_output.keyword_hash);
-    let parameters_after_compilation = filter_bindings(shader, &compile_output.remaining_bindings);
-    let bind_group_layouts = create_bind_group_layout(&variant_name, &parameters_after_compilation);
+    let user_bind_group_layout: wgpu::BindGroupLayout = create_user_params_bind_group_layout(
+        "Material BGL",
+        &shader.user_params,
+        &output.remaining_params,
+    );
+
+    let parameters = output
+        .remaining_params
+        .into_iter()
+        .map(|idx| shader.user_params[idx].clone())
+        .collect();
+
+    let vertex_attributes = output
+        .remaining_vertex_attributes
+        .into_iter()
+        .map(|idx| {
+            let attr = &shader.vertex_attributes[idx];
+            (attr.ty, attr.location)
+        })
+        .collect();
 
     let compiled = CompiledShader {
-        id: CompiledShaderId::from_hashes(
-            compile_output.source_id_hash,
-            compile_output.keyword_hash,
-        ),
-        pipeline_layout: create_pipeline_layout(&variant_name, &bind_group_layouts),
-        user_param_group_layout: bind_group_layouts,
-        module,
-        name: variant_name,
+        id: output.variant_id,
+        module: output.module,
+        user_bind_group_layout: user_bind_group_layout.clone(),
+        parameters,
+        vertex_attributes,
     };
 
-    Ok(super::cache::shader::insert(cache_key, compiled))
+    Ok(cache::shader::insert(variant_id, compiled))
 }
 
-fn check_shader_valid(shader: &Shader, keywords: &HashMap<String, u64>) -> Result<(), CompileErr> {
+fn create_user_params_bind_group_layout(
+    name: &str,
+    params: &[ShaderParameter],
+    after_compile_filter: &IntSet<usize>,
+) -> wgpu::BindGroupLayout {
     profiling::function_scope!();
 
-    for (keyword, value) in keywords {
-        let keyword_str = keyword.as_str();
-        if !keyword_name_valid(keyword_str) {
-            return Err(CompileErr::InvalidKeywordName(keyword_str.to_owned()));
-        }
+    let params_with_filter = params
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| after_compile_filter.contains(index))
+        .map(|(_, p)| p);
 
-        let allowed_values = shader
-            .allowed_keywords
-            .get(keyword)
-            .ok_or(CompileErr::UnknownKeyword(keyword_str.to_owned()))?;
+    let buffer_entry = wgpu::BindGroupLayoutEntry {
+        binding: 0,
+        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+        ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
+            has_dynamic_offset: false,
+            min_binding_size: Some(
+                NonZero::new(BindGroup::total_buffer_size(params_to_buf_iter(
+                    params_with_filter.clone(),
+                )) as u64)
+                .unwrap(),
+            ),
+        },
+        count: None,
+    };
 
-        if !allowed_values.contains(value) {
-            return Err(CompileErr::InvalidKeywordValue(
-                keyword_str.to_owned(),
-                *value,
-                allowed_values.clone(),
-            ));
-        }
+    let mut all_entries = vec![buffer_entry];
+
+    for param in params_with_filter {
+        let ShaderParameter::Opaque { ty, .. } = param else {
+            continue;
+        };
+
+        let binding = all_entries.len();
+
+        let opaque_entry = wgpu::BindGroupLayoutEntry {
+            binding: binding as u32,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: ty.to_wgpu_binding_type(),
+            count: None,
+        };
+
+        all_entries.push(opaque_entry);
     }
 
-    let mut all_bindings = IntMap::default();
-
-    for (name, param) in &shader.parameters {
-        let name_str = name.as_str();
-
-        if !param_name_valid(name_str) {
-            return Err(CompileErr::InvalidParameterName(name_str.to_owned()));
-        }
-
-        let existing = all_bindings.insert(param.binding, name_str);
-
-        if let Some(existing) = existing {
-            return Err(CompileErr::DuplicateParameterBinding(
-                param.binding,
-                existing.to_owned(),
-                name_str.to_owned(),
-            ));
-        }
-    }
-
-    Ok(())
-}
-
-fn param_name_valid(name: &str) -> bool {
-    for c in name.chars() {
-        if !(c.is_ascii_alphabetic() || c == '_') {
-            return false;
-        }
-    }
-
-    true
-}
-
-fn keyword_name_valid(name: &str) -> bool {
-    for c in name.chars() {
-        if !(c.is_ascii_alphabetic() || c == '_') {
-            return false;
-        }
-    }
-
-    true
-}
-
-fn dump_keywords(keywords: &HashMap<String, u64>) -> String {
-    let mut s = String::new();
-
-    for (keyword, value) in keywords {
-        s = format!("{s}{keyword} => {value}\n")
-    }
-
-    s
-}
-
-fn to_shadercompiler_bindings(
-    params: &HashMap<String, ShaderParameter>,
-) -> Vec<wutengine_shadercompiler::Binding> {
-    let mut unique_bindings = IntSet::default();
-
-    for param in params.values() {
-        let not_yet_present = unique_bindings.insert(param.binding.into());
-
-        assert!(not_yet_present, "Duplicate binding in shader");
-    }
-
-    unique_bindings.into_iter().collect()
-}
-
-fn create_pipeline_layout(
-    variant_name: &str,
-    bind_group_layouts: &[wgpu::BindGroupLayout],
-) -> wgpu::PipelineLayout {
-    profiling::function_scope!();
-
-    let as_borrowed: Vec<_> = bind_group_layouts.iter().collect();
-
-    GFX_DEVICE.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some(format!("{variant_name} Pipeline Layout").as_str()),
-        bind_group_layouts: &as_borrowed,
-        immediate_size: 0,
+    GFX_DEVICE.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some(name),
+        entries: &all_entries,
     })
 }
 
-fn filter_bindings(
-    shader: &Shader,
-    remaining_bindings: &[wutengine_shadercompiler::Binding],
-) -> HashMap<String, ShaderParameter> {
-    shader
-        .parameters
-        .iter()
-        .filter(|(_, param)| remaining_bindings.contains(&(param.binding.into())))
-        .map(|(param_name, param)| (param_name.clone(), param.clone()))
-        .collect()
-}
-
-fn create_bind_group_layout(
-    variant_name: &str,
-    bindings: &HashMap<String, ShaderParameter>,
-) -> Vec<wgpu::BindGroupLayout> {
-    profiling::function_scope!();
-
-    let Some(highest_group) = bindings.values().map(|param| param.binding.group).max() else {
-        // No bind groups, so we can just create an empty layout
-        return Vec::new();
-    };
-
-    let mut group_layout_entries: Vec<Vec<wgpu::BindGroupLayoutEntry>> =
-        Vec::with_capacity(highest_group as usize);
-    let mut bind_group_layout_labels = Vec::with_capacity(highest_group as usize);
-
-    for bind_group_idx in 0..highest_group {
-        let layout_entries: Vec<_> = bindings
-            .values()
-            .filter(|param| param.binding.group == bind_group_idx)
-            .map(|param| param.to_wgpu_layout_entry())
-            .collect();
-
-        group_layout_entries.push(layout_entries);
-        bind_group_layout_labels.push(format!("{variant_name} Bind Group {bind_group_idx} Layout"));
-    }
-
-    let mut group_layout_descriptors: Vec<wgpu::BindGroupLayoutDescriptor> =
-        Vec::with_capacity(highest_group as usize);
-
-    for bind_group_idx in 0..highest_group {
-        group_layout_descriptors.push(wgpu::BindGroupLayoutDescriptor {
-            label: Some(bind_group_layout_labels[bind_group_idx as usize].as_str()),
-            entries: &group_layout_entries[bind_group_idx as usize],
-        });
-    }
-
-    group_layout_descriptors
-        .into_iter()
-        .map(|group_layout_descriptor| {
-            GFX_DEVICE.create_bind_group_layout(&group_layout_descriptor)
-        })
-        .collect()
+fn params_to_buf_iter<'a>(
+    params: impl IntoIterator<Item = &'a ShaderParameter>,
+) -> impl IntoIterator<Item = ShaderBufferParameterType> {
+    params.into_iter().filter_map(|p| {
+        if let ShaderParameter::Buffer { ty, .. } = p {
+            Some(*ty)
+        } else {
+            None
+        }
+    })
 }
 
 fn log_shader_compilation_info(module: &wgpu::ShaderModule) {
@@ -298,4 +192,13 @@ fn log_shader_compilation_info(module: &wgpu::ShaderModule) {
             }
         }
     }
+}
+
+#[derive(Debug)]
+pub(crate) struct CompiledShader {
+    pub(crate) id: CompiledShaderId,
+    pub(crate) module: Box<naga::Module>,
+    pub(crate) user_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) parameters: Vec<ShaderParameter>,
+    pub(crate) vertex_attributes: HashMap<ShaderVertexAttributeType, u32>,
 }

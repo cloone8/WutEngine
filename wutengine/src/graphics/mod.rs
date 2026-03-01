@@ -1,6 +1,7 @@
 //! WutEngine graphics layer
 
 mod api;
+mod bind_group;
 mod cache;
 mod init;
 pub mod material;
@@ -9,6 +10,8 @@ pub(crate) mod pipeline;
 pub mod sampler;
 pub mod shader;
 pub mod texture;
+
+pub(crate) use bind_group::*;
 
 pub use api::*;
 

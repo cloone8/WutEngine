@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use core::fmt::Write;
+use core::fmt::{Display, Write};
 use nohash_hasher::IntSet;
 use parser::{Condition, ParseErr, ShaderFile};
 use smallvec::SmallVec;
@@ -28,11 +28,17 @@ pub const INSTANCE_PARAMS_BIND_GROUP_KEYWORD: &str = "WUTENGINE_INSTANCE_GROUP";
 
 /// An implementation that provides deterministic hashes for a shader compilation
 pub trait ShaderHasher<Id> {
+    /// The type of the shader variant ID that this hasher produces
+    type VariantId: Display;
+
     /// Converts the string ID of a shader to a hash value
     fn hash_source_id(id: Id) -> u64;
 
     /// Converts a map of keyword names and value to a single hash value
     fn hash_keywords<S: AsRef<str>>(keywords: &HashMap<S, u64>) -> u64;
+
+    /// Given the two hash values, create a variant ID
+    fn variant_id_from_hashes(source_id_hash: u64, keyword_hash: u64) -> Self::VariantId;
 }
 
 /// Input data for a single [compile] job
@@ -64,15 +70,12 @@ pub struct CompInput<'a, Id> {
 
 /// Output of a single succesful [compile] job
 #[derive(Debug, Clone)]
-pub struct CompOutput {
+pub struct CompOutput<VariantId> {
     /// The translated [naga] [module](naga::Module)
     pub module: Box<naga::Module>,
 
-    /// The hashed source shader ID
-    pub source_id_hash: u64,
-
-    /// The hashed keyword value set
-    pub keyword_hash: u64,
+    /// The shader variant ID
+    pub variant_id: VariantId,
 
     /// Indices into [CompInput::parameters] of the parameters that have _not_ been stripped
     pub remaining_params: IntSet<usize>,
@@ -106,13 +109,15 @@ pub enum CompileErr {
 /// Uses the hashing algorithm provided by `H`
 pub fn compile<Id, H: ShaderHasher<Id>>(
     input: CompInput<'_, Id>,
-) -> Result<CompOutput, CompileErr> {
+) -> Result<CompOutput<H::VariantId>, CompileErr> {
     let source_id_hash = H::hash_source_id(input.id);
     let keyword_hash = H::hash_keywords(input.keywords);
+    let variant_id = H::variant_id_from_hashes(source_id_hash, keyword_hash);
+    let variant_id_string = variant_id.to_string();
 
-    profiling::function_scope!(format!("{source_id_hash}#{keyword_hash}").as_str());
+    profiling::function_scope!(variant_id_string.as_str());
 
-    log::info!("Compiling shader variant {source_id_hash}#{keyword_hash}");
+    log::info!("Compiling shader variant {variant_id_string}");
 
     // First we parse the raw text into a set of source lines and compiler directives
     let parsed = ShaderFile::parse(input.source)?;
@@ -149,12 +154,11 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
         Box::new(naga_frontend.parse(&applied)?)
     };
 
-    log::debug!("Compiled shader variant {source_id_hash}#{keyword_hash}");
+    log::info!("Compiled shader variant {variant_id_string}");
 
     Ok(CompOutput {
         module,
-        source_id_hash,
-        keyword_hash,
+        variant_id: H::variant_id_from_hashes(source_id_hash, keyword_hash),
         remaining_params,
         remaining_vertex_attributes,
     })

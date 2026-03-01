@@ -2,7 +2,7 @@ use glam::{Mat4, Vec2, Vec3, Vec4};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct Padding<const N: usize>([u8; N]);
+pub(crate) struct Padding<const N: usize>([u8; N]);
 
 unsafe impl<const N: usize> bytemuck::Zeroable for Padding<N> {}
 unsafe impl<const N: usize> bytemuck::Pod for Padding<N> {}

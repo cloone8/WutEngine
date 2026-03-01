@@ -3183,6 +3183,7 @@ dependencies = [
  "hecs",
  "image",
  "log",
+ "naga",
  "nohash-hasher",
  "pollster",
  "profiling",

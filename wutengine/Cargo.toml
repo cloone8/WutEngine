@@ -53,6 +53,7 @@ wgpu = { workspace = true, features = [
     "web",
     "parking_lot",
 ] }
+naga.workspace = true
 nohash-hasher.workspace = true
 pollster.workspace = true
 image.workspace = true
@@ -66,10 +67,8 @@ serde = { workspace = true, features = ["derive"] }
 toml.workspace = true
 bytemuck = { workspace = true, features = [
     "derive",
-    "wasm_simd",
-    "aarch64_simd",
-    "min_const_generics",
     "must_cast",
+    "const_zeroed",
 ] }
 
 # Optional dependencies

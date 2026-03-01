@@ -28,7 +28,6 @@ where
 impl<K, V, H> GraphicsCache<K, V, H>
 where
     K: core::hash::Hash + Eq,
-    V: Clone,
     H: core::hash::BuildHasher + Clone,
 {
     /// Tries to find the value for the given key in the cache
