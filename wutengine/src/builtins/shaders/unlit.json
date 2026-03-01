@@ -1,0 +1,47 @@
+{
+    "name": "Unlit",
+    "keywords": {
+        "HAS_COLOR_MAP": {
+            "default": 0,
+            "allowed": {
+                "start": 0,
+                "end": 1
+            }
+        }
+    },
+    "vertex_attributes": [
+        {
+            "type": "position",
+            "location": 0
+        },
+        {
+            "type": "uv",
+            "location": 1,
+            "channel": 0,
+            "condition": "HAS_COLOR_MAP != 0"
+        }
+    ],
+    "parameters": [
+        {
+            "kind": "buffer",
+            "type": "vec4f",
+            "name": "base_color"
+        },
+        {
+            "kind": "opaque",
+            "type": "sampler",
+            "name": "source_sampler",
+            "condition": "HAS_COLOR_MAP != 0"
+        },
+        {
+            "kind": "opaque",
+            "type": "texture_2d",
+            "name": "source_texture",
+            "condition": "HAS_COLOR_MAP != 0"
+        }
+    ],
+    "source": {
+        "kind": "file",
+        "path": "unlit.wgsl"
+    }
+}

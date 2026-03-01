@@ -28,16 +28,18 @@ pub struct Shader {
     pub(crate) name: String,
     pub(crate) vertex_attributes: Vec<ShaderVertexAttribute>,
     pub(crate) keywords: HashMap<String, ShaderKeyword>,
-    pub(crate) user_params: Vec<ShaderParameter>,
+    pub(crate) parameters: Vec<ShaderParameter>,
     pub(crate) source: ShaderSource,
 }
 
 impl Shader {
-    pub fn load_source(&mut self) {
+    pub fn load_source(&mut self) -> Result<(), std::io::Error> {
         if let ShaderSource::File { path } = &self.source {
-            let content = std::fs::read_to_string(path).unwrap();
+            let content = std::fs::read_to_string(path)?;
             self.source = ShaderSource::Inline { content };
         }
+
+        Ok(())
     }
 
     pub fn get_source(&self) -> &str {
@@ -114,7 +116,7 @@ impl ShaderParameter {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 #[serde(rename_all = "lowercase")]
-enum ShaderSource {
+pub enum ShaderSource {
     Inline { content: String },
     File { path: PathBuf },
 }

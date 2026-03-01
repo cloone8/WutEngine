@@ -34,6 +34,7 @@ impl MeshTopology {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Mesh {
     pub(crate) vertex_buffers: HashMap<ShaderVertexAttributeType, VertexBuffer>,
     pub(crate) index_buffer: IndexBuffer,

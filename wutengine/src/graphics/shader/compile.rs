@@ -54,7 +54,7 @@ pub(crate) fn compile(
 
     let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
         shader
-            .user_params
+            .parameters
             .iter()
             .map(|p| p.get_condition().map(|c| c.0.as_str())),
     );
@@ -92,7 +92,7 @@ pub(crate) fn compile(
 
     let user_bind_group_layout: wgpu::BindGroupLayout = create_user_params_bind_group_layout(
         format!("{variant_id_string} material bind group layout").as_str(),
-        &shader.user_params,
+        &shader.parameters,
         &output.remaining_params,
     );
 
@@ -113,7 +113,7 @@ pub(crate) fn compile(
     let parameters = output
         .remaining_params
         .into_iter()
-        .map(|idx| shader.user_params[idx].clone())
+        .map(|idx| shader.parameters[idx].clone())
         .collect();
 
     let vertex_attributes = output

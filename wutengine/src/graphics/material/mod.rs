@@ -1,10 +1,8 @@
-use core::num::NonZero;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
-use crate::graphics::cache;
 use crate::graphics::shader::compile;
 
 use super::BindGroup;

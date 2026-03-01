@@ -47,6 +47,7 @@ nohash-hasher = { version = "0.2" }
 twox-hash = { version = "2" }
 dashmap = { version = "6" }
 serde = { version = "1" }
+serde_json = { version = "1" }
 toml = { version = "1" }
 
 quote = { version = "1" }

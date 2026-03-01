@@ -1,7 +1,7 @@
 use super::MeshTopology;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
-pub(crate) enum NewIndexBufferErr {
+pub enum NewIndexBufferErr {
     #[display("Cannot create an empty index buffer")]
     Zero,
 
@@ -13,7 +13,7 @@ pub(crate) enum NewIndexBufferErr {
 }
 
 #[derive(Debug)]
-pub(crate) struct IndexBuffer {
+pub struct IndexBuffer {
     pub(crate) topology: MeshTopology,
     pub(crate) format: IndexFormat,
     pub(crate) count: usize,
@@ -95,7 +95,7 @@ impl IndexDatatype for u32 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum IndexFormat {
+pub enum IndexFormat {
     U16,
     U32,
 }
