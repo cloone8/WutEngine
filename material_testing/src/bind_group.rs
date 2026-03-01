@@ -2,9 +2,8 @@ use core::num::NonZero;
 use std::collections::HashMap;
 
 use crate::ShaderParameter;
+use crate::material::MaterialParameter;
 use crate::types::{ShaderBufferParameter, ShaderBufferParameterType, ShaderOpaqueParameter};
-
-use super::MaterialParameter;
 
 #[derive(Debug, Clone)]
 pub(crate) struct BindGroup {

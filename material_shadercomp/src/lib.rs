@@ -61,6 +61,11 @@ pub enum CompileErr {
 pub fn compile<Id, H: ShaderHasher<Id>>(
     input: CompInput<'_, Id>,
 ) -> Result<CompOutput, CompileErr> {
+    let source_id_hash = H::hash_source_id(input.id);
+    let keyword_hash = H::hash_keywords(input.keywords);
+
+    profiling::function_scope!(format!("{source_id_hash}#{keyword_hash}").as_str());
+
     // First we parse the raw text into a set of source lines and compiler directives
     let parsed = ShaderFile::parse(input.source)?;
 
@@ -81,17 +86,21 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
     let remaining_vertex_attributes = strip_parameters(input.user_params, input.keywords)?;
 
     // Compile into a naga module
-    let mut naga_frontend =
-        naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
-            parse_doc_comments: true,
-        });
+    let module = {
+        profiling::scope!("Naga cross-compile");
 
-    let module = Box::new(naga_frontend.parse(&applied)?);
+        let mut naga_frontend =
+            naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
+                parse_doc_comments: true,
+            });
+
+        Box::new(naga_frontend.parse(&applied)?)
+    };
 
     Ok(CompOutput {
         module,
-        source_id_hash: H::hash_source_id(input.id),
-        keyword_hash: H::hash_keywords(input.keywords),
+        source_id_hash,
+        keyword_hash,
         remaining_params,
         remaining_vertex_attributes,
     })
@@ -101,6 +110,8 @@ fn apply_directives(
     file: ShaderFile,
     keywords: &HashMap<String, u64>,
 ) -> Result<String, CompileErr> {
+    profiling::function_scope!();
+
     let mut out = String::new();
 
     let mut branch_stack: Vec<bool> = Vec::new();
@@ -166,6 +177,8 @@ fn strip_parameters(
     user_param_conditions: &[Option<&str>],
     keywords: &HashMap<String, u64>,
 ) -> Result<HashSet<usize>, CompileErr> {
+    profiling::function_scope!();
+
     let mut set = HashSet::default();
 
     for (i, &maybe_condition_string) in user_param_conditions.iter().enumerate() {
@@ -189,6 +202,8 @@ fn strip_parameters(
 }
 
 fn inject_keywords_as_constants(source: &mut String, keywords: &HashMap<String, u64>) {
+    profiling::function_scope!();
+
     inject_keyword(
         source,
         CAMERA_PARAMS_BIND_GROUP_KEYWORD,

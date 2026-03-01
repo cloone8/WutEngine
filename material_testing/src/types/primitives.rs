@@ -12,8 +12,6 @@ impl<const N: usize> Padding<N> {
     pub const fn new() -> Self {
         Self([0; N])
     }
-
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl<const N: usize> Default for Padding<N> {
@@ -45,17 +43,14 @@ impl From<Vec2> for GVec2<f32> {
 
 impl GVec2<f32> {
     pub const ALIGN: usize = 8;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl GVec2<u32> {
     pub const ALIGN: usize = 8;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl GVec2<i32> {
     pub const ALIGN: usize = 8;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 #[repr(C)]
@@ -80,17 +75,14 @@ impl From<Vec3> for GVec3<f32> {
 
 impl GVec3<f32> {
     pub const ALIGN: usize = 16;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl GVec3<u32> {
     pub const ALIGN: usize = 16;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl GVec3<i32> {
     pub const ALIGN: usize = 16;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 #[repr(C)]
@@ -122,17 +114,14 @@ impl From<[f32; 4]> for GVec4<f32> {
 
 impl GVec4<f32> {
     pub const ALIGN: usize = 16;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl GVec4<u32> {
     pub const ALIGN: usize = 16;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl GVec4<i32> {
     pub const ALIGN: usize = 16;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 #[repr(C)]
@@ -144,7 +133,6 @@ unsafe impl bytemuck::Pod for GMat4x4<f32> {}
 
 impl GMat4x4<f32> {
     pub const ALIGN: usize = GVec4::<f32>::ALIGN;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 impl From<Mat4> for GMat4x4<f32> {
@@ -169,7 +157,6 @@ unsafe impl bytemuck::Pod for GMat3x4<f32> {}
 
 impl GMat3x4<f32> {
     pub const ALIGN: usize = GVec4::<f32>::ALIGN;
-    pub const ZERO: Self = bytemuck::zeroed();
 }
 
 #[repr(C)]
@@ -181,5 +168,4 @@ unsafe impl bytemuck::Pod for GMat4x3<f32> {}
 
 impl GMat4x3<f32> {
     pub const ALIGN: usize = GVec3::<f32>::ALIGN;
-    pub const ZERO: Self = bytemuck::zeroed();
 }

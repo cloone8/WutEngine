@@ -19,6 +19,8 @@ glam = { version = "*", features = ["bytemuck"] }
 bytemuck = { version = "*" }
 flexbuffers = { version = "25" }
 tobj = "4.0.3"
+log = { version = "0.4" }
+profiling = { version = "1" }
 
 [profile.dev]
 panic = "abort"

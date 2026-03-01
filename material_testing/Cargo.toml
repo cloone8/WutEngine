@@ -20,6 +20,8 @@ wgpu = { workspace = true, features = ["naga-ir"] }
 serde_json.workspace = true
 pollster.workspace = true
 glam.workspace = true
-bytemuck = { workspace = true, features = ["const_zeroed"] }
+bytemuck = { workspace = true, features = ["const_zeroed", "must_cast"] }
 flexbuffers.workspace = true
 tobj.workspace = true
+log.workspace = true
+profiling.workspace = true

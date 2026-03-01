@@ -1,33 +1,35 @@
 use core::num::NonZero;
 use core::ops::RangeInclusive;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
 use bind_group::BindGroup;
-use glam::{Mat4, Quat, Vec2, Vec3, Vec4};
+use glam::{Mat4, Quat, Vec3, Vec4};
+use material::{Material, MaterialParameter};
 use material_shadercomp::{
-    CAMERA_PARAMS_BIND_GROUP_INDEX, CompInput, INSTANCE_PARAMS_BIND_GROUP_INDEX,
+    CAMERA_PARAMS_BIND_GROUP_INDEX, INSTANCE_PARAMS_BIND_GROUP_INDEX,
     MATERIAL_PARAMS_BIND_GROUP_INDEX,
 };
+use mesh::{IndexBuffer, Mesh, MeshTopology, VertexBuffer};
 use serde::{Deserialize, Serialize};
 use tobj::{LoadError, LoadOptions};
-use types::{ShaderBufferParameterType, ShaderOpaqueParameterType};
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use wgpu::{
-    BackendOptions, Backends, BufferUsages, Color, ColorWrites, InstanceFlags, ShaderStages,
-};
+use types::{GVec3, ShaderBufferParameterType, ShaderOpaqueParameterType};
+use wgpu::{BackendOptions, Backends, Color, ColorWrites, InstanceFlags, ShaderStages};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowAttributes};
 
 mod bind_group;
+mod material;
+mod mesh;
 mod types;
 
 static TEAPOT: &[u8] = include_bytes!("teapot.obj");
+static BUNNY: &[u8] = include_bytes!("bunny.obj");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Shader {
@@ -65,12 +67,21 @@ struct ShaderVertexAttribute {
     condition: Option<ShaderParameterCondition>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
 enum ShaderVertexAttributeType {
     Position,
     Uv { channel: u8 },
+}
+
+impl core::fmt::Display for ShaderVertexAttributeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Position => "Position".fmt(f),
+            Self::Uv { channel } => write!(f, "UV{}", channel),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,8 +166,8 @@ struct App {
     instance_bindgroup: Option<BindGroup>,
     unlit_mat: Option<Material>,
     unlit_pipeline: Option<wgpu::RenderPipeline>,
-    mesh: Option<tobj::Mesh>,
-    mesh_bufs: Option<(wgpu::Buffer, wgpu::Buffer)>,
+    teapot_mesh: Option<Mesh>,
+    bunny_mesh: Option<Mesh>,
     configured: bool,
     start: Option<Instant>,
 }
@@ -306,6 +317,7 @@ impl ApplicationHandler for App {
             )
             .unwrap();
 
+        println!("Starting read");
         let mut teapot_reader = BufReader::new(TEAPOT);
         let (teapot_model, _) =
             tobj::load_obj_buf(&mut teapot_reader, &LoadOptions::default(), |_| {
@@ -313,32 +325,17 @@ impl ApplicationHandler for App {
             })
             .unwrap();
 
-        let mesh = teapot_model[0].mesh.clone();
+        let teapot_mesh = create_mesh(teapot_model[0].mesh.clone(), &device);
 
-        let verts: Vec<u8> = mesh
-            .positions
-            .iter()
-            .flat_map(|pos| pos.to_ne_bytes())
-            .collect();
+        let mut bunny_reader = BufReader::new(BUNNY);
+        let (bunny_model, _) =
+            tobj::load_obj_buf(&mut bunny_reader, &LoadOptions::default(), |_| {
+                Err(LoadError::ReadError)
+            })
+            .unwrap();
 
-        let indices: Vec<u8> = mesh
-            .indices
-            .iter()
-            .flat_map(|pos| pos.to_ne_bytes())
-            .collect();
-
-        let mesh_bufs = (
-            device.create_buffer_init(&BufferInitDescriptor {
-                label: Some("Vertex buf"),
-                contents: &verts,
-                usage: BufferUsages::VERTEX,
-            }),
-            device.create_buffer_init(&BufferInitDescriptor {
-                label: Some("Index buf"),
-                contents: &indices,
-                usage: BufferUsages::INDEX,
-            }),
-        );
+        let bunny_mesh = create_mesh(bunny_model[0].mesh.clone(), &device);
+        println!("Done");
 
         self.instance = Some(instance);
         self.adapter = Some(adapter);
@@ -348,8 +345,8 @@ impl ApplicationHandler for App {
         self.cam_bindgroup = Some(camera_bind_group);
         self.instance_bindgroup = Some(instance_bind_group);
         self.unlit_mat = Some(material);
-        self.mesh = Some(mesh);
-        self.mesh_bufs = Some(mesh_bufs);
+        self.teapot_mesh = Some(teapot_mesh);
+        self.bunny_mesh = Some(bunny_mesh);
     }
 
     fn window_event(
@@ -469,6 +466,7 @@ impl ApplicationHandler for App {
         let time = Instant::now()
             .duration_since(self.start.unwrap())
             .as_secs_f32();
+
         update_bind_groups(
             win_size.into(),
             cam_bindgroup,
@@ -557,12 +555,24 @@ impl ApplicationHandler for App {
                 &[],
             );
 
-            let (vtx_buf, idx_buf) = self.mesh_bufs.as_ref().unwrap();
+            let mesh = self.bunny_mesh.as_ref().unwrap();
+            let attrs = &self.unlit_mat.as_ref().unwrap().compiled.vertex_attributes;
 
-            render_pass.set_vertex_buffer(0, vtx_buf.slice(..));
-            render_pass.set_index_buffer(idx_buf.slice(..), wgpu::IndexFormat::Uint32);
+            for (attribute, &location) in attrs {
+                let vertex_buffer = mesh
+                    .vertex_buffers
+                    .get(attribute)
+                    .expect("Missing attribute on mesh");
 
-            render_pass.draw_indexed(0..self.mesh.as_ref().unwrap().indices.len() as u32, 0, 0..1);
+                render_pass.set_vertex_buffer(location, vertex_buffer.buffer.slice(..));
+            }
+
+            render_pass.set_index_buffer(
+                mesh.index_buffer.buffer.slice(..),
+                mesh.index_buffer.format.to_wgpu(),
+            );
+
+            render_pass.draw_indexed(0..mesh.index_buffer.count as u32, 0, 0..1);
         }
 
         drop(render_pass);
@@ -573,6 +583,46 @@ impl ApplicationHandler for App {
             .submit(core::iter::once(encoder.finish()));
 
         output.present();
+    }
+}
+
+fn create_mesh(obj: tobj::Mesh, device: &wgpu::Device) -> Mesh {
+    let mut vertex_buffers = HashMap::new();
+
+    let positions_flat_slice = obj.positions.as_slice();
+
+    assert!(positions_flat_slice.len().is_multiple_of(3));
+
+    let positions_vec_slice = bytemuck::cast_slice::<_, GVec3<f32>>(positions_flat_slice);
+
+    assert_eq!(
+        core::mem::size_of_val(positions_flat_slice),
+        core::mem::size_of_val(positions_vec_slice)
+    );
+
+    let pos_buffer = VertexBuffer::new(
+        positions_vec_slice,
+        ShaderVertexAttributeType::Position,
+        device,
+        false,
+    )
+    .unwrap();
+
+    vertex_buffers.insert(ShaderVertexAttributeType::Position, pos_buffer);
+
+    let index_slice = obj.indices.as_slice();
+
+    assert!(
+        index_slice
+            .len()
+            .is_multiple_of(MeshTopology::Triangle.indices_per_primitive())
+    );
+
+    let index_buffer = IndexBuffer::new(index_slice, MeshTopology::Triangle, device).unwrap();
+
+    Mesh {
+        vertex_buffers,
+        index_buffer,
     }
 }
 
@@ -606,7 +656,7 @@ fn update_bind_groups(
     );
 
     let model_mat = Mat4::from_scale_rotation_translation(
-        Vec3::ONE,
+        Vec3::ONE * 5.0,
         Quat::from_euler(glam::EulerRot::XYZ, time * 1.0, time * 5.0, time * 0.5),
         Vec3::new(0.0, 0.0, 3.0),
     );
@@ -638,135 +688,7 @@ struct CompiledShader {
     pub source_id_hash: u64,
     pub keyword_hash: u64,
     pub user_bind_group_layout: wgpu::BindGroupLayout,
-}
-
-#[derive(Debug)]
-struct Material {
-    shader: Shader,
-    keywords: HashMap<String, u64>,
-    compiled: CompiledShader,
-    user_bind_group: BindGroup,
-}
-
-impl Material {
-    pub fn new(shader: Shader, keywords: HashMap<String, u64>, device: &wgpu::Device) -> Self {
-        //TODO: Check cache
-
-        let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
-            shader
-                .vertex_attributes
-                .iter()
-                .map(|p| p.condition.as_ref().map(|c| c.0.as_str())),
-        );
-
-        let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
-            shader
-                .user_params
-                .iter()
-                .map(|p| p.get_condition().map(|c| c.0.as_str())),
-        );
-
-        let output = material_shadercomp::compile::<_, FakeHasher>(CompInput {
-            id: shader.id as u64,
-            source: shader.get_source(),
-            keywords: &keywords,
-            vertex_attributes: &vertex_attr_conditions,
-            user_params: &user_param_conditions,
-            per_camera_block: include_str!("camera.wgsl"),
-            per_instance_block: include_str!("instance.wgsl"),
-        })
-        .unwrap();
-
-        let user_bind_group_layout: wgpu::BindGroupLayout = create_user_params_bind_group_layout(
-            "Material BGL",
-            &shader.user_params,
-            &output.remaining_params,
-            device,
-        );
-
-        let compiled = CompiledShader {
-            module: output.module,
-            source_id_hash: output.source_id_hash,
-            keyword_hash: output.keyword_hash,
-            user_bind_group_layout: user_bind_group_layout.clone(),
-        };
-
-        Self {
-            keywords,
-            compiled,
-            user_bind_group: BindGroup::new(
-                "Material User Bind Group".to_string(),
-                user_bind_group_layout,
-                shader.user_params.iter().enumerate().filter_map(|(i, p)| {
-                    if output.remaining_params.contains(&i) {
-                        Some(p)
-                    } else {
-                        None
-                    }
-                }),
-            ),
-            shader,
-        }
-    }
-
-    pub fn set_parameter(&mut self, param: &str, value: MaterialParameter, queue: &wgpu::Queue) {
-        self.user_bind_group
-            .set_parameter(param, value, queue)
-            .unwrap();
-    }
-}
-
-fn create_user_params_bind_group_layout(
-    name: &str,
-    params: &[ShaderParameter],
-    after_compile_filter: &HashSet<usize>,
-    device: &wgpu::Device,
-) -> wgpu::BindGroupLayout {
-    let params_with_filter = params
-        .iter()
-        .enumerate()
-        .filter(|(index, _)| after_compile_filter.contains(index))
-        .map(|(_, p)| p);
-
-    let buffer_entry = wgpu::BindGroupLayoutEntry {
-        binding: 0,
-        visibility: ShaderStages::VERTEX_FRAGMENT,
-        ty: wgpu::BindingType::Buffer {
-            ty: wgpu::BufferBindingType::Uniform,
-            has_dynamic_offset: false,
-            min_binding_size: Some(
-                NonZero::new(BindGroup::total_buffer_size(params_to_buf_iter(
-                    params_with_filter.clone(),
-                )) as u64)
-                .unwrap(),
-            ),
-        },
-        count: None,
-    };
-
-    let mut all_entries = vec![buffer_entry];
-
-    for param in params_with_filter {
-        let ShaderParameter::Opaque { ty, .. } = param else {
-            continue;
-        };
-
-        let binding = all_entries.len();
-
-        let opaque_entry = wgpu::BindGroupLayoutEntry {
-            binding: binding as u32,
-            visibility: ShaderStages::VERTEX_FRAGMENT,
-            ty: ty.to_wgpu_binding_type(),
-            count: None,
-        };
-
-        all_entries.push(opaque_entry);
-    }
-
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some(name),
-        entries: &all_entries,
-    })
+    pub vertex_attributes: HashMap<ShaderVertexAttributeType, u32>,
 }
 
 struct FakeHasher;
@@ -792,23 +714,4 @@ impl material_shadercomp::ShaderHasher<u64> for FakeHasher {
 
         hash
     }
-}
-
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    derive_more::IsVariant,
-    derive_more::Unwrap,
-    derive_more::TryUnwrap,
-)]
-pub enum MaterialParameter {
-    Uint(u32),
-    Int(i32),
-    Flt(f32),
-    Vec2(Vec2),
-    Vec3(Vec3),
-    Vec4(Vec4),
-    Mat4(Mat4),
 }

@@ -30,6 +30,8 @@ pub struct ShaderFile<'a>(pub Vec<Statement<'a>>);
 
 impl<'src> ShaderFile<'src> {
     pub fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
+        profiling::function_scope!();
+
         Ok(Self(
             source
                 .lines()

@@ -5,7 +5,7 @@ mod primitives;
 pub use primitives::*;
 use serde::{Deserialize, Serialize};
 
-use crate::MaterialParameter;
+use crate::material::MaterialParameter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -35,16 +35,16 @@ impl ShaderBufferParameterType {
             Self::Flt => 4,
             Self::Uint => 4,
             Self::Int => 4,
-            Self::Vec2f => 8,
-            Self::Vec3f => 16,
-            Self::Vec4f => 16,
-            Self::Vec2u => 8,
-            Self::Vec3u => 16,
-            Self::Vec4u => 16,
-            Self::Vec2i => 8,
-            Self::Vec3i => 16,
-            Self::Vec4i => 16,
-            Self::Mat4x4 => 16,
+            Self::Vec2f => GVec2::<f32>::ALIGN,
+            Self::Vec3f => GVec3::<f32>::ALIGN,
+            Self::Vec4f => GVec4::<f32>::ALIGN,
+            Self::Vec2u => GVec2::<u32>::ALIGN,
+            Self::Vec3u => GVec3::<u32>::ALIGN,
+            Self::Vec4u => GVec4::<u32>::ALIGN,
+            Self::Vec2i => GVec2::<i32>::ALIGN,
+            Self::Vec3i => GVec3::<i32>::ALIGN,
+            Self::Vec4i => GVec4::<i32>::ALIGN,
+            Self::Mat4x4 => GMat4x4::<f32>::ALIGN,
         }
     }
 
