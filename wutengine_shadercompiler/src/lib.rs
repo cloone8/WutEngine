@@ -112,6 +112,8 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
 
     profiling::function_scope!(format!("{source_id_hash}#{keyword_hash}").as_str());
 
+    log::info!("Compiling shader variant {source_id_hash}#{keyword_hash}");
+
     // First we parse the raw text into a set of source lines and compiler directives
     let parsed = ShaderFile::parse(input.source)?;
 
@@ -128,12 +130,16 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
     inject_keywords_as_constants(&mut applied, input.keywords);
 
     // Find the set of remaining parameters based on the input parameter conditions
+    log::debug!("Stripping shader parameters");
     let remaining_params = strip_by_conditions(input.parameters, input.keywords)?;
+
+    log::debug!("Stripping shader vertex attributes");
     let remaining_vertex_attributes = strip_by_conditions(input.parameters, input.keywords)?;
 
     // Compile into a naga module
     let module = {
         profiling::scope!("Naga cross-compile");
+        log::debug!("Compiling WGSL to Naga IR");
 
         let mut naga_frontend =
             naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
@@ -142,6 +148,8 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
 
         Box::new(naga_frontend.parse(&applied)?)
     };
+
+    log::debug!("Compiled shader variant {source_id_hash}#{keyword_hash}");
 
     Ok(CompOutput {
         module,
@@ -159,6 +167,8 @@ fn apply_branch_directives(
     keywords: &HashMap<String, u64>,
 ) -> Result<String, CompileErr> {
     profiling::function_scope!();
+
+    log::debug!("Applying branch directives");
 
     let mut out = String::new();
 
@@ -262,36 +272,45 @@ fn strip_by_conditions(
 fn inject_keywords_as_constants(source: &mut String, keywords: &HashMap<String, u64>) {
     profiling::function_scope!();
 
-    inject_keyword(
+    let mut replaced = 0;
+
+    replaced += inject_keyword(
         source,
         CAMERA_PARAMS_BIND_GROUP_KEYWORD,
         CAMERA_PARAMS_BIND_GROUP_INDEX as u64,
     );
 
-    inject_keyword(
+    replaced += inject_keyword(
         source,
         MATERIAL_PARAMS_BIND_GROUP_KEYWORD,
         MATERIAL_PARAMS_BIND_GROUP_INDEX as u64,
     );
 
-    inject_keyword(
+    replaced += inject_keyword(
         source,
         INSTANCE_PARAMS_BIND_GROUP_KEYWORD,
         INSTANCE_PARAMS_BIND_GROUP_INDEX as u64,
     );
 
     for (keyword, &val) in keywords {
-        inject_keyword(source, keyword, val);
+        replaced += inject_keyword(source, keyword, val);
     }
+
+    log::debug!("Inserted {} total keyword values", replaced);
 }
 
 /// Injects a single keyword into the given source string, replacing
-/// it with `val`
-fn inject_keyword(source: &mut String, keyword: &str, val: u64) {
+/// it with `val`. Returns the amount of replaced keywords
+fn inject_keyword(source: &mut String, keyword: &str, val: u64) -> usize {
     let kw_byte_len = keyword.len();
     let val_string = val.to_string();
 
+    let mut replaced = 0;
+
     while let Some(start) = source.find(keyword) {
         source.replace_range(start..(start + kw_byte_len), &val_string);
+        replaced += 1;
     }
+
+    replaced
 }

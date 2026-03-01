@@ -45,6 +45,8 @@ impl<'src> ShaderFile<'src> {
     pub(crate) fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
         profiling::function_scope!();
 
+        log::debug!("Parsing shader file");
+
         Ok(Self(
             source
                 .lines()
