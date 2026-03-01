@@ -30,22 +30,22 @@ macro_rules! map {
 
 pub(crate) use map;
 
-// /// Macro that marks the current spot as unreachable. Checked in debug builds,
-// /// unchecked in release builds.
-// macro_rules! unreachable_dbg {
-//     ($($arg:tt)*) => {{
-//         // Dummy unsafe no-op to force unsafe{} around this macro
-//         #[allow(clippy::useless_transmute, reason = "Dummy op")]
-//         {
-//         _ = ::core::mem::transmute::<(), ()>(());
-//         }
+/// Macro that marks the current spot as unreachable. Checked in debug builds,
+/// unchecked in release builds.
+macro_rules! unreachable_dbg {
+    ($($arg:tt)*) => {{
+        // Dummy unsafe no-op to force unsafe{} around this macro
+        #[allow(clippy::useless_transmute, reason = "Dummy op")]
+        {
+        _ = ::core::mem::transmute::<(), ()>(());
+        }
 
-//         #[cfg(debug_assertions)]
-//         unreachable!($($arg)*);
+        #[cfg(debug_assertions)]
+        unreachable!($($arg)*);
 
-//         #[cfg(not(debug_assertions))]
-//         ::core::hint::unreachable_unchecked();
-//     }};
-// }
+        #[cfg(not(debug_assertions))]
+        ::core::hint::unreachable_unchecked();
+    }};
+}
 
-// pub(crate) use unreachable_dbg;
+pub(crate) use unreachable_dbg;

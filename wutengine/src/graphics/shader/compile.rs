@@ -1,18 +1,29 @@
 //! Shader compilation. The conversion of a [Shader](super::Shader) into a [CompiledShader](super::CompiledShader)
 
 use core::num::NonZero;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use nohash_hasher::IntSet;
+use wutengine_shadercompiler::{
+    CAMERA_PARAMS_BIND_GROUP_INDEX, INSTANCE_PARAMS_BIND_GROUP_INDEX,
+    MATERIAL_PARAMS_BIND_GROUP_INDEX,
+};
 
+use crate::graphics::internal_bind_groups::{
+    get_camera_bind_group_layout, get_instance_bind_group_layout,
+};
 use crate::graphics::shader::{CompiledShaderId, WutEngineShaderHasher};
 use crate::graphics::{BindGroup, GFX_DEVICE, cache};
+use crate::util::unreachable_dbg;
 
 use super::{Shader, ShaderBufferParameterType, ShaderParameter, ShaderVertexAttributeType};
 
-#[derive(Debug, derive_more::Display, derive_more::Error)]
-pub(crate) enum CompileErr {}
+#[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
+pub(crate) enum CompileErr {
+    CrossCompile(wutengine_shadercompiler::CompileErr),
+}
 
 /// Compiles `shader` with the provided set of active keywords and inserts it into the shader cache. If the shader
 /// has already been compiled previously, returns the cached copy.
@@ -28,10 +39,9 @@ pub(crate) fn compile(
         return Ok(cached);
     }
 
-    profiling::scope!(
-        "Compile shader from source",
-        variant_id.to_string().as_str()
-    );
+    let variant_id_string = variant_id.to_string();
+
+    profiling::scope!("Compile shader from source", variant_id_string.as_str());
 
     log::debug!("Compiling shader {variant_id}");
 
@@ -56,22 +66,49 @@ pub(crate) fn compile(
             keywords: &keywords,
             parameters: &user_param_conditions,
             vertex_attributes: &vertex_attr_conditions,
-            per_camera_block: include_str!("camera.wgsl"),
-            per_instance_block: include_str!("instance.wgsl"),
+            per_camera_block: include_str!("camera_group.wgsl"),
+            per_instance_block: include_str!("instance_group.wgsl"),
         },
     )
-    .unwrap();
+    .map_err(|e| Box::new(e.into()))?;
 
     assert_eq!(
         variant_id, output.variant_id,
         "Incorrect variant ID returned"
     );
 
+    let native_module = {
+        profiling::scope!("Compile native shader module", variant_id_string.as_str());
+
+        let module = GFX_DEVICE.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some(&variant_id_string),
+            source: wgpu::ShaderSource::Naga(Cow::Owned(*output.module)),
+        });
+
+        log_shader_compilation_info(&module);
+
+        module
+    };
+
     let user_bind_group_layout: wgpu::BindGroupLayout = create_user_params_bind_group_layout(
-        "Material BGL",
+        format!("{variant_id_string} material bind group layout").as_str(),
         &shader.user_params,
         &output.remaining_params,
     );
+
+    let pipeline_layout = {
+        profiling::scope!("Create native pipeline layout", variant_id_string.as_str());
+
+        GFX_DEVICE.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some(format!("{variant_id_string} pipeline layout").as_str()),
+            bind_group_layouts: &sort_layouts(
+                get_camera_bind_group_layout(),
+                &user_bind_group_layout,
+                get_instance_bind_group_layout(),
+            ),
+            immediate_size: 0,
+        })
+    };
 
     let parameters = output
         .remaining_params
@@ -90,13 +127,27 @@ pub(crate) fn compile(
 
     let compiled = CompiledShader {
         id: output.variant_id,
-        module: output.module,
+        module: native_module,
+        pipeline_layout,
         user_bind_group_layout: user_bind_group_layout.clone(),
         parameters,
         vertex_attributes,
     };
 
     Ok(cache::shader::insert(variant_id, compiled))
+}
+
+fn sort_layouts<'a>(
+    cam: &'a wgpu::BindGroupLayout,
+    mat: &'a wgpu::BindGroupLayout,
+    instance: &'a wgpu::BindGroupLayout,
+) -> [&'a wgpu::BindGroupLayout; 3] {
+    core::array::from_fn(|i| match i as u32 {
+        CAMERA_PARAMS_BIND_GROUP_INDEX => cam,
+        MATERIAL_PARAMS_BIND_GROUP_INDEX => mat,
+        INSTANCE_PARAMS_BIND_GROUP_INDEX => instance,
+        _ => unsafe { unreachable_dbg!() },
+    })
 }
 
 fn create_user_params_bind_group_layout(
@@ -197,7 +248,8 @@ fn log_shader_compilation_info(module: &wgpu::ShaderModule) {
 #[derive(Debug)]
 pub(crate) struct CompiledShader {
     pub(crate) id: CompiledShaderId,
-    pub(crate) module: Box<naga::Module>,
+    pub(crate) module: wgpu::ShaderModule,
+    pub(crate) pipeline_layout: wgpu::PipelineLayout,
     pub(crate) user_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) parameters: Vec<ShaderParameter>,
     pub(crate) vertex_attributes: HashMap<ShaderVertexAttributeType, u32>,

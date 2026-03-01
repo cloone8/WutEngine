@@ -14,7 +14,7 @@ use super::shader::{CompiledShader, Shader};
 pub(crate) struct Material {
     pub(crate) shader: Shader,
     pub(crate) keywords: HashMap<String, u64>,
-    pub(crate) compiled: Arc<CompiledShader>,
+    pub(crate) compiled_shader: Arc<CompiledShader>,
     pub(crate) user_bind_group: BindGroup,
 }
 
@@ -30,88 +30,8 @@ impl Material {
                 compiled_shader.user_bind_group_layout.clone(),
                 &compiled_shader.parameters,
             ),
-            compiled: compiled_shader,
+            compiled_shader,
         }
-        // let variant_id = crate::graphics::shader::calculate_variant_id(shader.id, &keywords);
-
-        // if let Some(cached) = cache::shader::find(&variant_id) {
-        //     return Self {
-        //         shader,
-        //         keywords,
-        //         compiled: cached,
-        //         user_bind_group: BindGroup::new(
-        //             "Material User Bind Group".to_string(),
-        //             cached.user_bind_group_layout,
-        //             &cached.parameters,
-        //         ),
-        //     };
-        // }
-
-        // let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
-        //     shader
-        //         .vertex_attributes
-        //         .iter()
-        //         .map(|p| p.condition.as_ref().map(|c| c.0.as_str())),
-        // );
-
-        // let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
-        //     shader
-        //         .user_params
-        //         .iter()
-        //         .map(|p| p.get_condition().map(|c| c.0.as_str())),
-        // );
-
-        // let output = wutengine_shadercompiler::compile::<_, FakeHasher>(CompInput {
-        //     id: shader.id as u64,
-        //     source: shader.get_source(),
-        //     keywords: &keywords,
-        //     vertex_attributes: &vertex_attr_conditions,
-        //     user_params: &user_param_conditions,
-        //     per_camera_block: include_str!("camera.wgsl"),
-        //     per_instance_block: include_str!("instance.wgsl"),
-        // })
-        // .unwrap();
-
-        // let user_bind_group_layout: wgpu::BindGroupLayout = create_user_params_bind_group_layout(
-        //     "Material BGL",
-        //     &shader.user_params,
-        //     &output.remaining_params,
-        //     device,
-        // );
-
-        // let vertex_attributes = output
-        //     .remaining_vertex_attributes
-        //     .into_iter()
-        //     .map(|idx| {
-        //         let attr = &shader.vertex_attributes[idx];
-        //         (attr.ty, attr.location)
-        //     })
-        //     .collect();
-
-        // let compiled = CompiledShader {
-        //     module: output.module,
-        //     source_id_hash: output.source_id_hash,
-        //     keyword_hash: output.keyword_hash,
-        //     user_bind_group_layout: user_bind_group_layout.clone(),
-        //     vertex_attributes,
-        // };
-
-        // Self {
-        //     keywords,
-        //     compiled,
-        //     user_bind_group: BindGroup::new(
-        //         "Material User Bind Group".to_string(),
-        //         user_bind_group_layout,
-        //         shader.user_params.iter().enumerate().filter_map(|(i, p)| {
-        //             if output.remaining_params.contains(&i) {
-        //                 Some(p)
-        //             } else {
-        //                 None
-        //             }
-        //         }),
-        //     ),
-        //     shader,
-        // }
     }
 }
 

@@ -24,6 +24,14 @@ impl MeshTopology {
             Self::Point => 1,
         }
     }
+
+    pub const fn to_wgpu(self) -> wgpu::PrimitiveTopology {
+        match self {
+            Self::Triangle => wgpu::PrimitiveTopology::TriangleList,
+            Self::Line => wgpu::PrimitiveTopology::LineList,
+            Self::Point => wgpu::PrimitiveTopology::PointList,
+        }
+    }
 }
 
 pub(crate) struct Mesh {

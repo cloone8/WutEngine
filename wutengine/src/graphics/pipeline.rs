@@ -9,6 +9,7 @@ use crate::graphics::{self, GFX_DEVICE};
 use super::cache;
 use super::cache::pipeline::PipelineCacheKey;
 use super::material::Material;
+use super::mesh::MeshTopology;
 
 unique_id_type64! {
     /// Unique ID for a render pipeline. Mostly used for debug labels
@@ -30,13 +31,15 @@ pub(crate) enum GetPipelineErr {
 /// cached copy does not exist, the shader is compiled and cached.
 pub(crate) fn get_pipeline(
     material: &Material,
+    topology: MeshTopology,
     color_targets: &[Option<wgpu::ColorTargetState>],
 ) -> Result<Arc<wgpu::RenderPipeline>, GetPipelineErr> {
     profiling::function_scope!();
 
     let pipeline_cache_key = PipelineCacheKey {
-        shader: material.compiled_shader_id(),
+        shader: material.compiled_shader.id,
         color_targets: color_targets.into(),
+        mesh_topology: topology,
     };
 
     if let Some(cached_pipeline) = cache::pipeline::find(&pipeline_cache_key) {
@@ -47,7 +50,7 @@ pub(crate) fn get_pipeline(
 
     log::debug!(
         "Creating new pipeline with ID {pipeline_id} for shader variant {}",
-        material.compiled_shader_id()
+        material.compiled_shader.id
     );
 
     let compiled_shader = material.compiled_shader.as_ref();
@@ -60,7 +63,7 @@ pub(crate) fn get_pipeline(
         label: Some(
             format!(
                 "Shader variant {} pipeline {}",
-                compiled_shader.name, pipeline_id
+                compiled_shader.id, pipeline_id
             )
             .as_str(),
         ),
@@ -79,7 +82,7 @@ pub(crate) fn get_pipeline(
             targets: color_targets,
         }),
         primitive: wgpu::PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList,
+            topology: topology.to_wgpu(),
             strip_index_format: None,
             front_face: wgpu::FrontFace::Ccw,
             cull_mode: None,

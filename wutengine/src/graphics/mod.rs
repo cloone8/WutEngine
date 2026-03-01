@@ -4,6 +4,7 @@ mod api;
 mod bind_group;
 mod cache;
 mod init;
+pub(crate) mod internal_bind_groups;
 pub mod material;
 pub mod mesh;
 pub(crate) mod pipeline;

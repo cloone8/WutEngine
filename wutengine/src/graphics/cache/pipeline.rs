@@ -4,6 +4,7 @@ use std::sync::{Arc, LazyLock};
 
 use smallvec::SmallVec;
 
+use crate::graphics::mesh::MeshTopology;
 use crate::graphics::shader::CompiledShaderId;
 
 use super::GraphicsCache;
@@ -20,6 +21,9 @@ pub(crate) struct PipelineCacheKey {
 
     /// The color targets the pipeline supports
     pub(crate) color_targets: SmallVec<[Option<wgpu::ColorTargetState>; 2]>,
+
+    /// The topology of the mesh
+    pub(crate) mesh_topology: MeshTopology,
 }
 
 /// Tries to find a given shader variant in the global cache
