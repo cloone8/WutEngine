@@ -13,7 +13,7 @@ pub(crate) struct BindGroup {
     buffer_params: Vec<ShaderBufferParameter>,
     opaque_params: Vec<ShaderOpaqueParameter>,
     pub(crate) layout: wgpu::BindGroupLayout,
-    native: Option<(wgpu::Buffer, wgpu::BindGroup)>,
+    native: Option<(Option<wgpu::Buffer>, wgpu::BindGroup)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -141,6 +141,8 @@ impl BindGroup {
                 }
 
                 if let Some(buffer) = self.native.as_ref().map(|n| &n.0) {
+                    let buffer = buffer.as_ref().expect("Buffer parameters on bind group, but no buffer was created during bind group updating");
+
                     let param_bytes = self.buffer_params[idx].bytes();
 
                     // We update the subset of the GPU buffer where our parameter lies
@@ -184,48 +186,54 @@ impl BindGroup {
             return;
         }
 
-        let total_size = Self::total_buffer_size(&self.buffer_params)
-            .max(1)
-            .next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT as usize);
-
-        let buffer = device.create_buffer(&wgpu::wgt::BufferDescriptor {
-            label: Some(format!("{} buffer", self.bind_group_name).as_str()),
-            size: total_size as wgpu::BufferAddress,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
-            mapped_at_creation: true,
-        });
-
-        let mut buf_slice = buffer.get_mapped_range_mut(..);
-
-        let mut offset: usize = 0;
-
-        for param in &self.buffer_params {
-            // Align the parameter to the minimum alignment of its type
-            offset = offset.next_multiple_of(param.align());
-
-            // Copy the bytes into the buffer
-            let bytes = param.bytes();
-
-            buf_slice[offset..(offset + bytes.len())].copy_from_slice(bytes);
-
-            // Increment the offset by the size of the type.
-            offset += bytes.len();
-        }
-
-        drop(buf_slice);
-        buffer.unmap();
-
         let mut entries: Vec<wgpu::BindGroupEntry> =
             Vec::with_capacity(1 + self.opaque_params.len());
 
-        entries.push(wgpu::BindGroupEntry {
-            binding: 0,
-            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                buffer: &buffer,
-                offset: 0,
-                size: Some(NonZero::new(total_size as u64).unwrap()),
-            }),
-        });
+        let total_buf_size = Self::total_buffer_size(&self.buffer_params);
+
+        let mut maybe_buffer = None;
+
+        if total_buf_size != 0 {
+            let total_buf_size =
+                total_buf_size.next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT as usize);
+
+            let buffer = device.create_buffer(&wgpu::wgt::BufferDescriptor {
+                label: Some(format!("{} buffer", self.bind_group_name).as_str()),
+                size: total_buf_size as wgpu::BufferAddress,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+                mapped_at_creation: true,
+            });
+
+            let mut buf_slice = buffer.get_mapped_range_mut(..);
+
+            let mut offset: usize = 0;
+
+            for param in &self.buffer_params {
+                // Align the parameter to the minimum alignment of its type
+                offset = offset.next_multiple_of(param.align());
+
+                // Copy the bytes into the buffer
+                let bytes = param.bytes();
+
+                buf_slice[offset..(offset + bytes.len())].copy_from_slice(bytes);
+
+                // Increment the offset by the size of the type.
+                offset += bytes.len();
+            }
+
+            drop(buf_slice);
+            buffer.unmap();
+            maybe_buffer = Some(buffer);
+
+            entries.push(wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: maybe_buffer.as_ref().unwrap(),
+                    offset: 0,
+                    size: Some(NonZero::new(total_buf_size as u64).unwrap()),
+                }),
+            });
+        }
 
         for (i, opaque_param) in self.opaque_params.iter().enumerate() {
             let entry = wgpu::BindGroupEntry {
@@ -242,7 +250,7 @@ impl BindGroup {
             entries: &entries,
         });
 
-        self.native = Some((buffer, bind_group));
+        self.native = Some((maybe_buffer, bind_group));
     }
 
     #[inline]

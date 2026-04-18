@@ -1,13 +1,18 @@
 use core::fmt::Display;
 
+use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util_macro::unique_id_type32;
 
 use crate::color::Color;
 use crate::component::Component;
-use crate::graphics::material::Material;
+use crate::graphics::material::{Material, MaterialParameter};
+use crate::graphics::mesh::MeshTopology;
+use crate::graphics::sampler::{Filtering, Sampler, WrapMode, WrapModeType};
+use crate::graphics::texture::Texture;
 use crate::system::Phase;
+use crate::util::map;
 use crate::window::Window;
-use crate::{builtins, graphics, map};
+use crate::{builtins, graphics};
 
 unique_id_type32! {
     /// The ID of a [Camera]. Used for filtering in draw calls
@@ -156,7 +161,31 @@ impl Camera {
             view_formats: &[],
         });
 
+        if let Some(blit_material) = self.blit_material.as_mut() {
+            // Also rebind the blit material here, if it already exists. Cheaper
+            // than rebinding it every frame, if the render target doesn't change
+            Self::set_blit_material_params(blit_material, &render_target_texture);
+        }
+
         self.render_target = Some(render_target_texture);
+    }
+
+    fn set_blit_material_params(mat: &mut Material, render_target_texture: &wgpu::Texture) {
+        let tex_param = MaterialParameter::Texture2D(Texture::new_from_existing(
+            render_target_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+        ));
+        let sampler_param = MaterialParameter::Sampler(Sampler::new(
+            Filtering::Linear,
+            WrapModeType::Single(WrapMode::Clamp),
+        ));
+
+        mat.user_bind_group
+            .set_parameter("source_texture", tex_param, graphics::queue())
+            .unwrap();
+
+        mat.user_bind_group
+            .set_parameter("source_sampler", sampler_param, graphics::queue())
+            .unwrap();
     }
 }
 
@@ -205,10 +234,10 @@ impl Camera {
             return;
         };
 
-        let Some(rendered_image) = &self.render_target else {
-            // No intermediate image we rendered to
+        if self.render_target.is_none() {
+            // We haven't rendered to an intermediate render target, so nothing to blit
             return;
-        };
+        }
 
         self.set_blit_material();
 
@@ -239,8 +268,11 @@ impl Camera {
             write_mask: wgpu::ColorWrites::ALL,
         })];
 
+        let blit_material = self.blit_material.as_mut().unwrap();
+
         let blit_pipeline = match graphics::pipeline::get_pipeline(
-            self.blit_material.as_ref().unwrap(),
+            blit_material,
+            MeshTopology::Triangle,
             &color_targets,
         ) {
             Ok(bp) => bp,
@@ -249,6 +281,10 @@ impl Camera {
                 return;
             }
         };
+
+        blit_material
+            .user_bind_group
+            .update_bind_group(graphics::device());
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Camera Blit Pass"),
@@ -267,59 +303,12 @@ impl Camera {
             multiview_mask: None,
         });
 
-        // let bind_group_layout =
-        //     graphics::device().create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        //         label: Some("Texture sampler group layout"),
-        //         entries: &[
-        //             wgpu::BindGroupLayoutEntry {
-        //                 binding: 0,
-        //                 visibility: wgpu::ShaderStages::FRAGMENT,
-        //                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-        //                 count: None,
-        //             },
-        //             wgpu::BindGroupLayoutEntry {
-        //                 binding: 1,
-        //                 visibility: wgpu::ShaderStages::FRAGMENT,
-        //                 ty: wgpu::BindingType::Texture {
-        //                     sample_type: wgpu::TextureSampleType::Float { filterable: true },
-        //                     view_dimension: wgpu::TextureViewDimension::D2,
-        //                     multisampled: false,
-        //                 },
-        //                 count: None,
-        //             },
-        //         ],
-        //     });
-
-        // // let texture = self.get_fun_texture();
-        // let texture = rendered_image;
-        // let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        // let sampler = graphics::device().create_sampler(&wgpu::SamplerDescriptor {
-        //     address_mode_u: wgpu::AddressMode::ClampToEdge,
-        //     address_mode_v: wgpu::AddressMode::ClampToEdge,
-        //     address_mode_w: wgpu::AddressMode::ClampToEdge,
-        //     mag_filter: wgpu::FilterMode::Linear,
-        //     min_filter: wgpu::FilterMode::Nearest,
-        //     mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-        //     ..Default::default()
-        // });
-
-        let texture_bind_group = graphics::device().create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Fun texture bind group"),
-            layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&view),
-                },
-            ],
-        });
-
         render_pass.set_pipeline(&blit_pipeline);
-        // render_pass.set_bind_group(0, &texture_bind_group, &[]);
+        render_pass.set_bind_group(
+            MATERIAL_PARAMS_BIND_GROUP_INDEX,
+            Some(blit_material.user_bind_group.get_bind_group()),
+            &[],
+        );
 
         let actual_target_size = blit_target_texture.size();
         render_pass.set_viewport(
@@ -330,6 +319,7 @@ impl Camera {
             0.0,
             1.0,
         );
+
         render_pass.draw(0..3, 0..1);
     }
 
@@ -338,8 +328,13 @@ impl Camera {
             return;
         }
 
-        self.blit_material =
-            Some(Material::new(builtins::shaders::BLIT.clone(), map![], &[]).unwrap());
+        let mut mat = Material::new(builtins::shaders::BLIT.clone(), map![]);
+
+        if let Some(render_target_texture) = self.render_target.as_ref() {
+            Self::set_blit_material_params(&mut mat, render_target_texture);
+        }
+
+        self.blit_material = Some(mat);
     }
 }
 

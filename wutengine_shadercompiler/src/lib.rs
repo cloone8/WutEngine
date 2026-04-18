@@ -139,7 +139,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
     let remaining_params = strip_by_conditions(input.parameters, input.keywords)?;
 
     log::debug!("Stripping shader vertex attributes");
-    let remaining_vertex_attributes = strip_by_conditions(input.parameters, input.keywords)?;
+    let remaining_vertex_attributes = strip_by_conditions(input.vertex_attributes, input.keywords)?;
 
     // Compile into a naga module
     let module = {

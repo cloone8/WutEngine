@@ -30,8 +30,8 @@ struct VSOutput {
     return vs_output;
 }
 
-@group(1) @binding(1) var source_sampler: sampler;
-@group(1) @binding(2) var source_texture: texture_2d<f32>;
+@group(WUTENGINE_MATERIAL_GROUP) @binding(1) var source_sampler: sampler;
+@group(WUTENGINE_MATERIAL_GROUP) @binding(2) var source_texture: texture_2d<f32>;
 
 @fragment fn fs(fs_input: VSOutput) -> @location(0) vec4f {
     return textureSample(source_texture, source_sampler, fs_input.uv);

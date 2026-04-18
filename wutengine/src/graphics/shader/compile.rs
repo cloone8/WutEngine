@@ -163,30 +163,34 @@ fn create_user_params_bind_group_layout(
         .filter(|(index, _)| after_compile_filter.contains(index))
         .map(|(_, p)| p);
 
-    let buffer_entry = wgpu::BindGroupLayoutEntry {
-        binding: 0,
-        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-        ty: wgpu::BindingType::Buffer {
-            ty: wgpu::BufferBindingType::Uniform,
-            has_dynamic_offset: false,
-            min_binding_size: Some(
-                NonZero::new(BindGroup::total_buffer_size(params_to_buf_iter(
-                    params_with_filter.clone(),
-                )) as u64)
-                .unwrap(),
-            ),
-        },
-        count: None,
-    };
+    let mut all_entries = Vec::with_capacity(1);
 
-    let mut all_entries = vec![buffer_entry];
+    let buffer_size = NonZero::new(BindGroup::total_buffer_size(params_to_buf_iter(
+        params_with_filter.clone(),
+    )) as u64);
 
+    if let Some(buffer_size) = buffer_size {
+        let buffer_entry = wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: Some(buffer_size),
+            },
+            count: None,
+        };
+
+        all_entries.push(buffer_entry);
+    }
+
+    let mut num_opaque = 0;
     for param in params_with_filter {
         let ShaderParameter::Opaque { ty, .. } = param else {
             continue;
         };
 
-        let binding = all_entries.len();
+        let binding = num_opaque + 1; // Buffer is at 0, so opaque params start at 1
 
         let opaque_entry = wgpu::BindGroupLayoutEntry {
             binding: binding as u32,
@@ -196,6 +200,7 @@ fn create_user_params_bind_group_layout(
         };
 
         all_entries.push(opaque_entry);
+        num_opaque += 1;
     }
 
     GFX_DEVICE.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

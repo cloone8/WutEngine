@@ -6,6 +6,8 @@ pub use primitives::*;
 use serde::{Deserialize, Serialize};
 
 use crate::graphics::material::MaterialParameter;
+use crate::graphics::sampler::DEFAULT_SAMPLER;
+use crate::graphics::texture::DEFAULT_TEXTURE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -107,7 +109,10 @@ pub enum ShaderOpaqueParameterType {
 
 impl ShaderOpaqueParameterType {
     pub fn to_default_value(self) -> ShaderOpaqueParameter {
-        todo!()
+        match self {
+            Self::Sampler => ShaderOpaqueParameter::Sampler(DEFAULT_SAMPLER.clone()),
+            Self::Texture2D => ShaderOpaqueParameter::Texture2D(DEFAULT_TEXTURE.clone()),
+        }
     }
 
     #[inline]
@@ -282,8 +287,23 @@ pub enum ShaderOpaqueParameter {
 
 impl ShaderOpaqueParameter {
     #[inline]
-    pub fn set_from(&mut self, _value: MaterialParameter) -> bool {
-        todo!()
+    pub fn set_from(&mut self, value: MaterialParameter) -> bool {
+        match self {
+            Self::Texture2D(cur) => {
+                if let MaterialParameter::Texture2D(tex) = value {
+                    *cur = tex.get_view().clone();
+                    return true;
+                }
+            }
+            Self::Sampler(cur) => {
+                if let MaterialParameter::Sampler(smp) = value {
+                    *cur = smp.get_wgpu().clone();
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     #[inline]

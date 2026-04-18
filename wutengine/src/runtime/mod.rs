@@ -184,7 +184,7 @@ impl Runtime {
 
         let mut world = world::get_world_mut();
 
-        // Render all camera's, giving each camera its own rendering thread
+        // Render all cameras, giving each camera its own rendering thread
         let mut buffers: Vec<_> = world
             .ecs
             .query_mut::<&mut Camera>()
@@ -210,7 +210,7 @@ impl Runtime {
                     label: Some("Camera Blit Command Encoder"),
                 });
 
-            blit_encoder.push_debug_group("Blitting camera's to main surfaces");
+            blit_encoder.push_debug_group("Blitting cameras to main surfaces");
 
             for camera in world.ecs.query_mut::<&mut Camera>() {
                 camera.blit_to_target(&mut blit_encoder, &surface_texture_map);

@@ -3,22 +3,23 @@ use std::sync::Arc;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
-use crate::graphics::shader::compile;
-
-use super::BindGroup;
+use super::sampler::Sampler;
 use super::shader::{CompiledShader, Shader};
+use super::texture::Texture;
+use super::{BindGroup, shader};
 
 #[derive(Debug)]
 pub(crate) struct Material {
-    pub(crate) shader: Shader,
+    pub(crate) shader: Arc<Shader>,
     pub(crate) keywords: HashMap<String, u64>,
     pub(crate) compiled_shader: Arc<CompiledShader>,
     pub(crate) user_bind_group: BindGroup,
 }
 
 impl Material {
-    pub(crate) fn new(shader: Shader, keywords: HashMap<String, u64>) -> Self {
-        let compiled_shader = compile(&shader, &keywords).expect("Failed to compile shader");
+    pub(crate) fn new(shader: Arc<Shader>, keywords: HashMap<String, u64>) -> Self {
+        let compiled_shader =
+            shader::compile(&shader, &keywords).expect("Failed to compile shader");
 
         Self {
             shader,
@@ -36,7 +37,6 @@ impl Material {
 #[derive(
     Debug,
     Clone,
-    Copy,
     PartialEq,
     derive_more::IsVariant,
     derive_more::Unwrap,
@@ -51,4 +51,6 @@ pub enum MaterialParameter {
     Vec3(Vec3),
     Vec4(Vec4),
     Mat4(Mat4),
+    Texture2D(Texture),
+    Sampler(Sampler),
 }

@@ -1,5 +1,28 @@
 //! Texture functionality
 
+use std::sync::LazyLock;
+
+use image::GenericImageView;
+
+pub(crate) static DEFAULT_TEXTURE: LazyLock<wgpu::TextureView> = LazyLock::new(|| {
+    log::debug!("Loading default texture");
+
+    let tmp_texture = Texture::new(&TextureConfig {
+        width: 512,
+        height: 512,
+        format: TextureFormat::Rgba8Srgb,
+    });
+
+    let image_encoded_bytes = include_bytes!("default_texture.png");
+    let image_loaded = image::load_from_memory(image_encoded_bytes).unwrap();
+
+    let as_rgba8 = image_loaded.into_rgba8();
+
+    tmp_texture.set_data(&as_rgba8);
+
+    tmp_texture.view
+});
+
 /// The configuration for creating a new texture
 #[derive(Debug, Clone)]
 pub struct TextureConfig {
@@ -14,7 +37,7 @@ pub struct TextureConfig {
 }
 
 /// The handle to a native [wgpu::Texture]
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Texture {
     tex: wgpu::Texture,
     view: wgpu::TextureView,
@@ -54,6 +77,14 @@ impl Texture {
         }
     }
 
+    /// Converts an existing texture view to a WutEngine texture
+    pub(crate) fn new_from_existing(view: wgpu::TextureView) -> Self {
+        Self {
+            tex: view.texture().clone(),
+            view,
+        }
+    }
+
     /// Updates the data in this texture to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
     pub(crate) fn set_data(&self, data: &[u8]) {
@@ -63,7 +94,7 @@ impl Texture {
         let queue = super::queue();
 
         let bytes_per_pixel = format
-            .target_pixel_byte_cost()
+            .block_copy_size(None)
             .expect("Compressed texture formats not yet supported");
 
         queue.write_texture(
@@ -81,8 +112,6 @@ impl Texture {
             },
             size,
         );
-
-        // self.0.native
     }
 
     #[inline]

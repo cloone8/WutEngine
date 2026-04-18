@@ -1,14 +1,22 @@
 //! Texture samplers
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use crate::graphics::GFX_DEVICE;
 use crate::graphics::cache::sampler::SamplerCacheKey;
 
 use super::cache;
 
+pub(crate) static DEFAULT_SAMPLER: LazyLock<wgpu::Sampler> = LazyLock::new(|| {
+    log::debug!("Loading default sampler");
+
+    let tmp_sampler = Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Repeat));
+
+    tmp_sampler.get_wgpu().clone()
+});
+
 /// A texture sampler descriptor.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Sampler(pub(super) Arc<wgpu::Sampler>);
 // /// What filtering method the sampler uses when the texture takes
 // /// up more space on the screen than it has pixels
