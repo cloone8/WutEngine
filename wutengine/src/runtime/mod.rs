@@ -15,7 +15,7 @@ use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::system::{self, Phase, SystemManager};
 use crate::util::{self, InitOnce};
-use crate::window::{self};
+use crate::window::{self, Window};
 use crate::{graphics, time, world};
 
 use rayon::prelude::*;
@@ -201,7 +201,13 @@ impl Runtime {
             let mut surface_texture_map = SmallVec::<[_; 4]>::new_const();
 
             for (window, surface) in surfaces {
-                let surface_texture = surface.get_current_texture().unwrap();
+                let Some(surface_texture) = unwrap_surface_tex(surface, window) else {
+                    log::debug!(
+                        "No surface texture could be obtained for window {window}, skipping"
+                    );
+                    continue;
+                };
+
                 surface_texture_map.push((*window, surface_texture));
             }
 
@@ -250,6 +256,32 @@ impl Runtime {
         drop(render_pass);
         encoder.pop_debug_group();
         Some(encoder)
+    }
+}
+
+fn unwrap_surface_tex(surface: &wgpu::Surface, window: &Window) -> Option<wgpu::SurfaceTexture> {
+    match surface.get_current_texture() {
+        wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
+        wgpu::CurrentSurfaceTexture::Suboptimal(sfctex) => {
+            log::warn!("Suboptimal surface for window {window}, should recreate");
+            Some(sfctex)
+        }
+        wgpu::CurrentSurfaceTexture::Timeout => {
+            panic!("Timeout while trying to obtain surface texture for window {window}");
+        }
+        wgpu::CurrentSurfaceTexture::Occluded => None,
+        wgpu::CurrentSurfaceTexture::Outdated => {
+            log::error!("Surface texture for window {window} is outdated");
+            None
+        }
+        wgpu::CurrentSurfaceTexture::Lost => {
+            panic!("Surface texture for window {window} lost");
+        }
+        wgpu::CurrentSurfaceTexture::Validation => {
+            panic!(
+                "Validation error while trying to obtain the surface texture for window {window}"
+            );
+        }
     }
 }
 

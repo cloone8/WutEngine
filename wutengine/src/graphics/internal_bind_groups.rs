@@ -52,7 +52,7 @@ pub(crate) fn get_camera_bind_group_layout() -> &'static wgpu::BindGroupLayout {
         })
     });
 
-    &*CAMERA_LAYOUT
+    &CAMERA_LAYOUT
 }
 
 pub(crate) fn create_camera_bind_group(name: String) -> BindGroup {
@@ -106,7 +106,7 @@ pub(crate) fn get_instance_bind_group_layout() -> &'static wgpu::BindGroupLayout
         })
     });
 
-    &*INSTANCE_LAYOUT
+    &INSTANCE_LAYOUT
 }
 
 pub(crate) fn create_instance_bind_group(name: String) -> BindGroup {

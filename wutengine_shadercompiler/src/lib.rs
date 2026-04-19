@@ -149,6 +149,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
         let mut naga_frontend =
             naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
                 parse_doc_comments: true,
+                capabilities: naga::valid::Capabilities::default(),
             });
 
         Box::new(naga_frontend.parse(&applied)?)

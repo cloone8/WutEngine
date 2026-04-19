@@ -29,8 +29,9 @@ pub(crate) fn initialize_graphics_context() -> bool {
 
     log::debug!("Using backends: {}", backends_to_str(wanted_backends));
 
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wanted_backends,
+        display: None,
         flags: default_instance_flags(),
         memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
         backend_options: default_backend_options(),
@@ -111,6 +112,8 @@ fn default_backend_options() -> wgpu::BackendOptions {
             shader_compiler: wgpu::Dx12Compiler::Fxc,
             presentation_system: wgpu::Dx12SwapchainKind::DxgiFromHwnd,
             latency_waitable_object: wgpu::Dx12UseFrameLatencyWaitableObject::Wait,
+            force_shader_model: wgpu::ForceShaderModelToken::default(),
+            agility_sdk: None,
         },
         noop: wgpu::NoopBackendOptions { enable: false },
     }

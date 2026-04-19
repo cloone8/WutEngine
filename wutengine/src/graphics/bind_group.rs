@@ -157,7 +157,9 @@ impl BindGroup {
                         )
                         .expect("Failed to prepare buffer for write");
 
-                    queue_write_view[..param_bytes.len()].copy_from_slice(param_bytes);
+                    queue_write_view
+                        .slice(..param_bytes.len())
+                        .copy_from_slice(param_bytes);
                 }
 
                 Ok(())
@@ -215,7 +217,9 @@ impl BindGroup {
                 // Copy the bytes into the buffer
                 let bytes = param.bytes();
 
-                buf_slice[offset..(offset + bytes.len())].copy_from_slice(bytes);
+                buf_slice
+                    .slice(offset..(offset + bytes.len()))
+                    .copy_from_slice(bytes);
 
                 // Increment the offset by the size of the type.
                 offset += bytes.len();

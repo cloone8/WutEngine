@@ -102,9 +102,9 @@ pub(crate) fn compile(
         GFX_DEVICE.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some(format!("{variant_id_string} pipeline layout").as_str()),
             bind_group_layouts: &sort_layouts(
-                get_camera_bind_group_layout(),
-                &user_bind_group_layout,
-                get_instance_bind_group_layout(),
+                Some(get_camera_bind_group_layout()),
+                Some(&user_bind_group_layout),
+                Some(get_instance_bind_group_layout()),
             ),
             immediate_size: 0,
         })
@@ -138,10 +138,10 @@ pub(crate) fn compile(
 }
 
 fn sort_layouts<'a>(
-    cam: &'a wgpu::BindGroupLayout,
-    mat: &'a wgpu::BindGroupLayout,
-    instance: &'a wgpu::BindGroupLayout,
-) -> [&'a wgpu::BindGroupLayout; 3] {
+    cam: Option<&'a wgpu::BindGroupLayout>,
+    mat: Option<&'a wgpu::BindGroupLayout>,
+    instance: Option<&'a wgpu::BindGroupLayout>,
+) -> [Option<&'a wgpu::BindGroupLayout>; 3] {
     core::array::from_fn(|i| match i as u32 {
         CAMERA_PARAMS_BIND_GROUP_INDEX => cam,
         MATERIAL_PARAMS_BIND_GROUP_INDEX => mat,
