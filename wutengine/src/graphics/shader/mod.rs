@@ -27,6 +27,10 @@ pub struct Shader {
     pub(crate) id: ShaderId,
     pub(crate) name: String,
     pub(crate) vertex_attributes: Vec<ShaderVertexAttribute>,
+
+    #[serde(default)]
+    pub(crate) default_parameters: ShaderDefaultParameters,
+
     pub(crate) keywords: HashMap<String, ShaderKeyword>,
     pub(crate) parameters: Vec<ShaderParameter>,
     pub(crate) source: ShaderSource,
@@ -125,6 +129,24 @@ pub enum ShaderSource {
 #[repr(transparent)]
 #[serde(transparent)]
 pub struct ShaderParameterCondition(pub(crate) String);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ShaderDefaultParameters {
+    #[serde(default)]
+    pub camera: bool,
+
+    #[serde(default)]
+    pub instance: bool,
+}
+
+impl Default for ShaderDefaultParameters {
+    fn default() -> Self {
+        Self {
+            camera: true,
+            instance: true,
+        }
+    }
+}
 
 /// Unique ID for a [CompiledShader]. Generated based on the source [Shader] and the active keywords
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

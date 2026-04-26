@@ -2,6 +2,10 @@
     "name": "Blit",
     "keywords": {},
     "vertex_attributes": [],
+    "default_parameters": {
+        "camera": false,
+        "instance": false
+    },
     "parameters": [
         {
             "kind": "opaque",

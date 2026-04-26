@@ -21,6 +21,10 @@
             "condition": "HAS_COLOR_MAP != 0"
         }
     ],
+    "default_parameters": {
+        "camera": true,
+        "instance": true
+    },
     "parameters": [
         {
             "kind": "buffer",

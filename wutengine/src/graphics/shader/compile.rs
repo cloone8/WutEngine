@@ -33,7 +33,7 @@ pub(crate) fn compile(
 ) -> Result<Arc<CompiledShader>, Box<CompileErr>> {
     profiling::function_scope!();
 
-    let variant_id = crate::graphics::shader::calculate_variant_id(shader.id, &keywords);
+    let variant_id = crate::graphics::shader::calculate_variant_id(shader.id, keywords);
 
     if let Some(cached) = cache::shader::find(&variant_id) {
         return Ok(cached);
@@ -63,11 +63,19 @@ pub(crate) fn compile(
         wutengine_shadercompiler::CompInput {
             id: shader.id,
             source: shader.get_source(),
-            keywords: &keywords,
+            keywords,
             parameters: &user_param_conditions,
             vertex_attributes: &vertex_attr_conditions,
-            per_camera_block: include_str!("camera_group.wgsl"),
-            per_instance_block: include_str!("instance_group.wgsl"),
+            per_camera_block: if shader.default_parameters.camera {
+                include_str!("camera_group.wgsl")
+            } else {
+                ""
+            },
+            per_instance_block: if shader.default_parameters.instance {
+                include_str!("instance_group.wgsl")
+            } else {
+                ""
+            },
         },
     )
     .map_err(|e| Box::new(e.into()))?;
@@ -102,9 +110,15 @@ pub(crate) fn compile(
         GFX_DEVICE.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some(format!("{variant_id_string} pipeline layout").as_str()),
             bind_group_layouts: &sort_layouts(
-                Some(get_camera_bind_group_layout()),
+                shader
+                    .default_parameters
+                    .camera
+                    .then(get_camera_bind_group_layout),
                 Some(&user_bind_group_layout),
-                Some(get_instance_bind_group_layout()),
+                shader
+                    .default_parameters
+                    .instance
+                    .then(get_instance_bind_group_layout),
             ),
             immediate_size: 0,
         })
