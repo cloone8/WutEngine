@@ -5,6 +5,8 @@ use wutengine_util_macro::unique_id_type32;
 
 use crate::color::Color;
 use crate::component::Component;
+use crate::graphics::BindGroup;
+use crate::graphics::internal_bind_groups::create_camera_bind_group;
 use crate::graphics::material::{Material, MaterialParameter};
 use crate::graphics::mesh::MeshTopology;
 use crate::graphics::sampler::{Filtering, Sampler, WrapMode, WrapModeType};
@@ -42,6 +44,9 @@ pub struct Camera {
     /// The ID of the camera. Used for filtering in draw calls
     id: CameraId,
 
+    /// Bind group for the per-camera parameters
+    camera_parameters: Option<BindGroup>,
+
     render_target: Option<wgpu::Texture>,
 
     blit_material: Option<Material>,
@@ -58,13 +63,14 @@ impl Camera {
     /// Creates a new default camera component
     pub fn new() -> Self {
         Self {
+            id: CameraId::new(),
             target: None,
             projection: CameraProjection::Perspective(FieldOfView::Vertical(70.0)),
             background: CameraBackground::Color(Color::BLACK),
             viewport: CameraViewport::FULL_WINDOW,
             clipping_planes: (0.1, 100.0),
+            camera_parameters: None,
             render_target: None,
-            id: CameraId::new(),
             blit_material: None,
         }
     }
@@ -168,24 +174,6 @@ impl Camera {
         }
 
         self.render_target = Some(render_target_texture);
-    }
-
-    fn set_blit_material_params(mat: &mut Material, render_target_texture: &wgpu::Texture) {
-        let tex_param = MaterialParameter::Texture2D(Texture::new_from_existing(
-            render_target_texture.create_view(&wgpu::TextureViewDescriptor::default()),
-        ));
-        let sampler_param = MaterialParameter::Sampler(Sampler::new(
-            Filtering::Linear,
-            WrapModeType::Single(WrapMode::Clamp),
-        ));
-
-        mat.user_bind_group
-            .set_parameter("source_texture", tex_param, graphics::queue())
-            .unwrap();
-
-        mat.user_bind_group
-            .set_parameter("source_sampler", sampler_param, graphics::queue())
-            .unwrap();
     }
 }
 
@@ -335,6 +323,35 @@ impl Camera {
         }
 
         self.blit_material = Some(mat);
+    }
+
+    fn set_blit_material_params(mat: &mut Material, render_target_texture: &wgpu::Texture) {
+        let tex_param = MaterialParameter::Texture2D(Texture::new_from_existing(
+            render_target_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+        ));
+        let sampler_param = MaterialParameter::Sampler(Sampler::new(
+            Filtering::Linear,
+            WrapModeType::Single(WrapMode::Clamp),
+        ));
+
+        mat.user_bind_group
+            .set_parameter("source_texture", tex_param, graphics::queue())
+            .unwrap();
+
+        mat.user_bind_group
+            .set_parameter("source_sampler", sampler_param, graphics::queue())
+            .unwrap();
+    }
+
+    fn get_camera_bind_group(&mut self) -> &mut BindGroup {
+        if self.camera_parameters.is_none() {
+            self.camera_parameters = Some(create_camera_bind_group(format!(
+                "Camera {} parameter bind group",
+                self.id
+            )));
+        }
+
+        self.camera_parameters.as_mut().unwrap()
     }
 }
 

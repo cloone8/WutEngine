@@ -2,12 +2,11 @@
 
 use std::sync::LazyLock;
 
-use image::GenericImageView;
-
-pub(crate) static DEFAULT_TEXTURE: LazyLock<wgpu::TextureView> = LazyLock::new(|| {
+/// The default texture. Used for missing texture parameters
+pub(crate) static DEFAULT_TEXTURE: LazyLock<Texture> = LazyLock::new(|| {
     log::debug!("Loading default texture");
 
-    let tmp_texture = Texture::new(&TextureConfig {
+    let tex = Texture::new(&TextureConfig {
         width: 512,
         height: 512,
         format: TextureFormat::Rgba8Srgb,
@@ -18,9 +17,9 @@ pub(crate) static DEFAULT_TEXTURE: LazyLock<wgpu::TextureView> = LazyLock::new(|
 
     let as_rgba8 = image_loaded.into_rgba8();
 
-    tmp_texture.set_data(&as_rgba8);
+    tex.set_data(&as_rgba8);
 
-    tmp_texture.view
+    tex
 });
 
 /// The configuration for creating a new texture
@@ -114,6 +113,7 @@ impl Texture {
         );
     }
 
+    /// Returns the [wgpu::TextureView] associated with this texture
     #[inline]
     pub(crate) const fn get_view(&self) -> &wgpu::TextureView {
         &self.view

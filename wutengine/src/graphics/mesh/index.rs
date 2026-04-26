@@ -1,26 +1,41 @@
 use super::MeshTopology;
 
+/// A raw Mesh index buffer
+#[derive(Debug)]
+pub struct IndexBuffer {
+    /// The topology this buffer contains
+    pub(crate) topology: MeshTopology,
+
+    /// The format of each index
+    pub(crate) format: IndexFormat,
+
+    /// The amount of indices
+    pub(crate) count: usize,
+
+    /// The raw GPU buffer
+    pub(crate) buffer: wgpu::Buffer,
+}
+
+/// An error while creating an [IndexBuffer]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 pub enum NewIndexBufferErr {
     #[display("Cannot create an empty index buffer")]
+    /// Cannot create empty index buffer
     Zero,
 
     #[display("Index count not divisible by {} (required by topology {}): {}", topology.indices_per_primitive(), topology, count)]
+    /// Incorrect number of indices was given
     NotEnoughIndices {
+        /// The given number of indices
         count: usize,
+
+        /// The actual topology of the buffer
         topology: MeshTopology,
     },
 }
 
-#[derive(Debug)]
-pub struct IndexBuffer {
-    pub(crate) topology: MeshTopology,
-    pub(crate) format: IndexFormat,
-    pub(crate) count: usize,
-    pub(crate) buffer: wgpu::Buffer,
-}
-
 impl IndexBuffer {
+    /// Creates a new index buffer with the given data and topology
     pub fn new<T: IndexDatatype>(
         data: &[T],
         topology: MeshTopology,
@@ -65,8 +80,12 @@ impl IndexBuffer {
     }
 }
 
+/// Trait implemented by types that can be used as indices in an [IndexBuffer]
 pub(crate) trait IndexDatatype: Sized {
+    /// The format of this index
     const FORMAT: IndexFormat;
+
+    /// Casts this slice into a byte slice
     fn as_bytes(this: &[Self]) -> &[u8];
 }
 
@@ -76,7 +95,7 @@ impl IndexDatatype for u16 {
     #[inline]
     fn as_bytes(this: &[Self]) -> &[u8]
     where
-        Self: std::marker::Sized,
+        Self: core::marker::Sized,
     {
         bytemuck::must_cast_slice(this)
     }
@@ -88,15 +107,19 @@ impl IndexDatatype for u32 {
     #[inline]
     fn as_bytes(this: &[Self]) -> &[u8]
     where
-        Self: std::marker::Sized,
+        Self: core::marker::Sized,
     {
         bytemuck::must_cast_slice(this)
     }
 }
 
+/// The format of the index buffer
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IndexFormat {
+    /// 16-bit indices
     U16,
+
+    /// 32-bit indices
     U32,
 }
 

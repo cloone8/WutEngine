@@ -1,5 +1,6 @@
 //! Texture samplers
 
+use core::fmt::{Debug, Display};
 use std::sync::{Arc, LazyLock};
 
 use crate::graphics::GFX_DEVICE;
@@ -7,64 +8,67 @@ use crate::graphics::cache::sampler::SamplerCacheKey;
 
 use super::cache;
 
-pub(crate) static DEFAULT_SAMPLER: LazyLock<wgpu::Sampler> = LazyLock::new(|| {
+/// The default sampler. Linear-repeat
+pub(crate) static DEFAULT_SAMPLER: LazyLock<Sampler> = LazyLock::new(|| {
     log::debug!("Loading default sampler");
 
-    let tmp_sampler = Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Repeat));
-
-    tmp_sampler.get_wgpu().clone()
+    Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Repeat))
 });
 
 /// A texture sampler descriptor.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Sampler(pub(super) Arc<wgpu::Sampler>);
-// /// What filtering method the sampler uses when the texture takes
-// /// up more space on the screen than it has pixels
-// pub filter: Filtering,
 
-// /// How the sampler treats out-of-bounds accesses
-// pub wrapping: WrapModeType,
+macro_rules! predefined_sampler {
+    ($filtering:expr, $wrapping:expr) => {{
+        static SAMPLER: ::std::sync::LazyLock<Sampler> = ::std::sync::LazyLock::new(|| {
+            let filt = $filtering;
+            let wrap = WrapModeType::Single($wrapping);
+
+            log::debug!("Loading predefined sampler: {}, {}", filt, wrap);
+
+            Sampler::new(filt, wrap)
+        });
+
+        &SAMPLER
+    }};
+}
 
 /// Some predefined common sampler types
 impl Sampler {
-    // /// Linear filtering sampler that clamps to the texture edge
-    // pub const LINEAR_CLAMP: Self = Self {
-    //     filter: Filtering::Linear,
-    //     wrapping: WrapModeType::Single(WrapMode::Clamp),
-    // };
+    /// Linear filtering sampler that clamps to the texture edge
+    pub fn linear_clamp() -> &'static Self {
+        predefined_sampler!(Filtering::Linear, WrapMode::Clamp)
+    }
 
-    // /// Linear filtering sampler that repeats the texture
-    // pub const LINEAR_REPEAT: Self = Self {
-    //     filter: Filtering::Linear,
-    //     wrapping: WrapModeType::Single(WrapMode::Repeat),
-    // };
+    /// Linear filtering sampler that repeats the texture
+    pub fn linear_repeat() -> &'static Self {
+        predefined_sampler!(Filtering::Linear, WrapMode::Repeat)
+    }
 
-    // /// Linear filtering sampler that mirror-repeats the texture edge
-    // pub const LINEAR_MIRROR: Self = Self {
-    //     filter: Filtering::Linear,
-    //     wrapping: WrapModeType::Single(WrapMode::MirrorRepeat),
-    // };
+    /// Linear filtering sampler that mirror-repeats the texture edge
+    pub fn linear_mirror() -> &'static Self {
+        predefined_sampler!(Filtering::Linear, WrapMode::MirrorRepeat)
+    }
 
-    // /// Nearest-neighbour filtering sampler that clamps to the texture edge
-    // pub const NEAREST_CLAMP: Self = Self {
-    //     filter: Filtering::Nearest,
-    //     wrapping: WrapModeType::Single(WrapMode::Clamp),
-    // };
+    /// Nearest-neighbour filtering sampler that clamps to the texture edge
+    pub fn nearest_clamp() -> &'static Self {
+        predefined_sampler!(Filtering::Nearest, WrapMode::Clamp)
+    }
 
-    // /// Nearest-neighbour filtering sampler that repeats the texture
-    // pub const NEAREST_REPEAT: Self = Self {
-    //     filter: Filtering::Nearest,
-    //     wrapping: WrapModeType::Single(WrapMode::Repeat),
-    // };
+    /// Nearest-neighbour filtering sampler that repeats the texture
+    pub fn nearest_repeat() -> &'static Self {
+        predefined_sampler!(Filtering::Nearest, WrapMode::Repeat)
+    }
 
-    // /// Nearest-neighbour filtering sampler that mirror-repeats the texture edge
-    // pub const NEAREST_MIRROR: Self = Self {
-    //     filter: Filtering::Nearest,
-    //     wrapping: WrapModeType::Single(WrapMode::MirrorRepeat),
-    // };
+    /// Nearest-neighbour filtering sampler that mirror-repeats the texture edge
+    pub fn nearest_mirror() -> &'static Self {
+        predefined_sampler!(Filtering::Nearest, WrapMode::MirrorRepeat)
+    }
 }
 
 impl Sampler {
+    /// Creates a new sampler with the given sampling mode
     pub(crate) fn new(filtering: Filtering, wrapping: WrapModeType) -> Self {
         profiling::function_scope!();
 
@@ -95,6 +99,7 @@ impl Sampler {
         Self(cache::sampler::insert(cache_key, new_sampler))
     }
 
+    /// Returns the [wgpu::Sampler] matching this sampler object
     #[inline]
     pub(crate) fn get_wgpu(&self) -> &wgpu::Sampler {
         &self.0
@@ -102,7 +107,7 @@ impl Sampler {
 }
 
 /// Filtering methods for a [Sampler]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display)]
 pub enum Filtering {
     /// Linear filtering. Smoothly interpolates between the closest texels.
     #[default]
@@ -129,6 +134,15 @@ pub enum WrapModeType {
         /// Wrapping in the W (Z) axis
         w: WrapMode,
     },
+}
+
+impl Display for WrapModeType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Single(wrap_mode) => Display::fmt(wrap_mode, f),
+            Self::PerAxis { u, v, w } => write!(f, "u: {u}, v: {v}, w: {w}"),
+        }
+    }
 }
 
 impl Default for WrapModeType {
@@ -167,7 +181,7 @@ impl WrapModeType {
 }
 
 /// A wrapping more for [Sampler] out-of-bounds accesses
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display)]
 pub enum WrapMode {
     /// Clamp to the border pixel
     #[default]

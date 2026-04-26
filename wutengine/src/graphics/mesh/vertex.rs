@@ -3,17 +3,26 @@ use core::num::NonZero;
 
 use crate::graphics::shader::{GVec2, GVec3, ShaderVertexAttributeType};
 
+/// A raw vertex buffer
 #[derive(Debug)]
 pub(crate) struct VertexBuffer {
+    /// For which attribute this buffer contains data
     pub(crate) attribute: ShaderVertexAttributeType,
+    /// The amount of elements in this buffer
     pub(crate) count: NonZero<u64>,
+
+    /// The handle to the GPU buffer
     pub(crate) buffer: wgpu::Buffer,
+
+    /// A copy of the data in the GPU buffer
     pub(crate) cpu_buffer: Option<Vec<u8>>,
 }
 
+/// An error while creating a new vertex buffer
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub(crate) enum NewVertexBufferErr {
     #[display("Cannot create an empty vertex buffer")]
+    /// Vertex buffer cannot be empty
     Zero,
 
     #[display(
@@ -21,13 +30,18 @@ pub(crate) enum NewVertexBufferErr {
         ty,
         attribute
     )]
+    /// The data type is not compatible with the requested vertex attribute
     IncompatibleDataType {
+        /// The given datatype
         ty: &'static str,
+
+        /// The requested attribute
         attribute: ShaderVertexAttributeType,
     },
 }
 
 impl VertexBuffer {
+    /// Creates a new vertex buffer filled with the given data
     pub fn new<T: VertexDataType>(
         data: &[T],
         attribute: ShaderVertexAttributeType,
@@ -47,7 +61,10 @@ impl VertexBuffer {
             NonZero::new(data.len() as u64).ok_or(NewVertexBufferErr::Zero)?;
 
         let vertex_stride = const {
-            assert!((size_of::<T>() as u64).is_multiple_of(wgpu::VERTEX_ALIGNMENT));
+            assert!(
+                (size_of::<T>() as u64).is_multiple_of(wgpu::VERTEX_ALIGNMENT),
+                "Datatype is not sized to a multiple of the vertex alignment",
+            );
 
             size_of::<T>()
         };
@@ -85,8 +102,12 @@ impl VertexBuffer {
     }
 }
 
+/// A type that is usable as the content of a [VertexBuffer]
 pub trait VertexDataType: Sized + Any {
+    /// Casts the given slice to a byte slice
     fn as_bytes(this: &[Self]) -> &[u8];
+
+    /// Returns whether this type is usable as the given vertex attribute
     fn is_compatible_with(attribute: ShaderVertexAttributeType) -> bool;
 }
 

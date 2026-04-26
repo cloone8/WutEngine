@@ -74,16 +74,21 @@ pub enum RuntimeStartErr {
     EventLoop(EventLoopError),
 }
 
+/// The configuration used to start the WutEngine runtime
 #[derive(Debug, Clone)]
 pub struct InitRuntimeConfig {
+    /// The path to a config file, used for population the initial values of the [crate::config] module
     pub config_file: Option<PathBuf>,
+
+    /// Hard-coded config overrides. Applied after reading the config file from [Self::config_file], and
+    /// thus overrides its values
     pub config_overrides: HashMap<String, crate::config::toml::Value>,
 }
 
 impl Default for InitRuntimeConfig {
     fn default() -> Self {
         Self {
-            config_file: Some(PathBuf::try_from("wutengine.toml").unwrap()),
+            config_file: Some(PathBuf::from("wutengine.toml")),
             config_overrides: Default::default(),
         }
     }
@@ -269,7 +274,10 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: &Window) -> Option<wgpu::
         wgpu::CurrentSurfaceTexture::Timeout => {
             panic!("Timeout while trying to obtain surface texture for window {window}");
         }
-        wgpu::CurrentSurfaceTexture::Occluded => None,
+        wgpu::CurrentSurfaceTexture::Occluded => {
+            log::trace!("Surface texture for window {window} is occluded");
+            None
+        }
         wgpu::CurrentSurfaceTexture::Outdated => {
             log::error!("Surface texture for window {window} is outdated");
             None

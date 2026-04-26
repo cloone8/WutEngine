@@ -110,8 +110,8 @@ pub enum ShaderOpaqueParameterType {
 impl ShaderOpaqueParameterType {
     pub fn to_default_value(self) -> ShaderOpaqueParameter {
         match self {
-            Self::Sampler => ShaderOpaqueParameter::Sampler(DEFAULT_SAMPLER.clone()),
-            Self::Texture2D => ShaderOpaqueParameter::Texture2D(DEFAULT_TEXTURE.clone()),
+            Self::Sampler => ShaderOpaqueParameter::Sampler(DEFAULT_SAMPLER.get_wgpu().clone()),
+            Self::Texture2D => ShaderOpaqueParameter::Texture2D(DEFAULT_TEXTURE.get_view().clone()),
         }
     }
 

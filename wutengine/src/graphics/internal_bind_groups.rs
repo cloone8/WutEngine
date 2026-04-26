@@ -1,3 +1,5 @@
+//! The constant hard-coded bind groups for non-user shader parameters
+
 use core::num::NonZero;
 use std::sync::LazyLock;
 
@@ -28,6 +30,7 @@ fn get_camera_params() -> &'static [ShaderParameter] {
     &*CAMERA_PARAMS
 }
 
+/// Returns the layout for the per-camera bind group
 pub(crate) fn get_camera_bind_group_layout() -> &'static wgpu::BindGroupLayout {
     static CAMERA_LAYOUT: LazyLock<wgpu::BindGroupLayout> = LazyLock::new(|| {
         let params = get_camera_params();
@@ -55,6 +58,7 @@ pub(crate) fn get_camera_bind_group_layout() -> &'static wgpu::BindGroupLayout {
     &CAMERA_LAYOUT
 }
 
+/// Creates a new bind group for per-camera parameters
 pub(crate) fn create_camera_bind_group(name: String) -> BindGroup {
     BindGroup::new(
         name,
@@ -82,6 +86,7 @@ fn get_instance_params() -> &'static [ShaderParameter] {
     &*INSTANCE_PARAMS
 }
 
+/// Returns the layout for the per-instance bind group
 pub(crate) fn get_instance_bind_group_layout() -> &'static wgpu::BindGroupLayout {
     static INSTANCE_LAYOUT: LazyLock<wgpu::BindGroupLayout> = LazyLock::new(|| {
         let params = get_instance_params();
@@ -109,6 +114,7 @@ pub(crate) fn get_instance_bind_group_layout() -> &'static wgpu::BindGroupLayout
     &INSTANCE_LAYOUT
 }
 
+/// Creates a new bind group for per-instance parameters
 pub(crate) fn create_instance_bind_group(name: String) -> BindGroup {
     BindGroup::new(
         name,

@@ -20,6 +20,9 @@ struct ConfigManager {
     config: DashMap<String, toml::Value>,
 }
 
+/// Initialize the config manager, and loads the configuration from the
+/// given path. If no path is provided, no initial configuration is loaded, and
+/// all keys will return their default value
 pub(crate) fn init_and_load(path: Option<&Path>) {
     let initial_values = match path {
         Some(path) => load_from_file(path),
@@ -68,12 +71,14 @@ fn load_from_file(path: &Path) -> DashMap<String, toml::Value> {
     config_toml.into_iter().collect()
 }
 
+/// An invalid config key
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum ConfigKeyErr {
     #[display(
         "Config key needs at least one main category and one subcategory: {}",
         _0
     )]
+    /// No subcategory was given
     NeedsSubcategory(#[error(not(source))] String),
 }
 
@@ -86,6 +91,10 @@ fn validate_config_key(key: &str) -> Result<(&str, &str), ConfigKeyErr> {
     Ok((main_category, rest))
 }
 
+/// Returns the value of the given configuration option, if it exists.
+/// If not, returns the default value.
+///
+/// If the default value is not desired, see [try_get]
 #[inline]
 pub fn get<'de, T>(key: &str) -> T
 where
@@ -94,6 +103,9 @@ where
     try_get(key).unwrap_or_default()
 }
 
+/// Returns the value of the given configuration option, if it exists.
+///
+/// If options that are not set should return their [Default], see [get]
 pub fn try_get<'de, T>(key: &str) -> Option<T>
 where
     T: Deserialize<'de>,
@@ -114,6 +126,9 @@ where
     }
 }
 
+/// Returns the raw [toml::Value] of a given config key, if it exists.
+///
+/// For automatic deserialization, see [try_get] or [get]
 pub fn get_raw(key: &str) -> Option<toml::Value> {
     profiling::function_scope!(key);
 
@@ -154,7 +169,7 @@ fn find_key<'a>(main_cat: &str, key: &str, tab: &'a toml::Table) -> Option<&'a t
     let categories = &keys[..keys.len() - 1];
 
     // The final part of the key after the last `.`
-    let config_key = *&keys[keys.len() - 1];
+    let config_key = keys[keys.len() - 1];
 
     let mut containing_category_name = main_cat;
     let mut cur_category = tab;
@@ -180,27 +195,32 @@ fn find_key<'a>(main_cat: &str, key: &str, tab: &'a toml::Table) -> Option<&'a t
     cur_category.get(config_key)
 }
 
+/// An error while trying to override a config option
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum SetConfigErr<T> {
     #[display("Configuration key is invalid: {}", _0)]
+    /// Key was invalid
     InvalidKey(ConfigKeyErr),
 
     #[display("Could not convert input into a TOML value: {}", _0)]
     #[from(skip)]
+    /// Serialization into TOML failed
     Convert(T),
 }
 
+/// Sets the given config option to the provided value.
 #[inline]
 pub fn set<T: TryInto<toml::Value>>(key: &str, value: T) -> Result<(), SetConfigErr<T::Error>> {
     profiling::function_scope!(key);
 
-    let value = value.try_into().map_err(|e| SetConfigErr::Convert(e))?;
+    let value = value.try_into().map_err(SetConfigErr::Convert)?;
 
     set_raw(key, value)?;
 
     Ok(())
 }
 
+/// Sets the given config option to the provided raw TOML value.
 pub fn set_raw(key: &str, value: toml::Value) -> Result<(), ConfigKeyErr> {
     profiling::function_scope!(key);
 
@@ -223,7 +243,7 @@ fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
     let categories = &keys[..keys.len() - 1];
 
     // The final string after the last `.`
-    let config_key = *&keys[keys.len() - 1];
+    let config_key = keys[keys.len() - 1];
 
     let mut cur_category = category;
 
