@@ -5,7 +5,7 @@ members = ["wutengine", "wutengine_shadercompiler", "wutengine_util_macro"]
 [workspace.package]
 version = "0.6.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.95"
 authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
 repository = "https://github.com/cloone8/WutEngine"
@@ -21,39 +21,39 @@ wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0
 
 ### External dependencies ###
 winit = { version = "0.30" }
-wgpu = { version = "29", default-features = false, features = [
+wgpu = { version = "29.0", default-features = false, features = [
     "fragile-send-sync-non-atomic-wasm",
 ] }
-naga = { version = "29", default-features = false }
+naga = { version = "29.0", default-features = false }
 hecs = { version = "0.11" }
 
 rayon = { version = "1.11" }
 pollster = { version = "0.4" }
-smallvec = { version = "1", features = [
+smallvec = { version = "1.15", features = [
     "union",
     "const_generics",
     "const_new",
 ] }
-arc-swap = { version = "1" }
+arc-swap = { version = "1.9" }
 
-profiling = { version = "1" }
-puffin_http = { version = "0.16" }
+profiling = { version = "1.0" }
+puffin_http = { version = "0.17" }
 log = { version = "0.4" }
-glam = { version = "0.30", features = ["std", "debug-glam-assert"] }
-bytemuck = { version = "1" }
+glam = { version = "0.32", features = ["std", "debug-glam-assert"] }
+bytemuck = { version = "1.25" }
 
-derive_more = { version = "2" }
+derive_more = { version = "2.1" }
 nohash-hasher = { version = "0.2" }
-twox-hash = { version = "2" }
-dashmap = { version = "6" }
-serde = { version = "1" }
-serde_json = { version = "1" }
-toml = { version = "1" }
+twox-hash = { version = "2.1" }
+dashmap = { version = "6.1" }
+serde = { version = "1.0" }
+serde_json = { version = "1.0" }
+toml = { version = "1.1" }
 
-quote = { version = "1" }
-syn = { version = "2", features = ["full"] }
+quote = { version = "1.0" }
+syn = { version = "2.0", features = ["full"] }
 
-image = { version = "0.25" }
+image = { version = "0.25.9" }
 
 [profile.release]
 strip = true
