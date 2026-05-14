@@ -371,13 +371,16 @@ impl Camera {
     }
 
     fn set_blit_material_params(mat: &mut Material, render_target_texture: &wgpu::Texture) {
-        let tex_param = MaterialParameter::Texture2D(Texture::new_from_existing(
-            render_target_texture.create_view(&wgpu::TextureViewDescriptor::default()),
-        ));
-        let sampler_param = MaterialParameter::Sampler(Sampler::new(
-            Filtering::Linear,
-            WrapModeType::Single(WrapMode::Clamp),
-        ));
+        let tex_param = MaterialParameter::Texture2D(
+            Texture::new_from_existing(
+                render_target_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+            )
+            .into(),
+        );
+
+        let sampler_param = MaterialParameter::Sampler(
+            Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Clamp)).into(),
+        );
 
         mat.user_bind_group
             .set_parameter("source_texture", tex_param, graphics::queue())
@@ -388,10 +391,10 @@ impl Camera {
             .unwrap();
     }
 
-    fn get_camera_bind_group<'a>(
+    fn get_camera_bind_group(
         id: CameraId,
-        camera_parameters: &'a mut Option<BindGroup>,
-    ) -> &'a mut BindGroup {
+        camera_parameters: &mut Option<BindGroup>,
+    ) -> &mut BindGroup {
         if camera_parameters.is_none() {
             *camera_parameters = Some(create_camera_bind_group(format!(
                 "Camera {} parameter bind group",

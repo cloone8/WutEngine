@@ -288,16 +288,17 @@ pub enum ShaderOpaqueParameter {
 impl ShaderOpaqueParameter {
     #[inline]
     pub fn set_from(&mut self, value: MaterialParameter) -> bool {
+        //TODO: Add error handling for not-yet-loaded assets?
         match self {
             Self::Texture2D(cur) => {
                 if let MaterialParameter::Texture2D(tex) = value {
-                    *cur = tex.get_view().clone();
+                    *cur = tex.get().unwrap().get_view().clone();
                     return true;
                 }
             }
             Self::Sampler(cur) => {
                 if let MaterialParameter::Sampler(smp) = value {
-                    *cur = smp.get_wgpu().clone();
+                    *cur = smp.get().unwrap().get_wgpu().clone();
                     return true;
                 }
             }

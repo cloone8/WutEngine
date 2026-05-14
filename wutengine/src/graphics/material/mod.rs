@@ -1,9 +1,13 @@
 //! Material related functionality
 
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::sync::Arc;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
+use serde::{Deserialize, Serialize};
+
+use crate::asset::{Asset, AssetHandle};
 
 use super::sampler::Sampler;
 use super::shader::{CompiledShader, Shader};
@@ -45,6 +49,46 @@ impl Material {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedMaterial {
+    pub shader: AssetHandle<Shader>,
+    pub keywords: HashMap<String, u64>,
+    pub parameters: HashMap<String, MaterialParameter>,
+}
+
+impl From<&SerializedMaterial> for Material {
+    fn from(value: &SerializedMaterial) -> Self {
+        let mut mat = Material::new(value.shader.get_arc().unwrap(), value.keywords.clone());
+        let queue = super::queue();
+
+        for (param_name, param_value) in &value.parameters {
+            if let Err(e) =
+                mat.user_bind_group
+                    .set_parameter(param_name.as_str(), param_value.clone(), queue)
+            {
+                log::warn!(
+                    "Error setting material parameter {param_name} during deserialization: {e}"
+                );
+            }
+        }
+
+        mat
+    }
+}
+
+impl Asset for Material {
+    type Serialized = SerializedMaterial;
+
+    type FromSerializedErr = Infallible;
+
+    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
+    where
+        Self: Sized,
+    {
+        Ok(Self::from(serialized))
+    }
+}
+
 /// A material parameter value
 #[derive(
     Debug,
@@ -54,6 +98,8 @@ impl Material {
     derive_more::Unwrap,
     derive_more::TryUnwrap,
     derive_more::From,
+    Serialize,
+    Deserialize,
 )]
 pub enum MaterialParameter {
     /// Unsigned 32-bit integer
@@ -78,8 +124,8 @@ pub enum MaterialParameter {
     Mat4(Mat4),
 
     /// 2D texture
-    Texture2D(Texture),
+    Texture2D(AssetHandle<Texture>),
 
     /// Sampler
-    Sampler(Sampler),
+    Sampler(AssetHandle<Sampler>),
 }

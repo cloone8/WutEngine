@@ -2,6 +2,10 @@
 
 use std::sync::LazyLock;
 
+use serde::{Deserialize, Serialize};
+
+use crate::asset::Asset;
+
 /// The default texture. Used for missing texture parameters
 pub(crate) static DEFAULT_TEXTURE: LazyLock<Texture> = LazyLock::new(|| {
     log::debug!("Loading default texture");
@@ -23,7 +27,7 @@ pub(crate) static DEFAULT_TEXTURE: LazyLock<Texture> = LazyLock::new(|| {
 });
 
 /// The configuration for creating a new texture
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TextureConfig {
     /// The width of the texture in pixels. Must be at least 1
     pub width: u32,
@@ -35,11 +39,39 @@ pub struct TextureConfig {
     pub format: TextureFormat,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedTexture {
+    pub config: TextureConfig,
+
+    #[serde(with = "serde_bytes")]
+    pub data: Vec<u8>,
+}
+
 /// The handle to a native [wgpu::Texture]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Texture {
+pub struct Texture {
     tex: wgpu::Texture,
     view: wgpu::TextureView,
+}
+
+impl Asset for Texture {
+    type Serialized = SerializedTexture;
+
+    type FromSerializedErr = image::ImageError;
+
+    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
+    where
+        Self: Sized,
+    {
+        let texture = Texture::new(&serialized.config);
+
+        let image_loaded = image::load_from_memory(&serialized.data)?;
+
+        //TODO: Check if the loaded image is actually the format as declared in `serialized.config`
+        texture.set_data(image_loaded.as_bytes());
+
+        Ok(texture)
+    }
 }
 
 impl Texture {
@@ -121,7 +153,7 @@ impl Texture {
 }
 
 /// The format of a [Texture]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TextureFormat {
     /// RGBA with 8-bits per component
     Rgba8,

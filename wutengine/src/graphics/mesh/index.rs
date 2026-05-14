@@ -14,6 +14,9 @@ pub struct IndexBuffer {
 
     /// The raw GPU buffer
     pub(crate) buffer: wgpu::Buffer,
+
+    /// The CPU-side stored data
+    pub(crate) cpu_buffer: Option<Vec<u8>>,
 }
 
 /// An error while creating an [IndexBuffer]
@@ -40,6 +43,7 @@ impl IndexBuffer {
         data: &[T],
         topology: MeshTopology,
         device: &wgpu::Device,
+        keep_on_cpu: bool,
     ) -> Result<Self, NewIndexBufferErr> {
         profiling::function_scope!();
 
@@ -81,6 +85,11 @@ impl IndexBuffer {
             format: data_format,
             count: data.len(),
             buffer,
+            cpu_buffer: if keep_on_cpu {
+                Some(data_bytes.to_vec())
+            } else {
+                None
+            },
         })
     }
 }

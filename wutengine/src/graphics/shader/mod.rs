@@ -4,6 +4,7 @@ use core::fmt::Display;
 use core::hash::Hash;
 use core::ops::RangeInclusive;
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -15,6 +16,8 @@ mod types;
 pub use types::*;
 
 pub(crate) use compile::*;
+
+use crate::asset::Asset;
 
 unique_id_type64! {
     /// Unique identifier for a [Shader]
@@ -34,6 +37,19 @@ pub struct Shader {
     pub(crate) keywords: HashMap<String, ShaderKeyword>,
     pub(crate) parameters: Vec<ShaderParameter>,
     pub(crate) source: ShaderSource,
+}
+
+impl Asset for Shader {
+    type Serialized = Self;
+
+    type FromSerializedErr = Infallible;
+
+    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
+    where
+        Self: Sized,
+    {
+        Ok(serialized.clone())
+    }
 }
 
 impl Shader {

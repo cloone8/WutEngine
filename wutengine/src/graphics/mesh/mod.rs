@@ -4,17 +4,24 @@ mod index;
 mod vertex;
 
 use std::collections::HashMap;
+use std::convert::Infallible;
 
 use glam::{Vec2, Vec3};
 pub use index::*;
 use nohash_hasher::IntMap;
+use serde::{Deserialize, Serialize};
 pub use vertex::*;
+
+use crate::asset::Asset;
 
 use super::shader::{GVec2, GVec3, ShaderVertexAttributeType};
 
 /// The topology of the indices of a [Mesh]
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, derive_more::Display)]
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, Hash, derive_more::Display, Serialize, Deserialize,
+)]
 #[display(rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum MeshTopology {
     /// Triangles. 3 indices per primitive
     #[default]
@@ -59,6 +66,8 @@ pub struct Mesh {
 
 impl Mesh {
     pub fn new(data: MeshData) -> Option<Self> {
+        profiling::function_scope!();
+
         let device = super::device();
 
         let vtx_count = data.vertices.len();
@@ -73,16 +82,16 @@ impl Mesh {
             &vtx_pos_buffer,
             ShaderVertexAttributeType::Position,
             device,
-            false,
+            data.keep_data,
         )
         .expect("Failed to create position buffer");
 
         let index_buffer = match data.indices {
             MeshDataIndices::U16(items) => {
-                make_index_buffer(items, vtx_count, data.topology, device)
+                make_index_buffer(items, vtx_count, data.topology, device, data.keep_data)
             }
             MeshDataIndices::U32(items) => {
-                make_index_buffer(items, vtx_count, data.topology, device)
+                make_index_buffer(items, vtx_count, data.topology, device, data.keep_data)
             }
         }
         .expect("Failed to create index buffer")?;
@@ -95,22 +104,22 @@ impl Mesh {
         mesh.vertex_buffers
             .insert(ShaderVertexAttributeType::Position, pos_buffer);
 
-        for (channel, data) in data.uvs {
-            if data.len() != vtx_count {
+        for (channel, uv_data) in data.uvs {
+            if uv_data.len() != vtx_count {
                 log::warn!(
                     "Discarding UV channel {channel} because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
-                    data.len()
+                    uv_data.len()
                 );
                 continue;
             }
 
-            let uv_vec = Vec::from_iter(data.into_iter().map(GVec2::<f32>::from));
+            let uv_vec = Vec::from_iter(uv_data.into_iter().map(GVec2::<f32>::from));
 
             let uv_vtx_buf = VertexBuffer::new(
                 &uv_vec,
                 ShaderVertexAttributeType::Uv { channel },
                 device,
-                false,
+                data.keep_data,
             )
             .expect("Failed to create UV vertex buffer");
 
@@ -122,12 +131,35 @@ impl Mesh {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+impl Asset for Mesh {
+    type Serialized = MeshData;
+
+    type FromSerializedErr = Infallible;
+
+    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
+    where
+        Self: Sized,
+    {
+        Ok(serialized.create().unwrap())
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeshData {
     pub vertices: Vec<Vec3>,
     pub topology: MeshTopology,
     pub indices: MeshDataIndices,
     pub uvs: IntMap<u8, Vec<Vec2>>,
+    pub keep_data: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
+pub enum MeshDataFromMeshErr {
+    /// The mesh data was not stored on the CPU
+    #[display(
+        "The mesh data was not stored on the CPU so could not be retrieved for serialization"
+    )]
+    NotOnCpu,
 }
 
 impl MeshData {
@@ -158,12 +190,17 @@ impl MeshData {
         self.set_uv_channel(0, uvs)
     }
 
+    pub fn set_keep_data(&mut self, keep_data: bool) -> &mut Self {
+        self.keep_data = keep_data;
+        self
+    }
+
     pub fn create(&self) -> Option<Mesh> {
         Mesh::new(self.clone())
     }
 }
 
-#[derive(Debug, Clone, derive_more::From)]
+#[derive(Debug, Clone, derive_more::From, Serialize, Deserialize)]
 pub enum MeshDataIndices {
     U16(Vec<u16>),
     U32(Vec<u32>),
@@ -180,6 +217,7 @@ fn make_index_buffer(
     num_verts: usize,
     topology: MeshTopology,
     device: &wgpu::Device,
+    keep_on_cpu: bool,
 ) -> Result<Option<IndexBuffer>, NewIndexBufferErr> {
     let index_data = trim_to_multiple_of(&data, topology);
 
@@ -195,7 +233,12 @@ fn make_index_buffer(
         }
     }
 
-    Ok(Some(IndexBuffer::new(index_data, topology, device)?))
+    Ok(Some(IndexBuffer::new(
+        index_data,
+        topology,
+        device,
+        keep_on_cpu,
+    )?))
 }
 
 fn trim_to_multiple_of<T>(data: &[T], topology: MeshTopology) -> &[T] {

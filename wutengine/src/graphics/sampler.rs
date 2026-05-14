@@ -1,8 +1,13 @@
 //! Texture samplers
 
 use core::fmt::{Debug, Display};
+use std::convert::Infallible;
 use std::sync::{Arc, LazyLock};
 
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
+
+use crate::asset::Asset;
 use crate::graphics::GFX_DEVICE;
 use crate::graphics::cache::sampler::SamplerCacheKey;
 
@@ -15,9 +20,32 @@ pub(crate) static DEFAULT_SAMPLER: LazyLock<Sampler> = LazyLock::new(|| {
     Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Repeat))
 });
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct SerializedSampler {
+    pub filtering: Filtering,
+    pub wrapping: WrapModeType,
+}
+
 /// A texture sampler descriptor.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Sampler(pub(super) Arc<wgpu::Sampler>);
+pub struct Sampler {
+    filtering: Filtering,
+    wrapping: WrapModeType,
+    native: Arc<wgpu::Sampler>,
+}
+
+impl Asset for Sampler {
+    type Serialized = SerializedSampler;
+
+    type FromSerializedErr = Infallible;
+
+    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
+    where
+        Self: Sized,
+    {
+        Ok(Sampler::new(serialized.filtering, serialized.wrapping))
+    }
+}
 
 macro_rules! predefined_sampler {
     ($filtering:expr, $wrapping:expr) => {{
@@ -78,7 +106,11 @@ impl Sampler {
         };
 
         if let Some(cached) = cache::sampler::find(&cache_key) {
-            return Self(cached);
+            return Self {
+                filtering,
+                wrapping,
+                native: cached,
+            };
         };
 
         log::debug!("Creating new sampler object");
@@ -96,18 +128,24 @@ impl Sampler {
 
         let new_sampler = GFX_DEVICE.create_sampler(&desc);
 
-        Self(cache::sampler::insert(cache_key, new_sampler))
+        Self {
+            filtering,
+            wrapping,
+            native: cache::sampler::insert(cache_key, new_sampler),
+        }
     }
 
     /// Returns the [wgpu::Sampler] matching this sampler object
     #[inline]
     pub(crate) fn get_wgpu(&self) -> &wgpu::Sampler {
-        &self.0
+        &self.native
     }
 }
 
 /// Filtering methods for a [Sampler]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
+)]
 pub enum Filtering {
     /// Linear filtering. Smoothly interpolates between the closest texels.
     #[default]
@@ -118,7 +156,7 @@ pub enum Filtering {
 }
 
 /// Out-of-bounds wrapping modes for a [Sampler]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum WrapModeType {
     /// One wrapping mode for each axis
     Single(WrapMode),
@@ -181,7 +219,9 @@ impl WrapModeType {
 }
 
 /// A wrapping more for [Sampler] out-of-bounds accesses
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
+)]
 pub enum WrapMode {
     /// Clamp to the border pixel
     #[default]

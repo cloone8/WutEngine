@@ -153,6 +153,7 @@ impl Default for SystemManifest {
         let mut manifest = Self::empty();
 
         manifest.add_default_component_systems::<crate::builtins::components::Camera>();
+        manifest.add_default_component_systems::<crate::builtins::components::StaticMeshRenderer>();
 
         manifest
     }
