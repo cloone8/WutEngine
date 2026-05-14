@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, channel};
 
+use crate::graphics::config::GraphicsConfig;
 use crate::util::InitOnce;
 
 use super::DrawCommand;
@@ -25,14 +26,14 @@ pub(crate) fn initialize_graphics_context() -> bool {
         backends_to_str(wgpu::Backends::all())
     );
 
-    let wanted_backends = default_backends();
+    let config = crate::config::get::<GraphicsConfig>("wutengine.graphics");
 
-    log::debug!("Using backends: {}", backends_to_str(wanted_backends));
+    log::debug!("Using backend: {}", config.backend);
 
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-        backends: wanted_backends,
+        backends: config.backend.into(),
         display: None,
-        flags: default_instance_flags(),
+        flags: gather_instance_flags(&config),
         memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
         backend_options: default_backend_options(),
     });
@@ -119,31 +120,22 @@ fn default_backend_options() -> wgpu::BackendOptions {
     }
 }
 
-fn default_instance_flags() -> wgpu::InstanceFlags {
-    if cfg!(debug_assertions) {
-        wgpu::InstanceFlags::advanced_debugging()
-    } else {
-        wgpu::InstanceFlags::VALIDATION_INDIRECT_CALL
-    }
-}
+fn gather_instance_flags(config: &GraphicsConfig) -> wgpu::InstanceFlags {
+    let mut flags = wgpu::InstanceFlags::VALIDATION_INDIRECT_CALL;
 
-fn default_backends() -> wgpu::Backends {
-    if cfg!(target_arch = "wasm32") {
-        wgpu::Backends::BROWSER_WEBGPU
-    } else if cfg!(windows) {
-        wgpu::Backends::VULKAN.union(wgpu::Backends::DX12)
-    } else if cfg!(any(target_os = "macos", target_os = "ios")) {
-        wgpu::Backends::METAL
-    } else if cfg!(any(
-        target_os = "linux",
-        target_os = "android",
-        target_os = "freebsd"
-    )) {
-        wgpu::Backends::VULKAN
-    } else {
-        log::warn!(
-            "Could not determine appropriate backends for current platform. Using first available"
-        );
-        wgpu::Backends::all()
+    if config.debug {
+        flags |= wgpu::InstanceFlags::DEBUG;
     }
+
+    if config.validation {
+        flags |= wgpu::InstanceFlags::VALIDATION;
+    }
+
+    if config.gpu_based_validation {
+        flags |= wgpu::InstanceFlags::GPU_BASED_VALIDATION;
+    }
+
+    log::info!("Flags: {:?}", flags);
+
+    flags
 }

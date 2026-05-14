@@ -33,6 +33,8 @@ mod internal {
             port.unwrap_or(puffin_http::DEFAULT_PORT)
         );
 
+        log::info!("Starting profiling HTTP server on address: {full_addr}");
+
         let server = match puffin_http::Server::new(&full_addr) {
             Ok(s) => s,
             Err(e) => {
@@ -47,7 +49,11 @@ mod internal {
     pub(super) fn stop_http_server_impl() {
         let mut global_server = CURRENT_HTTP_SERVER.lock().unwrap();
 
-        _ = global_server.take();
+        let srv = global_server.take();
+
+        if srv.is_some() {
+            log::info!("Stopping profiling HTTP server");
+        }
     }
 }
 

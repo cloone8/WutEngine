@@ -136,6 +136,8 @@ pub(crate) fn find_id(native_id: winit::window::WindowId) -> Option<Window> {
 /// Locks the window manager and runs the provided callback. Used
 /// so the surfaces can be rendered to
 pub(crate) fn with_locked_surfaces(func: impl FnOnce(&[(Window, &wgpu::Surface<'static>)])) {
+    profiling::function_scope!();
+
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
     let surfaces: SmallVec<[_; 2]> = window_manager

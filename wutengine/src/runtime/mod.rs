@@ -183,7 +183,11 @@ impl Runtime {
         profiling::function_scope!();
 
         // Gather all submitted draw commands
-        let draw_commands = self.draw_commands.try_iter().collect::<Vec<_>>();
+        let draw_commands = {
+            profiling::scope!("Gather draw commands");
+
+            self.draw_commands.try_iter().collect::<Vec<_>>()
+        };
 
         log::trace!("Gathered {} draw commands this frame", draw_commands.len());
 
@@ -196,6 +200,8 @@ impl Runtime {
             .into_iter()
             .par_bridge()
             .filter_map(|camera| {
+                profiling::scope!("Collect camera command buffer");
+
                 Self::render_camera(camera, &draw_commands).map(|encoder| encoder.finish())
             })
             .collect();

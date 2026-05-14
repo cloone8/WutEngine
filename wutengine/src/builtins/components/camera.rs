@@ -363,7 +363,10 @@ impl Component for Camera {
         manifest.add_system::<&mut Camera>(
             Phase::PreRender,
             Some("Camera update render target"),
-            |_, camera| camera.update_render_target(),
+            |_, camera| {
+                profiling::scope!("Camera update render target");
+                camera.update_render_target()
+            },
         );
     }
 }

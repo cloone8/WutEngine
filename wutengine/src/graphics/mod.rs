@@ -3,6 +3,7 @@
 mod api;
 mod bind_group;
 mod cache;
+mod config;
 mod init;
 pub(crate) mod internal_bind_groups;
 pub mod material;
