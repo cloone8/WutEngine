@@ -6,13 +6,17 @@ use super::shader::{
     ShaderBufferParameter, ShaderBufferParameterType, ShaderOpaqueParameter, ShaderParameter,
 };
 
+/// A shader bind group. Holds a set of parameters and their GPU side representation.
 #[derive(Debug, Clone)]
 pub(crate) struct BindGroup {
     bind_group_name: String,
     param_indices: HashMap<String, ParamIndex>,
     buffer_params: Vec<ShaderBufferParameter>,
     opaque_params: Vec<ShaderOpaqueParameter>,
+
+    /// The native [wgpu] bind group layout for this bind group
     pub(crate) layout: wgpu::BindGroupLayout,
+
     native: Option<(Option<wgpu::Buffer>, wgpu::BindGroup)>,
 }
 
@@ -22,20 +26,27 @@ enum ParamIndex {
     Opaque(u16),
 }
 
+/// An error while trying to set a [BindGroup] parameter
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-pub enum SetParamErr {
+pub(crate) enum SetParamErr {
+    /// Unknown parameter
     #[display("Unkown parameter in bind group: {}", _0)]
     UnknownParameter(#[error(not(source))] String),
 
+    /// Invalid type conversion
     #[display("Cannot convert value of type {} to parameter type {}", from, to)]
     InvalidConversion {
+        /// Source type
         from: &'static str,
+
+        /// Target type
         to: &'static str,
     },
 }
 
 impl BindGroup {
-    pub fn new<'a>(
+    /// Creates a new bind group with the given name, native layout, and parameters
+    pub(crate) fn new<'a>(
         name: String,
         layout: wgpu::BindGroupLayout,
         params: impl IntoIterator<Item = &'a ShaderParameter>,
@@ -45,24 +56,24 @@ impl BindGroup {
         let mut opaque_params = Vec::new();
 
         for param in params {
-            match param {
+            let (name, index) = match param {
                 ShaderParameter::Buffer { ty, name, .. } => {
                     let index = ParamIndex::Buffer(buffer_params.len() as u16);
-
                     buffer_params.push(ty.to_default_value());
-                    let prev = param_indices.insert(name.clone(), index);
 
-                    assert!(prev.is_none());
+                    (name, index)
                 }
                 ShaderParameter::Opaque { ty, name, .. } => {
                     let index = ParamIndex::Opaque(opaque_params.len() as u16);
-
                     opaque_params.push(ty.to_default_value());
 
-                    let prev = param_indices.insert(name.clone(), index);
-                    assert!(prev.is_none());
+                    (name, index)
                 }
-            }
+            };
+
+            let prev = param_indices.insert(name.clone(), index);
+
+            assert!(prev.is_none(), "Duplicate bindgroup parameter name: {name}");
         }
 
         Self {
@@ -75,19 +86,9 @@ impl BindGroup {
         }
     }
 
+    /// Returns the total size of the GPU buffer needed to hold all given parameters
     #[inline]
-    pub fn total_buffer_align(
-        params: impl IntoIterator<Item = impl Into<ShaderBufferParameterType>>,
-    ) -> usize {
-        params
-            .into_iter()
-            .map(|p| p.into().align())
-            .max()
-            .unwrap_or(1)
-    }
-
-    #[inline]
-    pub fn total_buffer_size(
+    pub(crate) fn total_buffer_size(
         params: impl IntoIterator<Item = impl Into<ShaderBufferParameterType>>,
     ) -> usize {
         let mut size = 0usize;
@@ -105,7 +106,12 @@ impl BindGroup {
         buffer_params: &[ShaderBufferParameter],
         buffer_idx: usize,
     ) -> (usize, usize) {
-        assert!(buffer_idx < buffer_params.len());
+        assert!(
+            buffer_idx < buffer_params.len(),
+            "Index out of range: {} (max {})",
+            buffer_idx,
+            buffer_params.len()
+        );
 
         let mut offset: usize = 0;
 
@@ -117,6 +123,8 @@ impl BindGroup {
         (offset, buffer_params[buffer_idx].size())
     }
 
+    /// Updates the value of the given parameter to the new value.
+    /// This might require the bind-group to be recreated later using [Self::update_bind_group]
     pub(crate) fn set_parameter(
         &mut self,
         param: &str,
@@ -182,6 +190,8 @@ impl BindGroup {
         }
     }
 
+    /// Updates the GPU side bind-group, if required. Usually only when texture bindings change,
+    /// or if the bindgroup itself is new
     pub(crate) fn update_bind_group(&mut self, device: &wgpu::Device) {
         if self.native.is_some() {
             // Update is not required
@@ -257,6 +267,7 @@ impl BindGroup {
         self.native = Some((maybe_buffer, bind_group));
     }
 
+    /// Returns the native [wgpu::BindGroup]
     #[inline]
     pub(crate) fn get_bind_group(&self) -> &wgpu::BindGroup {
         self.native

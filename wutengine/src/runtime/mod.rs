@@ -257,6 +257,7 @@ impl Runtime {
             });
 
         encoder.push_debug_group("Camera scene rendering");
+
         let Some(render_pass) = camera.begin_pass(&mut encoder) else {
             encoder.pop_debug_group();
             return None;

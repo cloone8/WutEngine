@@ -133,9 +133,12 @@ fn gather_instance_flags(config: &GraphicsConfig) -> wgpu::InstanceFlags {
 
     if config.gpu_based_validation {
         flags |= wgpu::InstanceFlags::GPU_BASED_VALIDATION;
+        log::warn!(
+            "Using GPU based graphics validation. This can have a very significant performance impact"
+        );
     }
 
-    log::info!("Flags: {:?}", flags);
+    log::trace!("Flags: {:?}", flags);
 
     flags
 }

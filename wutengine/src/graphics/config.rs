@@ -22,13 +22,21 @@ impl Default for GraphicsConfig {
     }
 }
 
+/// Configurable graphics backend
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, derive_more::Display)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum GraphicsBackend {
+    /// Vulkan
     Vulkan,
+
+    /// DirectX 12
     #[display("DirectX 12")]
     DX12,
+
+    /// Metal
     Metal,
+
+    /// WebGPU (browser only)
     WebGPU,
 }
 
