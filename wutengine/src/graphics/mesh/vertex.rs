@@ -5,7 +5,7 @@ use crate::graphics::shader::{GVec2, GVec3, ShaderVertexAttributeType};
 
 /// A raw vertex buffer
 #[derive(Debug)]
-pub(crate) struct VertexBuffer {
+pub struct VertexBuffer {
     /// For which attribute this buffer contains data
     pub(crate) attribute: ShaderVertexAttributeType,
     /// The amount of elements in this buffer
@@ -20,7 +20,7 @@ pub(crate) struct VertexBuffer {
 
 /// An error while creating a new vertex buffer
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-pub(crate) enum NewVertexBufferErr {
+pub enum NewVertexBufferErr {
     #[display("Cannot create an empty vertex buffer")]
     /// Vertex buffer cannot be empty
     Zero,
@@ -49,6 +49,11 @@ impl VertexBuffer {
         keep_on_cpu: bool,
     ) -> Result<Self, NewVertexBufferErr> {
         profiling::function_scope!();
+
+        log::trace!(
+            "Creating new vertex buffer for attribute {attribute} with {} elements",
+            data.len()
+        );
 
         if !T::is_compatible_with(attribute) {
             return Err(NewVertexBufferErr::IncompatibleDataType {

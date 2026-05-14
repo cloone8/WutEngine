@@ -43,6 +43,11 @@ impl IndexBuffer {
     ) -> Result<Self, NewIndexBufferErr> {
         profiling::function_scope!();
 
+        log::trace!(
+            "Creating new index buffer for topology {topology} with {} elements",
+            data.len()
+        );
+
         if data.is_empty() {
             return Err(NewIndexBufferErr::Zero);
         }
@@ -81,12 +86,15 @@ impl IndexBuffer {
 }
 
 /// Trait implemented by types that can be used as indices in an [IndexBuffer]
-pub(crate) trait IndexDatatype: Sized {
+pub trait IndexDatatype: Sized {
     /// The format of this index
     const FORMAT: IndexFormat;
 
     /// Casts this slice into a byte slice
     fn as_bytes(this: &[Self]) -> &[u8];
+
+    /// Returns the index as a usize for bounds checking
+    fn as_usize(&self) -> usize;
 }
 
 impl IndexDatatype for u16 {
@@ -99,6 +107,11 @@ impl IndexDatatype for u16 {
     {
         bytemuck::must_cast_slice(this)
     }
+
+    #[inline(always)]
+    fn as_usize(&self) -> usize {
+        *self as usize
+    }
 }
 
 impl IndexDatatype for u32 {
@@ -110,6 +123,11 @@ impl IndexDatatype for u32 {
         Self: core::marker::Sized,
     {
         bytemuck::must_cast_slice(this)
+    }
+
+    #[inline(always)]
+    fn as_usize(&self) -> usize {
+        *self as usize
     }
 }
 
