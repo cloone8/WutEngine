@@ -17,7 +17,7 @@ pub use types::*;
 
 pub(crate) use compile::*;
 
-use crate::asset::Asset;
+use crate::asset::{Asset, SerializedAsset};
 
 unique_id_type64! {
     /// Unique identifier for a [Shader]
@@ -50,6 +50,10 @@ impl Asset for Shader {
     {
         Ok(serialized.clone())
     }
+}
+
+impl SerializedAsset for Shader {
+    type AssetType = Self;
 }
 
 impl Shader {

@@ -12,7 +12,7 @@ use nohash_hasher::IntMap;
 use serde::{Deserialize, Serialize};
 pub use vertex::*;
 
-use crate::asset::Asset;
+use crate::asset::{Asset, SerializedAsset};
 
 use super::shader::{GVec2, GVec3, ShaderVertexAttributeType};
 
@@ -151,6 +151,10 @@ pub struct MeshData {
     pub indices: MeshDataIndices,
     pub uvs: IntMap<u8, Vec<Vec2>>,
     pub keep_data: bool,
+}
+
+impl SerializedAsset for MeshData {
+    type AssetType = Mesh;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]

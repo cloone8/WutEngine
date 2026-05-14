@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 
-use crate::asset::Asset;
+use crate::asset::{Asset, SerializedAsset};
 
 /// The default texture. Used for missing texture parameters
 pub(crate) static DEFAULT_TEXTURE: LazyLock<Texture> = LazyLock::new(|| {
@@ -45,6 +45,10 @@ pub struct SerializedTexture {
 
     #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
+}
+
+impl SerializedAsset for SerializedTexture {
+    type AssetType = Texture;
 }
 
 /// The handle to a native [wgpu::Texture]

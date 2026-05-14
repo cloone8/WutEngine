@@ -7,7 +7,7 @@ use std::sync::{Arc, LazyLock};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::asset::Asset;
+use crate::asset::{Asset, SerializedAsset};
 use crate::graphics::GFX_DEVICE;
 use crate::graphics::cache::sampler::SamplerCacheKey;
 
@@ -24,6 +24,10 @@ pub(crate) static DEFAULT_SAMPLER: LazyLock<Sampler> = LazyLock::new(|| {
 pub struct SerializedSampler {
     pub filtering: Filtering,
     pub wrapping: WrapModeType,
+}
+
+impl SerializedAsset for SerializedSampler {
+    type AssetType = Sampler;
 }
 
 /// A texture sampler descriptor.

@@ -8,11 +8,15 @@ use serde::{Deserialize, Serialize};
 
 /// Trait implemented by types that can be used as a WutEngine asset
 pub trait Asset: Send + Sync + Any {
-    type Serialized: Serialize + DeserializeOwned + Any;
+    type Serialized: SerializedAsset<AssetType = Self>;
     type FromSerializedErr: core::error::Error;
     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
     where
         Self: Sized;
+}
+
+pub trait SerializedAsset: Serialize + DeserializeOwned + Any {
+    type AssetType: Asset<Serialized = Self>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]

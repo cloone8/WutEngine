@@ -7,7 +7,7 @@ use std::sync::Arc;
 use glam::{Mat4, Vec2, Vec3, Vec4};
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{Asset, AssetHandle};
+use crate::asset::{Asset, AssetHandle, SerializedAsset};
 
 use super::sampler::Sampler;
 use super::shader::{CompiledShader, Shader};
@@ -16,7 +16,7 @@ use super::{BindGroup, shader};
 
 /// A WutEngine material. Contains a specific shader variant and a set of parameters for drawing.
 #[derive(Debug)]
-pub(crate) struct Material {
+pub struct Material {
     /// The shader
     pub(crate) shader: Arc<Shader>,
 
@@ -56,24 +56,8 @@ pub struct SerializedMaterial {
     pub parameters: HashMap<String, MaterialParameter>,
 }
 
-impl From<&SerializedMaterial> for Material {
-    fn from(value: &SerializedMaterial) -> Self {
-        let mut mat = Material::new(value.shader.get_arc().unwrap(), value.keywords.clone());
-        let queue = super::queue();
-
-        for (param_name, param_value) in &value.parameters {
-            if let Err(e) =
-                mat.user_bind_group
-                    .set_parameter(param_name.as_str(), param_value.clone(), queue)
-            {
-                log::warn!(
-                    "Error setting material parameter {param_name} during deserialization: {e}"
-                );
-            }
-        }
-
-        mat
-    }
+impl SerializedAsset for SerializedMaterial {
+    type AssetType = Material;
 }
 
 impl Asset for Material {
@@ -85,7 +69,28 @@ impl Asset for Material {
     where
         Self: Sized,
     {
-        Ok(Self::from(serialized))
+        let mut mat = Material::new(
+            serialized
+                .shader
+                .get_arc()
+                .expect("Shader asset not yet loaded"),
+            serialized.keywords.clone(),
+        );
+
+        let queue = super::queue();
+
+        for (param_name, param_value) in &serialized.parameters {
+            if let Err(e) =
+                mat.user_bind_group
+                    .set_parameter(param_name.as_str(), param_value.clone(), queue)
+            {
+                log::warn!(
+                    "Error setting material parameter {param_name} during deserialization: {e}"
+                );
+            }
+        }
+
+        Ok(mat)
     }
 }
 
