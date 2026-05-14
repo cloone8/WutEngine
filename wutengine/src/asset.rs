@@ -37,10 +37,17 @@ impl<T> Default for AssetHandle<T> {
 
 impl<T: Asset> AssetHandle<T> {
     #[inline(always)]
-    pub fn get(&self) -> Option<&T> {
+    pub fn new(asset: impl Into<Self>) -> Self {
+        asset.into()
+    }
+
+    /// Returns a reference to the asset, if the asset was loaded. Otherwise returns [None]
+    #[inline(always)]
+    pub fn get_ref(&self) -> Option<&T> {
         self.asset.as_ref().map(Arc::as_ref)
     }
 
+    /// Returns the cloned [Arc] containing the asset, if the asset was loaded. Otherwise returns [None]
     #[inline(always)]
     pub fn get_arc(&self) -> Option<Arc<T>> {
         self.asset.as_ref().map(Arc::clone)
@@ -60,9 +67,7 @@ impl<T> From<Option<T>> for AssetHandle<T> {
     #[inline]
     fn from(value: Option<T>) -> Self {
         match value {
-            Some(v) => Self {
-                asset: Some(Arc::new(v)),
-            },
+            Some(v) => Self::from(v),
             None => Self { asset: None },
         }
     }

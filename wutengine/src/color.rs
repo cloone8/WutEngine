@@ -2,10 +2,41 @@
 
 use core::fmt::{Debug, Display};
 
+use serde::{Deserialize, Serialize};
+
 use crate::math::{Vec3, Vec3A, Vec4};
 
+#[derive(Clone, Copy, Serialize, Deserialize, Default)]
+#[serde(default)]
+struct SerializedColor {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
+impl From<Color> for SerializedColor {
+    #[inline(always)]
+    fn from(value: Color) -> Self {
+        Self {
+            r: value.r(),
+            g: value.g(),
+            b: value.b(),
+            a: value.a(),
+        }
+    }
+}
+
+impl From<SerializedColor> for Color {
+    #[inline(always)]
+    fn from(value: SerializedColor) -> Self {
+        Self::new(value.r, value.g, value.b, value.a)
+    }
+}
+
 /// A 32-bit-per-color RGBA color
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(into = "SerializedColor", from = "SerializedColor")]
 pub struct Color(Vec4);
 
 impl Color {

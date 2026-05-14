@@ -34,7 +34,11 @@ pub(crate) enum SetParamErr {
     UnknownParameter(#[error(not(source))] String),
 
     /// Invalid type conversion
-    #[display("Cannot convert value of type {} to parameter type {}", from, to)]
+    #[display(
+        "Cannot convert value of type \"{}\" to parameter type \"{}\"",
+        from,
+        to
+    )]
     InvalidConversion {
         /// Source type
         from: &'static str,
@@ -135,6 +139,8 @@ impl BindGroup {
             return Err(SetParamErr::UnknownParameter(param.to_owned()));
         };
 
+        let value_type_name = value.variant_name();
+
         match param_index {
             ParamIndex::Buffer(idx) => {
                 let idx = idx as usize;
@@ -143,8 +149,8 @@ impl BindGroup {
 
                 if !conversion_ok {
                     return Err(SetParamErr::InvalidConversion {
-                        from: "<TODO NAME>",
-                        to: "<TODO NAME>",
+                        from: value_type_name,
+                        to: self.buffer_params[idx].variant_name(),
                     });
                 }
 
@@ -177,8 +183,8 @@ impl BindGroup {
 
                 if !conversion_ok {
                     return Err(SetParamErr::InvalidConversion {
-                        from: "<TODO NAME>",
-                        to: "<TODO NAME>",
+                        from: value_type_name,
+                        to: self.opaque_params[idx as usize].variant_name(),
                     });
                 }
 

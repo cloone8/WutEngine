@@ -65,7 +65,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(data: MeshData) -> Option<Self> {
+    pub(crate) fn new(data: &MeshData) -> Option<Self> {
         profiling::function_scope!();
 
         let device = super::device();
@@ -76,7 +76,7 @@ impl Mesh {
             return None;
         }
 
-        let vtx_pos_buffer = Vec::from_iter(data.vertices.into_iter().map(GVec3::<f32>::from));
+        let vtx_pos_buffer = Vec::from_iter(data.vertices.iter().copied().map(GVec3::<f32>::from));
 
         let pos_buffer = VertexBuffer::new(
             &vtx_pos_buffer,
@@ -86,7 +86,7 @@ impl Mesh {
         )
         .expect("Failed to create position buffer");
 
-        let index_buffer = match data.indices {
+        let index_buffer = match &data.indices {
             MeshDataIndices::U16(items) => {
                 make_index_buffer(items, vtx_count, data.topology, device, data.keep_data)
             }
@@ -104,7 +104,7 @@ impl Mesh {
         mesh.vertex_buffers
             .insert(ShaderVertexAttributeType::Position, pos_buffer);
 
-        for (channel, uv_data) in data.uvs {
+        for (&channel, uv_data) in &data.uvs {
             if uv_data.len() != vtx_count {
                 log::warn!(
                     "Discarding UV channel {channel} because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
@@ -113,7 +113,7 @@ impl Mesh {
                 continue;
             }
 
-            let uv_vec = Vec::from_iter(uv_data.into_iter().map(GVec2::<f32>::from));
+            let uv_vec = Vec::from_iter(uv_data.iter().copied().map(GVec2::<f32>::from));
 
             let uv_vtx_buf = VertexBuffer::new(
                 &uv_vec,
@@ -131,16 +131,24 @@ impl Mesh {
     }
 }
 
+/// Error while deserializing [MeshData] into a [Mesh]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+pub enum MeshFromDataErr {
+    /// Mesh had no vertices or no indices
+    #[display("The mesh had no vertices or no indices")]
+    Empty,
+}
+
 impl Asset for Mesh {
     type Serialized = MeshData;
 
-    type FromSerializedErr = Infallible;
+    type FromSerializedErr = MeshFromDataErr;
 
     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
     where
         Self: Sized,
     {
-        Ok(serialized.create().unwrap())
+        Self::new(serialized).ok_or(MeshFromDataErr::Empty)
     }
 }
 
@@ -155,15 +163,6 @@ pub struct MeshData {
 
 impl SerializedAsset for MeshData {
     type AssetType = Mesh;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
-pub enum MeshDataFromMeshErr {
-    /// The mesh data was not stored on the CPU
-    #[display(
-        "The mesh data was not stored on the CPU so could not be retrieved for serialization"
-    )]
-    NotOnCpu,
 }
 
 impl MeshData {
@@ -198,10 +197,6 @@ impl MeshData {
         self.keep_data = keep_data;
         self
     }
-
-    pub fn create(&self) -> Option<Mesh> {
-        Mesh::new(self.clone())
-    }
 }
 
 #[derive(Debug, Clone, derive_more::From, Serialize, Deserialize)]
@@ -217,13 +212,13 @@ impl Default for MeshDataIndices {
 }
 
 fn make_index_buffer(
-    data: Vec<impl IndexDatatype>,
+    data: &[impl IndexDatatype],
     num_verts: usize,
     topology: MeshTopology,
     device: &wgpu::Device,
     keep_on_cpu: bool,
 ) -> Result<Option<IndexBuffer>, NewIndexBufferErr> {
-    let index_data = trim_to_multiple_of(&data, topology);
+    let index_data = trim_to_multiple_of(data, topology);
 
     if index_data.is_empty() {
         return Ok(None);

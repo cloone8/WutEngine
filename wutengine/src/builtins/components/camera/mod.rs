@@ -361,7 +361,7 @@ impl Camera {
             return;
         }
 
-        let mut mat = Material::new(builtins::shaders::BLIT.clone(), map![]);
+        let mut mat = Material::new(builtins::shaders::BLIT.get_arc().unwrap(), map![]);
 
         if let Some(render_target_texture) = self.render_target.as_ref() {
             Self::set_blit_material_params(&mut mat, render_target_texture);

@@ -44,7 +44,7 @@ impl Component for StaticMeshRenderer {
 /// System implementations
 impl StaticMeshRenderer {
     fn submit_draw_call(&mut self) {
-        let (Some(mesh), Some(mat)) = (self.mesh.get(), self.material.get()) else {
+        let (Some(mesh), Some(mat)) = (self.mesh.get_ref(), self.material.get_ref()) else {
             log::trace!(
                 "Not rendering static mesh renderer because either the mesh or the material is missing"
             );

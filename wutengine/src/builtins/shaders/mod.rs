@@ -1,7 +1,8 @@
 //! Builtin shaders
 
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
+use crate::asset::AssetHandle;
 use crate::graphics::shader::{Shader, ShaderSource};
 
 /// Macro to automatically create a [Shader] from a descriptor and source file,
@@ -21,12 +22,14 @@ macro_rules! from_descriptor_and_source {
             content: source.to_owned(),
         };
 
-        Arc::new(shader)
+        AssetHandle::from(shader)
     }};
 }
 
 /// Fullscreen blit shader
-pub static BLIT: LazyLock<Arc<Shader>> = LazyLock::new(|| from_descriptor_and_source!("blit"));
+pub static BLIT: LazyLock<AssetHandle<Shader>> =
+    LazyLock::new(|| from_descriptor_and_source!("blit"));
 
 /// Unlit shader
-pub static UNLIT: LazyLock<Arc<Shader>> = LazyLock::new(|| from_descriptor_and_source!("unlit"));
+pub static UNLIT: LazyLock<AssetHandle<Shader>> =
+    LazyLock::new(|| from_descriptor_and_source!("unlit"));

@@ -6,8 +6,10 @@ use std::sync::Arc;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 use serde::{Deserialize, Serialize};
+use wutengine_util_macro::VariantName;
 
 use crate::asset::{Asset, AssetHandle, SerializedAsset};
+use crate::color::Color;
 
 use super::sampler::Sampler;
 use super::shader::{CompiledShader, Shader};
@@ -84,7 +86,7 @@ impl Asset for Material {
                 mat.user_bind_group
                     .set_parameter(param_name.as_str(), param_value.clone(), queue)
             {
-                log::warn!(
+                log::error!(
                     "Error setting material parameter {param_name} during deserialization: {e}"
                 );
             }
@@ -105,6 +107,7 @@ impl Asset for Material {
     derive_more::From,
     Serialize,
     Deserialize,
+    VariantName,
 )]
 pub enum MaterialParameter {
     /// Unsigned 32-bit integer
@@ -124,6 +127,9 @@ pub enum MaterialParameter {
 
     /// Four-component float vector
     Vec4(Vec4),
+
+    /// A 4 component color value
+    Color(Color),
 
     /// 4x4 matrix
     Mat4(Mat4),

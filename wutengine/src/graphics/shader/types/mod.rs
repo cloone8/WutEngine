@@ -4,10 +4,12 @@ mod primitives;
 
 pub use primitives::*;
 use serde::{Deserialize, Serialize};
+use wutengine_util_macro::VariantName;
 
 use crate::graphics::material::MaterialParameter;
 use crate::graphics::sampler::DEFAULT_SAMPLER;
 use crate::graphics::texture::DEFAULT_TEXTURE;
+use crate::math::Vec4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -136,6 +138,7 @@ impl ShaderOpaqueParameterType {
     derive_more::Unwrap,
     derive_more::TryUnwrap,
     derive_more::From,
+    VariantName,
 )]
 pub enum ShaderBufferParameter {
     Flt(f32),
@@ -241,12 +244,25 @@ impl ShaderBufferParameter {
                     return true;
                 }
             }
-            Self::Vec4f(cur) => {
-                if let MaterialParameter::Vec4(v) = value {
+            Self::Vec4f(cur) => match value {
+                MaterialParameter::Vec4(v) => {
                     *cur = v.into();
                     return true;
                 }
-            }
+                MaterialParameter::Vec2(v) => {
+                    *cur = Vec4::new(v.x, v.y, 0.0, 0.0).into();
+                    return true;
+                }
+                MaterialParameter::Vec3(v) => {
+                    *cur = Vec4::new(v.x, v.y, v.z, 0.0).into();
+                    return true;
+                }
+                MaterialParameter::Color(c) => {
+                    *cur = c.as_vec4().into();
+                    return true;
+                }
+                _ => {}
+            },
             Self::Vec2u(_) => todo!(),
             Self::Vec3u(_) => todo!(),
             Self::Vec4u(_) => todo!(),
@@ -279,6 +295,7 @@ impl<'a> From<&'a ShaderBufferParameter> for ShaderBufferParameterType {
     derive_more::Unwrap,
     derive_more::TryUnwrap,
     derive_more::From,
+    VariantName,
 )]
 pub enum ShaderOpaqueParameter {
     Texture2D(wgpu::TextureView),
@@ -292,13 +309,13 @@ impl ShaderOpaqueParameter {
         match self {
             Self::Texture2D(cur) => {
                 if let MaterialParameter::Texture2D(tex) = value {
-                    *cur = tex.get().unwrap().get_view().clone();
+                    *cur = tex.get_ref().unwrap().get_view().clone();
                     return true;
                 }
             }
             Self::Sampler(cur) => {
                 if let MaterialParameter::Sampler(smp) = value {
-                    *cur = smp.get().unwrap().get_wgpu().clone();
+                    *cur = smp.get_ref().unwrap().get_wgpu().clone();
                     return true;
                 }
             }
