@@ -1,8 +1,8 @@
 //! Various graphics caches
 
+use alloc::sync::Arc;
 use core::hash::{BuildHasher, Hash};
 use std::hash::RandomState;
-use std::sync::Arc;
 
 pub(crate) mod pipeline;
 pub(crate) mod sampler;

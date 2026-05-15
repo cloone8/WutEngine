@@ -1,6 +1,9 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
+use core::any::TypeId;
+use core::ops::Deref;
 use core::sync::atomic::{AtomicBool, Ordering};
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
@@ -11,8 +14,12 @@ use smallvec::SmallVec;
 use winit::error::EventLoopError;
 
 use crate::builtins::components::Camera;
+use crate::builtins::components::CameraRenderPass;
+use crate::builtins::components::rendering::GlobalRenderPass;
 use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
+use crate::graphics::renderpass::RenderPass;
+use crate::graphics::renderpass::RenderPassInfo;
 use crate::system::{self, Phase, SystemManager};
 use crate::util::{self, InitOnce};
 use crate::window::{self, Window};
@@ -193,6 +200,14 @@ impl Runtime {
 
         let mut world = world::get_world_mut();
 
+        // Collect all global passes first
+        let passes = world
+            .ecs
+            .query::<&GlobalRenderPass>()
+            .iter()
+            .filter_map(|global_pass| global_pass.pass.clone())
+            .collect::<Vec<_>>();
+
         // Render all cameras, giving each camera its own rendering thread
         let mut buffers: Vec<_> = world
             .ecs
@@ -202,7 +217,7 @@ impl Runtime {
             .filter_map(|camera| {
                 profiling::scope!("Collect camera command buffer");
 
-                Self::render_camera(camera, &draw_commands).map(|encoder| encoder.finish())
+                Self::render_camera(camera, &passes, &draw_commands).map(|encoder| encoder.finish())
             })
             .collect();
 
@@ -247,26 +262,41 @@ impl Runtime {
 
     fn render_camera(
         camera: &mut Camera,
+        passes: &[RenderPassInfo],
         draw_commands: &[DrawCommand],
     ) -> Option<wgpu::CommandEncoder> {
         profiling::function_scope!();
 
+        if camera.get_render_target().is_none() {
+            log::debug!(
+                "Not rendering camera {} because it has no target",
+                camera.get_id()
+            );
+            return None;
+        }
+
+        graphics::renderpass::sync_camera_passes(camera, passes);
+
         let mut encoder =
             graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Camera Rendering Command Encoder"),
+                label: Some(&format!("Camera {} command encoder", camera.get_id())),
             });
 
-        encoder.push_debug_group("Camera scene rendering");
+        // Take the passes out for memory safety...
+        let mut passes = core::mem::take(&mut camera.render_passes);
 
-        let Some(render_pass) = camera.begin_pass(&mut encoder) else {
+        for pass in passes.iter_mut() {
+            profiling::scope!(pass.name);
+            encoder.push_debug_group(pass.name);
+
+            pass.pass.execute(&mut encoder, camera);
+
             encoder.pop_debug_group();
-            return None;
-        };
+        }
 
-        //TODO: Execute draw commands
+        // ...and put the passes back
+        camera.render_passes = passes;
 
-        drop(render_pass);
-        encoder.pop_debug_group();
         Some(encoder)
     }
 }

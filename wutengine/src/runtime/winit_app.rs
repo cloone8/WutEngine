@@ -1,8 +1,9 @@
 //! Implements the [winit::application::ApplicationHandler] interface for [crate::runtime::Runtime],
 //! so that its execution can be driven by [winit]
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
+use crate::config;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
 
@@ -105,6 +106,10 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 log::debug!("Handling window creation request for window {window_id}");
 
+                let vsync = window_config
+                    .vsync
+                    .unwrap_or_else(|| config::try_get("wutengine.window.vsync").unwrap_or(true));
+
                 let native = match event_loop.create_window(window_config.into()) {
                     Ok(native) => Arc::new(native),
                     Err(e) => {
@@ -115,7 +120,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 let surface = graphics::instance().create_surface(native.clone()).unwrap();
 
-                window::manager::new_window(window_id, native, surface);
+                window::manager::new_window(window_id, native, surface, vsync);
             }
             WinitEvent::CloseWindow(window_id) => {
                 profiling::scope!("Close Window");

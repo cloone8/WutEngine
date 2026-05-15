@@ -1,6 +1,7 @@
 //! Shader pipeline caching
 
-use std::sync::{Arc, LazyLock};
+use alloc::sync::Arc;
+use std::sync::LazyLock;
 
 use crate::graphics::shader::{CompiledShader, CompiledShaderId};
 

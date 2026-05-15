@@ -1,11 +1,13 @@
 //! Texture samplers
 
-use core::fmt::{Debug, Display};
-use std::convert::Infallible;
-use std::sync::{Arc, LazyLock};
+use alloc::sync::Arc;
+use core::convert::Infallible;
+use core::fmt::Debug;
+use core::fmt::Display;
+use std::sync::LazyLock;
 
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::asset::{Asset, SerializedAsset};
 use crate::graphics::GFX_DEVICE;

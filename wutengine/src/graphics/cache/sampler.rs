@@ -1,6 +1,7 @@
 //! Sampler object caching
 
-use std::sync::{Arc, LazyLock};
+use alloc::sync::Arc;
+use std::sync::LazyLock;
 
 use crate::graphics::sampler::{Filtering, WrapModeType};
 

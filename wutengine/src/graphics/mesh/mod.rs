@@ -1,20 +1,22 @@
 //! Mesh related functionality.
 
-mod index;
-mod vertex;
-
 use std::collections::HashMap;
-use std::convert::Infallible;
 
-use glam::{Vec2, Vec3};
-pub use index::*;
+use glam::Vec2;
+use glam::Vec3;
 use nohash_hasher::IntMap;
-use serde::{Deserialize, Serialize};
-pub use vertex::*;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::asset::{Asset, SerializedAsset};
 
 use super::shader::{GVec2, GVec3, ShaderVertexAttributeType};
+
+mod index;
+pub use index::*;
+
+mod vertex;
+pub use vertex::*;
 
 /// The topology of the indices of a [Mesh]
 #[derive(
@@ -65,7 +67,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub(crate) fn new(data: &MeshData) -> Option<Self> {
+    pub(crate) fn new(data: &SerializedMesh) -> Option<Self> {
         profiling::function_scope!();
 
         let device = super::device();
@@ -87,10 +89,10 @@ impl Mesh {
         .expect("Failed to create position buffer");
 
         let index_buffer = match &data.indices {
-            MeshDataIndices::U16(items) => {
+            MeshIndices::U16(items) => {
                 make_index_buffer(items, vtx_count, data.topology, device, data.keep_data)
             }
-            MeshDataIndices::U32(items) => {
+            MeshIndices::U32(items) => {
                 make_index_buffer(items, vtx_count, data.topology, device, data.keep_data)
             }
         }
@@ -140,7 +142,7 @@ pub enum MeshFromDataErr {
 }
 
 impl Asset for Mesh {
-    type Serialized = MeshData;
+    type Serialized = SerializedMesh;
 
     type FromSerializedErr = MeshFromDataErr;
 
@@ -153,19 +155,19 @@ impl Asset for Mesh {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct MeshData {
+pub struct SerializedMesh {
     pub vertices: Vec<Vec3>,
     pub topology: MeshTopology,
-    pub indices: MeshDataIndices,
+    pub indices: MeshIndices,
     pub uvs: IntMap<u8, Vec<Vec2>>,
     pub keep_data: bool,
 }
 
-impl SerializedAsset for MeshData {
+impl SerializedAsset for SerializedMesh {
     type AssetType = Mesh;
 }
 
-impl MeshData {
+impl SerializedMesh {
     pub fn new() -> Self {
         Self::default()
     }
@@ -174,7 +176,7 @@ impl MeshData {
         self.vertices = vertices;
         self
     }
-    pub fn set_indices(&mut self, indices: impl Into<MeshDataIndices>) -> &mut Self {
+    pub fn set_indices(&mut self, indices: impl Into<MeshIndices>) -> &mut Self {
         self.indices = indices.into();
         self
     }
@@ -200,12 +202,12 @@ impl MeshData {
 }
 
 #[derive(Debug, Clone, derive_more::From, Serialize, Deserialize)]
-pub enum MeshDataIndices {
+pub enum MeshIndices {
     U16(Vec<u16>),
     U32(Vec<u32>),
 }
 
-impl Default for MeshDataIndices {
+impl Default for MeshIndices {
     fn default() -> Self {
         Self::U16(Vec::new())
     }

@@ -11,7 +11,7 @@ pub enum CameraBackground {
 }
 
 impl CameraBackground {
-    pub(super) fn to_wgpu_load_op(self) -> wgpu::LoadOp<wgpu::Color> {
+    pub fn to_wgpu_load_op(self) -> wgpu::LoadOp<wgpu::Color> {
         match self {
             Self::None => wgpu::LoadOp::Load,
             Self::Color(color) => wgpu::LoadOp::Clear(color.into()),

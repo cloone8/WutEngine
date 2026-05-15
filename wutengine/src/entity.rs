@@ -4,6 +4,7 @@ use core::fmt::Display;
 use core::hash::Hash;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
+use crate::builtins::components::Name;
 use crate::component::Component;
 use crate::util::InitOnce;
 use crate::world::World;
@@ -108,14 +109,15 @@ impl nohash_hasher::IsEnabled for Entity {}
 
 impl Entity {
     /// Spawns a new entity in the game world
-    pub fn spawn() -> Self {
+    pub fn spawn(name: impl Into<String>) -> Self {
         let id = crate::world::get_world().ecs.reserve_entity();
 
+        let name = Name::from(name);
         let new_entity = Entity(id);
 
-        log::debug!("Spawning new entity {new_entity}");
+        log::debug!("Spawning new entity {name} ({new_entity})");
 
-        new_entity
+        new_entity.add_component(name)
     }
 
     /// Destroys an entity and removes its components

@@ -1,3 +1,7 @@
+use core::any::TypeId;
+use std::collections::BTreeSet;
+
+use glam::Mat4;
 use wutengine_shadercompiler::{CAMERA_PARAMS_BIND_GROUP_INDEX, MATERIAL_PARAMS_BIND_GROUP_INDEX};
 use wutengine_util_macro::unique_id_type32;
 
@@ -7,6 +11,7 @@ use crate::graphics::BindGroup;
 use crate::graphics::internal_bind_groups::create_camera_bind_group;
 use crate::graphics::material::{Material, MaterialParameter};
 use crate::graphics::mesh::MeshTopology;
+use crate::graphics::renderpass::RenderPass;
 use crate::graphics::sampler::{Filtering, Sampler, WrapMode, WrapModeType};
 use crate::graphics::texture::Texture;
 use crate::system::Phase;
@@ -36,23 +41,27 @@ unique_id_type32! {
 pub struct Camera {
     // == Configuration ==
     /// The render target for this camera
-    target: Option<CameraTarget>,
+    pub target: Option<CameraTarget>,
 
     /// The projection this camera uses
-    projection: CameraProjection,
+    pub projection: CameraProjection,
 
     /// The background of this camera's viewport
-    background: CameraBackground,
+    pub background: CameraBackground,
 
     /// The viewport dimensions
-    viewport: CameraViewport,
+    pub viewport: CameraViewport,
 
     /// The near/far clipping planes
-    clipping_planes: (f32, f32),
+    pub clipping_planes: (f32, f32),
 
     // == Runtime ==
     /// The ID of the camera. Used for filtering in draw calls
     id: CameraId,
+
+    view_matrix: Mat4,
+
+    projection_matrix: Mat4,
 
     /// Bind group for the per-camera parameters
     camera_parameters: Option<BindGroup>,
@@ -60,6 +69,18 @@ pub struct Camera {
     render_target: Option<wgpu::Texture>,
 
     blit_material: Option<Material>,
+
+    pub(crate) render_passes: Vec<CameraRenderPass>,
+}
+
+#[derive(derive_more::Debug)]
+pub(crate) struct CameraRenderPass {
+    pub(crate) type_id: TypeId,
+    pub(crate) name: &'static str,
+    pub(crate) order: u64,
+
+    #[debug(skip)]
+    pub(crate) pass: Box<dyn RenderPass>,
 }
 
 impl Default for Camera {
@@ -74,6 +95,8 @@ impl Camera {
     pub fn new() -> Self {
         Self {
             id: CameraId::new(),
+            view_matrix: Mat4::IDENTITY,
+            projection_matrix: Mat4::IDENTITY,
             target: None,
             projection: CameraProjection::Perspective(FieldOfView::Vertical(70.0)),
             background: CameraBackground::Color(Color::BLACK),
@@ -82,6 +105,7 @@ impl Camera {
             camera_parameters: None,
             render_target: None,
             blit_material: None,
+            render_passes: Vec::new(),
         }
     }
 
@@ -91,27 +115,22 @@ impl Camera {
         self.id
     }
 
-    /// Updates the target surface of this camera
+    /// Returns the current render target texture of this camera, if configured
     #[inline]
-    pub fn set_target(&mut self, target: Option<CameraTarget>) {
-        self.target = target;
+    pub fn get_render_target(&self) -> Option<&wgpu::Texture> {
+        self.render_target.as_ref()
     }
 
-    /// Sets the background of this camera
-    #[inline]
-    pub fn set_background(&mut self, background: CameraBackground) {
-        self.background = background;
-    }
+    pub fn set_camera_bind_group_on_pass(&self, pass: &mut wgpu::RenderPass) -> Result<(), ()> {
+        let cam_bind_group = self.camera_parameters.as_ref().ok_or(())?;
 
-    /// Sets the background of this camera
-    #[inline]
-    pub fn set_viewport(&mut self, viewport: CameraViewport) {
-        if !viewport.is_valid() {
-            log::error!("Given viewport is invalid and will not be set: {viewport}");
-            return;
-        }
+        pass.set_bind_group(
+            CAMERA_PARAMS_BIND_GROUP_INDEX,
+            cam_bind_group.get_bind_group(),
+            &[],
+        );
 
-        self.viewport = viewport;
+        Ok(())
     }
 }
 
@@ -119,8 +138,10 @@ impl Camera {
 impl Camera {
     fn update_render_target(&mut self) {
         let Some(camera_target) = self.target else {
+            log::trace!("Camera has no target configured, so not updating render target");
             // If the camera has no target configured, free the render target
             if let Some(render_target) = self.render_target.take() {
+                log::trace!("Freeing current camera render target");
                 render_target.destroy();
             }
             return;
@@ -185,76 +206,53 @@ impl Camera {
 
         self.render_target = Some(render_target_texture);
     }
-}
 
-/// Internal functionality for rendering
-impl Camera {
-    pub(crate) fn begin_pass<'a>(
-        &mut self,
-        encoder: &'a mut wgpu::CommandEncoder,
-    ) -> Option<wgpu::RenderPass<'a>> {
+    fn update_view_projection(&mut self) {
         let Some(render_target) = &self.render_target else {
             // No render target means no rendering
-            return None;
+            return;
         };
 
-        let queue = graphics::queue();
-
-        let view_mat = math::Mat4::IDENTITY; // TODO: Get actual view matrix once transforms are implemented
+        self.view_matrix = math::Mat4::IDENTITY; // TODO: Get actual view matrix once transforms are implemented
 
         let target_size = render_target.size();
 
-        let projection_mat = self.projection.get_matrix(
+        self.projection_matrix = self.projection.get_matrix(
             target_size.width as f32 / target_size.height as f32,
             self.clipping_planes.0,
             self.clipping_planes.1,
         );
+    }
 
-        let vp_mat = projection_mat * view_mat;
+    fn update_cam_bind_group(&mut self) {
+        if self.render_target.is_none() {
+            // No render target means nothing to do
+            return;
+        }
+
+        let queue = graphics::queue();
 
         let cam_bind_group = Self::get_camera_bind_group(self.id, &mut self.camera_parameters);
 
         cam_bind_group
-            .set_parameter("view", view_mat.into(), queue)
+            .set_parameter("view", self.view_matrix.into(), queue)
             .unwrap();
         cam_bind_group
-            .set_parameter("projection", projection_mat.into(), queue)
+            .set_parameter("projection", self.projection_matrix.into(), queue)
             .unwrap();
+
+        let vp_mat = self.projection_matrix * self.view_matrix;
+
         cam_bind_group
             .set_parameter("vp", vp_mat.into(), queue)
             .unwrap();
 
         cam_bind_group.update_bind_group(graphics::device());
-
-        let render_target_view = render_target.create_view(&wgpu::TextureViewDescriptor::default());
-
-        // Start the actual native pass and bind the per-camera parameters
-        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Camera main render pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &render_target_view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: self.background.to_wgpu_load_op(),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-
-        pass.set_bind_group(
-            CAMERA_PARAMS_BIND_GROUP_INDEX,
-            cam_bind_group.get_bind_group(),
-            &[],
-        );
-
-        Some(pass)
     }
+}
 
+/// Internal functionality for rendering
+impl Camera {
     pub(crate) fn blit_to_target(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
@@ -413,10 +411,15 @@ impl Component for Camera {
     {
         manifest.add_system::<&mut Camera>(
             Phase::PreRender,
-            Some("Camera update render target"),
+            Some("Camera pre-render preparation"),
             |_, camera| {
-                profiling::scope!("Camera update render target");
-                camera.update_render_target()
+                profiling::scope!("Camera pre-render preparation");
+
+                camera.update_render_target();
+
+                camera.update_view_projection();
+
+                camera.update_cam_bind_group();
             },
         );
     }

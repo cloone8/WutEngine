@@ -1,5 +1,6 @@
 use crate::asset::AssetHandle;
 use crate::component::Component;
+use crate::graphics;
 use crate::graphics::material::Material;
 use crate::graphics::mesh::Mesh;
 use crate::system::Phase;
@@ -31,7 +32,7 @@ impl Component for StaticMeshRenderer {
     where
         Self: Sized,
     {
-        manifest.add_system::<&mut Self>(
+        manifest.add_system::<&Self>(
             Phase::PreRender,
             Some("StaticMeshRenderer submit draw call"),
             |_, this| {
@@ -43,14 +44,16 @@ impl Component for StaticMeshRenderer {
 
 /// System implementations
 impl StaticMeshRenderer {
-    fn submit_draw_call(&mut self) {
-        let (Some(mesh), Some(mat)) = (self.mesh.get_ref(), self.material.get_ref()) else {
+    fn submit_draw_call(&self) {
+        let (Some(mesh), Some(mat)) = (self.mesh.get_arc(), self.material.get_arc()) else {
             log::trace!(
                 "Not rendering static mesh renderer because either the mesh or the material is missing"
             );
             return;
         };
 
-        log::info!("Submitting draw call");
+        log::trace!("Submitting draw call for static mesh renderer");
+
+        graphics::render_mesh(mesh, mat);
     }
 }

@@ -37,6 +37,9 @@ pub struct WindowConfig {
 
     /// The icon. Defaults to [None]
     pub icon: Option<Icon>,
+
+    /// Whether vsync is enabled. Defaults to [None], which picks whatever is configured through the config manager
+    pub vsync: Option<bool>,
 }
 
 impl Default for WindowConfig {
@@ -48,6 +51,7 @@ impl Default for WindowConfig {
             max_size: None,
             resizable: true,
             icon: None,
+            vsync: None,
         }
     }
 }

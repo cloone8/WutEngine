@@ -1,8 +1,8 @@
 //! Material related functionality
 
+use alloc::sync::Arc;
+use core::convert::Infallible;
 use std::collections::HashMap;
-use std::convert::Infallible;
-use std::sync::Arc;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 use serde::{Deserialize, Serialize};

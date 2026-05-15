@@ -1,5 +1,6 @@
-use std::sync::Arc;
-use std::sync::mpsc::{Receiver, channel};
+use alloc::sync::Arc;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::channel;
 
 use crate::graphics::config::GraphicsConfig;
 use crate::util::InitOnce;

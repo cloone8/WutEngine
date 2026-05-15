@@ -1,5 +1,7 @@
 #![doc = include_str!("../../README.md")]
 
+extern crate alloc;
+
 pub mod asset;
 pub mod builtins;
 pub mod color;

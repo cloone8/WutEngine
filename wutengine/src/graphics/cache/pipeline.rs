@@ -1,6 +1,7 @@
 //! Graphics pipeline caching
 
-use std::sync::{Arc, LazyLock};
+use alloc::sync::Arc;
+use std::sync::LazyLock;
 
 use smallvec::SmallVec;
 

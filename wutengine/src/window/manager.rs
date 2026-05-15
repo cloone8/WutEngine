@@ -25,13 +25,14 @@ pub(crate) fn new_window(
     id: crate::window::Window,
     window: Arc<winit::window::Window>,
     surface: wgpu::Surface<'static>,
+    vsync: bool,
 ) {
     profiling::function_scope!();
 
     assert_main_thread!();
 
     let native_id = window.id();
-    let info = WindowInfo::new(id, window, surface);
+    let info = WindowInfo::new(id, window, surface, vsync);
 
     let mut window_manager = WINDOW_MANAGER.write().unwrap();
     window_manager.winit_to_engine.insert(native_id.into(), id);
@@ -172,6 +173,8 @@ struct WindowInfo {
 
     /// The physical window size, in pixels `W x H`
     inner_size: (u32, u32),
+
+    vsync: bool,
 }
 
 impl WindowInfo {
@@ -182,12 +185,14 @@ impl WindowInfo {
         id: Window,
         native: Arc<winit::window::Window>,
         surface: wgpu::Surface<'static>,
+        vsync: bool,
     ) -> Self {
         let mut new = Self {
             id,
             native,
             surface,
             inner_size: (0, 0),
+            vsync,
         };
 
         new.refresh();
@@ -226,7 +231,11 @@ impl WindowInfo {
                 format: surface_format,
                 width: size.0,
                 height: size.1,
-                present_mode: wgpu::PresentMode::AutoVsync,
+                present_mode: if self.vsync {
+                    wgpu::PresentMode::AutoVsync
+                } else {
+                    wgpu::PresentMode::AutoNoVsync
+                },
                 desired_maximum_frame_latency: 2,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                 view_formats: vec![

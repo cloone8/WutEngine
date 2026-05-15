@@ -1,6 +1,6 @@
 //! Graphics pipeline functions
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use wutengine_util_macro::unique_id_type64;
 
