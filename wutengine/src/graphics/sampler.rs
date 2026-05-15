@@ -5,6 +5,10 @@ use core::convert::Infallible;
 use core::fmt::Debug;
 use core::fmt::Display;
 use std::sync::LazyLock;
+use wutengine_asset::assets::sampler::Filtering;
+use wutengine_asset::assets::sampler::SerializedSampler;
+use wutengine_asset::assets::sampler::WrapMode;
+use wutengine_asset::assets::sampler::WrapModeType;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -21,16 +25,6 @@ pub(crate) static DEFAULT_SAMPLER: LazyLock<Sampler> = LazyLock::new(|| {
 
     Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Repeat))
 });
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct SerializedSampler {
-    pub filtering: Filtering,
-    pub wrapping: WrapModeType,
-}
-
-impl SerializedAsset for SerializedSampler {
-    type AssetType = Sampler;
-}
 
 /// A texture sampler descriptor.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -123,9 +117,9 @@ impl Sampler {
 
         let desc = wgpu::wgt::SamplerDescriptor {
             label: None,
-            address_mode_u: wrapping.get_u().to_wgpu(),
-            address_mode_v: wrapping.get_v().to_wgpu(),
-            address_mode_w: wrapping.get_w().to_wgpu(),
+            address_mode_u: asset_wrap_mode_to_wgpu(wrapping.get_u()),
+            address_mode_v: asset_wrap_mode_to_wgpu(wrapping.get_v()),
+            address_mode_w: asset_wrap_mode_to_wgpu(wrapping.get_w()),
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::MipmapFilterMode::Nearest,
@@ -148,105 +142,11 @@ impl Sampler {
     }
 }
 
-/// Filtering methods for a [Sampler]
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
-)]
-pub enum Filtering {
-    /// Linear filtering. Smoothly interpolates between the closest texels.
-    #[default]
-    Linear,
-
-    /// Nearest neighbour filtering. Chooses the closest texels. Results in a pixelated look
-    Nearest,
-}
-
-/// Out-of-bounds wrapping modes for a [Sampler]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum WrapModeType {
-    /// One wrapping mode for each axis
-    Single(WrapMode),
-
-    /// A seperate wrapping mode for each axis
-    PerAxis {
-        /// Wrapping in the U (X) axis
-        u: WrapMode,
-
-        /// Wrapping in the V (Y) axis
-        v: WrapMode,
-
-        /// Wrapping in the W (Z) axis
-        w: WrapMode,
-    },
-}
-
-impl Display for WrapModeType {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Single(wrap_mode) => Display::fmt(wrap_mode, f),
-            Self::PerAxis { u, v, w } => write!(f, "u: {u}, v: {v}, w: {w}"),
-        }
-    }
-}
-
-impl Default for WrapModeType {
-    fn default() -> Self {
-        Self::Single(Default::default())
-    }
-}
-
-impl WrapModeType {
-    /// Returns the wrapping mode for the U axis
-    #[inline]
-    pub const fn get_u(self) -> WrapMode {
-        match self {
-            Self::Single(wrap_mode) => wrap_mode,
-            Self::PerAxis { u, .. } => u,
-        }
-    }
-
-    /// Returns the wrapping mode for the V axis
-    #[inline]
-    pub const fn get_v(self) -> WrapMode {
-        match self {
-            Self::Single(wrap_mode) => wrap_mode,
-            Self::PerAxis { v, .. } => v,
-        }
-    }
-
-    /// Returns the wrapping mode for the W axis
-    #[inline]
-    pub const fn get_w(self) -> WrapMode {
-        match self {
-            Self::Single(wrap_mode) => wrap_mode,
-            Self::PerAxis { w, .. } => w,
-        }
-    }
-}
-
-/// A wrapping more for [Sampler] out-of-bounds accesses
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
-)]
-pub enum WrapMode {
-    /// Clamp to the border pixel
-    #[default]
-    Clamp,
-
-    /// Repeat the texture
-    Repeat,
-
-    /// Repeat the texture, but mirrors the texture each repetition
-    MirrorRepeat,
-}
-
-impl WrapMode {
-    /// Converts the wrapping mode to a [wgpu::AddressMode]
-    const fn to_wgpu(self) -> wgpu::AddressMode {
-        match self {
-            Self::Clamp => wgpu::AddressMode::ClampToEdge,
-            Self::Repeat => wgpu::AddressMode::Repeat,
-            Self::MirrorRepeat => wgpu::AddressMode::MirrorRepeat,
-        }
+/// Converts the wrapping mode to a [wgpu::AddressMode]
+pub const fn asset_wrap_mode_to_wgpu(asset_wrap_mode: WrapMode) -> wgpu::AddressMode {
+    match asset_wrap_mode {
+        WrapMode::Clamp => wgpu::AddressMode::ClampToEdge,
+        WrapMode::Repeat => wgpu::AddressMode::Repeat,
+        WrapMode::MirrorRepeat => wgpu::AddressMode::MirrorRepeat,
     }
 }

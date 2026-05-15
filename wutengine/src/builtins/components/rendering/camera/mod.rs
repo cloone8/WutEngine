@@ -1,6 +1,10 @@
 use core::any::TypeId;
 
 use glam::Mat4;
+use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_asset::assets::sampler::Filtering;
+use wutengine_asset::assets::sampler::WrapMode;
+use wutengine_asset::assets::sampler::WrapModeType;
 use wutengine_shadercompiler::CAMERA_PARAMS_BIND_GROUP_INDEX;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util_macro::unique_id_type32;
@@ -10,9 +14,8 @@ use crate::component::Component;
 use crate::graphics::BindGroup;
 use crate::graphics::internal_bind_groups::create_camera_bind_group;
 use crate::graphics::material::{Material, MaterialParameter};
-use crate::graphics::mesh::MeshTopology;
 use crate::graphics::renderpass::RenderPass;
-use crate::graphics::sampler::{Filtering, Sampler, WrapMode, WrapModeType};
+use crate::graphics::sampler::Sampler;
 use crate::graphics::texture::Texture;
 use crate::system::Phase;
 use crate::util::map;

@@ -2,8 +2,8 @@
 
 use alloc::sync::Arc;
 use std::sync::LazyLock;
-
-use crate::graphics::sampler::{Filtering, WrapModeType};
+use wutengine_asset::assets::sampler::Filtering;
+use wutengine_asset::assets::sampler::WrapModeType;
 
 use super::GraphicsCache;
 

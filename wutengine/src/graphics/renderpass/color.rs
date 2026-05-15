@@ -1,5 +1,6 @@
 use alloc::sync::Arc;
 
+use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 
 use crate::builtins::components::rendering::Camera;
@@ -8,7 +9,6 @@ use crate::graphics::DrawCommand;
 use crate::graphics::material::Material;
 use crate::graphics::material::MaterialId;
 use crate::graphics::mesh::Mesh;
-use crate::graphics::mesh::MeshTopology;
 
 use super::RenderPass;
 

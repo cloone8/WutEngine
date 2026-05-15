@@ -27,16 +27,16 @@ unique_id_type64! {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Shader {
     #[serde(skip)]
-    pub(crate) id: ShaderId,
-    pub(crate) name: String,
-    pub(crate) vertex_attributes: Vec<ShaderVertexAttribute>,
+    pub id: ShaderId,
+    pub name: String,
+    pub vertex_attributes: Vec<ShaderVertexAttribute>,
 
     #[serde(default)]
-    pub(crate) default_parameters: ShaderDefaultParameters,
+    pub default_parameters: ShaderDefaultParameters,
 
-    pub(crate) keywords: HashMap<String, ShaderKeyword>,
-    pub(crate) parameters: Vec<ShaderParameter>,
-    pub(crate) source: ShaderSource,
+    pub keywords: HashMap<String, ShaderKeyword>,
+    pub parameters: Vec<ShaderParameter>,
+    pub source: ShaderSource,
 }
 
 impl Asset for Shader {
@@ -52,9 +52,7 @@ impl Asset for Shader {
     }
 }
 
-impl SerializedAsset for Shader {
-    type AssetType = Self;
-}
+impl SerializedAsset for Shader {}
 
 impl Shader {
     pub fn load_source(&mut self) -> Result<(), std::io::Error> {
@@ -92,7 +90,7 @@ pub enum ShaderVertexAttributeType {
 }
 
 impl core::fmt::Display for ShaderVertexAttributeType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Position => "Position".fmt(f),
             Self::Uv { channel } => write!(f, "UV{}", channel),

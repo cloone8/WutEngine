@@ -1,0 +1,31 @@
+[package]
+name = "wutengine_asset"
+description = "Asset definitions and importers for WutEngine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[features]
+default = ["importers"]
+importers = ["dep:image"]
+
+[dependencies]
+log.workspace = true
+profiling.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+derive_more = { workspace = true, features = ["display", "error", "from"] }
+nohash-hasher.workspace = true
+glam.workspace = true
+
+# Used by importers
+image = { workspace = true, optional = true }
+
+[lints]
+workspace = true

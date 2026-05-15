@@ -2,10 +2,10 @@
 
 use alloc::sync::Arc;
 use std::sync::LazyLock;
+use wutengine_asset::assets::mesh::MeshTopology;
 
 use smallvec::SmallVec;
 
-use crate::graphics::mesh::MeshTopology;
 use crate::graphics::shader::CompiledShaderId;
 
 use super::GraphicsCache;

@@ -3215,8 +3215,23 @@ dependencies = [
  "twox-hash",
  "wgpu",
  "winit",
+ "wutengine_asset",
  "wutengine_shadercompiler",
  "wutengine_util_macro",
+]
+
+[[package]]
+name = "wutengine_asset"
+version = "0.6.0"
+dependencies = [
+ "derive_more",
+ "glam",
+ "image",
+ "log",
+ "nohash-hasher",
+ "profiling",
+ "serde",
+ "serde_bytes",
 ]
 
 [[package]]

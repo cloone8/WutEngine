@@ -1,0 +1,106 @@
+use core::fmt::Display;
+
+use serde::Deserialize;
+use serde::Serialize;
+
+use crate::SerializedAsset;
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct SerializedSampler {
+    pub filtering: Filtering,
+    pub wrapping: WrapModeType,
+}
+
+impl SerializedAsset for SerializedSampler {}
+
+/// Filtering methods for a [SerializedSampler]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
+)]
+pub enum Filtering {
+    /// Linear filtering. Smoothly interpolates between the closest texels.
+    #[default]
+    Linear,
+
+    /// Nearest neighbour filtering. Chooses the closest texels. Results in a pixelated look
+    Nearest,
+}
+
+/// Out-of-bounds wrapping modes for a [SerializedSampler]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum WrapModeType {
+    /// One wrapping mode for each axis
+    Single(WrapMode),
+
+    /// A seperate wrapping mode for each axis
+    PerAxis {
+        /// Wrapping in the U (X) axis
+        u: WrapMode,
+
+        /// Wrapping in the V (Y) axis
+        v: WrapMode,
+
+        /// Wrapping in the W (Z) axis
+        w: WrapMode,
+    },
+}
+
+impl Display for WrapModeType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Single(wrap_mode) => Display::fmt(wrap_mode, f),
+            Self::PerAxis { u, v, w } => write!(f, "u: {u}, v: {v}, w: {w}"),
+        }
+    }
+}
+
+impl Default for WrapModeType {
+    fn default() -> Self {
+        Self::Single(Default::default())
+    }
+}
+
+impl WrapModeType {
+    /// Returns the wrapping mode for the U axis
+    #[inline]
+    pub const fn get_u(self) -> WrapMode {
+        match self {
+            Self::Single(wrap_mode) => wrap_mode,
+            Self::PerAxis { u, .. } => u,
+        }
+    }
+
+    /// Returns the wrapping mode for the V axis
+    #[inline]
+    pub const fn get_v(self) -> WrapMode {
+        match self {
+            Self::Single(wrap_mode) => wrap_mode,
+            Self::PerAxis { v, .. } => v,
+        }
+    }
+
+    /// Returns the wrapping mode for the W axis
+    #[inline]
+    pub const fn get_w(self) -> WrapMode {
+        match self {
+            Self::Single(wrap_mode) => wrap_mode,
+            Self::PerAxis { w, .. } => w,
+        }
+    }
+}
+
+/// A wrapping more for [Sampler] out-of-bounds accesses
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
+)]
+pub enum WrapMode {
+    /// Clamp to the border pixel
+    #[default]
+    Clamp,
+
+    /// Repeat the texture
+    Repeat,
+
+    /// Repeat the texture, but mirrors the texture each repetition
+    MirrorRepeat,
+}

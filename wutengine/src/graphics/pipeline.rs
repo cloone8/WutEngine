@@ -2,14 +2,15 @@
 
 use alloc::sync::Arc;
 
+use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_util_macro::unique_id_type64;
 
+use crate::graphics::mesh::asset_topology_to_wgpu;
 use crate::graphics::{self, GFX_DEVICE};
 
 use super::cache;
 use super::cache::pipeline::PipelineCacheKey;
 use super::material::Material;
-use super::mesh::MeshTopology;
 
 unique_id_type64! {
     /// Unique ID for a render pipeline. Mostly used for debug labels
@@ -81,7 +82,7 @@ pub fn get_pipeline(
             targets: color_targets,
         }),
         primitive: wgpu::PrimitiveState {
-            topology: topology.to_wgpu(),
+            topology: asset_topology_to_wgpu(topology),
             strip_index_format: None,
             front_face: wgpu::FrontFace::Ccw,
             cull_mode: None,

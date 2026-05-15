@@ -2,7 +2,6 @@
 
 extern crate alloc;
 
-pub mod asset;
 pub mod builtins;
 pub mod color;
 pub mod component;
@@ -27,3 +26,6 @@ pub use log;
 
 #[doc(inline)]
 pub use wgpu;
+
+#[doc(inline)]
+pub use wutengine_asset as asset;

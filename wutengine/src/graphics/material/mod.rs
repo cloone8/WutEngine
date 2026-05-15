@@ -68,7 +68,6 @@ pub struct SerializedMaterial {
 }
 
 impl SerializedAsset for SerializedMaterial {
-    type AssetType = Material;
 }
 
 impl Asset for Material {

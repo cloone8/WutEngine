@@ -1,4 +1,4 @@
-use super::MeshTopology;
+use wutengine_asset::assets::mesh::MeshTopology;
 
 /// A raw Mesh index buffer
 #[derive(Debug)]

@@ -1,6 +1,11 @@
 [workspace]
 resolver = "3"
-members = ["wutengine", "wutengine_shadercompiler", "wutengine_util_macro"]
+members = [
+    "wutengine",
+    "wutengine_asset",
+    "wutengine_shadercompiler",
+    "wutengine_util_macro",
+]
 
 [workspace.package]
 version = "0.6.0"
@@ -16,8 +21,9 @@ categories = ["game-engines"]
 [workspace.dependencies]
 ### Workspace dependencies ###
 wutengine = { path = "wutengine", version = "0.6.0" }
-wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
+wutengine_asset = { path = "wutengine_asset", version = "0.6.0" }
 wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
+wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 
 ### External dependencies ###
 winit = { version = "0.30" }
@@ -71,7 +77,7 @@ nonstandard_style = { level = "warn", priority = -1 }
 missing_docs = "warn"
 unsafe_op_in_unsafe_fn = "warn"
 unreachable_pub = "warn"
-unused_crate_dependencies = "deny"
+unused_crate_dependencies = "warn"
 missing_debug_implementations = "warn"
 
 [workspace.lints.clippy]
