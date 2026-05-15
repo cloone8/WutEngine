@@ -1,8 +1,8 @@
 use core::any::TypeId;
-use std::collections::BTreeSet;
 
 use glam::Mat4;
-use wutengine_shadercompiler::{CAMERA_PARAMS_BIND_GROUP_INDEX, MATERIAL_PARAMS_BIND_GROUP_INDEX};
+use wutengine_shadercompiler::CAMERA_PARAMS_BIND_GROUP_INDEX;
+use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util_macro::unique_id_type32;
 
 use crate::color::Color;
@@ -337,7 +337,12 @@ impl Camera {
         render_pass.set_pipeline(&blit_pipeline);
         render_pass.set_bind_group(
             MATERIAL_PARAMS_BIND_GROUP_INDEX,
-            Some(blit_material.user_bind_group.get_bind_group()),
+            Some(
+                blit_material
+                    .user_bind_group
+                    .get_bind_group()
+                    .expect("Blit material bind group out of date"),
+            ),
             &[],
         );
 

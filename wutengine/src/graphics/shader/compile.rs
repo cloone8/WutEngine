@@ -1,5 +1,6 @@
 //! Shader compilation. The conversion of a [Shader](super::Shader) into a [CompiledShader](super::CompiledShader)
 
+use core::fmt::Display;
 use core::num::NonZero;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -21,7 +22,7 @@ use crate::util::unreachable_dbg;
 use super::{Shader, ShaderBufferParameterType, ShaderParameter, ShaderVertexAttributeType};
 
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
-pub(crate) enum CompileErr {
+pub enum CompileErr {
     CrossCompile(wutengine_shadercompiler::CompileErr),
 }
 
@@ -39,7 +40,7 @@ pub(crate) fn compile(
         return Ok(cached);
     }
 
-    let variant_id_string = variant_id.to_string();
+    let variant_id_string = format!("{}:{}", shader.name, variant_id);
 
     profiling::scope!("Compile shader from source", variant_id_string.as_str());
 
@@ -141,6 +142,7 @@ pub(crate) fn compile(
 
     let compiled = CompiledShader {
         id: output.variant_id,
+        source_name: shader.name.clone(),
         module: native_module,
         pipeline_layout,
         user_bind_group_layout: user_bind_group_layout.clone(),
@@ -267,9 +269,16 @@ fn log_shader_compilation_info(module: &wgpu::ShaderModule) {
 #[derive(Debug)]
 pub(crate) struct CompiledShader {
     pub(crate) id: CompiledShaderId,
+    pub(crate) source_name: String,
     pub(crate) module: wgpu::ShaderModule,
     pub(crate) pipeline_layout: wgpu::PipelineLayout,
     pub(crate) user_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) parameters: Vec<ShaderParameter>,
     pub(crate) vertex_attributes: HashMap<ShaderVertexAttributeType, u32>,
+}
+
+impl Display for &CompiledShader {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}:{}", self.source_name, self.id)
+    }
 }

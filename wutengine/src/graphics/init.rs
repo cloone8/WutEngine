@@ -2,6 +2,7 @@ use alloc::sync::Arc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 
+use crate::config;
 use crate::graphics::config::GraphicsConfig;
 use crate::util::InitOnce;
 
@@ -90,13 +91,17 @@ fn on_device_lost(reason: wgpu::DeviceLostReason, message: String) {
         wgpu::DeviceLostReason::Destroyed => "<device destroyed>",
     };
 
-    //TODO: Make nicer?
-    panic!("DEVICE LOST DUE TO {reason_str}: {message}");
+    panic!("Fatal graphics error: Graphics device lost due to {reason_str}: {message}");
 }
 
 fn on_uncaptured_error(error: wgpu::Error) {
-    //TODO: Make nicer?
-    panic!("{}", error);
+    log::error!("Graphics error: {error}");
+
+    if config::try_get::<bool>("wutengine.graphics.exit_on_graphics_error")
+        .unwrap_or(cfg!(debug_assertions))
+    {
+        panic!("Fatal graphics error: {}", error);
+    }
 }
 
 fn backends_to_str(backends: wgpu::Backends) -> String {

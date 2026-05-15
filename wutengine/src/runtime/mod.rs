@@ -1,9 +1,6 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
-use core::any::TypeId;
-use core::ops::Deref;
 use core::sync::atomic::{AtomicBool, Ordering};
-use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
@@ -14,11 +11,9 @@ use smallvec::SmallVec;
 use winit::error::EventLoopError;
 
 use crate::builtins::components::rendering::Camera;
-use crate::builtins::components::rendering::CameraRenderPass;
 use crate::builtins::components::rendering::GlobalRenderPass;
 use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
-use crate::graphics::renderpass::RenderPass;
 use crate::graphics::renderpass::RenderPassInfo;
 use crate::system::{self, Phase, SystemManager};
 use crate::util::{self, InitOnce};
@@ -282,20 +277,23 @@ impl Runtime {
                 label: Some(&format!("Camera {} command encoder", camera.get_id())),
             });
 
-        // Take the passes out for memory safety...
-        let mut passes = core::mem::take(&mut camera.render_passes);
+        {
+            profiling::scope!("Execute render passes");
 
-        for pass in passes.iter_mut() {
-            profiling::scope!(pass.name);
-            encoder.push_debug_group(pass.name);
+            // Take the passes out for memory safety...
+            let mut passes = core::mem::take(&mut camera.render_passes);
 
-            pass.pass.execute(&mut encoder, camera);
+            for pass in passes.iter_mut() {
+                profiling::scope!(pass.name);
+                encoder.push_debug_group(pass.name);
 
-            encoder.pop_debug_group();
+                pass.pass.execute(&mut encoder, camera, draw_commands);
+
+                encoder.pop_debug_group();
+            }
+            // ...and put the passes back
+            camera.render_passes = passes;
         }
-
-        // ...and put the passes back
-        camera.render_passes = passes;
 
         Some(encoder)
     }

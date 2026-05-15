@@ -151,7 +151,8 @@ pub enum IndexFormat {
 }
 
 impl IndexFormat {
-    pub(crate) const fn to_wgpu(self) -> wgpu::IndexFormat {
+    /// Converts the index format to its [wgpu::IndexFormat] equivalent
+    pub const fn to_wgpu(self) -> wgpu::IndexFormat {
         match self {
             Self::U16 => wgpu::IndexFormat::Uint16,
             Self::U32 => wgpu::IndexFormat::Uint32,

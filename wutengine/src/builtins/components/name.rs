@@ -3,6 +3,7 @@ use core::ops::Deref;
 
 use crate::component::Component;
 
+/// Simple component describing the user-assigned name for an entity
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct Name(pub(crate) String);

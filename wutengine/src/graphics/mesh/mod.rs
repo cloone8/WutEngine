@@ -66,6 +66,14 @@ pub struct Mesh {
     pub(crate) index_buffer: IndexBuffer,
 }
 
+/// Public API
+impl Mesh {
+    pub fn topology(&self) -> MeshTopology {
+        self.index_buffer.topology
+    }
+}
+
+/// Internal API
 impl Mesh {
     pub(crate) fn new(data: &SerializedMesh) -> Option<Self> {
         profiling::function_scope!();

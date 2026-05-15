@@ -1,6 +1,7 @@
 //! Module housing the window manager
 
-use std::sync::{Arc, RwLock};
+use alloc::sync::Arc;
+use std::sync::RwLock;
 
 use nohash_hasher::IntMap;
 use smallvec::SmallVec;

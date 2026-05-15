@@ -18,7 +18,7 @@ unique_id_type64! {
 
 /// An error while trying to retrieve a render pipeline
 #[derive(Debug, derive_more::Display, derive_more::From, derive_more::Error)]
-pub(crate) enum GetPipelineErr {
+pub enum GetPipelineErr {
     /// Error during shader compilation
     #[display("Error while compiling shader for pipeline: {}", _0)]
     ShaderCompile(Box<graphics::shader::CompileErr>),
@@ -29,7 +29,7 @@ pub(crate) enum GetPipelineErr {
 ///
 /// If a new pipeline is created, an attempt is made to get the cached copy of the compiled shader. If this
 /// cached copy does not exist, the shader is compiled and cached.
-pub(crate) fn get_pipeline(
+pub fn get_pipeline(
     material: &Material,
     topology: MeshTopology,
     color_targets: &[Option<wgpu::ColorTargetState>],
@@ -47,13 +47,12 @@ pub(crate) fn get_pipeline(
     }
 
     let pipeline_id = PipelineId::new();
+    let compiled_shader = material.compiled_shader.as_ref();
 
     log::debug!(
         "Creating new pipeline with ID {pipeline_id} for shader variant {}",
-        material.compiled_shader.id
+        compiled_shader
     );
-
-    let compiled_shader = material.compiled_shader.as_ref();
 
     let pipeline_layout = &compiled_shader.pipeline_layout;
 
@@ -63,7 +62,7 @@ pub(crate) fn get_pipeline(
         label: Some(
             format!(
                 "Shader variant {} pipeline {}",
-                compiled_shader.id, pipeline_id
+                compiled_shader, pipeline_id
             )
             .as_str(),
         ),

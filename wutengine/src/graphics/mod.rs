@@ -8,7 +8,7 @@ mod init;
 pub(crate) mod internal_bind_groups;
 pub mod material;
 pub mod mesh;
-pub(crate) mod pipeline;
+pub mod pipeline;
 pub mod renderpass;
 pub mod sampler;
 pub mod shader;

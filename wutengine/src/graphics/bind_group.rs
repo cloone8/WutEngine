@@ -275,10 +275,7 @@ impl BindGroup {
 
     /// Returns the native [wgpu::BindGroup]
     #[inline]
-    pub(crate) fn get_bind_group(&self) -> &wgpu::BindGroup {
-        self.native
-            .as_ref()
-            .map(|native| &native.1)
-            .expect("Bind group was dirty or not yet created")
+    pub(crate) fn get_bind_group(&self) -> Option<&wgpu::BindGroup> {
+        self.native.as_ref().map(|native| &native.1)
     }
 }

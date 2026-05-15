@@ -1,10 +1,10 @@
 //! GPU Shaders
 
+use core::convert::Infallible;
 use core::fmt::Display;
 use core::hash::Hash;
 use core::ops::RangeInclusive;
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};

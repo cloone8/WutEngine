@@ -3,6 +3,7 @@
 use alloc::sync::Arc;
 use core::convert::Infallible;
 use std::collections::HashMap;
+use wutengine_util_macro::unique_id_type32;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 use serde::{Deserialize, Serialize};
@@ -16,9 +17,16 @@ use super::shader::{CompiledShader, Shader};
 use super::texture::Texture;
 use super::{BindGroup, shader};
 
+unique_id_type32! {
+    /// Globally unique identifier for a [Material]
+    pub MaterialId
+}
+
 /// A WutEngine material. Contains a specific shader variant and a set of parameters for drawing.
 #[derive(Debug)]
 pub struct Material {
+    pub(crate) id: MaterialId,
+
     /// The shader
     pub(crate) shader: Arc<Shader>,
 
@@ -39,6 +47,7 @@ impl Material {
             shader::compile(&shader, &keywords).expect("Failed to compile shader");
 
         Self {
+            id: MaterialId::new(),
             shader,
             keywords,
             user_bind_group: BindGroup::new(
@@ -91,6 +100,8 @@ impl Asset for Material {
                 );
             }
         }
+
+        mat.user_bind_group.update_bind_group(super::device());
 
         Ok(mat)
     }
