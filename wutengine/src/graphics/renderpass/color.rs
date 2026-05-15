@@ -1,8 +1,14 @@
+use alloc::sync::Arc;
+
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 
 use crate::builtins::components::rendering::Camera;
 use crate::graphics;
 use crate::graphics::DrawCommand;
+use crate::graphics::material::Material;
+use crate::graphics::material::MaterialId;
+use crate::graphics::mesh::Mesh;
+use crate::graphics::mesh::MeshTopology;
 
 use super::RenderPass;
 
@@ -90,51 +96,18 @@ impl RenderPass for ColorPass {
 
             render_pass.push_debug_group("Draw command");
 
-            let material_changed =
-                cur_material.is_none() || cur_material.unwrap() != draw_command.material.id;
-            let mesh_topology_changed =
-                cur_topology.is_none() || cur_topology.unwrap() != draw_command.mesh.topology();
-
-            if material_changed {
-                cur_material = Some(draw_command.material.id);
-                render_pass.insert_debug_marker("Switch material");
-
-                let Some(bind_group) = draw_command.material.user_bind_group.get_bind_group()
-                else {
-                    log::error!("Material user bind group out of date, cannot execute draw call");
-                    render_pass.pop_debug_group();
-                    continue;
-                };
-
-                render_pass.set_bind_group(MATERIAL_PARAMS_BIND_GROUP_INDEX, bind_group, &[]);
-            }
-
-            if mesh_topology_changed {
-                cur_topology = Some(draw_command.mesh.topology());
-            }
-
-            if material_changed || mesh_topology_changed {
-                // Pipeline check is slightly more expensive, so we only retrieve a new pipeline if any
-                // of the things that might change it have changed
-                let pipeline = match graphics::pipeline::get_pipeline(
-                    &draw_command.material,
-                    draw_command.mesh.topology(),
-                    &color_targets,
-                ) {
-                    Ok(pipeline) => pipeline,
-                    Err(e) => {
-                        log::error!("Failed to get pipeline for draw call: {e}");
-                        render_pass.pop_debug_group();
-                        continue;
-                    }
-                };
-
-                if cur_pipeline.is_none() || cur_pipeline.as_ref().unwrap() != &pipeline {
-                    render_pass.insert_debug_marker("Switch pipeline");
-                    render_pass.set_pipeline(&pipeline);
-                    cur_pipeline = Some(pipeline);
-                }
-            }
+            if let Err(()) = update_render_state(
+                &mut render_pass,
+                &mut cur_material,
+                &mut cur_topology,
+                &mut cur_pipeline,
+                &draw_command.material,
+                &draw_command.mesh,
+                &color_targets,
+            ) {
+                render_pass.pop_debug_group();
+                continue;
+            };
 
             // Do the actual draw call for this command
 
@@ -164,4 +137,58 @@ impl RenderPass for ColorPass {
             render_pass.pop_debug_group();
         }
     }
+}
+
+fn update_render_state(
+    render_pass: &mut wgpu::RenderPass,
+    cur_material: &mut Option<MaterialId>,
+    cur_topology: &mut Option<MeshTopology>,
+    cur_pipeline: &mut Option<Arc<wgpu::RenderPipeline>>,
+    next_material: &Material,
+    next_mesh: &Mesh,
+    color_targets: &[Option<wgpu::ColorTargetState>],
+) -> Result<(), ()> {
+    let material_changed = cur_material.is_none() || cur_material.unwrap() != next_material.id;
+    let mesh_topology_changed =
+        cur_topology.is_none() || cur_topology.unwrap() != next_mesh.topology();
+
+    if material_changed {
+        *cur_material = Some(next_material.id);
+        render_pass.insert_debug_marker("Switch material");
+
+        let Some(bind_group) = next_material.user_bind_group.get_bind_group() else {
+            log::error!("Material user bind group out of date, cannot execute draw call");
+            return Err(());
+        };
+
+        render_pass.set_bind_group(MATERIAL_PARAMS_BIND_GROUP_INDEX, bind_group, &[]);
+    }
+
+    if mesh_topology_changed {
+        *cur_topology = Some(next_mesh.topology());
+    }
+
+    if material_changed || mesh_topology_changed {
+        // Pipeline check is slightly more expensive, so we only retrieve a new pipeline if any
+        // of the things that might change it have changed
+        let pipeline = match graphics::pipeline::get_pipeline(
+            next_material,
+            next_mesh.topology(),
+            color_targets,
+        ) {
+            Ok(pipeline) => pipeline,
+            Err(e) => {
+                log::error!("Failed to get pipeline for draw call: {e}");
+                return Err(());
+            }
+        };
+
+        if cur_pipeline.is_none() || cur_pipeline.as_ref().unwrap() != &pipeline {
+            render_pass.insert_debug_marker("Switch pipeline");
+            render_pass.set_pipeline(&pipeline);
+            *cur_pipeline = Some(pipeline);
+        }
+    }
+
+    Ok(())
 }
