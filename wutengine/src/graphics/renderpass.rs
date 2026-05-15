@@ -7,8 +7,8 @@ use core::ops::Deref;
 use std::collections::BTreeSet;
 use std::sync::RwLock;
 
-use crate::builtins::components::Camera;
-use crate::builtins::components::CameraRenderPass;
+use crate::builtins::components::rendering::Camera;
+use crate::builtins::components::rendering::CameraRenderPass;
 use crate::util::InitOnce;
 
 #[derive(derive_more::Debug, Clone)]

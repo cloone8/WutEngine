@@ -13,8 +13,8 @@ use derive_more::{Display, Error, From};
 use smallvec::SmallVec;
 use winit::error::EventLoopError;
 
-use crate::builtins::components::Camera;
-use crate::builtins::components::CameraRenderPass;
+use crate::builtins::components::rendering::Camera;
+use crate::builtins::components::rendering::CameraRenderPass;
 use crate::builtins::components::rendering::GlobalRenderPass;
 use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;

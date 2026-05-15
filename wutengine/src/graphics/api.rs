@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use crate::builtins::components::CameraId;
+use crate::builtins::components::rendering::CameraId;
 
 use super::DRAW_COMMAND_QUEUE;
 use super::material::Material;
