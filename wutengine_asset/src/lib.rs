@@ -15,6 +15,15 @@ pub mod assets;
 #[cfg(feature = "importers")]
 pub mod importers;
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum FromSerializedAnyErr<E: core::error::Error> {
+    #[display("Cannot import asset of type {target} from asset of type <TODO: TYPE>")]
+    Downcast { target: &'static str },
+
+    #[display("Failed to load deserialized asset after importing: {_0}")]
+    Conversion(E),
+}
+
 /// Trait implemented by types that can be used as a WutEngine asset
 pub trait Asset: Send + Sync + Any {
     type Serialized: SerializedAsset;
@@ -22,6 +31,21 @@ pub trait Asset: Send + Sync + Any {
     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
     where
         Self: Sized;
+
+    fn from_serialized_any(
+        serialized: &dyn Any,
+    ) -> Result<Self, FromSerializedAnyErr<Self::FromSerializedErr>>
+    where
+        Self: Sized,
+    {
+        let a = serialized.downcast_ref::<Self::Serialized>().ok_or(
+            FromSerializedAnyErr::Downcast {
+                target: core::any::type_name::<Self::Serialized>(),
+            },
+        )?;
+
+        Self::from_serialized(a).map_err(FromSerializedAnyErr::Conversion)
+    }
 }
 
 pub trait SerializedAsset: Serialize + DeserializeOwned + Any {}
@@ -84,8 +108,12 @@ impl<T> From<Option<T>> for AssetHandle<T> {
 }
 
 pub trait AssetImporter<T: SerializedAsset> {
-    const SUPPORTED_FILE_TYPES: &[&'static str];
     type Error: core::error::Error;
 
-    fn import(asset_path: &Path, file_type: &str) -> Result<T, Self::Error>;
+    fn supports_file_type(file_type: &str) -> bool;
+    fn import(
+        asset_bytes: &[u8],
+        file_type: &str,
+        asset_dir: Option<&Path>,
+    ) -> Result<T, Self::Error>;
 }

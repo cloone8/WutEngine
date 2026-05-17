@@ -1,3 +1,5 @@
+use core::f32::consts::PI;
+
 use glam::Mat4;
 
 use crate::asset::AssetHandle;
@@ -5,6 +7,7 @@ use crate::component::Component;
 use crate::graphics;
 use crate::graphics::material::Material;
 use crate::graphics::mesh::Mesh;
+use crate::math::vec3;
 use crate::system::Phase;
 
 /// A static mesh renderer
@@ -56,6 +59,8 @@ impl StaticMeshRenderer {
 
         log::trace!("Submitting draw call for static mesh renderer");
 
-        graphics::render_mesh(mesh, mat, Mat4::IDENTITY);
+        let t = crate::time::time();
+        let x = (t * (PI * 2.0)).sin();
+        graphics::render_mesh(mesh, mat, Mat4::from_translation(vec3(x, 0.0, 0.0)));
     }
 }

@@ -24,28 +24,32 @@ pub enum ImageImportError {
 }
 
 impl AssetImporter<SerializedTexture> for ImageAssetImporter {
-    const SUPPORTED_FILE_TYPES: &[&'static str] = &[".jpg", ".jpeg", ".png", ".webp"];
-
     type Error = ImageImportError;
 
-    fn import(asset_path: &Path, file_type: &str) -> Result<SerializedTexture, Self::Error> {
+    fn supports_file_type(file_type: &str) -> bool {
+        match file_type {
+            "jpg" | "jpeg" | "png" | "webp" => true,
+            _ => false,
+        }
+    }
+
+    fn import(
+        asset_bytes: &[u8],
+        file_type: &str,
+        _asset_dir: Option<&Path>,
+    ) -> Result<SerializedTexture, Self::Error> {
         profiling::function_scope!();
 
-        log::info!(
-            "Importing image of type {file_type} from path {}",
-            asset_path.to_string_lossy()
-        );
+        log::info!("Importing image of type {file_type}",);
 
         let image_format = match file_type {
-            ".jpg" | ".jpeg" => image::ImageFormat::Jpeg,
-            ".png" => image::ImageFormat::Png,
-            ".webp" => image::ImageFormat::WebP,
+            "jpg" | "jpeg" => image::ImageFormat::Jpeg,
+            "png" => image::ImageFormat::Png,
+            "webp" => image::ImageFormat::WebP,
             _ => unreachable!("Passed an incompatible image format"),
         };
 
-        let content = std::fs::read(asset_path)?;
-
-        let loaded = image::load_from_memory_with_format(&content, image_format)?;
+        let loaded = image::load_from_memory_with_format(asset_bytes, image_format)?;
 
         let (width, height) = loaded.dimensions();
 
