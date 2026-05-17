@@ -32,7 +32,7 @@ impl AssetImporter for ImageAssetImporter {
         Self: Sized;
 
     fn supports_file_type(&self, file_type: &str) -> bool {
-        matches!(file_type, "jpg" | "jpeg" | "png" | "webp")
+        image::ImageFormat::from_extension(file_type).is_some()
     }
 
     fn import(
@@ -45,12 +45,8 @@ impl AssetImporter for ImageAssetImporter {
 
         log::info!("Importing image of type {file_type}",);
 
-        let image_format = match file_type {
-            "jpg" | "jpeg" => image::ImageFormat::Jpeg,
-            "png" => image::ImageFormat::Png,
-            "webp" => image::ImageFormat::WebP,
-            _ => unreachable!("Passed an incompatible image format"),
-        };
+        let image_format = image::ImageFormat::from_extension(file_type)
+            .expect("Passed an incompatible image format");
 
         let mut loaded = image::load_from_memory_with_format(asset_bytes, image_format)?;
 
