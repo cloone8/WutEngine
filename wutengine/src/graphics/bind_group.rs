@@ -8,9 +8,11 @@ use crate::graphics::shader::shader_buffer_param_default_value;
 use crate::graphics::shader::shader_opaque_param_default_value;
 
 use super::material::MaterialParameter;
+use super::sampler::Sampler;
 use super::shader::shader_buffer_param_align;
 use super::shader::shader_buffer_param_size;
 use super::shader::{ShaderBufferParameter, ShaderOpaqueParameter};
+use super::texture::Texture;
 
 /// A shader bind group. Holds a set of parameters and their GPU side representation.
 #[derive(Debug, Clone)]

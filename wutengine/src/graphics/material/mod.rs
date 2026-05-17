@@ -3,13 +3,14 @@
 use alloc::sync::Arc;
 use core::convert::Infallible;
 use std::collections::HashMap;
+use wutengine_asset::assets::material::SerializedMaterial;
 use wutengine_util_macro::unique_id_type32;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 use serde::{Deserialize, Serialize};
 use wutengine_util_macro::VariantName;
 
-use crate::asset::{Asset, AssetHandle, SerializedAsset};
+use crate::asset::{Asset, AssetHandle};
 use crate::color::Color;
 
 use super::sampler::Sampler;
@@ -60,18 +61,8 @@ impl Material {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SerializedMaterial {
-    pub shader: AssetHandle<Shader>,
-    pub keywords: HashMap<String, u64>,
-    pub parameters: HashMap<String, MaterialParameter>,
-}
-
-impl SerializedAsset for SerializedMaterial {
-}
-
 impl Asset for Material {
-    type Serialized = SerializedMaterial;
+    type Serialized = SerializedMaterial<Shader, MaterialParameter>;
 
     type FromSerializedErr = Infallible;
 

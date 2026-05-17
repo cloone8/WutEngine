@@ -1,3 +1,4 @@
+pub mod material;
 pub mod mesh;
 pub mod sampler;
 pub mod shader;

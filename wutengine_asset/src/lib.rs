@@ -43,9 +43,12 @@ impl<T> Default for AssetHandle<T> {
 }
 
 impl<T: Asset> AssetHandle<T> {
-    #[inline(always)]
     pub fn new(asset: impl Into<Self>) -> Self {
         asset.into()
+    }
+
+    pub fn new_from_serialized(serialized: &T::Serialized) -> Result<Self, T::FromSerializedErr> {
+        Ok(Self::new(T::from_serialized(serialized)?))
     }
 
     /// Returns a reference to the asset, if the asset was loaded. Otherwise returns [None]

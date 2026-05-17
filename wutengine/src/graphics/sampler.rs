@@ -3,17 +3,13 @@
 use alloc::sync::Arc;
 use core::convert::Infallible;
 use core::fmt::Debug;
-use core::fmt::Display;
 use std::sync::LazyLock;
 use wutengine_asset::assets::sampler::Filtering;
 use wutengine_asset::assets::sampler::SerializedSampler;
 use wutengine_asset::assets::sampler::WrapMode;
 use wutengine_asset::assets::sampler::WrapModeType;
 
-use serde::Deserialize;
-use serde::Serialize;
-
-use crate::asset::{Asset, SerializedAsset};
+use crate::asset::Asset;
 use crate::graphics::GFX_DEVICE;
 use crate::graphics::cache::sampler::SamplerCacheKey;
 
