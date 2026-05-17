@@ -1,3 +1,6 @@
+use core::any::Any;
+use core::any::TypeId;
+use core::error::Error;
 use std::path::Path;
 
 use image::EncodableLayout;
@@ -23,10 +26,13 @@ pub enum ImageImportError {
     UnsupportedPixelFormat(#[error(not(source))] image::ColorType),
 }
 
-impl AssetImporter<SerializedTexture> for ImageAssetImporter {
-    type Error = ImageImportError;
+impl AssetImporter for ImageAssetImporter {
+    type AssetType
+        = SerializedTexture
+    where
+        Self: Sized;
 
-    fn supports_file_type(file_type: &str) -> bool {
+    fn supports_file_type(&self, file_type: &str) -> bool {
         match file_type {
             "jpg" | "jpeg" | "png" | "webp" => true,
             _ => false,
@@ -34,10 +40,11 @@ impl AssetImporter<SerializedTexture> for ImageAssetImporter {
     }
 
     fn import(
+        &self,
         asset_bytes: &[u8],
         file_type: &str,
         _asset_dir: Option<&Path>,
-    ) -> Result<SerializedTexture, Self::Error> {
+    ) -> Result<Box<dyn Any>, Box<dyn Error>> {
         profiling::function_scope!();
 
         log::info!("Importing image of type {file_type}",);
@@ -65,16 +72,20 @@ impl AssetImporter<SerializedTexture> for ImageAssetImporter {
             image::DynamicImage::ImageRgba32F(image_buffer) => {
                 (TextureFormat::Rgba32, image_buffer.as_bytes())
             }
-            other => return Err(ImageImportError::UnsupportedPixelFormat(other.color())),
+            other => {
+                return Err(Box::new(ImageImportError::UnsupportedPixelFormat(
+                    other.color(),
+                )));
+            }
         };
 
-        Ok(SerializedTexture {
+        Ok(Box::new(SerializedTexture {
             config: TextureConfig {
                 width,
                 height,
                 format: pixel_format,
             },
             data: buffer.to_vec(),
-        })
+        }))
     }
 }
