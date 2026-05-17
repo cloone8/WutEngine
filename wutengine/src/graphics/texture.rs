@@ -55,6 +55,8 @@ impl Asset for Texture {
 impl Texture {
     /// Creates a new texture with the given format, without initial content
     pub(crate) fn new(config: &TextureConfig) -> Self {
+        profiling::function_scope!();
+
         assert!(config.width >= 1, "Width must be at least 1");
         assert!(config.height >= 1, "Height must be at least 1");
 
@@ -97,6 +99,8 @@ impl Texture {
     /// Updates the data in this texture to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
     pub(crate) fn set_data(&self, data: &[u8]) {
+        profiling::function_scope!();
+
         //TODO: Check somehow if data is the correct length
         let size = self.tex.size();
         let format = self.tex.format();

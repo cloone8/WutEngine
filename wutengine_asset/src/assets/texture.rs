@@ -9,6 +9,9 @@ pub struct SerializedTexture {
 
     #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
+
+    #[serde(with = "serde_bytes")]
+    pub mips: Option<Vec<u8>>,
 }
 
 impl SerializedAsset for SerializedTexture {}

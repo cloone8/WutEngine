@@ -1,5 +1,4 @@
 use core::any::Any;
-use core::any::TypeId;
 use core::error::Error;
 use std::path::Path;
 
@@ -33,10 +32,7 @@ impl AssetImporter for ImageAssetImporter {
         Self: Sized;
 
     fn supports_file_type(&self, file_type: &str) -> bool {
-        match file_type {
-            "jpg" | "jpeg" | "png" | "webp" => true,
-            _ => false,
-        }
+        matches!(file_type, "jpg" | "jpeg" | "png" | "webp")
     }
 
     fn import(
@@ -88,6 +84,7 @@ impl AssetImporter for ImageAssetImporter {
                 format: pixel_format,
             },
             data: buffer.to_vec(),
+            mips: None,
         }))
     }
 }
