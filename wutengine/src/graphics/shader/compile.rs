@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use nohash_hasher::IntSet;
+use wutengine_asset::assets::shader::ShaderBufferParameterType;
+use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 use wutengine_shadercompiler::{
     CAMERA_PARAMS_BIND_GROUP_INDEX, INSTANCE_PARAMS_BIND_GROUP_INDEX,
     MATERIAL_PARAMS_BIND_GROUP_INDEX,
@@ -15,11 +17,12 @@ use wutengine_shadercompiler::{
 use crate::graphics::internal_bind_groups::{
     get_camera_bind_group_layout, get_instance_bind_group_layout,
 };
+use crate::graphics::shader::shader_opaque_param_wgpu_binding_type;
 use crate::graphics::shader::{CompiledShaderId, WutEngineShaderHasher};
 use crate::graphics::{BindGroup, GFX_DEVICE, cache};
 use crate::util::unreachable_dbg;
 
-use super::{Shader, ShaderBufferParameterType, ShaderParameter, ShaderVertexAttributeType};
+use super::{Shader, ShaderParameter};
 
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum CompileErr {
@@ -63,7 +66,7 @@ pub(crate) fn compile(
     let output = wutengine_shadercompiler::compile::<_, WutEngineShaderHasher>(
         wutengine_shadercompiler::CompInput {
             id: shader.id,
-            source: shader.get_source(),
+            source: &shader.source,
             keywords,
             parameters: &user_param_conditions,
             vertex_attributes: &vertex_attr_conditions,
@@ -211,7 +214,7 @@ fn create_user_params_bind_group_layout(
         let opaque_entry = wgpu::BindGroupLayoutEntry {
             binding: binding as u32,
             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-            ty: ty.to_wgpu_binding_type(),
+            ty: shader_opaque_param_wgpu_binding_type(*ty),
             count: None,
         };
 

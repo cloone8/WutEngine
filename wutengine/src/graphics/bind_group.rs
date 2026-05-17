@@ -1,10 +1,16 @@
 use core::num::NonZero;
 use std::collections::HashMap;
 
+use wutengine_asset::assets::shader::ShaderBufferParameterType;
+use wutengine_asset::assets::shader::ShaderParameter;
+
+use crate::graphics::shader::shader_buffer_param_default_value;
+use crate::graphics::shader::shader_opaque_param_default_value;
+
 use super::material::MaterialParameter;
-use super::shader::{
-    ShaderBufferParameter, ShaderBufferParameterType, ShaderOpaqueParameter, ShaderParameter,
-};
+use super::shader::shader_buffer_param_align;
+use super::shader::shader_buffer_param_size;
+use super::shader::{ShaderBufferParameter, ShaderOpaqueParameter};
 
 /// A shader bind group. Holds a set of parameters and their GPU side representation.
 #[derive(Debug, Clone)]
@@ -63,13 +69,13 @@ impl BindGroup {
             let (name, index) = match param {
                 ShaderParameter::Buffer { ty, name, .. } => {
                     let index = ParamIndex::Buffer(buffer_params.len() as u16);
-                    buffer_params.push(ty.to_default_value());
+                    buffer_params.push(shader_buffer_param_default_value(*ty));
 
                     (name, index)
                 }
                 ShaderParameter::Opaque { ty, name, .. } => {
                     let index = ParamIndex::Opaque(opaque_params.len() as u16);
-                    opaque_params.push(ty.to_default_value());
+                    opaque_params.push(shader_opaque_param_default_value(*ty));
 
                     (name, index)
                 }
@@ -99,8 +105,8 @@ impl BindGroup {
 
         for param in params {
             let param: ShaderBufferParameterType = param.into();
-            size = size.next_multiple_of(param.align());
-            size += param.size();
+            size = size.next_multiple_of(shader_buffer_param_align(param));
+            size += shader_buffer_param_size(param);
         }
 
         size

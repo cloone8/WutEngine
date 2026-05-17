@@ -5,10 +5,11 @@ use std::collections::HashMap;
 use wutengine_asset::assets::mesh::MeshIndices;
 use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_asset::assets::mesh::SerializedMesh;
+use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 
 use crate::asset::Asset;
 
-use super::shader::{GVec2, GVec3, ShaderVertexAttributeType};
+use super::shader::{GVec2, GVec3};
 
 mod index;
 pub use index::*;

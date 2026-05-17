@@ -1,13 +1,14 @@
 //! GPU Shaders
 
-use core::convert::Infallible;
 use core::fmt::Display;
 use core::hash::Hash;
-use core::ops::RangeInclusive;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
+use wutengine_asset::assets::shader::SerializedShader;
+use wutengine_asset::assets::shader::ShaderDefaultParameters;
+use wutengine_asset::assets::shader::ShaderKeyword;
+use wutengine_asset::assets::shader::ShaderParameter;
+use wutengine_asset::assets::shader::ShaderVertexAttribute;
 use wutengine_util_macro::unique_id_type64;
 
 mod compile;
@@ -17,152 +18,51 @@ pub use types::*;
 
 pub(crate) use compile::*;
 
-use crate::asset::{Asset, SerializedAsset};
+use crate::asset::Asset;
 
 unique_id_type64! {
     /// Unique identifier for a [Shader]
     pub(crate) ShaderId
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Shader {
-    #[serde(skip)]
     pub id: ShaderId,
     pub name: String,
     pub vertex_attributes: Vec<ShaderVertexAttribute>,
 
-    #[serde(default)]
     pub default_parameters: ShaderDefaultParameters,
 
     pub keywords: HashMap<String, ShaderKeyword>,
     pub parameters: Vec<ShaderParameter>,
-    pub source: ShaderSource,
+    pub source: String,
 }
 
 impl Asset for Shader {
-    type Serialized = Self;
+    type Serialized = SerializedShader;
 
-    type FromSerializedErr = Infallible;
+    type FromSerializedErr = std::io::Error;
 
     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
     where
         Self: Sized,
     {
-        Ok(serialized.clone())
-    }
-}
-
-impl SerializedAsset for Shader {}
-
-impl Shader {
-    pub fn load_source(&mut self) -> Result<(), std::io::Error> {
-        if let ShaderSource::File { path } = &self.source {
-            let content = std::fs::read_to_string(path)?;
-            self.source = ShaderSource::Inline { content };
-        }
-
-        Ok(())
-    }
-
-    pub fn get_source(&self) -> &str {
-        if let ShaderSource::Inline { content } = &self.source {
-            content.as_str()
-        } else {
-            panic!("Invalid source");
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShaderVertexAttribute {
-    #[serde(flatten)]
-    pub ty: ShaderVertexAttributeType,
-    pub location: u32,
-    pub condition: Option<ShaderParameterCondition>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(tag = "type")]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderVertexAttributeType {
-    Position,
-    Uv { channel: u8 },
-}
-
-impl core::fmt::Display for ShaderVertexAttributeType {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Position => "Position".fmt(f),
-            Self::Uv { channel } => write!(f, "UV{}", channel),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShaderKeyword {
-    default: u64,
-    allowed: RangeInclusive<u64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderParameter {
-    Buffer {
-        #[serde(rename = "type")]
-        ty: ShaderBufferParameterType,
-
-        name: String,
-
-        condition: Option<ShaderParameterCondition>,
-    },
-    Opaque {
-        #[serde(rename = "type")]
-        ty: ShaderOpaqueParameterType,
-
-        name: String,
-
-        condition: Option<ShaderParameterCondition>,
-    },
-}
-
-impl ShaderParameter {
-    pub fn get_condition(&self) -> Option<&ShaderParameterCondition> {
-        match self {
-            Self::Buffer { condition, .. } => condition.as_ref(),
-            Self::Opaque { condition, .. } => condition.as_ref(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderSource {
-    Inline { content: String },
-    File { path: PathBuf },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[repr(transparent)]
-#[serde(transparent)]
-pub struct ShaderParameterCondition(pub(crate) String);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ShaderDefaultParameters {
-    #[serde(default)]
-    pub camera: bool,
-
-    #[serde(default)]
-    pub instance: bool,
-}
-
-impl Default for ShaderDefaultParameters {
-    fn default() -> Self {
-        Self {
-            camera: true,
-            instance: true,
-        }
+        Ok(Self {
+            id: ShaderId::new(),
+            name: serialized.name.clone(),
+            vertex_attributes: serialized.vertex_attributes.clone(),
+            default_parameters: serialized.default_parameters,
+            keywords: serialized.keywords.clone(),
+            parameters: serialized.parameters.clone(),
+            source: match &serialized.source {
+                wutengine_asset::assets::shader::ShaderSource::Inline { content } => {
+                    content.clone()
+                }
+                wutengine_asset::assets::shader::ShaderSource::File { path } => {
+                    std::fs::read_to_string(path)?
+                }
+            },
+        })
     }
 }
 

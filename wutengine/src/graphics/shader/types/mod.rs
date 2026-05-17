@@ -3,7 +3,8 @@
 mod primitives;
 
 pub use primitives::*;
-use serde::{Deserialize, Serialize};
+use wutengine_asset::assets::shader::ShaderBufferParameterType;
+use wutengine_asset::assets::shader::ShaderOpaqueParameterType;
 use wutengine_util_macro::VariantName;
 
 use crate::graphics::material::MaterialParameter;
@@ -11,122 +12,91 @@ use crate::graphics::sampler::DEFAULT_SAMPLER;
 use crate::graphics::texture::DEFAULT_TEXTURE;
 use crate::math::Vec4;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderBufferParameterType {
-    Flt,
-    Uint,
-    Int,
-    Vec2f,
-    Vec3f,
-    Vec4f,
-    Vec2u,
-    Vec3u,
-    Vec4u,
-    Vec2i,
-    Vec3i,
-    Vec4i,
-    Mat4x4,
+/// Alignment on the GPU of this data type.
+///
+/// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
+pub const fn shader_buffer_param_align(bt: ShaderBufferParameterType) -> usize {
+    match bt {
+        ShaderBufferParameterType::Flt => 4,
+        ShaderBufferParameterType::Uint => 4,
+        ShaderBufferParameterType::Int => 4,
+        ShaderBufferParameterType::Vec2f => GVec2::<f32>::ALIGN,
+        ShaderBufferParameterType::Vec3f => GVec3::<f32>::ALIGN,
+        ShaderBufferParameterType::Vec4f => GVec4::<f32>::ALIGN,
+        ShaderBufferParameterType::Vec2u => GVec2::<u32>::ALIGN,
+        ShaderBufferParameterType::Vec3u => GVec3::<u32>::ALIGN,
+        ShaderBufferParameterType::Vec4u => GVec4::<u32>::ALIGN,
+        ShaderBufferParameterType::Vec2i => GVec2::<i32>::ALIGN,
+        ShaderBufferParameterType::Vec3i => GVec3::<i32>::ALIGN,
+        ShaderBufferParameterType::Vec4i => GVec4::<i32>::ALIGN,
+        ShaderBufferParameterType::Mat4x4 => GMat4x4::<f32>::ALIGN,
+    }
 }
 
-impl ShaderBufferParameterType {
-    /// Alignment on the GPU of this data type.
-    ///
-    /// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
-    #[inline]
-    pub const fn align(self) -> usize {
-        match self {
-            Self::Flt => 4,
-            Self::Uint => 4,
-            Self::Int => 4,
-            Self::Vec2f => GVec2::<f32>::ALIGN,
-            Self::Vec3f => GVec3::<f32>::ALIGN,
-            Self::Vec4f => GVec4::<f32>::ALIGN,
-            Self::Vec2u => GVec2::<u32>::ALIGN,
-            Self::Vec3u => GVec3::<u32>::ALIGN,
-            Self::Vec4u => GVec4::<u32>::ALIGN,
-            Self::Vec2i => GVec2::<i32>::ALIGN,
-            Self::Vec3i => GVec3::<i32>::ALIGN,
-            Self::Vec4i => GVec4::<i32>::ALIGN,
-            Self::Mat4x4 => GMat4x4::<f32>::ALIGN,
-        }
+/// Size on the GPU of this data type. Also corresponds to the size on the CPU
+///
+/// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
+pub const fn shader_buffer_param_size(bt: ShaderBufferParameterType) -> usize {
+    match bt {
+        ShaderBufferParameterType::Flt => size_of::<f32>(),
+        ShaderBufferParameterType::Uint => size_of::<u32>(),
+        ShaderBufferParameterType::Int => size_of::<i32>(),
+        ShaderBufferParameterType::Vec2f => size_of::<GVec2<f32>>(),
+        ShaderBufferParameterType::Vec3f => size_of::<GVec3<f32>>(),
+        ShaderBufferParameterType::Vec4f => size_of::<GVec4<f32>>(),
+        ShaderBufferParameterType::Vec2u => size_of::<GVec2<u32>>(),
+        ShaderBufferParameterType::Vec3u => size_of::<GVec3<u32>>(),
+        ShaderBufferParameterType::Vec4u => size_of::<GVec4<u32>>(),
+        ShaderBufferParameterType::Vec2i => size_of::<GVec2<i32>>(),
+        ShaderBufferParameterType::Vec3i => size_of::<GVec3<i32>>(),
+        ShaderBufferParameterType::Vec4i => size_of::<GVec4<i32>>(),
+        ShaderBufferParameterType::Mat4x4 => size_of::<GMat4x4<f32>>(),
     }
+}
 
-    /// Size on the GPU of this data type. Also corresponds to the size on the CPU
-    ///
-    /// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
-    #[inline]
-    pub const fn size(self) -> usize {
-        match self {
-            Self::Flt => size_of::<f32>(),
-            Self::Uint => size_of::<u32>(),
-            Self::Int => size_of::<i32>(),
-            Self::Vec2f => size_of::<GVec2<f32>>(),
-            Self::Vec3f => size_of::<GVec3<f32>>(),
-            Self::Vec4f => size_of::<GVec4<f32>>(),
-            Self::Vec2u => size_of::<GVec2<u32>>(),
-            Self::Vec3u => size_of::<GVec3<u32>>(),
-            Self::Vec4u => size_of::<GVec4<u32>>(),
-            Self::Vec2i => size_of::<GVec2<i32>>(),
-            Self::Vec3i => size_of::<GVec3<i32>>(),
-            Self::Vec4i => size_of::<GVec4<i32>>(),
-            Self::Mat4x4 => size_of::<GMat4x4<f32>>(),
-        }
+pub const fn shader_buffer_param_default_value(
+    bt: ShaderBufferParameterType,
+) -> ShaderBufferParameter {
+    match bt {
+        ShaderBufferParameterType::Flt => ShaderBufferParameter::Flt(bytemuck::zeroed()),
+        ShaderBufferParameterType::Uint => ShaderBufferParameter::Uint(bytemuck::zeroed()),
+        ShaderBufferParameterType::Int => ShaderBufferParameter::Int(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec2f => ShaderBufferParameter::Vec2f(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec3f => ShaderBufferParameter::Vec3f(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec4f => ShaderBufferParameter::Vec4f(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec2u => ShaderBufferParameter::Vec2u(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec3u => ShaderBufferParameter::Vec3u(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec4u => ShaderBufferParameter::Vec4u(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec2i => ShaderBufferParameter::Vec2i(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec3i => ShaderBufferParameter::Vec3i(bytemuck::zeroed()),
+        ShaderBufferParameterType::Vec4i => ShaderBufferParameter::Vec4i(bytemuck::zeroed()),
+        ShaderBufferParameterType::Mat4x4 => ShaderBufferParameter::Mat4x4(bytemuck::zeroed()),
     }
+}
 
-    #[inline]
-    pub const fn to_default_value(self) -> ShaderBufferParameter {
-        match self {
-            Self::Flt => ShaderBufferParameter::Flt(bytemuck::zeroed()),
-            Self::Uint => ShaderBufferParameter::Uint(bytemuck::zeroed()),
-            Self::Int => ShaderBufferParameter::Int(bytemuck::zeroed()),
-            Self::Vec2f => ShaderBufferParameter::Vec2f(bytemuck::zeroed()),
-            Self::Vec3f => ShaderBufferParameter::Vec3f(bytemuck::zeroed()),
-            Self::Vec4f => ShaderBufferParameter::Vec4f(bytemuck::zeroed()),
-            Self::Vec2u => ShaderBufferParameter::Vec2u(bytemuck::zeroed()),
-            Self::Vec3u => ShaderBufferParameter::Vec3u(bytemuck::zeroed()),
-            Self::Vec4u => ShaderBufferParameter::Vec4u(bytemuck::zeroed()),
-            Self::Vec2i => ShaderBufferParameter::Vec2i(bytemuck::zeroed()),
-            Self::Vec3i => ShaderBufferParameter::Vec3i(bytemuck::zeroed()),
-            Self::Vec4i => ShaderBufferParameter::Vec4i(bytemuck::zeroed()),
-            Self::Mat4x4 => ShaderBufferParameter::Mat4x4(bytemuck::zeroed()),
+pub fn shader_opaque_param_default_value(ot: ShaderOpaqueParameterType) -> ShaderOpaqueParameter {
+    match ot {
+        ShaderOpaqueParameterType::Sampler => {
+            ShaderOpaqueParameter::Sampler(DEFAULT_SAMPLER.get_wgpu().clone())
+        }
+        ShaderOpaqueParameterType::Texture2D => {
+            ShaderOpaqueParameter::Texture2D(DEFAULT_TEXTURE.get_view().clone())
         }
     }
 }
 
-impl<'a> From<&'a ShaderBufferParameterType> for ShaderBufferParameterType {
-    #[inline(always)]
-    fn from(value: &'a ShaderBufferParameterType) -> Self {
-        *value
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderOpaqueParameterType {
-    Sampler,
-    #[serde(rename = "texture_2d")]
-    Texture2D,
-}
-
-impl ShaderOpaqueParameterType {
-    pub fn to_default_value(self) -> ShaderOpaqueParameter {
-        match self {
-            Self::Sampler => ShaderOpaqueParameter::Sampler(DEFAULT_SAMPLER.get_wgpu().clone()),
-            Self::Texture2D => ShaderOpaqueParameter::Texture2D(DEFAULT_TEXTURE.get_view().clone()),
+pub const fn shader_opaque_param_wgpu_binding_type(
+    ot: ShaderOpaqueParameterType,
+) -> wgpu::BindingType {
+    match ot {
+        ShaderOpaqueParameterType::Sampler => {
+            wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
         }
-    }
-
-    #[inline]
-    pub const fn to_wgpu_binding_type(self) -> wgpu::BindingType {
-        match self {
-            Self::Sampler => wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-            Self::Texture2D => wgpu::BindingType::Texture {
-                sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                view_dimension: wgpu::TextureViewDimension::D2,
-                multisampled: false,
-            },
-        }
+        ShaderOpaqueParameterType::Texture2D => wgpu::BindingType::Texture {
+            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+            view_dimension: wgpu::TextureViewDimension::D2,
+            multisampled: false,
+        },
     }
 }
 
@@ -181,7 +151,7 @@ impl ShaderBufferParameter {
     /// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
     #[inline]
     pub const fn align(&self) -> usize {
-        self.get_type().align()
+        shader_buffer_param_align(self.get_type())
     }
 
     /// Size on the GPU of this data type. Also corresponds to the size on the CPU
@@ -189,7 +159,7 @@ impl ShaderBufferParameter {
     /// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
     #[inline]
     pub const fn size(&self) -> usize {
-        self.get_type().size()
+        shader_buffer_param_size(self.get_type())
     }
 
     #[inline]

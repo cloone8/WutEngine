@@ -3,7 +3,9 @@
 use core::num::NonZero;
 use std::sync::LazyLock;
 
-use super::shader::{ShaderBufferParameterType, ShaderParameter};
+use wutengine_asset::assets::shader::ShaderBufferParameterType;
+use wutengine_asset::assets::shader::ShaderParameter;
+
 use super::{BindGroup, GFX_DEVICE};
 
 fn get_camera_params() -> &'static [ShaderParameter] {

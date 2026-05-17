@@ -3,7 +3,10 @@
 use std::sync::LazyLock;
 
 use crate::asset::AssetHandle;
-use crate::graphics::shader::{Shader, ShaderSource};
+use crate::graphics::shader::Shader;
+use wutengine_asset::Asset;
+use wutengine_asset::assets::shader::SerializedShader;
+use wutengine_asset::assets::shader::ShaderSource;
 
 /// Macro to automatically create a [Shader] from a descriptor and source file,
 /// overriding the "source" field of the shader descriptor to be inline
@@ -12,7 +15,7 @@ macro_rules! from_descriptor_and_source {
         let descriptor = include_str!(concat!($name, ".json"));
         let source = include_str!(concat!($name, ".wgsl"));
 
-        let mut shader = serde_json::from_str::<Shader>(descriptor).expect(concat!(
+        let mut shader = serde_json::from_str::<SerializedShader>(descriptor).expect(concat!(
             "Invalid built-in shader: \"",
             $name,
             "\""
@@ -22,7 +25,7 @@ macro_rules! from_descriptor_and_source {
             content: source.to_owned(),
         };
 
-        AssetHandle::from(shader)
+        AssetHandle::from(Shader::from_serialized(&shader).unwrap())
     }};
 }
 

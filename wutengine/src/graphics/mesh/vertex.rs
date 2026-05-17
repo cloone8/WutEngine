@@ -1,7 +1,9 @@
 use core::any::Any;
 use core::num::NonZero;
 
-use crate::graphics::shader::{GVec2, GVec3, ShaderVertexAttributeType};
+use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+
+use crate::graphics::shader::{GVec2, GVec3};
 
 /// A raw vertex buffer
 #[derive(Debug)]
