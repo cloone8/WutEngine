@@ -56,7 +56,9 @@ impl AssetImporter for ImageAssetImporter {
             _ => unreachable!("Passed an incompatible image format"),
         };
 
-        let loaded = image::load_from_memory_with_format(asset_bytes, image_format)?;
+        let mut loaded = image::load_from_memory_with_format(asset_bytes, image_format)?;
+
+        loaded.apply_orientation(image::metadata::Orientation::FlipVertical);
 
         let (width, height) = loaded.dimensions();
 
