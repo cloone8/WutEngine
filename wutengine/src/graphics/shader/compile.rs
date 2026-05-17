@@ -1,11 +1,11 @@
 //! Shader compilation. The conversion of a [Shader](super::Shader) into a [CompiledShader](super::CompiledShader)
 
+use alloc::borrow::Cow;
+use alloc::collections::BTreeMap;
+use alloc::sync::Arc;
 use core::fmt::Display;
 use core::num::NonZero;
-use std::borrow::Cow;
-use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use nohash_hasher::IntSet;
 use wutengine_asset::assets::shader::ShaderBufferParameterType;

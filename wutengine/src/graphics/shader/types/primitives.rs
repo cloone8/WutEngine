@@ -9,7 +9,7 @@ unsafe impl<const N: usize> bytemuck::Pod for Padding<N> {}
 
 impl<const N: usize> Padding<N> {
     #[inline(always)]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self([0; N])
     }
 }

@@ -10,9 +10,7 @@ use wutengine_util_macro::VariantName;
 
 use crate::graphics::material::MaterialParameter;
 use crate::graphics::sampler::DEFAULT_SAMPLER;
-use crate::graphics::sampler::Sampler;
 use crate::graphics::texture::DEFAULT_TEXTURE;
-use crate::graphics::texture::Texture;
 use crate::math::Vec4;
 
 /// Alignment on the GPU of this data type.

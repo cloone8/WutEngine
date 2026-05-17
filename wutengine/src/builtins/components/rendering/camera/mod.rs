@@ -21,7 +21,7 @@ use crate::graphics::texture::Texture;
 use crate::system::Phase;
 use crate::util::map;
 use crate::window::Window;
-use crate::{builtins, graphics, math};
+use crate::{builtins, graphics};
 
 mod target;
 pub use target::*;
