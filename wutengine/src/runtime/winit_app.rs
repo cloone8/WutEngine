@@ -41,8 +41,10 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         log::info!("Winit resume received, running runtime initialization code");
 
         if !graphics::initialize_graphics_context() {
-            // We could not initialize the graphics context, so quit
-            event_loop.exit();
+            // We could not initialize the graphics context, so quit fast and hard
+            log::error!("Doing hard exit because we failed to initialize the graphics context");
+            log::logger().flush();
+            std::process::exit(808);
         }
 
         // Initialize the time manager later here, right before the runtime starts running frames
