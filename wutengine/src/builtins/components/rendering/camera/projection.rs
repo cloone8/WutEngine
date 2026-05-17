@@ -30,7 +30,7 @@ impl CameraProjection {
                     -half_horizontal_size,
                     half_horizontal_size,
                     -half_vertical_size,
-                    vertical_size,
+                    half_vertical_size,
                     clip_near,
                     clip_far,
                 )
