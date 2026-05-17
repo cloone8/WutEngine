@@ -1,13 +1,11 @@
-use core::f32::consts::PI;
-
 use glam::Mat4;
 
 use crate::asset::AssetHandle;
+use crate::builtins::components::Transform;
 use crate::component::Component;
 use crate::graphics;
 use crate::graphics::material::Material;
 use crate::graphics::mesh::Mesh;
-use crate::math::vec3;
 use crate::system::Phase;
 
 /// A static mesh renderer
@@ -37,11 +35,15 @@ impl Component for StaticMeshRenderer {
     where
         Self: Sized,
     {
-        manifest.add_system::<&Self>(
+        manifest.add_system::<(&Self, Option<&Transform>)>(
             Phase::PreRender,
             Some("StaticMeshRenderer submit draw call"),
-            |_, this| {
-                this.submit_draw_call();
+            |_, (this, transform)| {
+                this.submit_draw_call(
+                    transform
+                        .map(|xform| xform.local_to_world())
+                        .unwrap_or(Mat4::IDENTITY),
+                );
             },
         );
     }
@@ -49,7 +51,7 @@ impl Component for StaticMeshRenderer {
 
 /// System implementations
 impl StaticMeshRenderer {
-    fn submit_draw_call(&self) {
+    fn submit_draw_call(&self, transform: Mat4) {
         let (Some(mesh), Some(mat)) = (self.mesh.get_arc(), self.material.get_arc()) else {
             log::trace!(
                 "Not rendering static mesh renderer because either the mesh or the material is missing"
@@ -59,8 +61,6 @@ impl StaticMeshRenderer {
 
         log::trace!("Submitting draw call for static mesh renderer");
 
-        let t = crate::time::time();
-        let x = (t * (PI * 2.0)).sin();
-        graphics::render_mesh(mesh, mat, Mat4::from_translation(vec3(x, 0.0, 0.0)));
+        graphics::render_mesh(mesh, mat, transform);
     }
 }

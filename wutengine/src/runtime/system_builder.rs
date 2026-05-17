@@ -152,10 +152,7 @@ impl Default for SystemManifest {
     fn default() -> Self {
         let mut manifest = Self::empty();
 
-        manifest.add_default_component_systems::<crate::builtins::components::Name>();
-        manifest.add_default_component_systems::<crate::builtins::components::rendering::Camera>();
-        manifest.add_default_component_systems::<crate::builtins::components::rendering::StaticMeshRenderer>();
-        manifest.add_default_component_systems::<crate::builtins::components::rendering::GlobalRenderPass>();
+        crate::builtins::components::register_builtin_component_systems(&mut manifest);
 
         manifest
     }

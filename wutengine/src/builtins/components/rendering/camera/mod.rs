@@ -9,6 +9,7 @@ use wutengine_shadercompiler::CAMERA_PARAMS_BIND_GROUP_INDEX;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util_macro::unique_id_type32;
 
+use crate::builtins::components::Transform;
 use crate::color::Color;
 use crate::component::Component;
 use crate::graphics::BindGroup;
@@ -220,13 +221,13 @@ impl Camera {
         self.render_target = Some(render_target_texture);
     }
 
-    fn update_view_projection(&mut self) {
+    fn update_view_projection(&mut self, transform: Mat4) {
         let Some(render_target) = &self.render_target else {
             // No render target means no rendering
             return;
         };
 
-        self.view_matrix = math::Mat4::IDENTITY; // TODO: Get actual view matrix once transforms are implemented
+        self.view_matrix = transform.inverse();
 
         let target_size = render_target.size();
 
@@ -427,15 +428,19 @@ impl Component for Camera {
     where
         Self: Sized,
     {
-        manifest.add_system::<&mut Camera>(
+        manifest.add_system::<(&mut Camera, Option<&Transform>)>(
             Phase::PreRender,
             Some("Camera pre-render preparation"),
-            |_, camera| {
+            |_, (camera, transform)| {
                 profiling::scope!("Camera pre-render preparation");
 
                 camera.update_render_target();
 
-                camera.update_view_projection();
+                camera.update_view_projection(
+                    transform
+                        .map(|t| t.local_to_world())
+                        .unwrap_or(Mat4::IDENTITY),
+                );
 
                 camera.update_cam_bind_group();
             },
