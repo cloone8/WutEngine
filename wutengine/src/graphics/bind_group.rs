@@ -8,11 +8,10 @@ use crate::graphics::shader::shader_buffer_param_default_value;
 use crate::graphics::shader::shader_opaque_param_default_value;
 
 use super::material::MaterialParameter;
-use super::sampler::Sampler;
+use super::shader::ShaderBufferParameter;
+use super::shader::ShaderOpaqueParameter;
 use super::shader::shader_buffer_param_align;
 use super::shader::shader_buffer_param_size;
-use super::shader::{ShaderBufferParameter, ShaderOpaqueParameter};
-use super::texture::Texture;
 
 /// A shader bind group. Holds a set of parameters and their GPU side representation.
 #[derive(Debug, Clone)]
@@ -63,6 +62,8 @@ impl BindGroup {
         layout: wgpu::BindGroupLayout,
         params: impl IntoIterator<Item = &'a ShaderParameter>,
     ) -> Self {
+        profiling::function_scope!();
+
         let mut param_indices = HashMap::new();
         let mut buffer_params = Vec::new();
         let mut opaque_params = Vec::new();
@@ -143,6 +144,8 @@ impl BindGroup {
         value: MaterialParameter,
         queue: &wgpu::Queue,
     ) -> Result<(), SetParamErr> {
+        profiling::function_scope!();
+
         let Some(param_index) = self.param_indices.get(param).copied() else {
             return Err(SetParamErr::UnknownParameter(param.to_owned()));
         };
@@ -211,6 +214,8 @@ impl BindGroup {
             // Update is not required
             return;
         }
+
+        profiling::function_scope!();
 
         let mut entries: Vec<wgpu::BindGroupEntry> =
             Vec::with_capacity(1 + self.opaque_params.len());

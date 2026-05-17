@@ -1,3 +1,5 @@
+use glam::Mat4;
+
 use crate::asset::AssetHandle;
 use crate::component::Component;
 use crate::graphics;
@@ -54,6 +56,6 @@ impl StaticMeshRenderer {
 
         log::trace!("Submitting draw call for static mesh renderer");
 
-        graphics::render_mesh(mesh, mat);
+        graphics::render_mesh(mesh, mat, Mat4::IDENTITY);
     }
 }

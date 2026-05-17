@@ -135,6 +135,16 @@ impl Camera {
 
         Ok(())
     }
+
+    #[inline]
+    pub fn get_view_mat(&self) -> Mat4 {
+        self.view_matrix
+    }
+
+    #[inline]
+    pub fn get_proj_mat(&self) -> Mat4 {
+        self.projection_matrix
+    }
 }
 
 /// System implementations

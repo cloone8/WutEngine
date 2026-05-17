@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use glam::Mat4;
 
 use crate::builtins::components::rendering::CameraId;
 
@@ -12,11 +13,12 @@ pub fn submit_raw_draw_command(command: DrawCommand) {
     DRAW_COMMAND_QUEUE.send(command).expect("Runtime stopped")
 }
 
-pub fn render_mesh(mesh: Arc<Mesh>, material: Arc<Material>) {
+pub fn render_mesh(mesh: Arc<Mesh>, material: Arc<Material>, transform: Mat4) {
     submit_raw_draw_command(DrawCommand {
         camera: None,
         mesh,
         material,
+        transform,
     });
 }
 
@@ -29,4 +31,6 @@ pub struct DrawCommand {
     pub mesh: Arc<Mesh>,
 
     pub material: Arc<Material>,
+
+    pub transform: Mat4,
 }

@@ -41,24 +41,24 @@ static DRAW_COMMAND_QUEUE: InitOnce<Sender<DrawCommand>> = InitOnce::new();
 
 /// Returns the global graphics adapter
 #[inline(always)]
-pub(crate) fn adapter() -> &'static wgpu::Adapter {
+pub fn adapter() -> &'static wgpu::Adapter {
     &GFX_ADAPTER
 }
 
 /// Returns the global graphics instance
 #[inline(always)]
-pub(crate) fn instance() -> &'static wgpu::Instance {
+pub fn instance() -> &'static wgpu::Instance {
     &GFX_INSTANCE
 }
 
 /// Returns the global graphics device
 #[inline(always)]
-pub(crate) fn device() -> &'static wgpu::Device {
+pub fn device() -> &'static wgpu::Device {
     &GFX_DEVICE
 }
 
 /// Returns the global graphics queue
 #[inline(always)]
-pub(crate) fn queue() -> &'static wgpu::Queue {
+pub fn queue() -> &'static wgpu::Queue {
     &GFX_QUEUE
 }

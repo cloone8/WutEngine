@@ -48,6 +48,8 @@ pub fn get_pipeline(
         return Ok(cached_pipeline);
     }
 
+    profiling::scope!("Create new pipeline");
+
     let pipeline_id = PipelineId::new();
     let compiled_shader = material.compiled_shader.as_ref();
 
@@ -60,6 +62,7 @@ pub fn get_pipeline(
 
     let native_shader_module = &compiled_shader.module;
 
+    // Create the vertex state buffer layout
     const STACK_ATTRS: usize = 8;
 
     let mut vertex_buffer_attributes = SmallVec::<[_; STACK_ATTRS]>::new_const();
@@ -88,6 +91,7 @@ pub fn get_pipeline(
         });
     }
 
+    // Combine all info into a pipeline descriptor, and create it
     let pipeline = GFX_DEVICE.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(
             format!(

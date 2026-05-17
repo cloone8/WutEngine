@@ -1,11 +1,13 @@
 use alloc::sync::Arc;
 
 use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_shadercompiler::INSTANCE_PARAMS_BIND_GROUP_INDEX;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 
 use crate::builtins::components::rendering::Camera;
 use crate::graphics;
 use crate::graphics::DrawCommand;
+use crate::graphics::internal_bind_groups::get_instance_bind_group_layout;
 use crate::graphics::material::Material;
 use crate::graphics::material::MaterialId;
 use crate::graphics::mesh::Mesh;
@@ -53,6 +55,9 @@ impl RenderPass for ColorPass {
             return;
         };
 
+        let queue = graphics::queue();
+        let device = graphics::device();
+
         let target_view = target_tex.create_view(&wgpu::TextureViewDescriptor::default());
 
         let color_targets = [Some(wgpu::ColorTargetState {
@@ -87,7 +92,7 @@ impl RenderPass for ColorPass {
         let mut cur_material = None;
         let mut cur_topology = None;
 
-        'drawcall: for draw_command in draw_commands {
+        'drawcall: for (i, draw_command) in draw_commands.iter().enumerate() {
             if let Some(target_cam) = draw_command.camera
                 && target_cam != camera.get_id()
             {
@@ -110,8 +115,34 @@ impl RenderPass for ColorPass {
             };
 
             // Do the actual draw call for this command
+            let mut instance_bind_group =
+                graphics::internal_bind_groups::create_instance_bind_group(format!(
+                    "Instance bind group draw call {i}"
+                ));
 
-            //TODO: Set instance bind group
+            if let Err(e) =
+                instance_bind_group.set_parameter("model", draw_command.transform.into(), queue)
+            {
+                log::error!("Failed to set model matrix: {e}");
+                render_pass.pop_debug_group();
+                continue 'drawcall;
+            }
+
+            let mvp = camera.get_proj_mat() * camera.get_view_mat() * draw_command.transform;
+
+            if let Err(e) = instance_bind_group.set_parameter("mvp", mvp.into(), queue) {
+                log::error!("Failed to set mvp matrix: {e}");
+                render_pass.pop_debug_group();
+                continue 'drawcall;
+            }
+
+            instance_bind_group.update_bind_group(device);
+
+            render_pass.set_bind_group(
+                INSTANCE_PARAMS_BIND_GROUP_INDEX,
+                instance_bind_group.get_bind_group(),
+                &[],
+            );
 
             let attrs = &draw_command.material.compiled_shader.vertex_attributes;
 
