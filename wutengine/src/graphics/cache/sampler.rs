@@ -2,14 +2,14 @@
 
 use alloc::sync::Arc;
 use std::sync::LazyLock;
-use wutengine_asset::assets::sampler::Filtering;
+use wutengine_asset::assets::sampler::FilterMode;
 use wutengine_asset::assets::sampler::WrapModeType;
 
 use super::GraphicsCache;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct SamplerCacheKey {
-    pub(crate) filtering: Filtering,
+    pub(crate) filtering: FilterMode,
     pub(crate) wrapping: WrapModeType,
 }
 

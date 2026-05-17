@@ -49,7 +49,7 @@ pub(crate) fn compile(
 
     profiling::scope!("Compile shader from source", variant_id_string.as_str());
 
-    log::debug!("Compiling shader {variant_id}");
+    log::debug!("Compiling shader {variant_id_string}");
 
     let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
         shader

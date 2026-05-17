@@ -48,6 +48,8 @@ impl RenderPass for ColorPass {
         camera: &Camera,
         draw_commands: &[DrawCommand],
     ) {
+        profiling::function_scope!();
+
         log::trace!("Running color pass");
 
         let Some(target_tex) = camera.get_render_target() else {

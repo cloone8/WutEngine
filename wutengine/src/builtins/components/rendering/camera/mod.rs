@@ -2,7 +2,7 @@ use core::any::TypeId;
 
 use glam::Mat4;
 use wutengine_asset::assets::mesh::MeshTopology;
-use wutengine_asset::assets::sampler::Filtering;
+use wutengine_asset::assets::sampler::FilterMode;
 use wutengine_asset::assets::sampler::WrapMode;
 use wutengine_asset::assets::sampler::WrapModeType;
 use wutengine_shadercompiler::CAMERA_PARAMS_BIND_GROUP_INDEX;
@@ -396,7 +396,7 @@ impl Camera {
         );
 
         let sampler_param = MaterialParameter::Sampler(
-            Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Clamp)).into(),
+            Sampler::new(FilterMode::Linear, WrapModeType::Single(WrapMode::Clamp)).into(),
         );
 
         mat.user_bind_group

@@ -284,7 +284,8 @@ impl Runtime {
             let mut passes = core::mem::take(&mut camera.render_passes);
 
             for pass in passes.iter_mut() {
-                profiling::scope!(pass.name);
+                profiling::scope!(format!("Execute render pass \n{}\n", pass.name));
+
                 encoder.push_debug_group(pass.name);
 
                 pass.pass.execute(&mut encoder, camera, draw_commands);

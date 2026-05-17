@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use core::convert::Infallible;
 use core::fmt::Debug;
 use std::sync::LazyLock;
-use wutengine_asset::assets::sampler::Filtering;
+use wutengine_asset::assets::sampler::FilterMode;
 use wutengine_asset::assets::sampler::SerializedSampler;
 use wutengine_asset::assets::sampler::WrapMode;
 use wutengine_asset::assets::sampler::WrapModeType;
@@ -19,13 +19,13 @@ use super::cache;
 pub(crate) static DEFAULT_SAMPLER: LazyLock<Sampler> = LazyLock::new(|| {
     log::debug!("Loading default sampler");
 
-    Sampler::new(Filtering::Linear, WrapModeType::Single(WrapMode::Repeat))
+    Sampler::new(FilterMode::Linear, WrapModeType::Single(WrapMode::Repeat))
 });
 
 /// A texture sampler descriptor.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Sampler {
-    filtering: Filtering,
+    filtering: FilterMode,
     wrapping: WrapModeType,
     native: Arc<wgpu::Sampler>,
 }
@@ -62,38 +62,38 @@ macro_rules! predefined_sampler {
 impl Sampler {
     /// Linear filtering sampler that clamps to the texture edge
     pub fn linear_clamp() -> &'static Self {
-        predefined_sampler!(Filtering::Linear, WrapMode::Clamp)
+        predefined_sampler!(FilterMode::Linear, WrapMode::Clamp)
     }
 
     /// Linear filtering sampler that repeats the texture
     pub fn linear_repeat() -> &'static Self {
-        predefined_sampler!(Filtering::Linear, WrapMode::Repeat)
+        predefined_sampler!(FilterMode::Linear, WrapMode::Repeat)
     }
 
     /// Linear filtering sampler that mirror-repeats the texture edge
     pub fn linear_mirror() -> &'static Self {
-        predefined_sampler!(Filtering::Linear, WrapMode::MirrorRepeat)
+        predefined_sampler!(FilterMode::Linear, WrapMode::MirrorRepeat)
     }
 
     /// Nearest-neighbour filtering sampler that clamps to the texture edge
     pub fn nearest_clamp() -> &'static Self {
-        predefined_sampler!(Filtering::Nearest, WrapMode::Clamp)
+        predefined_sampler!(FilterMode::Nearest, WrapMode::Clamp)
     }
 
     /// Nearest-neighbour filtering sampler that repeats the texture
     pub fn nearest_repeat() -> &'static Self {
-        predefined_sampler!(Filtering::Nearest, WrapMode::Repeat)
+        predefined_sampler!(FilterMode::Nearest, WrapMode::Repeat)
     }
 
     /// Nearest-neighbour filtering sampler that mirror-repeats the texture edge
     pub fn nearest_mirror() -> &'static Self {
-        predefined_sampler!(Filtering::Nearest, WrapMode::MirrorRepeat)
+        predefined_sampler!(FilterMode::Nearest, WrapMode::MirrorRepeat)
     }
 }
 
 impl Sampler {
     /// Creates a new sampler with the given sampling mode
-    pub(crate) fn new(filtering: Filtering, wrapping: WrapModeType) -> Self {
+    pub(crate) fn new(filtering: FilterMode, wrapping: WrapModeType) -> Self {
         profiling::function_scope!();
 
         let cache_key = SamplerCacheKey {
@@ -116,7 +116,7 @@ impl Sampler {
             address_mode_u: asset_wrap_mode_to_wgpu(wrapping.get_u()),
             address_mode_v: asset_wrap_mode_to_wgpu(wrapping.get_v()),
             address_mode_w: asset_wrap_mode_to_wgpu(wrapping.get_w()),
-            mag_filter: wgpu::FilterMode::Linear,
+            mag_filter: asset_filter_mode_to_wgpu(filtering),
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::MipmapFilterMode::Nearest,
             ..Default::default()
@@ -144,5 +144,13 @@ pub const fn asset_wrap_mode_to_wgpu(asset_wrap_mode: WrapMode) -> wgpu::Address
         WrapMode::Clamp => wgpu::AddressMode::ClampToEdge,
         WrapMode::Repeat => wgpu::AddressMode::Repeat,
         WrapMode::MirrorRepeat => wgpu::AddressMode::MirrorRepeat,
+    }
+}
+
+/// Converts the filtering mode to a [wgpu::FilterMode]
+pub const fn asset_filter_mode_to_wgpu(asset_filter_mode: FilterMode) -> wgpu::FilterMode {
+    match asset_filter_mode {
+        FilterMode::Linear => wgpu::FilterMode::Linear,
+        FilterMode::Nearest => wgpu::FilterMode::Nearest,
     }
 }

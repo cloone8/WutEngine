@@ -7,7 +7,7 @@ use crate::SerializedAsset;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct SerializedSampler {
-    pub filtering: Filtering,
+    pub filtering: FilterMode,
     pub wrapping: WrapModeType,
 }
 
@@ -17,7 +17,7 @@ impl SerializedAsset for SerializedSampler {}
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
 )]
-pub enum Filtering {
+pub enum FilterMode {
     /// Linear filtering. Smoothly interpolates between the closest texels.
     #[default]
     Linear,
