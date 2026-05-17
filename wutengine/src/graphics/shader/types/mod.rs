@@ -5,6 +5,7 @@ mod primitives;
 pub use primitives::*;
 use wutengine_asset::assets::shader::ShaderBufferParameterType;
 use wutengine_asset::assets::shader::ShaderOpaqueParameterType;
+use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 use wutengine_util_macro::VariantName;
 
 use crate::graphics::material::MaterialParameter;
@@ -302,6 +303,13 @@ impl ShaderOpaqueParameter {
             Self::Texture2D(texture_view) => wgpu::BindingResource::TextureView(texture_view),
             Self::Sampler(sampler) => wgpu::BindingResource::Sampler(sampler),
         }
+    }
+}
+
+pub const fn shader_attr_wgpu_vertex_format(attr: ShaderVertexAttributeType) -> wgpu::VertexFormat {
+    match attr {
+        ShaderVertexAttributeType::Position => wgpu::VertexFormat::Float32x3,
+        ShaderVertexAttributeType::Uv { .. } => wgpu::VertexFormat::Float32x2,
     }
 }
 

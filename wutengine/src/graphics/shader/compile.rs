@@ -17,6 +17,7 @@ use wutengine_shadercompiler::{
 use crate::graphics::internal_bind_groups::{
     get_camera_bind_group_layout, get_instance_bind_group_layout,
 };
+use crate::graphics::shader::shader_attr_wgpu_vertex_format;
 use crate::graphics::shader::shader_opaque_param_wgpu_binding_type;
 use crate::graphics::shader::{CompiledShaderId, WutEngineShaderHasher};
 use crate::graphics::{BindGroup, GFX_DEVICE, cache};
@@ -139,7 +140,14 @@ pub(crate) fn compile(
         .into_iter()
         .map(|idx| {
             let attr = &shader.vertex_attributes[idx];
-            (attr.ty, attr.location)
+            (
+                attr.ty,
+                wgpu::VertexAttribute {
+                    format: shader_attr_wgpu_vertex_format(attr.ty),
+                    offset: 0, // We currently do only one attribute per buffer
+                    shader_location: attr.location,
+                },
+            )
         })
         .collect();
 
@@ -277,11 +285,11 @@ pub(crate) struct CompiledShader {
     pub(crate) pipeline_layout: wgpu::PipelineLayout,
     pub(crate) user_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) parameters: Vec<ShaderParameter>,
-    pub(crate) vertex_attributes: HashMap<ShaderVertexAttributeType, u32>,
+    pub(crate) vertex_attributes: HashMap<ShaderVertexAttributeType, wgpu::VertexAttribute>,
 }
 
 impl Display for &CompiledShader {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}:{}", self.source_name, self.id)
+        write!(f, "{}:{:016x}", self.source_name, self.id.keyword_hash())
     }
 }

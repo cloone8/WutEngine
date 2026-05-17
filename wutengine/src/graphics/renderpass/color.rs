@@ -115,16 +115,17 @@ impl RenderPass for ColorPass {
 
             let attrs = &draw_command.material.compiled_shader.vertex_attributes;
 
-            for (attribute, &location) in attrs {
-                let Some(vertex_buffer) = draw_command.mesh.vertex_buffers.get(attribute) else {
+            for (attr_type, attr_info) in attrs {
+                let Some(vertex_buffer) = draw_command.mesh.vertex_buffers.get(attr_type) else {
                     log::error!(
-                        "Mesh is missing vertex buffer for requested attribute: {attribute}"
+                        "Mesh is missing vertex buffer for requested attribute: {attr_type}"
                     );
                     render_pass.pop_debug_group();
                     continue 'drawcall;
                 };
 
-                render_pass.set_vertex_buffer(location, vertex_buffer.buffer.slice(..));
+                render_pass
+                    .set_vertex_buffer(attr_info.shader_location, vertex_buffer.buffer.slice(..));
             }
 
             render_pass.set_index_buffer(

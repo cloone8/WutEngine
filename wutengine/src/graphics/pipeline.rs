@@ -2,6 +2,7 @@
 
 use alloc::sync::Arc;
 
+use smallvec::SmallVec;
 use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_util_macro::unique_id_type64;
 
@@ -59,6 +60,34 @@ pub fn get_pipeline(
 
     let native_shader_module = &compiled_shader.module;
 
+    const STACK_ATTRS: usize = 8;
+
+    let mut vertex_buffer_attributes = SmallVec::<[_; STACK_ATTRS]>::new_const();
+    vertex_buffer_attributes.reserve_exact(compiled_shader.vertex_attributes.len());
+
+    for attr_info in compiled_shader.vertex_attributes.values() {
+        vertex_buffer_attributes.push(*attr_info);
+    }
+
+    let mut vertex_state_buffers = SmallVec::<[_; STACK_ATTRS]>::new_const();
+    vertex_state_buffers.reserve_exact(compiled_shader.vertex_attributes.len());
+
+    for (i, attr_info) in compiled_shader.vertex_attributes.values().enumerate() {
+        assert!(
+            attr_info
+                .format
+                .size()
+                .is_multiple_of(wgpu::VERTEX_ALIGNMENT),
+            "Vertex data types with alignments smaller than wgpu::VERTEX_ALIGNMENT are not yet supported"
+        );
+
+        vertex_state_buffers.push(wgpu::VertexBufferLayout {
+            array_stride: attr_info.format.size(),
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &vertex_buffer_attributes[i..i + 1],
+        });
+    }
+
     let pipeline = GFX_DEVICE.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(
             format!(
@@ -73,7 +102,7 @@ pub fn get_pipeline(
             module: native_shader_module,
             entry_point: None,
             compilation_options: Default::default(),
-            buffers: &[],
+            buffers: &vertex_state_buffers,
         },
         fragment: Some(wgpu::FragmentState {
             module: native_shader_module,

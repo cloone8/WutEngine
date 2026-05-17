@@ -132,6 +132,7 @@ impl Texture {
     }
 }
 
+/// Converts a [WutEngine texture format](crate::asset::assets::texture::TextureFormat) to a [wgpu::TextureFormat]
 pub const fn convert_texture_format(asset_format: TextureFormat) -> wgpu::TextureFormat {
     match asset_format {
         TextureFormat::Rgba8 => wgpu::TextureFormat::Rgba8Unorm,
