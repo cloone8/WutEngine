@@ -36,7 +36,7 @@ impl AssetImporter<SerializedTexture> for ImageAssetImporter {
             asset_path.to_string_lossy()
         );
 
-        let format = match file_type {
+        let image_format = match file_type {
             ".jpg" | ".jpeg" => image::ImageFormat::Jpeg,
             ".png" => image::ImageFormat::Png,
             ".webp" => image::ImageFormat::WebP,
@@ -45,11 +45,11 @@ impl AssetImporter<SerializedTexture> for ImageAssetImporter {
 
         let content = std::fs::read(asset_path)?;
 
-        let loaded = image::load_from_memory_with_format(&content, format)?;
+        let loaded = image::load_from_memory_with_format(&content, image_format)?;
 
         let (width, height) = loaded.dimensions();
 
-        let (format, buffer): (_, &[u8]) = match &loaded {
+        let (pixel_format, buffer): (_, &[u8]) = match &loaded {
             image::DynamicImage::ImageRgba8(image_buffer) => (
                 if loaded.color_space() == image::metadata::Cicp::SRGB {
                     TextureFormat::Rgba8Srgb
@@ -68,7 +68,7 @@ impl AssetImporter<SerializedTexture> for ImageAssetImporter {
             config: TextureConfig {
                 width,
                 height,
-                format,
+                format: pixel_format,
             },
             data: buffer.to_vec(),
         })

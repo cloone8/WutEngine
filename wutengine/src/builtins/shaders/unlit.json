@@ -34,13 +34,13 @@
         {
             "kind": "opaque",
             "type": "sampler",
-            "name": "source_sampler",
+            "name": "color_map_sampler",
             "condition": "HAS_COLOR_MAP != 0"
         },
         {
             "kind": "opaque",
             "type": "texture_2d",
-            "name": "source_texture",
+            "name": "color_map_texture",
             "condition": "HAS_COLOR_MAP != 0"
         }
     ],

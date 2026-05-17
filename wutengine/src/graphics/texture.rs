@@ -45,10 +45,8 @@ impl Asset for Texture {
     {
         let texture = Texture::new(&serialized.config);
 
-        let image_loaded = image::load_from_memory(&serialized.data)?;
-
         //TODO: Check if the loaded image is actually the format as declared in `serialized.config`
-        texture.set_data(image_loaded.as_bytes());
+        texture.set_data(&serialized.data);
 
         Ok(texture)
     }

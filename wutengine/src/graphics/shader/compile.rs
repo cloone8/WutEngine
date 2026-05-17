@@ -3,6 +3,7 @@
 use core::fmt::Display;
 use core::num::NonZero;
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -285,7 +286,9 @@ pub(crate) struct CompiledShader {
     pub(crate) pipeline_layout: wgpu::PipelineLayout,
     pub(crate) user_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) parameters: Vec<ShaderParameter>,
-    pub(crate) vertex_attributes: HashMap<ShaderVertexAttributeType, wgpu::VertexAttribute>,
+
+    /// Ordered so that the binding slots are consistent
+    pub(crate) vertex_attributes: BTreeMap<ShaderVertexAttributeType, wgpu::VertexAttribute>,
 }
 
 impl Display for &CompiledShader {

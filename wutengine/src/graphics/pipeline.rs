@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 
 use smallvec::SmallVec;
 use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 use wutengine_util_macro::unique_id_type64;
 
 use crate::graphics::mesh::asset_topology_to_wgpu;

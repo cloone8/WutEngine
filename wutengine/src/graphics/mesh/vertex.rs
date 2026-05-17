@@ -79,7 +79,7 @@ impl VertexBuffer {
         let buffer_size = (vertex_stride * data.len()) as u64;
 
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Vertex buffer"),
+            label: Some(&format!("Vertex buffer {}", attribute)),
             size: buffer_size,
             usage: wgpu::BufferUsages::VERTEX,
             mapped_at_creation: true,
