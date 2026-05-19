@@ -41,6 +41,7 @@ pub struct Shader {
     pub(crate) default_parameters: ShaderDefaultParameters,
 
     /// The keywords allowed to be set on this shader
+    #[expect(unused, reason = "Will be used later")]
     pub(crate) keywords: HashMap<String, ShaderKeyword>,
 
     /// The configurable user-defined parameters on this shader
