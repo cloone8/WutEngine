@@ -6,6 +6,7 @@ use alloc::sync::Arc;
 use core::fmt::Display;
 use core::num::NonZero;
 use std::collections::HashMap;
+use wutengine_shadercompiler::CompOutput;
 
 use nohash_hasher::IntSet;
 use wutengine_asset::assets::shader::ShaderBufferParameterType;
@@ -26,8 +27,10 @@ use crate::util::unreachable_dbg;
 
 use super::{Shader, ShaderParameter};
 
+/// An error while compiling a [Shader] into a [CompiledShader]
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum CompileErr {
+    /// Cross compiling the source WGSL into our current target language failed
     CrossCompile(wutengine_shadercompiler::CompileErr),
 }
 
@@ -51,40 +54,7 @@ pub(crate) fn compile(
 
     log::debug!("Compiling shader {variant_id_string}");
 
-    let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
-        shader
-            .vertex_attributes
-            .iter()
-            .map(|p| p.condition.as_ref().map(|c| c.0.as_str())),
-    );
-
-    let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
-        shader
-            .parameters
-            .iter()
-            .map(|p| p.get_condition().map(|c| c.0.as_str())),
-    );
-
-    let output = wutengine_shadercompiler::compile::<_, WutEngineShaderHasher>(
-        wutengine_shadercompiler::CompInput {
-            id: shader.id,
-            source: &shader.source,
-            keywords,
-            parameters: &user_param_conditions,
-            vertex_attributes: &vertex_attr_conditions,
-            per_camera_block: if shader.default_parameters.camera {
-                include_str!("camera_group.wgsl")
-            } else {
-                ""
-            },
-            per_instance_block: if shader.default_parameters.instance {
-                include_str!("instance_group.wgsl")
-            } else {
-                ""
-            },
-        },
-    )
-    .map_err(|e| Box::new(e.into()))?;
+    let output = do_cross_compile(shader, keywords)?;
 
     assert_eq!(
         variant_id, output.variant_id,
@@ -163,6 +133,48 @@ pub(crate) fn compile(
     };
 
     Ok(cache::shader::insert(variant_id, compiled))
+}
+
+fn do_cross_compile(
+    shader: &Shader,
+    keywords: &HashMap<String, u64>,
+) -> Result<CompOutput<CompiledShaderId>, Box<CompileErr>> {
+    let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
+        shader
+            .vertex_attributes
+            .iter()
+            .map(|p| p.condition.as_ref().map(|c| c.0.as_str())),
+    );
+
+    let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
+        shader
+            .parameters
+            .iter()
+            .map(|p| p.get_condition().map(|c| c.0.as_str())),
+    );
+
+    let output = wutengine_shadercompiler::compile::<_, WutEngineShaderHasher>(
+        wutengine_shadercompiler::CompInput {
+            id: shader.id,
+            source: &shader.source,
+            keywords,
+            parameters: &user_param_conditions,
+            vertex_attributes: &vertex_attr_conditions,
+            per_camera_block: if shader.default_parameters.camera {
+                include_str!("camera_group.wgsl")
+            } else {
+                ""
+            },
+            per_instance_block: if shader.default_parameters.instance {
+                include_str!("instance_group.wgsl")
+            } else {
+                ""
+            },
+        },
+    )
+    .map_err(|e| Box::new(e.into()))?;
+
+    Ok(output)
 }
 
 fn sort_layouts<'a>(
@@ -278,15 +290,29 @@ fn log_shader_compilation_info(module: &wgpu::ShaderModule) {
     }
 }
 
+/// A compiled [Shader], with all keywords resolved
 #[derive(Debug)]
 pub(crate) struct CompiledShader {
+    /// The ID of this compiled variant
     pub(crate) id: CompiledShaderId,
+
+    /// The human-readable name of the source shader
     pub(crate) source_name: String,
+
+    /// The actual shader module
     pub(crate) module: wgpu::ShaderModule,
+
+    /// The pipeline layout used by this shader
     pub(crate) pipeline_layout: wgpu::PipelineLayout,
+
+    /// The bindgroup layout of the bind-group corresponding to the
+    /// user parameters of this shader
     pub(crate) user_bind_group_layout: wgpu::BindGroupLayout,
+
+    /// The user-parameters of this shader
     pub(crate) parameters: Vec<ShaderParameter>,
 
+    /// The vertex attributes used by the vertex stage of this shader
     /// Ordered so that the binding slots are consistent
     pub(crate) vertex_attributes: BTreeMap<ShaderVertexAttributeType, wgpu::VertexAttribute>,
 }

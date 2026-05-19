@@ -4,7 +4,7 @@ use core::net::IpAddr;
 
 pub use profiling::*;
 
-#[cfg(feature = "profiling")]
+#[cfg(all(feature = "profiling", not(target_arch = "wasm32")))]
 mod internal {
 
     use core::net::{IpAddr, Ipv4Addr};
@@ -60,7 +60,7 @@ mod internal {
 /// Starts the profiler HTTP server at the given address and port
 #[allow(unused_variables, reason = "Does nothing in builds without profiling")]
 pub fn start_http_server(addr: Option<IpAddr>, port: Option<u16>) {
-    #[cfg(feature = "profiling")]
+    #[cfg(all(feature = "profiling", not(target_arch = "wasm32")))]
     {
         internal::start_http_server_impl(addr, port);
         internal::set_profiling_state();
@@ -70,7 +70,7 @@ pub fn start_http_server(addr: Option<IpAddr>, port: Option<u16>) {
 /// Stops the current profiler HTTP server
 #[allow(unused_variables, reason = "Does nothing in builds without profiling")]
 pub fn stop_http_server() {
-    #[cfg(feature = "profiling")]
+    #[cfg(all(feature = "profiling", not(target_arch = "wasm32")))]
     {
         internal::stop_http_server_impl();
         internal::set_profiling_state();

@@ -26,6 +26,7 @@ unique_id_type32! {
 /// A WutEngine material. Contains a specific shader variant and a set of parameters for drawing.
 #[derive(Debug)]
 pub struct Material {
+    /// The unique ID of this material
     pub(crate) id: MaterialId,
 
     /// The shader

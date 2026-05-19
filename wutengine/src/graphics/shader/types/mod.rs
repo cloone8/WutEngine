@@ -55,6 +55,7 @@ pub const fn shader_buffer_param_size(bt: ShaderBufferParameterType) -> usize {
     }
 }
 
+/// Returns the default value for a given buffer parameter type
 pub const fn shader_buffer_param_default_value(
     bt: ShaderBufferParameterType,
 ) -> ShaderBufferParameter {
@@ -75,6 +76,7 @@ pub const fn shader_buffer_param_default_value(
     }
 }
 
+/// Returns the default valuye for a given opaque parameter type
 pub fn shader_opaque_param_default_value(ot: ShaderOpaqueParameterType) -> ShaderOpaqueParameter {
     match ot {
         ShaderOpaqueParameterType::Sampler => {
@@ -86,6 +88,7 @@ pub fn shader_opaque_param_default_value(ot: ShaderOpaqueParameterType) -> Shade
     }
 }
 
+/// Returns the [wgpu::BindingType] corresponding to an opaque parameter
 pub const fn shader_opaque_param_wgpu_binding_type(
     ot: ShaderOpaqueParameterType,
 ) -> wgpu::BindingType {
@@ -101,6 +104,8 @@ pub const fn shader_opaque_param_wgpu_binding_type(
     }
 }
 
+/// A shader buffer parameter. These represent the parameter types that have a concrete bit-value that can be stored
+/// in a buffer, as opposed to "opaque" values like texture handles
 #[derive(
     Debug,
     Clone,
@@ -112,22 +117,48 @@ pub const fn shader_opaque_param_wgpu_binding_type(
     VariantName,
 )]
 pub enum ShaderBufferParameter {
+    /// 32-bit float
     Flt(f32),
+
+    /// 32-bit unsigned int
     Uint(u32),
+
+    /// 32-bit signed int
     Int(i32),
+
+    /// 2-component float vec
     Vec2f(GVec2<f32>),
+
+    /// 3-component float vec
     Vec3f(GVec3<f32>),
+
+    /// 4-component float vec
     Vec4f(GVec4<f32>),
+
+    /// 2-component unsigned int vec
     Vec2u(GVec2<u32>),
+
+    /// 3-component unsigned int vec
     Vec3u(GVec3<u32>),
+
+    /// 4-component unsigned int vec
     Vec4u(GVec4<u32>),
+
+    /// 2-component signed int vec
     Vec2i(GVec2<i32>),
+
+    /// 3-component signed int vec
     Vec3i(GVec3<i32>),
+
+    /// 4-component signed int vec
     Vec4i(GVec4<i32>),
+
+    /// 4x4 float matrix
     Mat4x4(GMat4x4<f32>),
 }
 
 impl ShaderBufferParameter {
+    /// Returns the type of this buffer parameter
     #[inline]
     pub const fn get_type(&self) -> ShaderBufferParameterType {
         match self {
@@ -163,6 +194,7 @@ impl ShaderBufferParameter {
         shader_buffer_param_size(self.get_type())
     }
 
+    /// Returns this buffer parameter as a raw byte vector
     #[inline]
     pub fn bytes(&self) -> &[u8] {
         match self {
@@ -182,7 +214,10 @@ impl ShaderBufferParameter {
         }
     }
 
+    /// Sets the value of this parameter from an external [MaterialParameter], casting
+    /// if possible. Will not change the type of this [ShaderBufferParameter]
     #[inline]
+    #[expect(clippy::todo, reason = "Casting is a lot of work")]
     pub fn set_from(&mut self, value: MaterialParameter) -> bool {
         match self {
             Self::Flt(cur) => {
@@ -259,6 +294,8 @@ impl<'a> From<&'a ShaderBufferParameter> for ShaderBufferParameterType {
     }
 }
 
+/// An opaque shader parameter, representing things like texture handles, sampler objects, and other
+/// non-bit-valued parameters
 #[derive(
     Debug,
     Clone,
@@ -269,11 +306,15 @@ impl<'a> From<&'a ShaderBufferParameter> for ShaderBufferParameterType {
     VariantName,
 )]
 pub enum ShaderOpaqueParameter {
+    /// A 2D texture
     Texture2D(wgpu::TextureView),
+
+    /// A sampler object
     Sampler(wgpu::Sampler),
 }
 
 impl ShaderOpaqueParameter {
+    /// Updates the value of this [ShaderOpaqueParameter] from the given [MaterialParameter]
     #[inline]
     pub fn set_from(&mut self, value: MaterialParameter) -> bool {
         //TODO: Add error handling for not-yet-loaded assets?
@@ -295,6 +336,7 @@ impl ShaderOpaqueParameter {
         false
     }
 
+    /// Returns the [wgpu::BindingResource] corresponding to this parameter
     #[inline]
     pub(crate) fn to_binding_resource(&self) -> wgpu::BindingResource<'_> {
         match self {
@@ -304,6 +346,7 @@ impl ShaderOpaqueParameter {
     }
 }
 
+/// Returns the [wgpu::VertexFormat] corresponding to this [ShaderVertexAttributeType]
 pub const fn shader_attr_wgpu_vertex_format(attr: ShaderVertexAttributeType) -> wgpu::VertexFormat {
     match attr {
         ShaderVertexAttributeType::Position => wgpu::VertexFormat::Float32x3,

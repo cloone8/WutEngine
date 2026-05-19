@@ -29,6 +29,7 @@ pub struct Mesh {
 
 /// Public API
 impl Mesh {
+    /// Returns the topology of this mesh
     pub fn topology(&self) -> MeshTopology {
         self.index_buffer.topology
     }
@@ -36,6 +37,7 @@ impl Mesh {
 
 /// Internal API
 impl Mesh {
+    /// Create a new native mesh from the provided serialized mesh data
     pub(crate) fn new(data: &SerializedMesh) -> Option<Self> {
         profiling::function_scope!();
 
@@ -156,6 +158,7 @@ fn trim_to_multiple_of<T>(data: &[T], topology: MeshTopology) -> &[T] {
     &data[..(data.len() - (data.len() % topology.indices_per_primitive()))]
 }
 
+/// Converts a WutEngine [MeshTopology] to a [wgpu::PrimitiveTopology]
 pub const fn asset_topology_to_wgpu(asset_topology: MeshTopology) -> wgpu::PrimitiveTopology {
     match asset_topology {
         MeshTopology::Triangle => wgpu::PrimitiveTopology::TriangleList,

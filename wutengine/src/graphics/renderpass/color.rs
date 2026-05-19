@@ -84,8 +84,8 @@ impl RenderPass for ColorPass {
             multiview_mask: None,
         });
 
-        if let Err(()) = camera.set_camera_bind_group_on_pass(&mut render_pass) {
-            log::error!("Failed to set camera bind group");
+        if let Err(e) = camera.set_camera_bind_group_on_pass(&mut render_pass) {
+            log::error!("Failed to set camera bind group: {e}");
             return;
         }
 

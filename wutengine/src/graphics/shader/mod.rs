@@ -25,17 +25,29 @@ unique_id_type64! {
     pub(crate) ShaderId
 }
 
+/// A general shader asset, used when configuring Materials
 #[derive(Debug, Clone)]
 pub struct Shader {
-    pub id: ShaderId,
-    pub name: String,
-    pub vertex_attributes: Vec<ShaderVertexAttribute>,
+    /// The ID for this shader
+    pub(crate) id: ShaderId,
 
-    pub default_parameters: ShaderDefaultParameters,
+    /// The human-readable name of this shader
+    pub(crate) name: String,
 
-    pub keywords: HashMap<String, ShaderKeyword>,
-    pub parameters: Vec<ShaderParameter>,
-    pub source: String,
+    /// The vertex attributes used by this shader
+    pub(crate) vertex_attributes: Vec<ShaderVertexAttribute>,
+
+    /// The default parameters used by this shader
+    pub(crate) default_parameters: ShaderDefaultParameters,
+
+    /// The keywords allowed to be set on this shader
+    pub(crate) keywords: HashMap<String, ShaderKeyword>,
+
+    /// The configurable user-defined parameters on this shader
+    pub(crate) parameters: Vec<ShaderParameter>,
+
+    /// The source code for this shader
+    pub(crate) source: String,
 }
 
 impl Asset for Shader {
@@ -78,11 +90,13 @@ impl CompiledShaderId {
         Self(((source_shader_hash as u128) << 64) | (keyword_hash as u128))
     }
 
+    /// Returns the bits corresponding to the hash of the source shader
     #[inline]
     pub const fn source_hash(self) -> u64 {
         (self.0 >> 64) as u64
     }
 
+    /// Returns the bits corresponding to the hash of the used keywords
     #[inline]
     pub const fn keyword_hash(self) -> u64 {
         self.0 as u64
@@ -95,6 +109,8 @@ impl Display for CompiledShaderId {
     }
 }
 
+/// Given a [ShaderId] and a set of keywords, calculates
+/// the ID that the resulting compiled shader would have
 pub(crate) fn calculate_variant_id(
     shader_id: ShaderId,
     keywords: &HashMap<impl AsRef<str>, u64>,

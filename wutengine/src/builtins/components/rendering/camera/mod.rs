@@ -74,15 +74,23 @@ pub struct Camera {
 
     blit_material: Option<Material>,
 
+    /// Render passes active on this camera. Updated before each frame by the main runtime
     pub(crate) render_passes: Vec<CameraRenderPass>,
 }
 
+/// Container for an enabled [RenderPass]
 #[derive(derive_more::Debug)]
 pub(crate) struct CameraRenderPass {
+    /// The type of the pass
     pub(crate) type_id: TypeId,
+
+    /// The name of the pass
     pub(crate) name: &'static str,
+
+    /// The order of the pass relative to other passes
     pub(crate) order: u64,
 
+    /// The pass itself
     #[debug(skip)]
     pub(crate) pass: Box<dyn RenderPass>,
 }
@@ -93,6 +101,14 @@ impl Default for Camera {
         Self::new()
     }
 }
+
+/// Error when the camera bind group wasn't initialized yet
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display(
+    "Camera bind group not yet initialized. Make sure to call this function from inside a renderpass only"
+)]
+pub struct MissingCameraBindGroupErr;
+
 /// Public API
 impl Camera {
     /// Creates a new default camera component
@@ -125,8 +141,15 @@ impl Camera {
         self.render_target.as_ref()
     }
 
-    pub fn set_camera_bind_group_on_pass(&self, pass: &mut wgpu::RenderPass) -> Result<(), ()> {
-        let cam_bind_group = self.camera_parameters.as_ref().ok_or(())?;
+    /// Sets this camera's parameter bind group on the given pass
+    pub fn set_camera_bind_group_on_pass(
+        &self,
+        pass: &mut wgpu::RenderPass,
+    ) -> Result<(), MissingCameraBindGroupErr> {
+        let cam_bind_group = self
+            .camera_parameters
+            .as_ref()
+            .ok_or(MissingCameraBindGroupErr)?;
 
         pass.set_bind_group(
             CAMERA_PARAMS_BIND_GROUP_INDEX,
@@ -137,11 +160,13 @@ impl Camera {
         Ok(())
     }
 
+    /// Returns the current view matrix for this camera
     #[inline]
     pub fn get_view_mat(&self) -> Mat4 {
         self.view_matrix
     }
 
+    /// Returns the current projection matrix for this camera
     #[inline]
     pub fn get_proj_mat(&self) -> Mat4 {
         self.projection_matrix
@@ -267,6 +292,7 @@ impl Camera {
 
 /// Internal functionality for rendering
 impl Camera {
+    /// Blits this camera's rendertexture to the given target
     pub(crate) fn blit_to_target(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,

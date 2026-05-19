@@ -10,6 +10,7 @@ use crate::graphics::shader::{GVec2, GVec3};
 pub struct VertexBuffer {
     /// For which attribute this buffer contains data
     pub(crate) attribute: ShaderVertexAttributeType,
+
     /// The amount of elements in this buffer
     pub(crate) count: NonZero<u64>,
 

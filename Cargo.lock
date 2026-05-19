@@ -3208,7 +3208,6 @@ dependencies = [
  "puffin_http",
  "rayon",
  "serde",
- "serde_bytes",
  "serde_json",
  "smallvec",
  "toml",

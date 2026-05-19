@@ -9,6 +9,7 @@ pub use transform::*;
 
 use crate::runtime::SystemManifest;
 
+/// Registers all systems for the built-in components
 pub fn register_builtin_component_systems(manifest: &mut SystemManifest) {
     manifest.add_default_component_systems::<Name>();
     manifest.add_default_component_systems::<Transform>();

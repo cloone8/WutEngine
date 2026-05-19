@@ -4,6 +4,7 @@ use glam::Vec3;
 
 use crate::component::Component;
 
+/// A 3D transform component, containing both the local transform and the transform hierarchy
 #[derive(Debug)]
 pub struct Transform {
     translation: Vec3,
@@ -14,11 +15,13 @@ pub struct Transform {
 
 /// Public API
 impl Transform {
+    /// Create a new identity transform
     #[inline]
     pub fn new() -> Self {
         Self::new_at(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
     }
 
+    /// Create a new transform with the given local parameters
     pub fn new_at(position: Vec3, rotation: Quat, scale: Vec3) -> Self {
         let mut new = Self {
             translation: position,
@@ -32,26 +35,31 @@ impl Transform {
         new
     }
 
+    /// Returns the current local-to-world matrix
     #[inline(always)]
     pub const fn local_to_world(&self) -> Mat4 {
         self.local_to_world
     }
 
+    /// Returns the current local position
     #[inline(always)]
     pub const fn local_position(&self) -> Vec3 {
         self.translation
     }
 
+    /// Returns the current local rotation
     #[inline(always)]
     pub const fn local_rotation(&self) -> Quat {
         self.rotation
     }
 
+    /// Returns the current local scale
     #[inline(always)]
     pub const fn local_scale(&self) -> Vec3 {
         self.scale
     }
 
+    /// Set the local position
     #[inline(always)]
     pub fn set_local_position(&mut self, local_position: Vec3) {
         self.translation = local_position;
@@ -59,6 +67,7 @@ impl Transform {
         self.recalculate_local_to_world();
     }
 
+    /// Set the local rotation
     #[inline(always)]
     pub fn set_local_rotation(&mut self, local_rotation: Quat) {
         self.rotation = local_rotation;
@@ -66,6 +75,7 @@ impl Transform {
         self.recalculate_local_to_world();
     }
 
+    /// Set the local scale
     #[inline(always)]
     pub fn set_local_scale(&mut self, local_scale: Vec3) {
         self.scale = local_scale;

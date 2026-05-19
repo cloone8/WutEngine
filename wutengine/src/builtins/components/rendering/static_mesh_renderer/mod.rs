@@ -17,14 +17,17 @@ pub struct StaticMeshRenderer {
 
 /// Public API
 impl StaticMeshRenderer {
+    /// Returns a new unconfigured [StaticMeshRenderer]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets the mesh to render to the provided mesh
     pub fn set_mesh(&mut self, mesh: AssetHandle<Mesh>) {
         self.mesh = mesh;
     }
 
+    /// Sets the material this renderer uses to the provided material
     pub fn set_material(&mut self, material: AssetHandle<Material>) {
         self.material = material;
     }
