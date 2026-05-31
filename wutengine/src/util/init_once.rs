@@ -54,8 +54,8 @@ impl<T, const MAIN_THREAD_ONLY: bool, const BEFORE_THREAD_POOL: bool>
     /// In debug builds, asserts that the value was initialized
     #[inline(always)]
     fn assert_initialized(&self) {
-        if cfg!(debug_assertions) {
-            // unchecked in debug builds
+        if !cfg!(debug_assertions) {
+            // unchecked in release builds
             return;
         }
 
