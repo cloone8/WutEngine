@@ -1,3 +1,5 @@
+//! Material asset
+
 use core::any::Any;
 use std::collections::HashMap;
 

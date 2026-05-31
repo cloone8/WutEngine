@@ -1,3 +1,5 @@
+//! Shader asset
+
 use core::ops::RangeInclusive;
 use std::collections::HashMap;
 use std::path::PathBuf;

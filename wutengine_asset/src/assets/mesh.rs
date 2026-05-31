@@ -1,3 +1,5 @@
+//! Mesh asset
+
 use glam::Vec2;
 use glam::Vec3;
 use nohash_hasher::IntMap;

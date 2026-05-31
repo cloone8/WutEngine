@@ -1,3 +1,5 @@
+//! Sampler asset
+
 use core::fmt::Display;
 
 use serde::Deserialize;
