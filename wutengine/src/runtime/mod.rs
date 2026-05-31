@@ -15,6 +15,7 @@ use crate::builtins::components::rendering::GlobalRenderPass;
 use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::graphics::renderpass::RenderPassInfo;
+use crate::input;
 use crate::system::{self, Phase, SystemManager};
 use crate::util::{self, InitOnce};
 use crate::window::{self, Window};
@@ -136,6 +137,7 @@ pub fn run(
     log::debug!("Final schedule:\n{}", runtime.systems.dump());
 
     window::manager::initialize();
+    input::init();
     world::initialize();
 
     let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event()

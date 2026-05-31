@@ -8,6 +8,7 @@ pub mod component;
 pub mod config;
 pub mod entity;
 pub mod graphics;
+pub mod input;
 pub mod math;
 pub mod profiling;
 pub mod runtime;

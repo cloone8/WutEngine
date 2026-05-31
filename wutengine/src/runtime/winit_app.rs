@@ -4,6 +4,7 @@
 use alloc::sync::Arc;
 
 use crate::config;
+use crate::input;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
 
@@ -63,6 +64,8 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         native_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
+        profiling::function_scope!();
+
         let Some(id) = window::manager::find_id(native_id) else {
             log::warn!(
                 "Could not find WutEngine window for native ID: {}",
@@ -151,17 +154,23 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         device_id: winit::event::DeviceId,
         event: winit::event::DeviceEvent,
     ) {
-        let _ = (event_loop, device_id, event);
+        profiling::function_scope!();
+
+        let _ = event_loop;
+
+        input::insert_new_raw_event(device_id, event);
     }
 
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        profiling::finish_frame!();
-
         let _ = event_loop;
 
         self.run_frame_logic();
 
         self.render_all_windows();
+
+        input::reset_delta();
+
+        profiling::finish_frame!();
     }
 
     fn suspended(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
