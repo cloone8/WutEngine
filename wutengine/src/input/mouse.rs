@@ -18,8 +18,6 @@ pub const MIDDLE: u32 = 2;
 /// The data belonging to a single mouse
 #[derive(Debug, Clone)]
 pub(crate) struct Mouse {
-    pub(crate) device_id: winit::event::DeviceId,
-
     /// The scroll delta in the current frame in "lines".
     /// Positive X means towards the right, positive Y means up
     pub(crate) scroll_delta: Vec2,
@@ -37,9 +35,8 @@ pub(crate) struct Mouse {
 
 impl Mouse {
     /// Create a new, empty, [Mouse]
-    pub(crate) fn new(id: winit::event::DeviceId) -> Self {
+    pub(crate) fn new() -> Self {
         Self {
-            device_id: id,
             scroll_delta: Vec2::ZERO,
             pos_delta: Vec2::ZERO,
             prev_pressed_buttons: HashSet::default(),
@@ -61,7 +58,7 @@ impl Mouse {
         let was_released = self.pressed_buttons.insert(button);
 
         if !was_released {
-            log::warn!("Pressed button {button}, which was already pressed");
+            log::trace!("Pressed button {button}, which was already pressed");
         }
     }
 
@@ -70,7 +67,7 @@ impl Mouse {
         let was_held = self.pressed_buttons.remove(button);
 
         if !was_held {
-            log::warn!("Released button {button}, which was not pressed");
+            log::trace!("Released button {button}, which was not pressed");
         }
     }
 }
