@@ -45,7 +45,7 @@ impl Default for GraphicsBackend {
         if cfg!(target_arch = "wasm32") {
             Self::WebGPU
         } else if cfg!(windows) {
-            Self::Vulkan
+            Self::DX12
         } else if cfg!(any(target_os = "macos", target_os = "ios")) {
             Self::Metal
         } else if cfg!(any(

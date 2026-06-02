@@ -6,6 +6,7 @@ use std::sync::RwLock;
 use nohash_hasher::IntMap;
 use smallvec::SmallVec;
 
+use crate::config;
 use crate::graphics;
 use crate::util::{InitOnce, assert_main_thread};
 
@@ -26,14 +27,13 @@ pub(crate) fn new_window(
     id: crate::window::Window,
     window: Arc<winit::window::Window>,
     surface: wgpu::Surface<'static>,
-    vsync: bool,
 ) {
     profiling::function_scope!();
 
     assert_main_thread!();
 
     let native_id = window.id();
-    let info = WindowInfo::new(id, window, surface, vsync);
+    let info = WindowInfo::new(id, window, surface);
 
     let mut window_manager = WINDOW_MANAGER.write().unwrap();
     window_manager.winit_to_engine.insert(native_id.into(), id);
@@ -135,20 +135,70 @@ pub(crate) fn find_id(native_id: winit::window::WindowId) -> Option<Window> {
         .copied()
 }
 
-/// Locks the window manager and runs the provided callback. Used
-/// so the surfaces can be rendered to
-pub(crate) fn with_locked_surfaces(func: impl FnOnce(&[(Window, &wgpu::Surface<'static>)])) {
+/// Returns the surface textures for all current windows that have a valid one.
+/// If vsync is enabled, this is the point where the CPU is locked
+pub(crate) fn get_surface_textures() -> SmallVec<[(Window, wgpu::SurfaceTexture); 2]> {
     profiling::function_scope!();
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
-    let surfaces: SmallVec<[_; 2]> = window_manager
-        .windows
-        .iter()
-        .map(|(id, srfc)| (*id, &srfc.surface))
-        .collect();
+    let mut surfaces: SmallVec<[_; 2]> = SmallVec::new_const();
 
-    func(&surfaces);
+    for (&id, window_info) in window_manager.windows.iter() {
+        log::trace!("Getting surface texture for window {id}");
+
+        if let Some(surface_tex) = unwrap_surface_tex(&window_info.surface, id) {
+            surfaces.push((id, surface_tex));
+        }
+    }
+
+    surfaces
+}
+
+/// Notifies the given windows that content is about to be presented to them
+pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Window>) {
+    profiling::function_scope!();
+
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    for window in windows {
+        if let Some(window_info) = window_manager.windows.get(window) {
+            window_info.native.pre_present_notify();
+        } else {
+            log::warn!(
+                "Could not pre-present notify window {window} because it could not be found"
+            );
+        }
+    }
+}
+
+fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::SurfaceTexture> {
+    match surface.get_current_texture() {
+        wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
+        wgpu::CurrentSurfaceTexture::Suboptimal(sfctex) => {
+            log::warn!("Suboptimal surface for window {window}, should recreate");
+            Some(sfctex)
+        }
+        wgpu::CurrentSurfaceTexture::Timeout => {
+            panic!("Timeout while trying to obtain surface texture for window {window}");
+        }
+        wgpu::CurrentSurfaceTexture::Occluded => {
+            log::trace!("Surface texture for window {window} is occluded");
+            None
+        }
+        wgpu::CurrentSurfaceTexture::Outdated => {
+            log::error!("Surface texture for window {window} is outdated");
+            None
+        }
+        wgpu::CurrentSurfaceTexture::Lost => {
+            panic!("Surface texture for window {window} lost");
+        }
+        wgpu::CurrentSurfaceTexture::Validation => {
+            panic!(
+                "Validation error while trying to obtain the surface texture for window {window}"
+            );
+        }
+    }
 }
 
 /// The WutEngine window manager. Owns all native windows, and allows interaction with them
@@ -174,8 +224,6 @@ struct WindowInfo {
 
     /// The physical window size, in pixels `W x H`
     inner_size: (u32, u32),
-
-    vsync: bool,
 }
 
 impl WindowInfo {
@@ -186,14 +234,12 @@ impl WindowInfo {
         id: Window,
         native: Arc<winit::window::Window>,
         surface: wgpu::Surface<'static>,
-        vsync: bool,
     ) -> Self {
         let mut new = Self {
             id,
             native,
             surface,
             inner_size: (0, 0),
-            vsync,
         };
 
         new.refresh();
@@ -232,12 +278,20 @@ impl WindowInfo {
                 format: surface_format,
                 width: size.0,
                 height: size.1,
-                present_mode: if self.vsync {
+                present_mode: if config::try_get("wutengine.window.vsync").unwrap_or(true) {
                     wgpu::PresentMode::AutoVsync
                 } else {
                     wgpu::PresentMode::AutoNoVsync
                 },
-                desired_maximum_frame_latency: 2,
+                desired_maximum_frame_latency: if config::try_get(
+                    "wutengine.window.triple_buffering",
+                )
+                .unwrap_or(false)
+                {
+                    2
+                } else {
+                    1
+                },
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                 view_formats: vec![
                     surface_format.remove_srgb_suffix(),

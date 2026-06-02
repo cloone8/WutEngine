@@ -3,7 +3,6 @@
 
 use alloc::sync::Arc;
 
-use crate::config;
 use crate::input;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
@@ -111,10 +110,6 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 log::debug!("Handling window creation request for window {window_id}");
 
-                let vsync = window_config
-                    .vsync
-                    .unwrap_or_else(|| config::try_get("wutengine.window.vsync").unwrap_or(true));
-
                 let native = match event_loop.create_window(window_config.into()) {
                     Ok(native) => Arc::new(native),
                     Err(e) => {
@@ -125,7 +120,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 let surface = graphics::instance().create_surface(native.clone()).unwrap();
 
-                window::manager::new_window(window_id, native, surface, vsync);
+                window::manager::new_window(window_id, native, surface);
             }
             WinitEvent::CloseWindow(window_id) => {
                 profiling::scope!("Close Window");
@@ -164,9 +159,17 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let _ = event_loop;
 
+        // We wait for the rendering target to become available in the beginning of the frame,
+        // because then if we block on vsync or similar the simulation will not be out of date
+        let surfaces = window::manager::get_surface_textures();
+
         self.run_frame_logic();
 
-        self.render_all_windows();
+        self.render_all_windows(&surfaces);
+
+        for (_, surface) in surfaces {
+            surface.present();
+        }
 
         input::reset_delta();
 

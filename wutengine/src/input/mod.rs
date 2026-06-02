@@ -15,6 +15,24 @@ use crate::util::InitOnce;
 pub mod keyboard;
 pub mod mouse;
 
+/// A mouse input device
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::From)]
+pub struct MouseDevice(winit::event::DeviceId);
+
+/// A keyboard input device
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::From)]
+pub struct KeyboardDevice(winit::event::DeviceId);
+
+/// An input device
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::From)]
+pub enum InputDevice {
+    /// A [MouseDevice]
+    Mouse(MouseDevice),
+
+    /// A [KeyboardDevice]
+    Keyboard(KeyboardDevice),
+}
+
 /// Raw input manager
 #[derive(Debug, Default)]
 pub(crate) struct InputManager {
@@ -53,7 +71,7 @@ impl InputManager {
             let mut keyboards = self.keyboards.write().unwrap();
 
             for keyboard in keyboards.values_mut() {
-                keyboard.reset_frame();
+                keyboard.next_frame();
             }
         }
     }
@@ -235,27 +253,62 @@ pub fn reset_delta() {
     INPUT_MANAGER.reset_delta();
 }
 
-fn get_mouse_and<T>(func: impl FnOnce(Option<&Mouse>) -> T) -> T {
-    let most_recent_mouse = *INPUT_MANAGER.most_recent_mouse.read().unwrap();
+fn get_mouse_and<T>(to_query: Option<MouseDevice>, func: impl FnOnce(Option<&Mouse>) -> T) -> T {
     let mice = INPUT_MANAGER.mice.read().unwrap();
+    let mouse = match to_query {
+        Some(to_query) => {
+            let mouse = InputManager::get_specific_mouse(&mice, to_query.0);
 
-    let mouse = InputManager::get_latest_mouse(&mice, most_recent_mouse);
+            if mouse.is_none() {
+                log::warn!("Mouse {to_query:?} could not be found, returning default values");
+            }
+
+            mouse
+        }
+        None => {
+            let most_recent_mouse = *INPUT_MANAGER.most_recent_mouse.read().unwrap();
+
+            InputManager::get_latest_mouse(&mice, most_recent_mouse)
+        }
+    };
 
     func(mouse)
 }
 
-fn get_keyboard_and<T>(func: impl FnOnce(Option<&Keyboard>) -> T) -> T {
-    let most_recent_keyboard = *INPUT_MANAGER.most_recent_keyboard.read().unwrap();
+fn get_keyboard_and<T>(
+    to_query: Option<KeyboardDevice>,
+    func: impl FnOnce(Option<&Keyboard>) -> T,
+) -> T {
     let keyboards = INPUT_MANAGER.keyboards.read().unwrap();
 
-    let keyboard = InputManager::get_latest_keyboard(&keyboards, most_recent_keyboard);
+    let keyboard = match to_query {
+        Some(to_query) => {
+            let keyboard = InputManager::get_specific_keyboard(&keyboards, to_query.0);
+
+            if keyboard.is_none() {
+                log::warn!("Keyboard {to_query:?} could not be found, returning default values");
+            }
+
+            keyboard
+        }
+        None => {
+            let most_recent_keyboard = *INPUT_MANAGER.most_recent_keyboard.read().unwrap();
+
+            InputManager::get_latest_keyboard(&keyboards, most_recent_keyboard)
+        }
+    };
 
     func(keyboard)
 }
 
-///TODO: Add argument for querying specific mouse
-pub fn raw_mouse_pos_delta() -> Vec2 {
-    get_mouse_and(|mouse| {
+/// Returns the raw mouse position delta.
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns [Vec2::ZERO]
+pub fn raw_mouse_pos_delta(device: Option<MouseDevice>) -> Vec2 {
+    get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
             mouse.pos_delta
         } else {
@@ -264,9 +317,14 @@ pub fn raw_mouse_pos_delta() -> Vec2 {
     })
 }
 
-///TODO: Add argument for querying specific mouse
-pub fn raw_mouse_scroll_delta() -> Vec2 {
-    get_mouse_and(|mouse| {
+/// Returns the raw mouse scroll delta.
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns [Vec2::ZERO]
+pub fn raw_mouse_scroll_delta(device: Option<MouseDevice>) -> Vec2 {
+    get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
             mouse.scroll_delta
         } else {
@@ -275,9 +333,16 @@ pub fn raw_mouse_scroll_delta() -> Vec2 {
     })
 }
 
-///TODO: Add argument for querying specific mouse
-pub fn raw_mouse_button_pressed(button: u32) -> bool {
-    get_mouse_and(|mouse| {
+/// Returns whether the specified mouse button was pressed this frame. If the button
+/// was already pressed last frame, this returns `false`. To check whether the button is held,
+/// even if it was already held before, see [raw_mouse_button_held]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns `false`
+pub fn raw_mouse_button_pressed(device: Option<MouseDevice>, button: u32) -> bool {
+    get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
             mouse.pressed_buttons.contains(&button) && !mouse.prev_pressed_buttons.contains(&button)
         } else {
@@ -286,9 +351,16 @@ pub fn raw_mouse_button_pressed(button: u32) -> bool {
     })
 }
 
-///TODO: Add argument for querying specific mouse
-pub fn raw_mouse_button_held(button: u32) -> bool {
-    get_mouse_and(|mouse| {
+/// Returns whether the specified mouse button was being held this frame. This returns
+/// `true` in every frame the button is held. To only get `true` for new presses, see
+/// [raw_mouse_button_pressed]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns `false`
+pub fn raw_mouse_button_held(device: Option<MouseDevice>, button: u32) -> bool {
+    get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
             mouse.pressed_buttons.contains(&button)
         } else {
@@ -297,9 +369,16 @@ pub fn raw_mouse_button_held(button: u32) -> bool {
     })
 }
 
-///TODO: Add argument for querying specific mouse
-pub fn raw_mouse_button_released(button: u32) -> bool {
-    get_mouse_and(|mouse| {
+/// Returns whether the specified mouse button was released this frame. If the button
+/// was not held down last frame, this always returns `false`. To check whether the button is held,
+/// even if it was not held before, see [raw_mouse_button_held]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns `false`
+pub fn raw_mouse_button_released(device: Option<MouseDevice>, button: u32) -> bool {
+    get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
             !mouse.pressed_buttons.contains(&button) && mouse.prev_pressed_buttons.contains(&button)
         } else {
@@ -308,9 +387,16 @@ pub fn raw_mouse_button_released(button: u32) -> bool {
     })
 }
 
-///TODO: Add argument for querying specific keyboard
-pub fn raw_keyboard_button_pressed(key: keyboard::Key) -> bool {
-    get_keyboard_and(|keyboard| {
+/// Returns whether the specified keyboard key was pressed this frame. If the key
+/// was already pressed last frame, this returns `false`. To check whether the key is held,
+/// even if it was already held before, see [raw_keyboard_key_held]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed keyboard device.
+///
+/// If the specified keyboard (or the latest keyboard) could not be found, returns `false`
+pub fn raw_keyboard_key_pressed(device: Option<KeyboardDevice>, key: keyboard::Key) -> bool {
+    get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
             keyboard.pressed_keys.contains(&key) && !keyboard.prev_pressed_keys.contains(&key)
         } else {
@@ -319,9 +405,16 @@ pub fn raw_keyboard_button_pressed(key: keyboard::Key) -> bool {
     })
 }
 
-///TODO: Add argument for querying specific keyboard
-pub fn raw_keyboard_button_held(key: keyboard::Key) -> bool {
-    get_keyboard_and(|keyboard| {
+/// Returns whether the specified keyboard key was being held this frame. This returns
+/// `true` in every frame the key is held. To only get `true` for new presses, see
+/// [raw_keyboard_key_pressed]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed keyboard device.
+///
+/// If the specified keyboard (or the latest keyboard) could not be found, returns `false`
+pub fn raw_keyboard_key_held(device: Option<KeyboardDevice>, key: keyboard::Key) -> bool {
+    get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
             keyboard.pressed_keys.contains(&key)
         } else {
@@ -330,9 +423,16 @@ pub fn raw_keyboard_button_held(key: keyboard::Key) -> bool {
     })
 }
 
-///TODO: Add argument for querying specific keyboard
-pub fn raw_keyboard_button_released(key: keyboard::Key) -> bool {
-    get_keyboard_and(|keyboard| {
+/// Returns whether the specified keyboard key was released this frame. If the key
+/// was not held down last frame, this always returns `false`. To check whether the key is held,
+/// even if it was not held before, see [raw_keyboard_key_held]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed keyboard device.
+///
+/// If the specified keyboard (or the latest keyboard) could not be found, returns `false`
+pub fn raw_keyboard_key_released(device: Option<KeyboardDevice>, key: keyboard::Key) -> bool {
+    get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
             !keyboard.pressed_keys.contains(&key) && keyboard.prev_pressed_keys.contains(&key)
         } else {

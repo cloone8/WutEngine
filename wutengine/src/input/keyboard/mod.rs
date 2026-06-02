@@ -6,6 +6,7 @@ mod key;
 
 pub use key::*;
 
+/// Data concerning the input of a single keyboard
 #[derive(Debug, Clone)]
 pub(crate) struct Keyboard {
     /// The held keys in the previous frame
@@ -16,13 +17,16 @@ pub(crate) struct Keyboard {
 }
 
 impl Keyboard {
+    /// New [Keyboard] with no keys pressed
     pub(crate) fn new() -> Self {
         Self {
             prev_pressed_keys: HashSet::default(),
             pressed_keys: HashSet::default(),
         }
     }
-    pub(crate) fn reset_frame(&mut self) {
+
+    /// Makes sure that all new input is registered to the next frame
+    pub(crate) fn next_frame(&mut self) {
         self.prev_pressed_keys.clone_from(&self.pressed_keys);
     }
 

@@ -7,7 +7,6 @@ use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
 use derive_more::{Display, Error, From};
-use smallvec::SmallVec;
 use winit::error::EventLoopError;
 
 use crate::builtins::components::rendering::Camera;
@@ -183,7 +182,7 @@ impl Runtime {
         entity::process_changes(&mut world::get_world_mut(), &self.entity_manager);
     }
 
-    fn render_all_windows(&self) {
+    fn render_all_windows(&self, surfaces: &[(Window, wgpu::SurfaceTexture)]) {
         profiling::function_scope!();
 
         // Gather all submitted draw commands
@@ -206,6 +205,7 @@ impl Runtime {
             .collect::<Vec<_>>();
 
         // Render all cameras, giving each camera its own rendering thread
+        // TODO: Only render cameras for which the surface is available
         let mut buffers: Vec<_> = world
             .ecs
             .query_mut::<&mut Camera>()
@@ -218,43 +218,26 @@ impl Runtime {
             })
             .collect();
 
-        // Now that all the rendering is finished, we lock the window surfaces and have the cameras blit their
+        // Now that all the rendering is finished, we have the cameras blit their
         // rendered contents onto their main target surface
-        window::manager::with_locked_surfaces(|surfaces| {
-            let mut surface_texture_map = SmallVec::<[_; 4]>::new_const();
+        let mut blit_encoder =
+            graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Camera Blit Command Encoder"),
+            });
 
-            for (window, surface) in surfaces {
-                let Some(surface_texture) = unwrap_surface_tex(surface, window) else {
-                    log::debug!(
-                        "No surface texture could be obtained for window {window}, skipping"
-                    );
-                    continue;
-                };
+        blit_encoder.push_debug_group("Blitting cameras to main surfaces");
 
-                surface_texture_map.push((*window, surface_texture));
-            }
+        for camera in world.ecs.query_mut::<&mut Camera>() {
+            camera.blit_to_target(&mut blit_encoder, surfaces);
+        }
 
-            let mut blit_encoder =
-                graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Camera Blit Command Encoder"),
-                });
+        blit_encoder.pop_debug_group();
 
-            blit_encoder.push_debug_group("Blitting cameras to main surfaces");
+        buffers.push(blit_encoder.finish());
 
-            for camera in world.ecs.query_mut::<&mut Camera>() {
-                camera.blit_to_target(&mut blit_encoder, &surface_texture_map);
-            }
+        window::manager::pre_present_notify(surfaces.iter().map(|(win, _)| win));
 
-            blit_encoder.pop_debug_group();
-
-            buffers.push(blit_encoder.finish());
-
-            graphics::queue().submit(buffers);
-
-            for (_, surface) in surface_texture_map {
-                surface.present();
-            }
-        });
+        graphics::queue().submit(buffers);
     }
 
     fn render_camera(
@@ -299,35 +282,6 @@ impl Runtime {
         }
 
         Some(encoder)
-    }
-}
-
-fn unwrap_surface_tex(surface: &wgpu::Surface, window: &Window) -> Option<wgpu::SurfaceTexture> {
-    match surface.get_current_texture() {
-        wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
-        wgpu::CurrentSurfaceTexture::Suboptimal(sfctex) => {
-            log::warn!("Suboptimal surface for window {window}, should recreate");
-            Some(sfctex)
-        }
-        wgpu::CurrentSurfaceTexture::Timeout => {
-            panic!("Timeout while trying to obtain surface texture for window {window}");
-        }
-        wgpu::CurrentSurfaceTexture::Occluded => {
-            log::trace!("Surface texture for window {window} is occluded");
-            None
-        }
-        wgpu::CurrentSurfaceTexture::Outdated => {
-            log::error!("Surface texture for window {window} is outdated");
-            None
-        }
-        wgpu::CurrentSurfaceTexture::Lost => {
-            panic!("Surface texture for window {window} lost");
-        }
-        wgpu::CurrentSurfaceTexture::Validation => {
-            panic!(
-                "Validation error while trying to obtain the surface texture for window {window}"
-            );
-        }
     }
 }
 
