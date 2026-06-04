@@ -1,8 +1,11 @@
 //! Implements the [winit::application::ApplicationHandler] interface for [crate::runtime::Runtime],
 //! so that its execution can be driven by [winit]
 
+use core::time::Duration;
+
 use alloc::sync::Arc;
 
+use crate::config;
 use crate::input;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
@@ -50,6 +53,13 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         // Initialize the time manager later here, right before the runtime starts running frames
         time::init();
         thread::init_thread_pool();
+
+        if let Some(fps_limit) = config::try_get::<u64>("wutengine.window.fps_limit")
+            && fps_limit != 0
+        {
+            self.frame_pacer
+                .set_frame_interval(Some(Duration::from_secs_f64(1.0 / (fps_limit as f64))));
+        }
 
         // Must be called last, so we know the engine setup is done
         if let Some(post_init_callback) = post_init.post_start_callback.take() {
@@ -163,6 +173,8 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         // because then if we block on vsync or similar the simulation will not be out of date
         let surfaces = window::manager::get_surface_textures();
 
+        input::gamepad::poll_for_events();
+
         self.run_frame_logic();
 
         self.render_all_windows(&surfaces);
@@ -172,6 +184,9 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         }
 
         input::reset_delta();
+
+        self.frame_pacer.frame_rendered();
+        self.frame_pacer.wait_for_limit();
 
         profiling::finish_frame!();
     }

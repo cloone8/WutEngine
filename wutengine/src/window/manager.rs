@@ -271,6 +271,23 @@ impl WindowInfo {
             .copied()
             .unwrap_or(surface_caps.formats[0]);
 
+        let present_mode = get_best_present_mode(
+            self.id,
+            config::try_get("wutengine.window.vsync").unwrap_or(true),
+            &surface_caps.present_modes,
+        );
+
+        log::debug!("Chose present mode {present_mode:?} for window {}", self.id);
+
+        let desired_maximum_frame_latency =
+            if config::try_get("wutengine.window.triple_buffering").unwrap_or(false) {
+                2
+            } else {
+                1
+            };
+
+        log::debug!("Requested maximum frame latency: {desired_maximum_frame_latency}");
+
         surface.configure(
             graphics::device(),
             &wgpu::SurfaceConfiguration {
@@ -278,20 +295,8 @@ impl WindowInfo {
                 format: surface_format,
                 width: size.0,
                 height: size.1,
-                present_mode: if config::try_get("wutengine.window.vsync").unwrap_or(true) {
-                    wgpu::PresentMode::AutoVsync
-                } else {
-                    wgpu::PresentMode::AutoNoVsync
-                },
-                desired_maximum_frame_latency: if config::try_get(
-                    "wutengine.window.triple_buffering",
-                )
-                .unwrap_or(false)
-                {
-                    2
-                } else {
-                    1
-                },
+                present_mode,
+                desired_maximum_frame_latency,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                 view_formats: vec![
                     surface_format.remove_srgb_suffix(),
@@ -299,6 +304,33 @@ impl WindowInfo {
                 ],
             },
         );
+    }
+}
+
+fn get_best_present_mode(
+    window: Window,
+    wants_vsync: bool,
+    capabilities: &[wgpu::PresentMode],
+) -> wgpu::PresentMode {
+    log::trace!(
+        "Window {} supports present modes: {capabilities:?}. Vsync requested: {wants_vsync}",
+        window
+    );
+
+    if wants_vsync {
+        if capabilities.contains(&wgpu::PresentMode::FifoRelaxed) {
+            wgpu::PresentMode::FifoRelaxed
+        } else {
+            wgpu::PresentMode::Fifo
+        }
+    } else {
+        if capabilities.contains(&wgpu::PresentMode::Immediate) {
+            wgpu::PresentMode::Immediate
+        } else if capabilities.contains(&wgpu::PresentMode::Mailbox) {
+            wgpu::PresentMode::Mailbox
+        } else {
+            wgpu::PresentMode::Fifo
+        }
     }
 }
 

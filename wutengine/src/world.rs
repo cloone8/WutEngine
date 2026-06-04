@@ -8,7 +8,7 @@ use crate::util::InitOnce;
 static WORLD: InitOnce<RwLock<World>> = InitOnce::new();
 
 /// Initializes the global "world", which contains the ECS data
-pub(crate) fn initialize() {
+pub(crate) fn init() {
     log::trace!("Initializing world");
 
     InitOnce::init(&WORLD, RwLock::new(World::new()));

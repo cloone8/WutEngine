@@ -18,7 +18,7 @@ pub(crate) fn set_cur_thread_as_main_thread() {
 
 /// Returns whether the calling thread is the main thread.
 ///
-/// The main thread is the thread that called [runtime::run]
+/// The main thread is the thread that called [crate::runtime::run]
 #[inline(always)]
 pub(crate) fn on_main_thread() -> bool {
     std::thread::current().id() == *MAIN_THREAD_ID

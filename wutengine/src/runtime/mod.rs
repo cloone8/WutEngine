@@ -15,6 +15,7 @@ use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::graphics::renderpass::RenderPassInfo;
 use crate::input;
+use crate::physics;
 use crate::system::{self, Phase, SystemManager};
 use crate::util::{self, InitOnce};
 use crate::window::{self, Window};
@@ -51,6 +52,9 @@ pub(crate) struct InitializationData {
 
 /// The main WutEngine runtime
 pub(crate) struct Runtime {
+    /// Used for frame pacing and FPS limiting
+    frame_pacer: window::pacer::FramePacer,
+
     /// Set to `true` if the `resumed` event was sent by [winit]
     initialization_data: Option<Box<InitializationData>>,
 
@@ -113,6 +117,7 @@ pub fn run(
     util::set_cur_thread_as_main_thread();
 
     let mut runtime = Runtime {
+        frame_pacer: window::pacer::FramePacer::default(),
         initialization_data: Some(Box::new(InitializationData {
             post_start_callback: post_start,
         })),
@@ -137,7 +142,8 @@ pub fn run(
 
     window::manager::initialize();
     input::init();
-    world::initialize();
+    physics::init();
+    world::init();
 
     let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event()
         .build()

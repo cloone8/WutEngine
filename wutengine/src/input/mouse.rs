@@ -6,6 +6,10 @@ use glam::Vec2;
 use nohash_hasher::IntSet;
 use winit::event::ButtonId;
 
+use super::INPUT_MANAGER;
+use super::InputManager;
+use super::MouseId;
+
 /// Left mouse button
 pub const LEFT: u32 = 0;
 
@@ -70,4 +74,112 @@ impl Mouse {
             log::trace!("Released button {button}, which was not pressed");
         }
     }
+}
+
+fn get_mouse_and<T>(to_query: Option<MouseId>, func: impl FnOnce(Option<&Mouse>) -> T) -> T {
+    let mice = INPUT_MANAGER.mice.read().unwrap();
+    let mouse = match to_query {
+        Some(to_query) => {
+            let mouse = InputManager::get_specific_mouse(&mice, to_query);
+
+            if mouse.is_none() {
+                log::warn!("Mouse {to_query:?} could not be found, returning default values");
+            }
+
+            mouse
+        }
+        None => {
+            let most_recent_mouse = *INPUT_MANAGER.most_recent_mouse.read().unwrap();
+
+            InputManager::get_latest_mouse(&mice, most_recent_mouse)
+        }
+    };
+
+    func(mouse)
+}
+
+/// Returns the raw mouse position delta.
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns [Vec2::ZERO]
+pub fn pos_delta(device: Option<MouseId>) -> Vec2 {
+    get_mouse_and(device, |mouse| {
+        if let Some(mouse) = mouse {
+            mouse.pos_delta
+        } else {
+            Vec2::ZERO
+        }
+    })
+}
+
+/// Returns the raw mouse scroll delta.
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns [Vec2::ZERO]
+pub fn scroll_delta(device: Option<MouseId>) -> Vec2 {
+    get_mouse_and(device, |mouse| {
+        if let Some(mouse) = mouse {
+            mouse.scroll_delta
+        } else {
+            Vec2::ZERO
+        }
+    })
+}
+
+/// Returns whether the specified mouse button was pressed this frame. If the button
+/// was already pressed last frame, this returns `false`. To check whether the button is held,
+/// even if it was already held before, see [button_held]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns `false`
+pub fn button_pressed(device: Option<MouseId>, button: u32) -> bool {
+    get_mouse_and(device, |mouse| {
+        if let Some(mouse) = mouse {
+            mouse.pressed_buttons.contains(&button) && !mouse.prev_pressed_buttons.contains(&button)
+        } else {
+            false
+        }
+    })
+}
+
+/// Returns whether the specified mouse button was being held this frame. This returns
+/// `true` in every frame the button is held. To only get `true` for new presses, see
+/// [button_pressed]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns `false`
+pub fn button_held(device: Option<MouseId>, button: u32) -> bool {
+    get_mouse_and(device, |mouse| {
+        if let Some(mouse) = mouse {
+            mouse.pressed_buttons.contains(&button)
+        } else {
+            false
+        }
+    })
+}
+
+/// Returns whether the specified mouse button was released this frame. If the button
+/// was not held down last frame, this always returns `false`. To check whether the button is held,
+/// even if it was not held before, see [button_held]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns `false`
+pub fn button_released(device: Option<MouseId>, button: u32) -> bool {
+    get_mouse_and(device, |mouse| {
+        if let Some(mouse) = mouse {
+            !mouse.pressed_buttons.contains(&button) && mouse.prev_pressed_buttons.contains(&button)
+        } else {
+            false
+        }
+    })
 }
