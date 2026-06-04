@@ -8,11 +8,19 @@ use crate::input::INPUT_MANAGER;
 
 use super::InputManager;
 
+/// The data for a gamepad
 #[derive(Debug)]
 pub(crate) struct Gamepad {
+    /// Current button values, between 0.0 and 1.0
     pub(crate) button_values: HashMap<Button, f32>,
+
+    /// Previous button values, between 0.0 and 1.0
     pub(crate) prev_button_values: HashMap<Button, f32>,
+
+    /// Current axis values, between 0.0 and 1.0
     pub(crate) axis_values: HashMap<Axis, Vec2>,
+
+    /// Previous axis values, between 0.0 and 1.0
     pub(crate) prev_axis_values: HashMap<Axis, Vec2>,
 }
 
@@ -230,7 +238,10 @@ impl Button {
 /// Based on [gilrs 0.11.2](https://docs.rs/gilrs/0.11.2/gilrs/)
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Axis {
+    /// Left stick
     LeftStick,
+
+    /// Right stick
     RightStick,
 }
 
