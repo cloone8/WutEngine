@@ -7,9 +7,13 @@ use serde::Serialize;
 
 use crate::SerializedAsset;
 
+/// Data for a sampler
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct SerializedSampler {
+    /// Filtering mode the sampler uses
     pub filtering: FilterMode,
+
+    /// Wrapping mode the sampler uses
     pub wrapping: WrapModeType,
 }
 

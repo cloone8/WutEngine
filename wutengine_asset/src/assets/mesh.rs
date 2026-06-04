@@ -8,54 +8,34 @@ use serde::Serialize;
 
 use crate::SerializedAsset;
 
+/// The data for a single mesh
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SerializedMesh {
+    /// The vertex positions
     pub vertices: Vec<Vec3>,
+
+    /// The topology
     pub topology: MeshTopology,
+
+    /// The mesh index buffer. Each index should be smaller than the length of [Self::vertices]
     pub indices: MeshIndices,
+
+    /// The UV channels. Each channel should contain exactly as much elements as [Self::vertices]
     pub uvs: IntMap<u8, Vec<Vec2>>,
+
+    /// Whether the data should be kept on the CPU after the GPU side mesh is created
     pub keep_data: bool,
 }
 
 impl SerializedAsset for SerializedMesh {}
 
-impl SerializedMesh {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn set_vertices(&mut self, vertices: Vec<Vec3>) -> &mut Self {
-        self.vertices = vertices;
-        self
-    }
-    pub fn set_indices(&mut self, indices: impl Into<MeshIndices>) -> &mut Self {
-        self.indices = indices.into();
-        self
-    }
-
-    pub fn set_topology(&mut self, topology: MeshTopology) -> &mut Self {
-        self.topology = topology;
-        self
-    }
-
-    pub fn set_uv_channel(&mut self, channel: u8, uvs: Vec<Vec2>) -> &mut Self {
-        self.uvs.insert(channel, uvs);
-        self
-    }
-
-    pub fn set_uvs(&mut self, uvs: Vec<Vec2>) -> &mut Self {
-        self.set_uv_channel(0, uvs)
-    }
-
-    pub fn set_keep_data(&mut self, keep_data: bool) -> &mut Self {
-        self.keep_data = keep_data;
-        self
-    }
-}
-
+/// Mesh indices
 #[derive(Debug, Clone, derive_more::From, Serialize, Deserialize)]
 pub enum MeshIndices {
+    /// 16-bit indices
     U16(Vec<u16>),
+
+    /// 32-bit indices
     U32(Vec<u32>),
 }
 

@@ -5,18 +5,24 @@ use serde::Serialize;
 
 use crate::SerializedAsset;
 
+/// The data for the texture
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedTexture {
+    /// The texture configuration
     pub config: TextureConfig,
 
+    /// The raw decoded image data
     #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
 
+    /// The data for each mip level
     pub mips: Option<Vec<SerializedMipMap>>,
 }
 
+/// The data for a mip-map level of a [SerializedTexture]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedMipMap {
+    /// The raw decoded image data
     #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
 }

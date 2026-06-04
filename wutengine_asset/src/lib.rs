@@ -20,25 +20,37 @@ pub mod assets;
 #[cfg(feature = "importers")]
 pub mod importers;
 
+/// An error while to import and convert a serialized asset
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum FromSerializedAnyErr<E: core::error::Error> {
+    /// Importer returned an unexpected type. Most likely an error in the importer
     #[display(
         "Importer returned invalid asset type. Should have returned {target}, but returned something else"
     )]
-    Downcast { target: &'static str },
+    Downcast {
+        /// The expected target type
+        target: &'static str,
+    },
 
+    /// Could not convert the deserialized asset into an actual runtime object
     #[display("Failed to load deserialized asset after importing: {_0}")]
     Conversion(E),
 }
 
 /// Trait implemented by types that can be used as a WutEngine asset
 pub trait Asset: Send + Sync + Any {
+    /// The serialized type of this asset
     type Serialized: SerializedAsset;
+
+    /// The error that can be returned while loading the deserialized asset
     type FromSerializedErr: core::error::Error;
+
+    /// Loads this asset from its serialized form
     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
     where
         Self: Sized;
 
+    /// Loads this asset from its generic [Any] form. Should be the type of [Self::Serialized]
     fn from_serialized_any(
         serialized: &dyn Any,
     ) -> Result<Self, FromSerializedAnyErr<Self::FromSerializedErr>>
@@ -55,14 +67,18 @@ pub trait Asset: Send + Sync + Any {
     }
 }
 
+/// A serialized [Asset]
 pub trait SerializedAsset: Serialize + DeserializeOwned + Any {}
 
+/// Handle to an asset
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AssetHandle<T> {
+    /// The loaded asset
     #[serde(skip, default = "default_none")]
     asset: Option<Arc<T>>,
 }
 
+/// Helper for serde
 const fn default_none<T>() -> Option<Arc<T>> {
     None
 }
@@ -74,10 +90,12 @@ impl<T> Default for AssetHandle<T> {
 }
 
 impl<T: Asset> AssetHandle<T> {
+    /// Creates a new handle from an existing asset
     pub fn new(asset: impl Into<Self>) -> Self {
         asset.into()
     }
 
+    /// Creates a new handle from a serialized asset
     pub fn new_from_serialized(serialized: &T::Serialized) -> Result<Self, T::FromSerializedErr> {
         Ok(Self::new(T::from_serialized(serialized)?))
     }
@@ -114,11 +132,21 @@ impl<T> From<Option<T>> for AssetHandle<T> {
     }
 }
 
+/// An asset importer. Imports serialized assets from bytes, and converts them to a [SerializedAsset] type
 pub trait AssetImporter: Any + Send + Sync {
+    /// The type of the resulting asset
     type AssetType: Any
     where
         Self: Sized;
+
+    /// Returns whether the given file type is supported. `file_type` will contain the extension
+    /// of the type without the final dot
     fn supports_file_type(&self, file_type: &str) -> bool;
+
+    /// Imports an asset from the given byte slice.
+    /// `file_type` contains the extension without the final dot
+    /// `asset_dir` can contain the parent directory that contains the asset, if any.
+    ///             Can be empty if the asset was imported directly from bytes
     fn import(
         &self,
         asset_bytes: &[u8],
@@ -127,18 +155,25 @@ pub trait AssetImporter: Any + Send + Sync {
     ) -> Result<Box<dyn Any>, Box<dyn Error>>;
 }
 
+/// All known importers
 static IMPORTERS: LazyLock<RwLock<Vec<RegisteredImporter>>> =
     LazyLock::new(|| RwLock::new(Vec::new()));
 
+/// The information on a registered importer
 #[derive(derive_more::Debug)]
 struct RegisteredImporter {
+    /// The name of the importer type
     importer_name: &'static str,
+
+    /// The [TypeId] of the imported asset produced by the importer
     asset_type: TypeId,
 
+    /// The actual importer
     #[debug(skip)]
     importer: Box<dyn AssetImporter>,
 }
 
+/// Registers a new asset importer
 pub fn register_importer<I: AssetImporter>(importer: I) {
     log::debug!(
         "Registering new importer \"{}\" for assets of type {}",
@@ -157,12 +192,23 @@ pub fn register_importer<I: AssetImporter>(importer: I) {
     importers.push(new_importer);
 }
 
+/// An error during asset importing
 #[derive(Debug, derive_more::Error)]
 pub enum ImportErr<A: Asset> {
+    /// I/O error
     IO(std::io::Error),
+
+    /// No extension could be determined, so the asset type is unknown
     UnknownExtension(#[error(not(source))] String),
+
+    /// The list of errors returned by all importers that were tried
     ImporterErrors(#[error(not(source))] Vec<ImporterError>),
+
+    /// An error after importing an asset, and during the loading of the imported asset into
+    /// a runtime object
     LoadError(FromSerializedAnyErr<A::FromSerializedErr>),
+
+    /// No importer supports the asset type
     UnknownAssetType(#[error(not(source))] String),
 }
 
@@ -191,9 +237,13 @@ impl<A: Asset> Display for ImportErr<A> {
     }
 }
 
+/// An error returned by an importer
 #[derive(Debug)]
 pub struct ImporterError {
+    /// The type of the importer that returned an error
     pub importer: &'static str,
+
+    /// The returned error
     pub error: Box<dyn Error>,
 }
 
@@ -209,6 +259,7 @@ impl<A: Asset> From<FromSerializedAnyErr<A::FromSerializedErr>> for ImportErr<A>
     }
 }
 
+/// Imports a new asset from a given path
 pub fn import<A: Asset>(asset: impl AsRef<Path>) -> Result<AssetHandle<A>, ImportErr<A>> {
     let asset_path = asset.as_ref();
 
@@ -224,6 +275,7 @@ pub fn import<A: Asset>(asset: impl AsRef<Path>) -> Result<AssetHandle<A>, Impor
     import_from_bytes(&asset, asset_type, asset_dir)
 }
 
+/// Imports a new asset from raw bytes
 pub fn import_from_bytes<A: Asset>(
     asset_bytes: &[u8],
     file_type: &str,

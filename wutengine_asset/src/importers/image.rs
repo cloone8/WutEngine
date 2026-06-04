@@ -10,17 +10,22 @@ use crate::assets::texture::SerializedTexture;
 use crate::assets::texture::TextureConfig;
 use crate::assets::texture::TextureFormat;
 
+/// Image asset importer. Imports images from an encoded format (png, jpg, etc.) into a raw decoded texture
 #[derive(Debug)]
 pub struct ImageAssetImporter;
 
+/// An error while importing an image
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum ImageImportError {
+    /// I/O error
     #[display("I/O error: {_0}")]
     IO(#[from] std::io::Error),
 
+    /// Decoding error
     #[display("Error decoding image: {_0}")]
     Decode(#[from] image::ImageError),
 
+    /// Unsupported pixel format
     #[display("Unsupported pixel format: {_0:?}")]
     UnsupportedPixelFormat(#[error(not(source))] image::ColorType),
 }
