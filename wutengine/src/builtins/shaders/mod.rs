@@ -36,3 +36,8 @@ pub static BLIT: LazyLock<AssetHandle<Shader>> =
 /// Unlit shader
 pub static UNLIT: LazyLock<AssetHandle<Shader>> =
     LazyLock::new(|| from_descriptor_and_source!("unlit"));
+
+#[cfg(feature = "development_overlay")]
+/// Egui shader
+pub static EGUI: LazyLock<AssetHandle<Shader>> =
+    LazyLock::new(|| from_descriptor_and_source!("egui"));

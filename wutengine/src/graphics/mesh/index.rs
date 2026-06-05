@@ -16,6 +16,7 @@ pub struct IndexBuffer {
     pub(crate) buffer: wgpu::Buffer,
 
     /// The CPU-side stored data
+    #[expect(unused, reason = "CPU side mesh modification will be added later")]
     pub(crate) cpu_buffer: Option<Vec<u8>>,
 }
 

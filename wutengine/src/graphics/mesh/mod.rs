@@ -8,6 +8,7 @@ use wutengine_asset::assets::mesh::SerializedMesh;
 use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 
 use crate::asset::Asset;
+use crate::graphics::shader::GVec4;
 
 use super::shader::{GVec2, GVec3};
 
@@ -77,9 +78,31 @@ impl Mesh {
         mesh.vertex_buffers
             .insert(ShaderVertexAttributeType::Position, pos_buffer);
 
+        if !data.colors.is_empty() {
+            if data.colors.len() != vtx_count {
+                log::error!(
+                    "Discarding color channel because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
+                    data.colors.len()
+                );
+            } else {
+                let color_buffer =
+                    Vec::from_iter(data.colors.iter().copied().map(GVec4::<f32>::from));
+                let color_vertex_buffer = VertexBuffer::new(
+                    &color_buffer,
+                    ShaderVertexAttributeType::Color,
+                    device,
+                    data.keep_data,
+                )
+                .expect("Failed to create color buffer");
+
+                mesh.vertex_buffers
+                    .insert(ShaderVertexAttributeType::Color, color_vertex_buffer);
+            }
+        }
+
         for (&channel, uv_data) in &data.uvs {
             if uv_data.len() != vtx_count {
-                log::warn!(
+                log::error!(
                     "Discarding UV channel {channel} because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
                     uv_data.len()
                 );

@@ -9,7 +9,7 @@ pub enum Key {
     /// <kbd>`</kbd>
     Backquote,
 
-    /// <kbd>\</kbd>
+    /// <kbd>\\</kbd>
     Backslash,
 
     /// <kbd>[</kbd> on a US keyboard.

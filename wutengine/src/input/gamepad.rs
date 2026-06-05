@@ -54,7 +54,7 @@ pub(crate) fn poll_for_events() {
         let gamepad_id = super::GamepadId(event.id);
         let gilrs_gamepad = gamepad_manager.gamepad(event.id);
 
-        log::trace!("Event for gamepad {}", event.id);
+        log::trace!("Event for gamepad {}: {:#?}", event.id, event.event);
 
         match event.event {
             gilrs::EventType::ButtonPressed(button, code) => {
@@ -185,23 +185,47 @@ pub enum Button {
     /// Z button. Uncommon
     Z,
 
-    // Triggers
+    /// Left shoulder button, above the trigger
+    LeftShoulder,
+
+    /// Left trigger, below the shoulder button
     LeftTrigger,
-    LeftTrigger2,
+
+    /// Right shoulder button, above the trigger
+    RightShoulder,
+
+    /// Right trigger button, below the shoulder button
     RightTrigger,
-    RightTrigger2,
-    // Menu Pad
+
+    /// Select button. Usually the left smaller middle button
     Select,
+
+    /// Start button. Usually the right smaller middle button
     Start,
+
+    /// "Mode" button. Usually the main button between start/select. Often
+    /// has the shape of the controller vendor
     Mode,
-    // Sticks
-    LeftThumb,
-    RightThumb,
-    // D-Pad
+
+    /// Left thumb stick pressed
+    LeftStick,
+
+    /// Right thumb stick pressed
+    RightStick,
+
+    /// D-Pad up
     DPadUp,
+
+    /// D-Pad down
     DPadDown,
+
+    /// D-Pad left
     DPadLeft,
+
+    /// D-Pad right
     DPadRight,
+
+    /// Unknown button. Contains the raw OS code
     Raw(u32),
 }
 
@@ -215,15 +239,15 @@ impl Button {
             gilrs::Button::West => Self::West,
             gilrs::Button::C => Self::C,
             gilrs::Button::Z => Self::Z,
-            gilrs::Button::LeftTrigger => Self::LeftTrigger,
-            gilrs::Button::LeftTrigger2 => Self::LeftTrigger2,
-            gilrs::Button::RightTrigger => Self::RightTrigger,
-            gilrs::Button::RightTrigger2 => Self::RightTrigger2,
+            gilrs::Button::LeftTrigger => Self::LeftShoulder,
+            gilrs::Button::LeftTrigger2 => Self::LeftTrigger,
+            gilrs::Button::RightTrigger => Self::RightShoulder,
+            gilrs::Button::RightTrigger2 => Self::RightTrigger,
             gilrs::Button::Select => Self::Select,
             gilrs::Button::Start => Self::Start,
             gilrs::Button::Mode => Self::Mode,
-            gilrs::Button::LeftThumb => Self::LeftThumb,
-            gilrs::Button::RightThumb => Self::RightThumb,
+            gilrs::Button::LeftThumb => Self::LeftStick,
+            gilrs::Button::RightThumb => Self::RightStick,
             gilrs::Button::DPadUp => Self::DPadUp,
             gilrs::Button::DPadDown => Self::DPadDown,
             gilrs::Button::DPadLeft => Self::DPadLeft,

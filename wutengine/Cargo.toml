@@ -14,6 +14,7 @@ readme = "../README.md"
 
 [features]
 profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
+development_overlay = ["dep:egui"]
 asset_importers = ["wutengine_asset/importers"]
 
 [lints]
@@ -75,3 +76,7 @@ gilrs.workspace = true
 
 # Optional dependencies
 puffin_http = { workspace = true, optional = true } # Feature - profiling
+egui = { workspace = true, features = [
+    "rayon",
+    "bytemuck",
+], optional = true } # Feature - development overlay

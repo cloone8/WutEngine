@@ -2,6 +2,7 @@
 
 use glam::Vec2;
 use glam::Vec3;
+use glam::Vec4;
 use nohash_hasher::IntMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -20,8 +21,11 @@ pub struct SerializedMesh {
     /// The mesh index buffer. Each index should be smaller than the length of [Self::vertices]
     pub indices: MeshIndices,
 
-    /// The UV channels. Each channel should contain exactly as much elements as [Self::vertices]
+    /// The UV channels. Each channel should contain exactly as much elements as [Self::vertices], or be empty
     pub uvs: IntMap<u8, Vec<Vec2>>,
+
+    /// Color data. Should contain exactly as much elements as [Self::vertices], or be empty
+    pub colors: Vec<Vec4>,
 
     /// Whether the data should be kept on the CPU after the GPU side mesh is created
     pub keep_data: bool,

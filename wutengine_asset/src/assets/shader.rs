@@ -61,6 +61,9 @@ pub enum ShaderVertexAttributeType {
         /// The UV channel
         channel: u8,
     },
+
+    /// Color data
+    Color,
 }
 
 impl core::fmt::Display for ShaderVertexAttributeType {
@@ -68,6 +71,7 @@ impl core::fmt::Display for ShaderVertexAttributeType {
         match self {
             Self::Position => "Position".fmt(f),
             Self::Uv { channel } => write!(f, "UV{}", channel),
+            Self::Color => "Color".fmt(f),
         }
     }
 }

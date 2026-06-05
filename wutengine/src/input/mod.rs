@@ -261,7 +261,7 @@ pub(crate) fn init() {
 
 /// Inserts a new raw [winit device event](winit::event::DeviceEvent) for the given [device](winit::event::DeviceId)
 /// into the input manager for the current frame.
-pub fn insert_new_raw_event(device: DeviceId, event: winit::event::DeviceEvent) {
+pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEvent) {
     profiling::function_scope!();
 
     match event {

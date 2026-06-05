@@ -20,6 +20,9 @@ pub(crate) mod util;
 pub mod window;
 pub mod world;
 
+#[cfg(feature = "development_overlay")]
+pub mod development_overlay;
+
 #[doc(inline)]
 pub use hecs;
 

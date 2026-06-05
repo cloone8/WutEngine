@@ -140,6 +140,9 @@ pub fn run(
 
     log::debug!("Final schedule:\n{}", runtime.systems.dump());
 
+    #[cfg(feature = "development_overlay")]
+    crate::development_overlay::init();
+
     window::manager::initialize();
     input::init();
     physics::init();
@@ -240,6 +243,20 @@ impl Runtime {
         blit_encoder.pop_debug_group();
 
         buffers.push(blit_encoder.finish());
+
+        #[cfg(feature = "development_overlay")]
+        {
+            //TODO: Pick main surface according to some metric, not just arbitrarily the first
+            let main_surface = surfaces.first().map(|(_, sfc)| sfc);
+
+            if let Some(main_surface) = main_surface {
+                if let Some(overlay_buffer) =
+                    crate::development_overlay::render_if_active(main_surface)
+                {
+                    buffers.push(overlay_buffer);
+                }
+            }
+        }
 
         window::manager::pre_present_notify(surfaces.iter().map(|(win, _)| win));
 

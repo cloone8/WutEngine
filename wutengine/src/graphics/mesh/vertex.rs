@@ -3,21 +3,25 @@ use core::num::NonZero;
 
 use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 
+use crate::graphics::shader::GVec4;
 use crate::graphics::shader::{GVec2, GVec3};
 
 /// A raw vertex buffer
 #[derive(Debug)]
 pub struct VertexBuffer {
     /// For which attribute this buffer contains data
+    #[expect(unused, reason = "CPU side mesh modification will be added later")]
     pub(crate) attribute: ShaderVertexAttributeType,
 
     /// The amount of elements in this buffer
+    #[expect(unused, reason = "CPU side mesh modification will be added later")]
     pub(crate) count: NonZero<u64>,
 
     /// The handle to the GPU buffer
     pub(crate) buffer: wgpu::Buffer,
 
     /// A copy of the data in the GPU buffer
+    #[expect(unused, reason = "CPU side mesh modification will be added later")]
     pub(crate) cpu_buffer: Option<Vec<u8>>,
 }
 
@@ -119,6 +123,21 @@ pub trait VertexDataType: Sized + Any {
     fn is_compatible_with(attribute: ShaderVertexAttributeType) -> bool;
 }
 
+impl VertexDataType for GVec4<f32> {
+    #[inline]
+    fn as_bytes(this: &[Self]) -> &[u8] {
+        bytemuck::must_cast_slice(this)
+    }
+
+    fn is_compatible_with(attribute: ShaderVertexAttributeType) -> bool {
+        match attribute {
+            ShaderVertexAttributeType::Position => false,
+            ShaderVertexAttributeType::Uv { .. } => false,
+            ShaderVertexAttributeType::Color => true,
+        }
+    }
+}
+
 impl VertexDataType for GVec3<f32> {
     #[inline]
     fn as_bytes(this: &[Self]) -> &[u8] {
@@ -129,6 +148,7 @@ impl VertexDataType for GVec3<f32> {
         match attribute {
             ShaderVertexAttributeType::Position => true,
             ShaderVertexAttributeType::Uv { .. } => false,
+            ShaderVertexAttributeType::Color => false,
         }
     }
 }
@@ -143,6 +163,7 @@ impl VertexDataType for GVec2<f32> {
         match attribute {
             ShaderVertexAttributeType::Position => false,
             ShaderVertexAttributeType::Uv { .. } => true,
+            ShaderVertexAttributeType::Color => false,
         }
     }
 }

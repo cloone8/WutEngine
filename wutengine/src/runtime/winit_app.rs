@@ -163,7 +163,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
         let _ = event_loop;
 
-        input::insert_new_raw_event(device_id, event);
+        input::insert_raw_device_event(device_id, event);
     }
 
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {

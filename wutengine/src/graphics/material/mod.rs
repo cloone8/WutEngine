@@ -62,6 +62,18 @@ impl Material {
     }
 }
 
+impl Clone for Material {
+    fn clone(&self) -> Self {
+        Self {
+            id: MaterialId::new(),
+            shader: self.shader.clone(),
+            keywords: self.keywords.clone(),
+            compiled_shader: self.compiled_shader.clone(),
+            user_bind_group: self.user_bind_group.clone(),
+        }
+    }
+}
+
 impl Asset for Material {
     type Serialized = SerializedMaterial<Shader, MaterialParameter>;
 

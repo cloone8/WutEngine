@@ -98,11 +98,27 @@ impl Texture {
 
     /// Updates the data in this texture to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
+    ///
+    /// Updates the entire texture. To update a subregion, see [Self::set_partial_data]
     pub(crate) fn set_data(&self, data: &[u8]) {
         profiling::function_scope!();
 
+        self.set_partial_data(data, wgpu::Origin3d::ZERO, self.tex.size());
+    }
+
+    /// Updates a subregion of the data in this texture to the provided bytes. The bytes must
+    /// be in the format required by the texture format given during texture creation
+    ///
+    /// Updates the given subregion of the texture. To update the full texture, see [Self::set_data]
+    pub(crate) fn set_partial_data(
+        &self,
+        data: &[u8],
+        origin: wgpu::Origin3d,
+        size: wgpu::Extent3d,
+    ) {
+        profiling::function_scope!();
+
         //TODO: Check somehow if data is the correct length
-        let size = self.tex.size();
         let format = self.tex.format();
         let queue = super::queue();
 
@@ -115,7 +131,7 @@ impl Texture {
                 aspect: wgpu::TextureAspect::All,
                 texture: &self.tex,
                 mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
+                origin,
             },
             data,
             wgpu::TexelCopyBufferLayout {

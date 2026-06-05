@@ -351,6 +351,7 @@ pub const fn shader_attr_wgpu_vertex_format(attr: ShaderVertexAttributeType) -> 
     match attr {
         ShaderVertexAttributeType::Position => wgpu::VertexFormat::Float32x3,
         ShaderVertexAttributeType::Uv { .. } => wgpu::VertexFormat::Float32x2,
+        ShaderVertexAttributeType::Color => wgpu::VertexFormat::Float32x4,
     }
 }
 

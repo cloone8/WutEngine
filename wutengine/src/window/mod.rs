@@ -125,7 +125,6 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
 
         attrs = attrs.with_resizable(value.resizable);
         attrs = attrs.with_inner_size(winit::dpi::PhysicalSize::new(inner_size.0, inner_size.1));
-        attrs = attrs.with_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
 
         if let Some(icon) = value.icon
             && let Some(native_icon) = icon.into_native_icon()
