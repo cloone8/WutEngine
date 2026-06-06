@@ -12,12 +12,11 @@ use egui_utils::gather_input;
 use egui_utils::sampler_from_egui;
 use egui_utils::tex_config_from_egui_data;
 use glam::vec2;
-use rendering_test::ColorTest;
-use widget_gallery::WidgetGallery;
 use wutengine_asset::AssetHandle;
 use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
+use wutengine_util_macro::unique_id_type32;
 
 use crate::graphics;
 use crate::graphics::material::Material;
@@ -34,8 +33,13 @@ use crate::util::map;
 use crate::window::Window;
 
 mod egui_utils;
-mod rendering_test;
-mod widget_gallery;
+
+//TODO: Remove later
+pub use egui;
+
+unique_id_type32! {
+    DevOverlayWindowId
+}
 
 pub(crate) static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new();
 
@@ -54,8 +58,13 @@ pub(crate) struct DevOverlayManager {
     active: AtomicBool,
     egui_context: egui::Context,
     textures: Mutex<HashMap<egui::TextureId, TextureMaterial>>,
-    gallery: Mutex<WidgetGallery>,
-    rendering_test: Mutex<ColorTest>,
+    windows: Mutex<Vec<DevOverlayWindow>>,
+}
+
+struct DevOverlayWindow {
+    id: DevOverlayWindowId,
+    open: bool,
+    window: Box<dyn DevelopmentOverlayWindow>,
 }
 
 impl DevOverlayManager {
@@ -64,10 +73,14 @@ impl DevOverlayManager {
             active: AtomicBool::new(false),
             egui_context: egui::Context::default(),
             textures: Mutex::new(HashMap::new()),
-            gallery: Mutex::new(WidgetGallery::default()),
-            rendering_test: Mutex::new(ColorTest::default()),
+            windows: Mutex::new(Vec::new()),
         }
     }
+}
+
+pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
+    fn name(&self) -> &str;
+    fn show(&mut self, ui: &mut egui::Ui);
 }
 
 pub(crate) fn render_if_active(
@@ -90,23 +103,31 @@ pub(crate) fn render_if_active(
 
     let egui_input = gather_input(window, sfc_size);
 
-    let mut gallery = DEV_OVERLAY.gallery.lock().unwrap();
-    let mut rendering_test = DEV_OVERLAY.rendering_test.lock().unwrap();
-    let egui_output = DEV_OVERLAY.egui_context.run_ui(egui_input, |ui| {
-        ui.label("WutEngine Development Overlay");
+    let mut windows = DEV_OVERLAY.windows.lock().unwrap();
 
-        let mut gallery_open = true;
-        gallery.show(ui, &mut gallery_open);
-
-        let mut rendering_test_open = true;
-        egui::Window::new("Rendering Test")
-            .open(&mut rendering_test_open)
-            .default_pos((512.0, 0.0))
-            .resizable([true, false]) // resizable so we can shrink if the text edit grows
-            .default_width(480.0)
-            .constrain_to(ui.available_rect_before_wrap())
+    let egui_output = DEV_OVERLAY.egui_context.run_ui(egui_input.clone(), |ui| {
+        egui::Window::new("WutEngine Development Overlay")
+            .collapsible(false)
+            .order(egui::Order::Background)
+            .default_open(true)
             .show(ui, |ui| {
-                rendering_test.ui(ui);
+                if windows.is_empty() {
+                    ui.label("No development windows registered");
+                    return;
+                }
+
+                for window in windows.iter_mut() {
+                    if ui.button(window.window.name()).clicked() {
+                        window.open = !window.open;
+                    }
+
+                    egui::Window::new(window.window.name())
+                        .id(egui::Id::new(window.id))
+                        .open(&mut window.open)
+                        .show(ui, |ui| {
+                            window.window.show(ui);
+                        });
+                }
             });
     });
 
@@ -494,4 +515,12 @@ pub fn set_state(active: bool) {
 /// Returns whether the development overlay is currently enabled
 pub fn is_enabled() -> bool {
     DEV_OVERLAY.active.load(Ordering::Acquire)
+}
+
+pub fn add_development_overlay_window<T: DevelopmentOverlayWindow>(window: T) {
+    DEV_OVERLAY.windows.lock().unwrap().push(DevOverlayWindow {
+        id: DevOverlayWindowId::new(),
+        open: false,
+        window: Box::new(window),
+    });
 }

@@ -28,7 +28,12 @@ impl LogicalKey {
     pub fn try_from_winit(logical: &winit::keyboard::Key) -> Option<Self> {
         match logical {
             winit::keyboard::Key::Named(named) => {
-                Some(Self::Named(LogicalNamed::from_winit(*named)))
+                let Some(logical_key) = LogicalNamed::from_winit(*named) else {
+                    log::warn!("Unidentified logical key: {:?}", *named);
+                    return None;
+                };
+
+                Some(Self::Named(logical_key))
             }
             winit::keyboard::Key::Character(ch) => {
                 if ch.chars().take(2).count() > 1 {
@@ -757,8 +762,8 @@ pub enum LogicalNamed {
 
 impl LogicalNamed {
     #[inline]
-    pub const fn from_winit(winit: winit::keyboard::NamedKey) -> Self {
-        match winit {
+    pub const fn from_winit(winit: winit::keyboard::NamedKey) -> Option<Self> {
+        Some(match winit {
             winit::keyboard::NamedKey::Alt => Self::Alt,
             winit::keyboard::NamedKey::AltGraph => Self::AltGraph,
             winit::keyboard::NamedKey::CapsLock => Self::CapsLock,
@@ -1065,7 +1070,9 @@ impl LogicalNamed {
             winit::keyboard::NamedKey::F33 => Self::F33,
             winit::keyboard::NamedKey::F34 => Self::F34,
             winit::keyboard::NamedKey::F35 => Self::F35,
-            _ => todo!(),
-        }
+            _ => {
+                return None;
+            }
+        })
     }
 }
