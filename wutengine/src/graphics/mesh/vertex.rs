@@ -167,3 +167,11 @@ impl VertexDataType for GVec2<f32> {
         }
     }
 }
+
+pub const fn attr_bytes(attr: ShaderVertexAttributeType) -> usize {
+    match attr {
+        ShaderVertexAttributeType::Position => size_of::<GVec3<f32>>(),
+        ShaderVertexAttributeType::Uv { .. } => size_of::<GVec2<f32>>(),
+        ShaderVertexAttributeType::Color => size_of::<GVec4<f32>>(),
+    }
+}

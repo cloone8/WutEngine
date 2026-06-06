@@ -11,13 +11,13 @@ use crate::window::Window;
 use super::INPUT_MANAGER;
 
 /// Left mouse button
-pub const LEFT: u32 = 0;
+pub const BUTTON_LEFT: u32 = 0;
 
 /// Right mouse button
-pub const RIGHT: u32 = 1;
+pub const BUTTON_RIGHT: u32 = 1;
 
 /// Middle mouse button
-pub const MIDDLE: u32 = 2;
+pub const BUTTON_MIDDLE: u32 = 2;
 
 /// A mouse input device
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

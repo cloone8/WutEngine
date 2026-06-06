@@ -27,6 +27,13 @@ impl<const N: usize> Default for Padding<N> {
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct GVec2<T>([T; 2]);
+impl<T> GVec2<T> {
+    /// Create a new [GVec2<T>]
+    #[inline(always)]
+    pub const fn new(x: T, y: T) -> Self {
+        Self([x, y])
+    }
+}
 
 unsafe impl bytemuck::Zeroable for GVec2<i32> {}
 unsafe impl bytemuck::Pod for GVec2<i32> {}
@@ -64,6 +71,14 @@ impl GVec2<i32> {
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct GVec3<T>([T; 3]);
 
+impl<T> GVec3<T> {
+    /// Create a new [GVec3<T>]
+    #[inline(always)]
+    pub const fn new(x: T, y: T, z: T) -> Self {
+        Self([x, y, z])
+    }
+}
+
 unsafe impl bytemuck::Zeroable for GVec3<i32> {}
 unsafe impl bytemuck::Pod for GVec3<i32> {}
 
@@ -99,6 +114,14 @@ impl GVec3<i32> {
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct GVec4<T>([T; 4]);
+
+impl<T> GVec4<T> {
+    /// Create a new [GVec4<T>]
+    #[inline(always)]
+    pub const fn new(x: T, y: T, z: T, w: T) -> Self {
+        Self([x, y, z, w])
+    }
+}
 
 unsafe impl bytemuck::Zeroable for GVec4<i32> {}
 unsafe impl bytemuck::Pod for GVec4<i32> {}
