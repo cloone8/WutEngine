@@ -140,22 +140,20 @@ fn add_mouse_events(window: Window, modifiers: egui::Modifiers, events: &mut Vec
 }
 
 fn gather_modifiers() -> egui::Modifiers {
-    use input::keyboard::key_pressed;
+    use input::keyboard::key_held;
 
     const IS_MACOS: bool = cfg!(any(target_os = "macos", target_os = "ios"));
 
-    let alt =
-        key_pressed(None, keyboard::Key::AltLeft) || key_pressed(None, keyboard::Key::AltRight);
+    let alt = key_held(None, keyboard::Key::AltLeft) || key_held(None, keyboard::Key::AltRight);
 
-    let ctrl = key_pressed(None, keyboard::Key::ControlLeft)
-        || key_pressed(None, keyboard::Key::ControlRight);
+    let ctrl =
+        key_held(None, keyboard::Key::ControlLeft) || key_held(None, keyboard::Key::ControlRight);
 
     let shift =
-        key_pressed(None, keyboard::Key::ShiftLeft) || key_pressed(None, keyboard::Key::ShiftRight);
+        key_held(None, keyboard::Key::ShiftLeft) || key_held(None, keyboard::Key::ShiftRight);
 
     let mac_cmd = IS_MACOS
-        && (key_pressed(None, keyboard::Key::SuperLeft)
-            || key_pressed(None, keyboard::Key::SuperRight));
+        && (key_held(None, keyboard::Key::SuperLeft) || key_held(None, keyboard::Key::SuperRight));
 
     let command = if IS_MACOS { mac_cmd } else { ctrl };
 
