@@ -5,58 +5,128 @@ use std::sync::Mutex;
 use std::sync::RwLock;
 
 use gamepad::Gamepad;
+use gamepad::GamepadId;
 use gilrs::Gilrs;
 use glam::Vec2;
 use keyboard::Keyboard;
+use keyboard::KeyboardId;
 use mouse::Mouse;
+use mouse::MouseId;
 use winit::event::ButtonId;
 use winit::event::DeviceId;
 use winit::event::ElementState;
 
+use crate::time;
 use crate::util::InitOnce;
+use crate::window::Window;
 
 pub mod gamepad;
 pub mod keyboard;
 pub mod mouse;
 
-/// A mouse input device
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::From)]
-#[repr(transparent)]
-pub struct MouseId(winit::event::DeviceId);
+//TODO: Make input device trait?
 
-/// A keyboard input device
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::From)]
-#[repr(transparent)]
-pub struct KeyboardId(winit::event::DeviceId);
+#[derive(Debug)]
+enum DeviceSet<K, V> {
+    /// Only unidentified devices.
+    Unidentified(V),
 
-/// A gamepad input device
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From, derive_more::Display)]
-#[repr(transparent)]
-pub struct GamepadId(gilrs::GamepadId);
+    /// At least one device has been identified.
+    Identified(HashMap<K, V>),
+}
 
-/// An input device
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From)]
-pub enum InputDeviceId {
-    /// A mouse
-    Mouse(MouseId),
+impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
+    fn remove_device(&mut self, device: &K) {
+        if let Self::Identified(devices) = self {
+            devices.remove(device);
 
-    /// A keyboard
-    Keyboard(KeyboardId),
+            if devices.is_empty() {
+                *self = Self::default();
+            }
+        }
+    }
 
-    /// A gamepad
-    Gamepad(GamepadId),
+    fn for_each(&mut self, mut func: impl FnMut(&mut V)) {
+        match self {
+            Self::Unidentified(device) => func(device),
+            Self::Identified(devices) => devices.values_mut().for_each(func),
+        }
+    }
+
+    fn update_device(&mut self, device: Option<&K>, mut func: impl FnMut(&mut V)) {
+        if let Self::Unidentified(unidentified_device) = self {
+            match device {
+                Some(device) => {
+                    let mut new_devices_map = HashMap::default();
+
+                    new_devices_map.insert(device.clone(), core::mem::take(unidentified_device));
+
+                    *self = Self::Identified(new_devices_map);
+                }
+                None => {
+                    func(unidentified_device);
+                    return;
+                }
+            }
+        }
+
+        if let Self::Identified(devices) = self {
+            assert!(!devices.is_empty(), "Empty identified device list");
+
+            match device {
+                Some(device) => {
+                    func(devices.entry(device.clone()).or_default());
+                }
+                None => {
+                    devices.values_mut().for_each(func);
+                }
+            }
+        }
+    }
+
+    fn get_identified_device(&self, device: &K) -> Option<&V> {
+        if let Self::Identified(devices) = self {
+            devices.get(device)
+        } else {
+            None
+        }
+    }
+
+    fn get_identified_device_mut(&mut self, device: &K) -> Option<&mut V> {
+        if let Self::Identified(devices) = self {
+            devices.get_mut(device)
+        } else {
+            None
+        }
+    }
+
+    fn get_any_device(&self) -> &V {
+        match self {
+            Self::Unidentified(unidentified_device) => unidentified_device,
+            Self::Identified(devices) => devices
+                .values()
+                .next()
+                .expect("Empty identified devices map"),
+        }
+    }
+}
+
+impl<K, V: Default> Default for DeviceSet<K, V> {
+    fn default() -> Self {
+        Self::Unidentified(V::default())
+    }
 }
 
 /// Raw input manager
 #[derive(Debug)]
 pub(crate) struct InputManager {
     gamepad_manager: Option<Mutex<Gilrs>>,
-    most_recent_mouse: RwLock<Option<MouseId>>, //TODO: I think the DeviceId is always 64 bits or less. Unsafe trickery with atomics?
+    most_recent_mouse: RwLock<Option<MouseId>>,
     most_recent_keyboard: RwLock<Option<KeyboardId>>,
     most_recent_gamepad: RwLock<Option<GamepadId>>,
-    mice: RwLock<HashMap<MouseId, Mouse>>,
-    keyboards: RwLock<HashMap<KeyboardId, Keyboard>>,
-    gamepads: RwLock<HashMap<GamepadId, Gamepad>>,
+    mice: RwLock<DeviceSet<MouseId, Mouse>>,
+    keyboards: RwLock<DeviceSet<KeyboardId, Keyboard>>,
+    gamepads: RwLock<DeviceSet<GamepadId, Gamepad>>,
 }
 
 impl Default for InputManager {
@@ -87,167 +157,112 @@ impl InputManager {
         Self::default()
     }
 
-    fn remove_device(&self, device: DeviceId) {
+    fn remove_winit_device(&self, device: DeviceId) {
         {
-            let mut mice = self.mice.write().unwrap();
-            mice.remove(&MouseId(device));
+            if let Some(mouse_id) = MouseId::from_winit(device) {
+                self.mice.write().unwrap().remove_device(&mouse_id);
+            }
         }
         {
-            let mut keyboards = self.keyboards.write().unwrap();
-            keyboards.remove(&KeyboardId(device));
+            if let Some(keyboard_id) = KeyboardId::from_winit(device) {
+                self.keyboards.write().unwrap().remove_device(&keyboard_id);
+            }
         }
     }
 
     fn reset_delta(&self) {
-        {
-            let mut mice = self.mice.write().unwrap();
-
-            for mouse in mice.values_mut() {
-                mouse.reset_frame();
-            }
-        }
-        {
-            let mut keyboards = self.keyboards.write().unwrap();
-
-            for keyboard in keyboards.values_mut() {
-                keyboard.next_frame();
-            }
-        }
-        {
-            let mut gamepads = self.gamepads.write().unwrap();
-
-            for gamepad in gamepads.values_mut() {
-                gamepad.next_frame();
-            }
-        }
-    }
-
-    fn get_specific_mouse(mice: &HashMap<MouseId, Mouse>, mouse: MouseId) -> Option<&Mouse> {
-        mice.get(&mouse)
-    }
-
-    fn get_latest_mouse(mice: &HashMap<MouseId, Mouse>, latest: Option<MouseId>) -> Option<&Mouse> {
-        if let Some(latest) = latest {
-            let latest_mouse = mice.get(&latest);
-
-            if latest_mouse.is_some() {
-                return latest_mouse;
-            }
-        }
-
-        // Fallback behaviour for if there is no latest mouse or if it was disconnected
-        mice.values().next()
-    }
-
-    fn get_specific_keyboard(
-        keyboards: &HashMap<KeyboardId, Keyboard>,
-        keyboard: KeyboardId,
-    ) -> Option<&Keyboard> {
-        keyboards.get(&keyboard)
-    }
-
-    fn get_latest_keyboard(
-        keyboards: &HashMap<KeyboardId, Keyboard>,
-        latest: Option<KeyboardId>,
-    ) -> Option<&Keyboard> {
-        if let Some(latest) = latest {
-            let latest_keyboard = keyboards.get(&latest);
-
-            if latest_keyboard.is_some() {
-                return latest_keyboard;
-            }
-        }
-
-        // Fallback behaviour for if there is no latest keyboard or if it was disconnected
-        keyboards.values().next()
-    }
-
-    fn get_specific_gamepad(
-        gamepads: &HashMap<GamepadId, Gamepad>,
-        gamepad: GamepadId,
-    ) -> Option<&Gamepad> {
-        gamepads.get(&gamepad)
-    }
-
-    fn get_latest_gamepad(
-        gamepads: &HashMap<GamepadId, Gamepad>,
-        latest: Option<GamepadId>,
-    ) -> Option<&Gamepad> {
-        if let Some(latest) = latest {
-            let latest_gamepad = gamepads.get(&latest);
-
-            if latest_gamepad.is_some() {
-                return latest_gamepad;
-            }
-        }
-
-        // Fallback behaviour for if there is no latest gamepad or if it was disconnected
-        gamepads.values().next()
-    }
-
-    fn get_mouse_mut(mice: &mut HashMap<MouseId, Mouse>, mouse: MouseId) -> &mut Mouse {
-        mice.entry(mouse).or_insert_with(Mouse::new)
-    }
-
-    fn get_keyboard_mut(
-        keyboards: &mut HashMap<KeyboardId, Keyboard>,
-        keyboard: KeyboardId,
-    ) -> &mut Keyboard {
-        keyboards.entry(keyboard).or_insert_with(Keyboard::new)
+        self.mice.write().unwrap().for_each(Mouse::next_frame);
+        self.keyboards
+            .write()
+            .unwrap()
+            .for_each(Keyboard::next_frame);
+        self.gamepads.write().unwrap().for_each(Gamepad::next_frame);
     }
 
     fn set_most_recent_mouse(&self, mouse: MouseId) {
+        log::trace!("Setting most recent mouse to {mouse:?}");
+
         let mut most_recent = self.most_recent_mouse.write().unwrap();
 
         *most_recent = Some(mouse);
     }
 
     fn set_most_recent_keyboard(&self, keyboard: KeyboardId) {
+        log::trace!("Setting most recent keyboard to {keyboard:?}");
+
         let mut most_recent = self.most_recent_keyboard.write().unwrap();
 
         *most_recent = Some(keyboard);
     }
 
-    fn mouse_motion(&self, mouse: MouseId, delta: Vec2) {
-        self.set_most_recent_mouse(mouse);
+    fn set_most_recent_gamepad(&self, gamepad: GamepadId) {
+        log::trace!("Setting most recent gamepad to {gamepad:?}");
 
-        let mut mice = self.mice.write().unwrap();
-        let mouse = Self::get_mouse_mut(&mut mice, mouse);
+        let mut most_recent = self.most_recent_gamepad.write().unwrap();
 
-        mouse.pos_delta += delta;
+        *most_recent = Some(gamepad);
     }
 
-    fn mouse_scroll(&self, mouse: MouseId, delta: Vec2) {
-        self.set_most_recent_mouse(mouse);
+    fn mouse_motion(&self, mouse: Option<MouseId>, delta: Vec2) {
+        if let Some(identified_mouse) = mouse {
+            self.set_most_recent_mouse(identified_mouse);
+        }
 
         let mut mice = self.mice.write().unwrap();
-        let mouse = Self::get_mouse_mut(&mut mice, mouse);
 
-        mouse.scroll_delta += delta;
+        mice.update_device(mouse.as_ref(), |mouse| {
+            mouse.add_raw_position_delta(delta);
+        });
     }
 
-    fn mouse_button(&self, mouse: MouseId, button: ButtonId, state: ElementState) {
-        self.set_most_recent_mouse(mouse);
+    fn mouse_scroll(&self, mouse: Option<MouseId>, delta: Vec2) {
+        if let Some(identified_mouse) = mouse {
+            self.set_most_recent_mouse(identified_mouse);
+        }
 
         let mut mice = self.mice.write().unwrap();
-        let mouse = Self::get_mouse_mut(&mut mice, mouse);
 
-        match state {
+        mice.update_device(mouse.as_ref(), |mouse| {
+            mouse.add_raw_scroll_delta(delta);
+        });
+    }
+
+    fn mouse_button(&self, mouse: Option<MouseId>, button: ButtonId, state: ElementState) {
+        if let Some(identified_mouse) = mouse {
+            self.set_most_recent_mouse(identified_mouse);
+        }
+
+        let mut mice = self.mice.write().unwrap();
+
+        mice.update_device(mouse.as_ref(), |mouse| match state {
             ElementState::Pressed => mouse.set_button_pressed(button),
             ElementState::Released => mouse.set_button_released(&button),
-        }
+        });
     }
 
-    fn keyboard_key(&self, keyboard: KeyboardId, key: keyboard::Key, state: ElementState) {
-        self.set_most_recent_keyboard(keyboard);
+    fn mouse_window_position(&self, mouse: Option<MouseId>, position: Option<(Window, Vec2)>) {
+        if let Some(identified_mouse) = mouse {
+            self.set_most_recent_mouse(identified_mouse);
+        }
+
+        let mut mice = self.mice.write().unwrap();
+
+        mice.update_device(mouse.as_ref(), |mouse| {
+            mouse.set_window_position(position);
+        });
+    }
+
+    fn keyboard_key(&self, keyboard: Option<KeyboardId>, key: keyboard::Key, state: ElementState) {
+        if let Some(identified_keyboard) = keyboard {
+            self.set_most_recent_keyboard(identified_keyboard);
+        }
 
         let mut keyboards = self.keyboards.write().unwrap();
-        let keyboard = Self::get_keyboard_mut(&mut keyboards, keyboard);
 
-        match state {
-            ElementState::Pressed => keyboard.set_key_pressed(key),
-            ElementState::Released => keyboard.set_key_released(&key),
-        }
+        keyboards.update_device(keyboard.as_ref(), |kbd| match state {
+            ElementState::Pressed => kbd.set_key_pressed(key),
+            ElementState::Released => kbd.set_key_released(&key),
+        });
     }
 }
 
@@ -264,6 +279,11 @@ pub(crate) fn init() {
 pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEvent) {
     profiling::function_scope!();
 
+    log::trace!(
+        "Device event for device {device:?} on frame {}: {event:#?}",
+        time::frame_num()
+    );
+
     match event {
         winit::event::DeviceEvent::Added => {
             //Nothing to do
@@ -271,19 +291,22 @@ pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEven
         winit::event::DeviceEvent::Removed => {
             profiling::scope!("Device removed");
 
-            INPUT_MANAGER.remove_device(device);
+            INPUT_MANAGER.remove_winit_device(device);
         }
         winit::event::DeviceEvent::MouseMotion { delta } => {
             profiling::scope!("Mouse motion");
 
-            INPUT_MANAGER.mouse_motion(MouseId(device), Vec2::new(delta.0 as f32, -delta.1 as f32));
+            INPUT_MANAGER.mouse_motion(
+                MouseId::from_winit(device),
+                Vec2::new(delta.0 as f32, -delta.1 as f32),
+            );
         }
         winit::event::DeviceEvent::MouseWheel { delta } => {
             profiling::scope!("Mouse wheel");
 
             match delta {
                 winit::event::MouseScrollDelta::LineDelta(hor, ver) => {
-                    INPUT_MANAGER.mouse_scroll(MouseId(device), Vec2::new(hor, ver));
+                    INPUT_MANAGER.mouse_scroll(MouseId::from_winit(device), Vec2::new(hor, ver));
                 }
                 winit::event::MouseScrollDelta::PixelDelta(phys_pos) => {
                     log::error!(
@@ -298,16 +321,85 @@ pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEven
         winit::event::DeviceEvent::Button { button, state } => {
             profiling::scope!("Button");
 
-            INPUT_MANAGER.mouse_button(MouseId(device), button, state);
+            INPUT_MANAGER.mouse_button(MouseId::from_winit(device), button, state);
         }
         winit::event::DeviceEvent::Key(raw_key_event) => {
             profiling::scope!("Key");
 
             if let Ok(as_key) = keyboard::Key::try_from(raw_key_event.physical_key) {
-                INPUT_MANAGER.keyboard_key(KeyboardId(device), as_key, raw_key_event.state);
+                INPUT_MANAGER.keyboard_key(
+                    KeyboardId::from_winit(device),
+                    as_key,
+                    raw_key_event.state,
+                );
             }
         }
     }
+}
+
+/// Inserts a new raw [winit window event](winit::event::WindowEvent) for the given [Window]
+/// into the input manager for the current frame. Returns whether the window event was an input-related event,
+/// and has thus been handled
+pub fn insert_raw_window_event(window: Window, event: &winit::event::WindowEvent) -> bool {
+    profiling::function_scope!();
+
+    match event {
+        winit::event::WindowEvent::KeyboardInput {
+            device_id,
+            event,
+            is_synthetic,
+        } => {
+            profiling::scope!("Keyboard input");
+
+            if *is_synthetic {
+                // Generated by winit. Report as handled, because it's still an input,
+                // but don't actually do anything with it
+                return true;
+            }
+
+            if let Ok(as_key) = keyboard::Key::try_from(event.physical_key) {
+                INPUT_MANAGER.keyboard_key(KeyboardId::from_winit(*device_id), as_key, event.state);
+            }
+        }
+        winit::event::WindowEvent::ModifiersChanged(_) => {}
+        winit::event::WindowEvent::Ime(_) => {}
+        winit::event::WindowEvent::CursorMoved {
+            device_id,
+            position,
+        } => {
+            profiling::scope!("Cursor moved");
+
+            INPUT_MANAGER.mouse_window_position(
+                MouseId::from_winit(*device_id),
+                Some((window, Vec2::new(position.x as f32, position.y as f32))),
+            );
+        }
+        winit::event::WindowEvent::CursorEntered { .. } => {
+            // Winit also sends a cursor-moved event, so we don't have to explicitely handle this
+        }
+        winit::event::WindowEvent::CursorLeft { device_id } => {
+            profiling::scope!("Cursor left");
+
+            INPUT_MANAGER.mouse_window_position(MouseId::from_winit(*device_id), None);
+        }
+        winit::event::WindowEvent::MouseWheel { .. } => {}
+        winit::event::WindowEvent::MouseInput { .. } => {}
+        winit::event::WindowEvent::PinchGesture { .. } => {}
+        winit::event::WindowEvent::PanGesture { .. } => {}
+        winit::event::WindowEvent::DoubleTapGesture { .. } => {}
+        winit::event::WindowEvent::RotationGesture { .. } => {}
+        winit::event::WindowEvent::TouchpadPressure { .. } => {}
+        winit::event::WindowEvent::AxisMotion { .. } => {}
+        winit::event::WindowEvent::Touch(_) => {}
+        _ => return false,
+    }
+
+    log::trace!(
+        "Window input event in frame {} on window {window}: {event:#?}",
+        crate::time::frame_num()
+    );
+
+    true
 }
 
 /// Resets all per-frame delta values back to zero.

@@ -6,9 +6,9 @@ use glam::Vec2;
 use nohash_hasher::IntSet;
 use winit::event::ButtonId;
 
+use crate::window::Window;
+
 use super::INPUT_MANAGER;
-use super::InputManager;
-use super::MouseId;
 
 /// Left mouse button
 pub const LEFT: u32 = 0;
@@ -19,22 +19,48 @@ pub const RIGHT: u32 = 1;
 /// Middle mouse button
 pub const MIDDLE: u32 = 2;
 
+/// A mouse input device
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct MouseId(winit::event::DeviceId);
+
+impl MouseId {
+    #[inline(always)]
+    pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
+        if device != winit::event::DeviceId::dummy() {
+            Some(Self(device))
+        } else {
+            None
+        }
+    }
+}
+
 /// The data belonging to a single mouse
 #[derive(Debug, Clone)]
 pub(crate) struct Mouse {
     /// The scroll delta in the current frame in "lines".
     /// Positive X means towards the right, positive Y means up
-    pub(crate) scroll_delta: Vec2,
+    scroll_delta: Vec2,
 
     /// The position delta in the current frame, in opaque units. The scale
     /// depends on the DPI scale of the mouse.
-    pub(crate) pos_delta: Vec2,
+    pos_delta: Vec2,
 
     /// The held buttons in the previous frame
-    pub(crate) prev_pressed_buttons: IntSet<ButtonId>,
+    prev_pressed_buttons: IntSet<ButtonId>,
 
     /// The currently held buttons
-    pub(crate) pressed_buttons: IntSet<ButtonId>,
+    pressed_buttons: IntSet<ButtonId>,
+
+    /// The position of the mouse cursor relative to a window.
+    /// If [None], the cursor is not currently on any WutEngine window
+    window_position: Option<(Window, Vec2)>,
+}
+
+impl Default for Mouse {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Mouse {
@@ -45,12 +71,13 @@ impl Mouse {
             pos_delta: Vec2::ZERO,
             prev_pressed_buttons: HashSet::default(),
             pressed_buttons: HashSet::default(),
+            window_position: None,
         }
     }
 
     /// Clears the frame-specific data for this mouse, ensuring all new
     /// input gets registered to the next frame
-    pub(crate) fn reset_frame(&mut self) {
+    pub(crate) fn next_frame(&mut self) {
         self.scroll_delta = Vec2::ZERO;
         self.pos_delta = Vec2::ZERO;
 
@@ -74,13 +101,30 @@ impl Mouse {
             log::trace!("Released button {button}, which was not pressed");
         }
     }
+
+    /// Adds raw mouse cursor movement.
+    pub(crate) fn add_raw_position_delta(&mut self, delta: Vec2) {
+        self.pos_delta += delta;
+    }
+
+    /// Adds raw mouse scroll wheel movement.
+    pub(crate) fn add_raw_scroll_delta(&mut self, delta: Vec2) {
+        self.scroll_delta += delta;
+    }
+
+    /// Sets the position of this mouse relative to a window. If [None],
+    /// the mouse is not currently on any window.
+    pub(crate) fn set_window_position(&mut self, position: Option<(Window, Vec2)>) {
+        self.window_position = position;
+    }
 }
 
 fn get_mouse_and<T>(to_query: Option<MouseId>, func: impl FnOnce(Option<&Mouse>) -> T) -> T {
     let mice = INPUT_MANAGER.mice.read().unwrap();
+
     let mouse = match to_query {
         Some(to_query) => {
-            let mouse = InputManager::get_specific_mouse(&mice, to_query);
+            let mouse = mice.get_identified_device(&to_query);
 
             if mouse.is_none() {
                 log::warn!("Mouse {to_query:?} could not be found, returning default values");
@@ -91,11 +135,58 @@ fn get_mouse_and<T>(to_query: Option<MouseId>, func: impl FnOnce(Option<&Mouse>)
         None => {
             let most_recent_mouse = *INPUT_MANAGER.most_recent_mouse.read().unwrap();
 
-            InputManager::get_latest_mouse(&mice, most_recent_mouse)
+            if let Some(latest) = most_recent_mouse {
+                match mice.get_identified_device(&latest) {
+                    Some(mouse) => Some(mouse),
+                    None => Some(mice.get_any_device()),
+                }
+            } else {
+                Some(mice.get_any_device())
+            }
         }
     };
 
     func(mouse)
+}
+
+/// If the mouse is currently on any window managed by WutEngine, returns the ID of that
+/// window and the pixel position of the cursor.
+///
+/// If you want to know the position on a specific window, see [window_pos]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns [None]
+pub fn screen_pos(device: Option<MouseId>) -> Option<(Window, Vec2)> {
+    get_mouse_and(device, |mouse| {
+        if let Some(mouse) = mouse {
+            mouse.window_position
+        } else {
+            None
+        }
+    })
+}
+
+/// If the mouse is currently on the given window, returns
+/// the pixel position of the cursor.
+///
+/// If you want to know the position on any window, see [screen_pos]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed mouse device.
+///
+/// If the specified mouse (or the latest mouse) could not be found, returns [None]
+pub fn window_pos(device: Option<MouseId>, window: Window) -> Option<Vec2> {
+    get_mouse_and(device, |mouse| {
+        if let Some(mouse) = mouse {
+            mouse
+                .window_position
+                .and_then(|(win, pos)| if win == window { Some(pos) } else { None })
+        } else {
+            None
+        }
+    })
 }
 
 /// Returns the raw mouse position delta.

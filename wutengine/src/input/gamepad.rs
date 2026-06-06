@@ -6,7 +6,12 @@ use glam::Vec2;
 
 use crate::input::INPUT_MANAGER;
 
-use super::InputManager;
+use super::DeviceSet;
+
+/// A gamepad input device
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From, derive_more::Display)]
+#[repr(transparent)]
+pub struct GamepadId(gilrs::GamepadId);
 
 /// The data for a gamepad
 #[derive(Debug)]
@@ -24,7 +29,22 @@ pub(crate) struct Gamepad {
     pub(crate) prev_axis_values: HashMap<Axis, Vec2>,
 }
 
+impl Default for Gamepad {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Gamepad {
+    fn new() -> Self {
+        Self {
+            button_values: Default::default(),
+            prev_button_values: Default::default(),
+            axis_values: Default::default(),
+            prev_axis_values: Default::default(),
+        }
+    }
+
     /// Clears the frame-specific data for this gamepad, ensuring all new
     /// input gets registered to the next frame
     pub(crate) fn next_frame(&mut self) {
@@ -51,7 +71,7 @@ pub(crate) fn poll_for_events() {
             continue;
         }
 
-        let gamepad_id = super::GamepadId(event.id);
+        let gamepad_id = GamepadId(event.id);
         let gilrs_gamepad = gamepad_manager.gamepad(event.id);
 
         log::trace!("Event for gamepad {}: {:#?}", event.id, event.event);
@@ -102,22 +122,16 @@ pub(crate) fn poll_for_events() {
 
                 log::info!("Gamepad \"{name}\" with ID {} connected", event.id);
 
-                gamepads.insert(
-                    super::GamepadId(event.id),
-                    Gamepad {
-                        button_values: Default::default(),
-                        prev_button_values: Default::default(),
-                        axis_values: Default::default(),
-                        prev_axis_values: Default::default(),
-                    },
-                );
+                INPUT_MANAGER.set_most_recent_gamepad(GamepadId(event.id));
+
+                gamepads.update_device(Some(&GamepadId(event.id)), |_| {});
             }
             gilrs::EventType::Disconnected => {
                 let name = gilrs_gamepad.name();
 
                 log::info!("Gamepad \"{name}\" with ID {} disconnected", event.id);
 
-                gamepads.remove(&super::GamepadId(event.id));
+                gamepads.remove_device(&GamepadId(event.id));
             }
             _ => {}
         }
@@ -139,12 +153,14 @@ enum AxisOrButton {
 }
 
 fn set_axis_or_button_value(
-    gamepads: &mut HashMap<super::GamepadId, Gamepad>,
+    gamepads: &mut DeviceSet<super::GamepadId, Gamepad>,
     gamepad: &super::GamepadId,
     axis_or_button: AxisOrButton,
     value: f32,
 ) {
-    let Some(gamepad) = gamepads.get_mut(gamepad) else {
+    INPUT_MANAGER.set_most_recent_gamepad(*gamepad);
+
+    let Some(gamepad) = gamepads.get_identified_device_mut(gamepad) else {
         log::warn!("Unknown gamepad: {gamepad}");
         return;
     };
@@ -287,9 +303,10 @@ fn get_gamepad_and<T>(
     func: impl FnOnce(Option<&Gamepad>) -> T,
 ) -> T {
     let gamepads = INPUT_MANAGER.gamepads.read().unwrap();
+
     let gamepad = match to_query {
         Some(to_query) => {
-            let gamepad = InputManager::get_specific_gamepad(&gamepads, to_query);
+            let gamepad = gamepads.get_identified_device(&to_query);
 
             if gamepad.is_none() {
                 log::warn!("Gamepad {to_query:?} could not be found, returning default values");
@@ -300,7 +317,14 @@ fn get_gamepad_and<T>(
         None => {
             let most_recent_gamepad = *INPUT_MANAGER.most_recent_gamepad.read().unwrap();
 
-            InputManager::get_latest_gamepad(&gamepads, most_recent_gamepad)
+            if let Some(latest) = most_recent_gamepad {
+                match gamepads.get_identified_device(&latest) {
+                    Some(mouse) => Some(mouse),
+                    None => Some(gamepads.get_any_device()),
+                }
+            } else {
+                Some(gamepads.get_any_device())
+            }
         }
     };
 

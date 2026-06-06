@@ -83,6 +83,12 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             return;
         };
 
+        let was_handled_window_input_event = input::insert_raw_window_event(id, &event);
+
+        if was_handled_window_input_event {
+            return;
+        }
+
         match event {
             winit::event::WindowEvent::CloseRequested => {
                 profiling::scope!("Close Requested");

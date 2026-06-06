@@ -7,8 +7,22 @@ mod key;
 pub use key::*;
 
 use super::INPUT_MANAGER;
-use super::InputManager;
-use super::KeyboardId;
+
+/// A keyboard input device
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct KeyboardId(winit::event::DeviceId);
+
+impl KeyboardId {
+    #[inline(always)]
+    pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
+        if device != winit::event::DeviceId::dummy() {
+            Some(Self(device))
+        } else {
+            None
+        }
+    }
+}
 
 /// Data concerning the input of a single keyboard
 #[derive(Debug, Clone)]
@@ -18,6 +32,12 @@ pub(crate) struct Keyboard {
 
     /// The currently held keys
     pub(crate) pressed_keys: HashSet<Key>,
+}
+
+impl Default for Keyboard {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Keyboard {
@@ -61,7 +81,7 @@ fn get_keyboard_and<T>(
 
     let keyboard = match to_query {
         Some(to_query) => {
-            let keyboard = InputManager::get_specific_keyboard(&keyboards, to_query);
+            let keyboard = keyboards.get_identified_device(&to_query);
 
             if keyboard.is_none() {
                 log::warn!("Keyboard {to_query:?} could not be found, returning default values");
@@ -72,7 +92,14 @@ fn get_keyboard_and<T>(
         None => {
             let most_recent_keyboard = *INPUT_MANAGER.most_recent_keyboard.read().unwrap();
 
-            InputManager::get_latest_keyboard(&keyboards, most_recent_keyboard)
+            if let Some(latest) = most_recent_keyboard {
+                match keyboards.get_identified_device(&latest) {
+                    Some(keyboard) => Some(keyboard),
+                    None => Some(keyboards.get_any_device()),
+                }
+            } else {
+                Some(keyboards.get_any_device())
+            }
         }
     };
 
