@@ -116,6 +116,9 @@ pub fn run(
 
     util::set_cur_thread_as_main_thread();
 
+    #[cfg(feature = "development_overlay")]
+    crate::development_overlay::init();
+
     let mut runtime = Runtime {
         frame_pacer: window::pacer::FramePacer::default(),
         initialization_data: Some(Box::new(InitializationData {
@@ -139,9 +142,6 @@ pub fn run(
     runtime.systems.build_schedule(systems);
 
     log::debug!("Final schedule:\n{}", runtime.systems.dump());
-
-    #[cfg(feature = "development_overlay")]
-    crate::development_overlay::init();
 
     window::manager::initialize();
     input::init();

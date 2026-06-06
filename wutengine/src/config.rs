@@ -35,6 +35,13 @@ pub(crate) fn init_and_load(path: Option<&Path>) {
             config: initial_values,
         },
     );
+
+    #[cfg(feature = "development_overlay")]
+    {
+        crate::development_overlay::add_development_overlay_window(
+            development_overlay::ConfigOverlay,
+        );
+    }
 }
 
 fn load_from_file(path: &Path) -> DashMap<String, toml::Value> {
@@ -292,5 +299,74 @@ fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
         new_table.insert(config_key.to_owned(), val);
 
         *cur_category = toml::Value::Table(new_table);
+    }
+}
+
+#[cfg(feature = "development_overlay")]
+mod development_overlay {
+    use std::collections::HashMap;
+
+    use crate::development_overlay::DevelopmentOverlayWindow;
+
+    use super::CONFIG_MANAGER;
+
+    pub(super) struct ConfigOverlay;
+
+    impl ConfigOverlay {
+        fn show_value(&mut self, ui: &mut egui::Ui, key: String, value: toml::Value, indent: f32) {
+            match value {
+                toml::Value::String(s) => {
+                    ui.label(format!("{key}: {s}"));
+                }
+                toml::Value::Integer(i) => {
+                    ui.label(format!("{key}: {i}"));
+                }
+                toml::Value::Float(f) => {
+                    ui.label(format!("{key}: {f}"));
+                }
+                toml::Value::Boolean(b) => {
+                    ui.label(format!("{key}: {b}"));
+                }
+                toml::Value::Datetime(datetime) => {
+                    ui.label(format!("{key}: {datetime}"));
+                }
+                toml::Value::Array(values) => {
+                    egui::CollapsingHeader::new(key)
+                        .default_open(true)
+                        .show(ui, |ui| {
+                            for (i, value) in values.into_iter().enumerate() {
+                                self.show_value(ui, i.to_string(), value, indent + 8.0);
+                            }
+                        });
+                }
+                toml::Value::Table(map) => {
+                    egui::CollapsingHeader::new(key)
+                        .default_open(true)
+                        .show(ui, |ui| {
+                            for (key, value) in map {
+                                self.show_value(ui, key, value, indent + 8.0);
+                            }
+                        });
+                }
+            };
+        }
+    }
+
+    impl DevelopmentOverlayWindow for ConfigOverlay {
+        fn name(&self) -> &str {
+            "Config"
+        }
+
+        fn show(&mut self, ui: &mut egui::Ui) {
+            let as_hashmap: HashMap<_, _> = CONFIG_MANAGER
+                .config
+                .iter()
+                .map(|r| (r.key().clone(), r.value().clone()))
+                .collect();
+
+            for (key, val) in as_hashmap {
+                self.show_value(ui, key, val, 8.0);
+            }
+        }
     }
 }
