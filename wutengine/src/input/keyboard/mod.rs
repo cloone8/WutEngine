@@ -3,8 +3,10 @@
 use std::collections::HashSet;
 
 mod key;
+mod logical_key;
 
 pub use key::*;
+pub use logical_key::*;
 
 use super::INPUT_MANAGER;
 
@@ -28,10 +30,20 @@ impl KeyboardId {
 #[derive(Debug, Clone)]
 pub(crate) struct Keyboard {
     /// The held keys in the previous frame
-    pub(crate) prev_pressed_keys: HashSet<Key>,
+    prev_pressed_keys: HashSet<Key>,
 
     /// The currently held keys
-    pub(crate) pressed_keys: HashSet<Key>,
+    pressed_keys: HashSet<Key>,
+
+    /// Logical keyboard inputs. Mostly used by UI
+    logical_inputs: Vec<LogicalInput>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LogicalInput {
+    Pressed(LogicalKey),
+    Text(String),
+    Released(LogicalKey),
 }
 
 impl Default for Keyboard {
@@ -46,12 +58,14 @@ impl Keyboard {
         Self {
             prev_pressed_keys: HashSet::default(),
             pressed_keys: HashSet::default(),
+            logical_inputs: Vec::new(),
         }
     }
 
     /// Makes sure that all new input is registered to the next frame
     pub(crate) fn next_frame(&mut self) {
         self.prev_pressed_keys.clone_from(&self.pressed_keys);
+        self.logical_inputs.clear();
     }
 
     /// Registers the given key as pressed
@@ -70,6 +84,37 @@ impl Keyboard {
         if !was_held {
             log::trace!("Released key {key:?}, which was not pressed");
         }
+    }
+
+    pub(crate) fn add_logical_input(&mut self, logical: LogicalInput) {
+        self.logical_inputs.push(logical);
+    }
+}
+
+#[inline]
+fn winit_native_keycode_to_u32(nkc: winit::keyboard::NativeKeyCode) -> Option<u32> {
+    match nkc {
+        winit::keyboard::NativeKeyCode::Unidentified => None,
+        winit::keyboard::NativeKeyCode::Android(scancode) => Some(scancode),
+        winit::keyboard::NativeKeyCode::MacOS(scancode) => Some(u32::from(scancode)),
+        winit::keyboard::NativeKeyCode::Windows(scancode) => Some(u32::from(scancode)),
+        winit::keyboard::NativeKeyCode::Xkb(keycode) => Some(keycode),
+    }
+}
+
+#[inline]
+fn winit_nativekey_to_unknown_logical(kc: winit::keyboard::NativeKey) -> Option<UnknownLogicalKey> {
+    match kc {
+        winit::keyboard::NativeKey::Unidentified => None,
+        winit::keyboard::NativeKey::Android(scancode) => Some(UnknownLogicalKey::Code(scancode)),
+        winit::keyboard::NativeKey::MacOS(scancode) => {
+            Some(UnknownLogicalKey::Code(u32::from(scancode)))
+        }
+        winit::keyboard::NativeKey::Windows(scancode) => {
+            Some(UnknownLogicalKey::Code(u32::from(scancode)))
+        }
+        winit::keyboard::NativeKey::Xkb(scancode) => Some(UnknownLogicalKey::Code(scancode)),
+        winit::keyboard::NativeKey::Web(s) => Some(UnknownLogicalKey::String(s.to_string())),
     }
 }
 
@@ -156,6 +201,54 @@ pub fn key_released(device: Option<KeyboardId>, key: Key) -> bool {
             !keyboard.pressed_keys.contains(&key) && keyboard.prev_pressed_keys.contains(&key)
         } else {
             false
+        }
+    })
+}
+
+pub fn pressed_keys(device: Option<KeyboardId>) -> HashSet<Key> {
+    get_keyboard_and(device, |keyboard| {
+        if let Some(keyboard) = keyboard {
+            keyboard
+                .pressed_keys
+                .difference(&keyboard.prev_pressed_keys)
+                .copied()
+                .collect()
+        } else {
+            HashSet::default()
+        }
+    })
+}
+
+pub fn held_keys(device: Option<KeyboardId>) -> HashSet<Key> {
+    get_keyboard_and(device, |keyboard| {
+        if let Some(keyboard) = keyboard {
+            keyboard.pressed_keys.clone()
+        } else {
+            HashSet::default()
+        }
+    })
+}
+
+pub fn released_keys(device: Option<KeyboardId>) -> HashSet<Key> {
+    get_keyboard_and(device, |keyboard| {
+        if let Some(keyboard) = keyboard {
+            keyboard
+                .prev_pressed_keys
+                .difference(&keyboard.pressed_keys)
+                .copied()
+                .collect()
+        } else {
+            HashSet::default()
+        }
+    })
+}
+
+pub fn logical_inputs(device: Option<KeyboardId>) -> Vec<LogicalInput> {
+    get_keyboard_and(device, |keyboard| {
+        if let Some(keyboard) = keyboard {
+            keyboard.logical_inputs.clone()
+        } else {
+            Vec::new()
         }
     })
 }

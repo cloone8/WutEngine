@@ -264,6 +264,42 @@ impl InputManager {
             ElementState::Released => kbd.set_key_released(&key),
         });
     }
+
+    fn keyboard_logical_key(
+        &self,
+        keyboard: Option<KeyboardId>,
+        logical_key: keyboard::LogicalKey,
+        state: ElementState,
+    ) {
+        if let Some(identified_keyboard) = keyboard {
+            self.set_most_recent_keyboard(identified_keyboard);
+        }
+
+        let mut keyboards = self.keyboards.write().unwrap();
+
+        keyboards.update_device(keyboard.as_ref(), |kbd| match state {
+            ElementState::Pressed => {
+                kbd.add_logical_input(keyboard::LogicalInput::Pressed(logical_key.clone()))
+            }
+            ElementState::Released => {
+                kbd.add_logical_input(keyboard::LogicalInput::Released(logical_key.clone()))
+            }
+        });
+    }
+
+    fn keyboard_text(&self, keyboard: Option<KeyboardId>, text: &str) {
+        assert!(!text.is_empty(), "Cannot send empty text to keyboard");
+
+        if let Some(identified_keyboard) = keyboard {
+            self.set_most_recent_keyboard(identified_keyboard);
+        }
+
+        let mut keyboards = self.keyboards.write().unwrap();
+
+        keyboards.update_device(keyboard.as_ref(), |kbd| {
+            kbd.add_logical_input(keyboard::LogicalInput::Text(text.to_string()));
+        });
+    }
 }
 
 /// The global [InputManager]
@@ -357,8 +393,24 @@ pub fn insert_raw_window_event(window: Window, event: &winit::event::WindowEvent
                 return true;
             }
 
+            let keyboard_id = KeyboardId::from_winit(*device_id);
+
             if let Ok(as_key) = keyboard::Key::try_from(event.physical_key) {
-                INPUT_MANAGER.keyboard_key(KeyboardId::from_winit(*device_id), as_key, event.state);
+                INPUT_MANAGER.keyboard_key(keyboard_id, as_key, event.state);
+            }
+
+            if let Some(logical_key) = keyboard::LogicalKey::try_from_winit(&event.logical_key) {
+                INPUT_MANAGER.keyboard_logical_key(keyboard_id, logical_key, event.state);
+            }
+
+            if event.state.is_pressed()
+                && let Some(text) = event
+                    .text
+                    .as_deref()
+                    .or_else(|| event.logical_key.to_text())
+                && !text.is_empty()
+            {
+                INPUT_MANAGER.keyboard_text(keyboard_id, text);
             }
         }
         winit::event::WindowEvent::ModifiersChanged(_) => {}
@@ -395,7 +447,7 @@ pub fn insert_raw_window_event(window: Window, event: &winit::event::WindowEvent
     }
 
     log::trace!(
-        "Window input event in frame {} on window {window}: {event:#?}",
+        "Handled window input event in frame {} on window {window}: {event:#?}",
         crate::time::frame_num()
     );
 

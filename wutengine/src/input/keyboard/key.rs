@@ -1,5 +1,7 @@
 use winit::platform::scancode::PhysicalKeyExtScancode;
 
+use super::winit_native_keycode_to_u32;
+
 /// A physical key. Note that these correspond to key _locations_, not actual logical inputs
 ///
 /// Taken from [winit 0.30.13](https://github.com/rust-windowing/winit/tree/v0.30.13),
@@ -606,20 +608,15 @@ impl TryFrom<winit::keyboard::PhysicalKey> for Key {
     #[allow(clippy::too_many_lines, reason = "Long match")]
     fn try_from(value: winit::keyboard::PhysicalKey) -> Result<Self, Self::Error> {
         match value {
-            winit::keyboard::PhysicalKey::Unidentified(native_key_code) => match native_key_code {
-                winit::keyboard::NativeKeyCode::Unidentified => {
-                    log::warn!("Unidentified keycode, ignoring");
-                    Err(())
+            winit::keyboard::PhysicalKey::Unidentified(native_key_code) => {
+                match winit_native_keycode_to_u32(native_key_code) {
+                    Some(as_int) => Ok(Self::Unknown(as_int)),
+                    None => {
+                        log::warn!("Unidentified keycode, ignoring");
+                        Err(())
+                    }
                 }
-                winit::keyboard::NativeKeyCode::Android(scancode) => Ok(Self::Unknown(scancode)),
-                winit::keyboard::NativeKeyCode::MacOS(scancode) => {
-                    Ok(Self::Unknown(u32::from(scancode)))
-                }
-                winit::keyboard::NativeKeyCode::Windows(scancode) => {
-                    Ok(Self::Unknown(u32::from(scancode)))
-                }
-                winit::keyboard::NativeKeyCode::Xkb(keycode) => Ok(Self::Unknown(keycode)),
-            },
+            }
             winit::keyboard::PhysicalKey::Code(kc) => match kc {
                 winit::keyboard::KeyCode::Backquote => Ok(Self::Backquote),
                 winit::keyboard::KeyCode::Backslash => Ok(Self::Backslash),
