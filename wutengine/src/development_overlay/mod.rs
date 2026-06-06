@@ -29,6 +29,7 @@ use crate::graphics::sampler::Sampler;
 use crate::graphics::texture::Texture;
 use crate::util::InitOnce;
 use crate::util::map;
+use crate::window::Window;
 
 mod rendering_test;
 
@@ -58,7 +59,10 @@ impl DevOverlayManager {
     }
 }
 
-pub(crate) fn render_if_active(surface: &wgpu::SurfaceTexture) -> Option<wgpu::CommandBuffer> {
+pub(crate) fn render_if_active(
+    _window: Window,
+    surface: &wgpu::SurfaceTexture,
+) -> Option<wgpu::CommandBuffer> {
     profiling::function_scope!();
 
     if !is_enabled() {

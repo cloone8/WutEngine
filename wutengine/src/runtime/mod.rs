@@ -247,11 +247,11 @@ impl Runtime {
         #[cfg(feature = "development_overlay")]
         {
             //TODO: Pick main surface according to some metric, not just arbitrarily the first
-            let main_surface = surfaces.first().map(|(_, sfc)| sfc);
+            let main_surface = surfaces.first();
 
-            if let Some(main_surface) = main_surface {
+            if let Some((window, surface_tex)) = main_surface {
                 if let Some(overlay_buffer) =
-                    crate::development_overlay::render_if_active(main_surface)
+                    crate::development_overlay::render_if_active(*window, surface_tex)
                 {
                     buffers.push(overlay_buffer);
                 }
