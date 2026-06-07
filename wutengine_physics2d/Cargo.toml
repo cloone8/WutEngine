@@ -1,6 +1,6 @@
 [package]
-name = "wutengine_util"
-description = "Internal utilities for WutEngine"
+name = "wutengine_physics2d"
+description = "2D Physics for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,9 +11,17 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[lib]
+path = "../wutengine_physics/src/lib.rs"
+
 [dependencies]
+wutengine_util.workspace = true
+wutengine_math.workspace = true
+
 log.workspace = true
-nohash-hasher.workspace = true
+profiling.workspace = true
+
+rapier2d = { workspace = true, features = ["parallel", "simd-stable"] }
 
 [lints]
 workspace = true

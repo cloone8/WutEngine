@@ -3966,7 +3966,8 @@ dependencies = [
  "wutengine_egui",
  "wutengine_input",
  "wutengine_math",
- "wutengine_physics",
+ "wutengine_physics2d",
+ "wutengine_physics3d",
  "wutengine_shadercompiler",
  "wutengine_time",
  "wutengine_util",
@@ -4023,11 +4024,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "wutengine_physics"
+name = "wutengine_physics2d"
 version = "0.6.0"
 dependencies = [
+ "log",
+ "profiling",
  "rapier2d",
+ "wutengine_math",
+ "wutengine_util",
+]
+
+[[package]]
+name = "wutengine_physics3d"
+version = "0.6.0"
+dependencies = [
+ "log",
+ "profiling",
  "rapier3d",
+ "wutengine_math",
  "wutengine_util",
 ]
 

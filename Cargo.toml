@@ -6,7 +6,8 @@ members = [
     "wutengine_egui",
     "wutengine_input",
     "wutengine_math",
-    "wutengine_physics",
+    "wutengine_physics2d",
+    "wutengine_physics3d",
     "wutengine_shadercompiler",
     "wutengine_time",
     "wutengine_util",
@@ -33,7 +34,8 @@ wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0
 wutengine_time = { path = "wutengine_time", version = "0.6.0" }
 wutengine_math = { path = "wutengine_math", version = "0.6.0" }
 wutengine_egui = { path = "wutengine_egui", version = "0.6.0" }
-wutengine_physics = { path = "wutengine_physics", version = "0.6.0" }
+wutengine_physics2d = { path = "wutengine_physics2d", version = "0.6.0" }
+wutengine_physics3d = { path = "wutengine_physics3d", version = "0.6.0" }
 wutengine_util = { path = "wutengine_util", version = "0.6.0" }
 wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 

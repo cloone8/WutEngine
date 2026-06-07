@@ -28,7 +28,9 @@ wutengine_asset.workspace = true
 wutengine_input.workspace = true
 wutengine_math.workspace = true
 wutengine_time.workspace = true
-wutengine_physics = { workspace = true, features = ["phys2d", "phys3d"] }
+
+wutengine_physics2d.workspace = true
+wutengine_physics3d.workspace = true
 
 log.workspace = true
 derive_more = { workspace = true, features = [

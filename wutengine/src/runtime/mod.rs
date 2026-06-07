@@ -15,7 +15,6 @@ use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::graphics::renderpass::RenderPassInfo;
 use crate::input;
-use crate::physics;
 use crate::system::{self, Phase, SystemManager};
 use crate::window::{self, Window};
 use crate::{graphics, time, world};
@@ -145,7 +144,8 @@ pub fn run(
 
     window::manager::init();
     input::init();
-    physics::init();
+    crate::physics2d::init();
+    crate::physics3d::init();
     world::init();
 
     let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event()
@@ -173,6 +173,18 @@ impl Runtime {
 
         for _ in 0..num_fixed_updates {
             self.run_phase_systems(Phase::FixedUpdate);
+
+            {
+                profiling::scope!("Run physics");
+                rayon::join(
+                    || {
+                        crate::physics2d::step(time::fixed_delta());
+                    },
+                    || {
+                        crate::physics3d::step(time::fixed_delta());
+                    },
+                );
+            }
 
             time::update_fixed();
         }

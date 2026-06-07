@@ -40,4 +40,7 @@ pub use wutengine_input as input;
 pub use wutengine_time as time;
 
 #[doc(inline)]
-pub use wutengine_physics as physics;
+pub use wutengine_physics2d as physics2d;
+
+#[doc(inline)]
+pub use wutengine_physics3d as physics3d;
