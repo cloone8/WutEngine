@@ -415,11 +415,10 @@ pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEven
 /// into the input manager for the current frame. Returns whether the window event was an input-related event,
 /// and has thus been handled
 pub fn insert_raw_window_event(
-    window: impl Into<WindowIdentifier>,
+    window: WindowIdentifier,
     event: &winit::event::WindowEvent,
 ) -> bool {
     profiling::function_scope!();
-    let window = window.into();
 
     match event {
         winit::event::WindowEvent::KeyboardInput {

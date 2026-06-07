@@ -73,6 +73,8 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         native_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
+        use winit::event::WindowEvent;
+
         profiling::function_scope!();
 
         let Some(id) = window::manager::find_id(native_id) else {
@@ -83,19 +85,20 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             return;
         };
 
-        let was_handled_window_input_event = input::insert_raw_window_event(id, &event);
+        let was_handled_window_input_event =
+            input::insert_raw_window_event(input::WindowIdentifier::from(id), &event);
 
         if was_handled_window_input_event {
             return;
         }
 
         match event {
-            winit::event::WindowEvent::CloseRequested => {
+            WindowEvent::CloseRequested => {
                 profiling::scope!("Close Requested");
 
                 event_loop.exit();
             }
-            winit::event::WindowEvent::Resized(_) => {
+            WindowEvent::Resized(_) => {
                 profiling::scope!("Resized");
 
                 window::manager::refresh_cached_info(&id);
@@ -106,6 +109,13 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
                     // to make sure it's filled
                     self.about_to_wait(event_loop);
                 }
+            }
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                profiling::scope!("Scale factor changed");
+
+                log::debug!("Window {id} changed scale factor to: {scale_factor}");
+
+                window::manager::refresh_cached_info(&id);
             }
             _ => {}
         }

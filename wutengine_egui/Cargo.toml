@@ -14,6 +14,10 @@ categories.workspace = true
 [dependencies]
 wutengine_math.workspace = true
 wutengine_asset.workspace = true
+wutengine_input.workspace = true
+wutengine_util.workspace = true
+
+log.workspace = true
 bytemuck.workspace = true
 egui = { workspace = true, features = ["rayon", "bytemuck"] }
 

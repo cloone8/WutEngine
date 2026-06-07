@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use egui_utils::gather_input;
 use wutengine_asset::Asset;
 use wutengine_asset::AssetHandle;
 use wutengine_asset::assets::mesh::MeshTopology;
@@ -30,14 +29,12 @@ use crate::graphics::shader::GVec3;
 use crate::graphics::shader::GVec4;
 use crate::graphics::texture::Texture;
 use crate::math::vec2;
+use crate::window::Window;
 use wutengine_util::InitOnce;
 use wutengine_util::map;
-use crate::window::Window;
 
 #[doc(inline)]
 pub use wutengine_egui;
-
-mod egui_utils;
 
 unique_id_type32! {
     DevOverlayWindowId
@@ -53,7 +50,7 @@ struct TextureMaterial {
     texture: Texture,
     sampler: Sampler,
     material: Material,
-    cur_screen_size: (u32, u32),
+    cur_screen_size: (f32, f32),
 }
 
 pub(crate) struct DevOverlayManager {
@@ -105,9 +102,19 @@ pub(crate) fn render_if_active(
         ..Default::default()
     });
 
+    let scale_factor = window.get_scale_factor() as f32;
     let sfc_size = (surface.texture.size().width, surface.texture.size().height);
+    let sfc_points = (
+        sfc_size.0 as f32 / scale_factor,
+        sfc_size.1 as f32 / scale_factor,
+    );
 
-    let egui_input = gather_input(window, sfc_size);
+    let egui_input = wutengine_egui::gather_input(
+        crate::input::WindowIdentifier::from(window),
+        wutengine_time::unscaled_time64(),
+        scale_factor,
+        sfc_points,
+    );
 
     let mut windows = DEV_OVERLAY.windows.lock().unwrap();
 
@@ -151,7 +158,7 @@ pub(crate) fn render_if_active(
 
     let mut texture_map = DEV_OVERLAY.textures.lock().unwrap();
 
-    upload_new_textures(&mut texture_map, egui_output.textures_delta.set, sfc_size);
+    upload_new_textures(&mut texture_map, egui_output.textures_delta.set, sfc_points);
 
     if let Some((vertex_buffers, index_buffer)) = gather_primitive_buffers(&clipped_output) {
         let mut command_encoder =
@@ -198,6 +205,7 @@ pub(crate) fn render_if_active(
                 &mut cur_pipeline,
                 surface_format,
                 sfc_size,
+                sfc_points,
                 egui_output.pixels_per_point,
             );
 
@@ -290,6 +298,7 @@ fn render_primitive(
     current_pipeline: &mut Option<Arc<wgpu::RenderPipeline>>,
     surface_format: wgpu::TextureFormat,
     surface_size: (u32, u32),
+    surface_points: (f32, f32),
     pixels_per_point: f32,
 ) {
     profiling::function_scope!();
@@ -298,7 +307,7 @@ fn render_primitive(
         egui::epaint::Primitive::Mesh(egui_mesh) => {
             let tex_mat = texture_map.get_mut(&egui_mesh.texture_id).unwrap();
 
-            set_surface_size_if_changed(tex_mat, surface_size, crate::graphics::queue());
+            set_surface_size_if_changed(tex_mat, surface_points, crate::graphics::queue());
 
             tex_mat
                 .material
@@ -374,7 +383,7 @@ fn render_primitive(
 
 fn set_surface_size_if_changed(
     texmat: &mut TextureMaterial,
-    sfc_size: (u32, u32),
+    sfc_size: (f32, f32),
     queue: &wgpu::Queue,
 ) {
     if texmat.cur_screen_size == sfc_size {
@@ -386,7 +395,7 @@ fn set_surface_size_if_changed(
         .user_bind_group
         .set_parameter(
             "screen_size",
-            MaterialParameter::Vec2(vec2(sfc_size.0 as f32, sfc_size.1 as f32)),
+            MaterialParameter::Vec2(vec2(sfc_size.0, sfc_size.1)),
             queue,
         )
         .unwrap();
@@ -397,7 +406,7 @@ fn set_surface_size_if_changed(
 fn upload_new_textures(
     texture_map: &mut HashMap<egui::TextureId, TextureMaterial>,
     to_set: Vec<(egui::TextureId, egui::epaint::ImageDelta)>,
-    surface_size: (u32, u32),
+    surface_points: (f32, f32),
 ) {
     profiling::function_scope!();
 
@@ -423,7 +432,7 @@ fn upload_new_textures(
                     )
                     .unwrap();
 
-                set_surface_size_if_changed(texmat, surface_size, queue);
+                set_surface_size_if_changed(texmat, surface_points, queue);
 
                 texmat.material.user_bind_group.update_bind_group(device);
 
@@ -470,7 +479,10 @@ fn upload_new_textures(
                     .user_bind_group
                     .set_parameter(
                         "screen_size",
-                        MaterialParameter::Vec2(vec2(surface_size.0 as f32, surface_size.1 as f32)),
+                        MaterialParameter::Vec2(vec2(
+                            surface_points.0 as f32,
+                            surface_points.1 as f32,
+                        )),
                         queue,
                     )
                     .unwrap();
@@ -483,7 +495,7 @@ fn upload_new_textures(
                         texture,
                         sampler,
                         material,
-                        cur_screen_size: surface_size,
+                        cur_screen_size: surface_points,
                     },
                 );
             }

@@ -212,4 +212,11 @@ impl Window {
     pub fn get_size(self) -> (u32, u32) {
         crate::window::manager::get_size(self).unwrap_or((0, 0))
     }
+
+    /// Returns the OS scale factor of this window.
+    /// If the window is not yet created or is already destroyed, 1.0
+    #[inline]
+    pub fn get_scale_factor(self) -> f64 {
+        crate::window::manager::get_scale_factor(self).unwrap_or(1.0)
+    }
 }

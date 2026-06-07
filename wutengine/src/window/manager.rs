@@ -50,6 +50,19 @@ pub(crate) fn get_size(id: Window) -> Option<(u32, u32)> {
     window_manager.windows.get(&id).map(|info| info.inner_size)
 }
 
+/// Returns the scale factor for the given window
+///
+/// If the window does not exists, returns [None]
+pub(crate) fn get_scale_factor(id: Window) -> Option<f64> {
+    profiling::function_scope!();
+
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+    window_manager
+        .windows
+        .get(&id)
+        .map(|info| info.os_scale_factor)
+}
+
 /// Instructs the [WindowManager] to destroy the given window.
 ///
 /// If the window does not exist, does nothing.
@@ -224,6 +237,9 @@ struct WindowInfo {
 
     /// The physical window size, in pixels `W x H`
     inner_size: (u32, u32),
+
+    /// The OS-provided scale factor for the window
+    os_scale_factor: f64,
 }
 
 impl WindowInfo {
@@ -240,6 +256,7 @@ impl WindowInfo {
             native,
             surface,
             inner_size: (0, 0),
+            os_scale_factor: 1.0,
         };
 
         new.refresh();
@@ -255,6 +272,7 @@ impl WindowInfo {
         log::trace!("Refreshing cached information for window {}", self.id);
 
         self.inner_size = self.native.inner_size().into();
+        self.os_scale_factor = self.native.scale_factor();
     }
 
     fn reconfigure_surface(&self) {

@@ -3994,8 +3994,11 @@ version = "0.6.0"
 dependencies = [
  "bytemuck",
  "egui",
+ "log",
  "wutengine_asset",
+ "wutengine_input",
  "wutengine_math",
+ "wutengine_util",
 ]
 
 [[package]]
