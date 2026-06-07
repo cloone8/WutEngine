@@ -2,13 +2,22 @@
 
 use serde::Deserialize;
 
+/// Graphics context initialization config
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
-pub struct GraphicsConfig {
-    pub backend: GraphicsBackend,
-    pub debug: bool,
-    pub validation: bool,
-    pub gpu_based_validation: bool,
+pub(crate) struct GraphicsConfig {
+    /// The backend to use
+    pub(crate) backend: GraphicsBackend,
+
+    /// Graphics debug mode
+    pub(crate) debug: bool,
+
+    /// Graphics validation mode
+    pub(crate) validation: bool,
+
+    /// Graphics GPU based validation mode.
+    /// Very slow
+    pub(crate) gpu_based_validation: bool,
 }
 
 impl Default for GraphicsConfig {

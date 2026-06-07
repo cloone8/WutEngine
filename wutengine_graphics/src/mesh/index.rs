@@ -94,17 +94,21 @@ impl IndexBuffer {
         })
     }
 
+    /// Returns a reference to the raw [wgpu::Buffer]
     #[inline(always)]
     pub fn raw(&self) -> &wgpu::Buffer {
         &self.buffer
     }
 
+    /// Returns the format of this buffer
     #[inline(always)]
     pub fn format(&self) -> IndexFormat {
         self.format
     }
 
+    /// Returns the amount of indices in this buffer
     #[inline(always)]
+    #[allow(clippy::len_without_is_empty, reason = "Index buffer is never empty")]
     pub fn len(&self) -> usize {
         self.count
     }

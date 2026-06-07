@@ -61,21 +61,25 @@ impl Material {
         }
     }
 
+    /// The unique ID for this material
     #[inline(always)]
     pub fn id(&self) -> MaterialId {
         self.id
     }
 
+    /// The raw bind group
     #[inline(always)]
     pub fn raw_bind_group(&self) -> &BindGroup {
         &self.user_bind_group
     }
 
+    /// The mutable raw bind group
     #[inline(always)]
     pub fn raw_bind_group_mut(&mut self) -> &mut BindGroup {
         &mut self.user_bind_group
     }
 
+    /// The compiled shader
     #[inline(always)]
     pub fn compiled_shader(&self) -> &CompiledShader {
         &self.compiled_shader

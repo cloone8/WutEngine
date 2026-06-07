@@ -8,13 +8,15 @@ use wutengine_util::InitOnce;
 /// Initializes the global graphics context for WutEngine. Acquires a graphics
 /// device and configures it.
 /// Returns `true` if graphics initialization was succesful, and `false` otherwise.
-pub fn initialize_graphics_context(config: GraphicsConfig) -> bool {
+pub fn initialize_graphics_context() -> bool {
     log::debug!("Initializing graphics context");
 
     log::trace!(
         "Available graphics backends in build: {}",
         backends_to_str(wgpu::Backends::all())
     );
+
+    let config = wutengine_config::get::<GraphicsConfig>("wutengine.graphics");
 
     log::debug!("Using backend: {}", config.backend);
 

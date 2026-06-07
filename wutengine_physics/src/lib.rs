@@ -112,8 +112,8 @@ impl PhysicsManager {
 
         self.integration_parameters.dt = dt;
 
-        let (collision_send, collision_recv) = std::sync::mpsc::channel();
-        let (contact_force_send, contact_force_recv) = std::sync::mpsc::channel();
+        let (collision_send, _collision_recv) = std::sync::mpsc::channel();
+        let (contact_force_send, _contact_force_recv) = std::sync::mpsc::channel();
         let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
 
         self.physics_pipeline.step(

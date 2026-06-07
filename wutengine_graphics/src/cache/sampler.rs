@@ -7,9 +7,13 @@ use wutengine_asset::assets::sampler::WrapModeType;
 
 use super::GraphicsCache;
 
+/// Cache key for a [crate::sampler::Sampler]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct SamplerCacheKey {
+    /// Filter mode
     pub(crate) filtering: FilterMode,
+
+    /// Wrapping mode
     pub(crate) wrapping: WrapModeType,
 }
 
