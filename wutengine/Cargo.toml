@@ -21,6 +21,7 @@ asset_importers = ["wutengine_asset/importers"]
 workspace = true
 
 [dependencies]
+wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_shadercompiler.workspace = true
 wutengine_asset.workspace = true

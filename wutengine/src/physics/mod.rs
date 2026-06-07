@@ -5,7 +5,7 @@ use std::sync::RwLock;
 use phys2d::Phys2DManager;
 use phys3d::Phys3DManager;
 
-use crate::util::InitOnce;
+use wutengine_util::InitOnce;
 
 pub mod phys2d;
 pub mod phys3d;

@@ -8,7 +8,7 @@ use smallvec::SmallVec;
 
 use crate::config;
 use crate::graphics;
-use crate::util::{InitOnce, assert_main_thread};
+use wutengine_util::{InitOnce, assert_main_thread};
 
 use super::Window;
 

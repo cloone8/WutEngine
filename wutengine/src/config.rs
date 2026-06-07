@@ -11,7 +11,7 @@ use smallvec::SmallVec;
 #[doc(inline)]
 pub use toml;
 
-use crate::util::InitOnce;
+use wutengine_util::InitOnce;
 
 static CONFIG_MANAGER: InitOnce<ConfigManager> = InitOnce::new();
 

@@ -3,7 +3,7 @@
 use core::ops::{Deref, DerefMut};
 use std::sync::RwLock;
 
-use crate::util::InitOnce;
+use wutengine_util::InitOnce;
 
 static WORLD: InitOnce<RwLock<World>> = InitOnce::new();
 

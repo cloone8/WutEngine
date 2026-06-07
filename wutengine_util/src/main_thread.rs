@@ -1,3 +1,5 @@
+//! Functions for checking and asserting that we are running on the main thread
+
 use super::InitOnce;
 use core::sync::atomic::{AtomicBool, Ordering};
 use std::thread::ThreadId;
@@ -6,7 +8,7 @@ use std::thread::ThreadId;
 static MAIN_THREAD_ID: InitOnce<ThreadId, false> = InitOnce::new();
 
 /// Sets the current thread as the "main thread", for use in later checks like [on_main_thread] and [assert_main_thread]
-pub(crate) fn set_cur_thread_as_main_thread() {
+pub fn set_cur_thread_as_main_thread() {
     static ALREADY_SET: AtomicBool = AtomicBool::new(false);
 
     if ALREADY_SET.swap(true, Ordering::AcqRel) {
@@ -20,18 +22,17 @@ pub(crate) fn set_cur_thread_as_main_thread() {
 ///
 /// The main thread is the thread that called [crate::runtime::run]
 #[inline(always)]
-pub(crate) fn on_main_thread() -> bool {
+pub fn on_main_thread() -> bool {
     std::thread::current().id() == *MAIN_THREAD_ID
 }
 
 /// Panics if the current thread is not the main thread
+#[macro_export]
 macro_rules! assert_main_thread {
     () => {
-        if !$crate::util::on_main_thread() {
-            let func_name = $crate::util::current_function_name!();
+        if !$crate::on_main_thread() {
+            let func_name = $crate::current_function_name!();
             panic!("'{func_name}' must be run on the main thread!");
         }
     };
 }
-
-pub(crate) use assert_main_thread;

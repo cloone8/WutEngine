@@ -4,7 +4,7 @@ use wutengine_math::Vec2;
 
 use crate::input;
 use crate::input::keyboard;
-use crate::util::map;
+use wutengine_util::map;
 use crate::window::Window;
 
 use wutengine_egui::egui;

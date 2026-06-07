@@ -17,9 +17,9 @@ use crate::graphics::renderpass::RenderPassInfo;
 use crate::input;
 use crate::physics;
 use crate::system::{self, Phase, SystemManager};
-use crate::util::{self, InitOnce};
 use crate::window::{self, Window};
 use crate::{graphics, time, world};
+use wutengine_util::{self, InitOnce};
 
 use rayon::prelude::*;
 
@@ -114,7 +114,7 @@ pub fn run(
 
     log::info!("Starting WutEngine");
 
-    util::set_cur_thread_as_main_thread();
+    wutengine_util::set_cur_thread_as_main_thread();
 
     #[cfg(feature = "development_overlay")]
     crate::development_overlay::init();

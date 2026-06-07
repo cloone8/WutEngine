@@ -3,7 +3,7 @@
 use core::time::Duration;
 use std::time::Instant;
 
-use crate::util::assert_main_thread;
+use wutengine_util::assert_main_thread;
 
 /// Frame pacer. Allows for pacing the amount of rendered frames
 /// without vsync

@@ -4,7 +4,7 @@ use std::sync::mpsc::channel;
 
 use crate::config;
 use crate::graphics::config::GraphicsConfig;
-use crate::util::InitOnce;
+use wutengine_util::InitOnce;
 
 use super::DrawCommand;
 

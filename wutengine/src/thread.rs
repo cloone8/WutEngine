@@ -6,7 +6,7 @@ use std::thread::available_parallelism;
 
 use serde::Deserialize;
 
-use crate::util::assert_main_thread;
+use wutengine_util::assert_main_thread;
 
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
@@ -59,11 +59,6 @@ pub(crate) fn init_thread_pool() {
         .thread_name(make_thread_name)
         .build_global()
         .expect("A global thread pool has already been initialized")
-}
-
-/// Checks whether the global thread pool was initialized
-pub(crate) fn thread_pool_initialized() -> bool {
-    THREAD_POOL_INITIALIZED.load(Ordering::Acquire)
 }
 
 fn thread_start_handler(index: usize) {

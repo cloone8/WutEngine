@@ -11,7 +11,7 @@ mod scheduler;
 
 pub use queryable::*;
 
-use crate::util::assert_main_thread;
+use wutengine_util::assert_main_thread;
 use crate::world::World;
 
 /// The generic type used for a non-typed system callback.

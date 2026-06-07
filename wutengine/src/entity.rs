@@ -6,8 +6,8 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use crate::builtins::components::Name;
 use crate::component::Component;
-use crate::util::InitOnce;
 use crate::world::World;
+use wutengine_util::InitOnce;
 
 static ENTITY_QUEUES: InitOnce<EntityCommandQueues> = InitOnce::new();
 

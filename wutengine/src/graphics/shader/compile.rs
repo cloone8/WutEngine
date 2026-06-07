@@ -23,7 +23,7 @@ use crate::graphics::shader::shader_attr_wgpu_vertex_format;
 use crate::graphics::shader::shader_opaque_param_wgpu_binding_type;
 use crate::graphics::shader::{CompiledShaderId, WutEngineShaderHasher};
 use crate::graphics::{BindGroup, GFX_DEVICE, cache};
-use crate::util::unreachable_dbg;
+use wutengine_util::unreachable_dbg;
 
 use super::{Shader, ShaderParameter};
 

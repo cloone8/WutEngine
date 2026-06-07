@@ -20,7 +20,7 @@ pub use api::*;
 
 use std::sync::mpsc::Sender;
 
-use crate::util::InitOnce;
+use wutengine_util::InitOnce;
 
 pub(crate) use init::{initialize_command_queue, initialize_graphics_context};
 

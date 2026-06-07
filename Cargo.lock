@@ -3969,6 +3969,7 @@ dependencies = [
  "wutengine_egui",
  "wutengine_math",
  "wutengine_shadercompiler",
+ "wutengine_util",
  "wutengine_util_macro",
 ]
 
@@ -3997,6 +3998,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "wutengine_input"
+version = "0.6.0"
+
+[[package]]
 name = "wutengine_math"
 version = "0.6.0"
 dependencies = [
@@ -4013,6 +4018,14 @@ dependencies = [
  "nohash-hasher",
  "profiling",
  "smallvec",
+]
+
+[[package]]
+name = "wutengine_util"
+version = "0.6.0"
+dependencies = [
+ "log",
+ "nohash-hasher",
 ]
 
 [[package]]

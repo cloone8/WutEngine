@@ -19,7 +19,7 @@ use crate::graphics::renderpass::RenderPass;
 use crate::graphics::sampler::Sampler;
 use crate::graphics::texture::Texture;
 use crate::system::Phase;
-use crate::util::map;
+use wutengine_util::map;
 use crate::window::Window;
 use crate::{builtins, graphics};
 

@@ -30,8 +30,8 @@ use crate::graphics::shader::GVec3;
 use crate::graphics::shader::GVec4;
 use crate::graphics::texture::Texture;
 use crate::math::vec2;
-use crate::util::InitOnce;
-use crate::util::map;
+use wutengine_util::InitOnce;
+use wutengine_util::map;
 use crate::window::Window;
 
 #[doc(inline)]

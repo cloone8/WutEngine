@@ -9,7 +9,7 @@
 
 #[doc(hidden)]
 #[inline(always)] // This was #[inline(never)]. Any reason?
-pub(crate) fn clean_function_name(name: &str) -> &str {
+pub fn clean_function_name(name: &str) -> &str {
     const USELESS_SCOPE_NAME_SUFFIX: &str = "::__f";
 
     let Some(name) = name.strip_suffix(USELESS_SCOPE_NAME_SUFFIX) else {
@@ -23,16 +23,15 @@ pub(crate) fn clean_function_name(name: &str) -> &str {
 
 #[doc(hidden)]
 #[inline(always)]
-pub(crate) fn type_name_of<T>(_: T) -> &'static str {
+pub fn type_name_of<T>(_: T) -> &'static str {
     core::any::type_name::<T>()
 }
 /// Returns the name of the calling function without a long module path prefix
+#[macro_export]
 macro_rules! current_function_name {
     () => {{
         fn __f() {}
-        let name = $crate::util::type_name_of(__f);
-        $crate::util::clean_function_name(name)
+        let name = $crate::type_name_of(__f);
+        $crate::clean_function_name(name)
     }};
 }
-
-pub(crate) use current_function_name;

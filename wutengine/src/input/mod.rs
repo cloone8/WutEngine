@@ -17,7 +17,7 @@ use winit::event::ElementState;
 use wutengine_math::Vec2;
 
 use crate::time;
-use crate::util::InitOnce;
+use wutengine_util::InitOnce;
 use crate::window::Window;
 
 pub mod gamepad;

@@ -4,7 +4,7 @@ use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use crate::util::InitOnce;
+use wutengine_util::InitOnce;
 
 /// The amount of nanoseconds in one second
 pub const NANOS_PER_SECOND: u64 = 1_000_000_000;

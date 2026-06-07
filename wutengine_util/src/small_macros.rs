@@ -12,6 +12,7 @@
 ///     "b" => 2
 /// ];
 /// ```
+#[macro_export]
 macro_rules! map {
     () => {
         ::std::collections::HashMap::default()
@@ -28,10 +29,9 @@ macro_rules! map {
     }};
 }
 
-pub(crate) use map;
-
 /// Macro that marks the current spot as unreachable. Checked in debug builds,
 /// unchecked in release builds.
+#[macro_export]
 macro_rules! unreachable_dbg {
     ($($arg:tt)*) => {{
         // Dummy unsafe no-op to force unsafe{} around this macro
@@ -47,5 +47,3 @@ macro_rules! unreachable_dbg {
         ::core::hint::unreachable_unchecked();
     }};
 }
-
-pub(crate) use unreachable_dbg;

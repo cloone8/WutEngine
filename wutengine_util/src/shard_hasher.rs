@@ -1,8 +1,6 @@
 //! Contains a wrapper around a [nohash_hasher::NoHashHasher] that hashes with a stride constistent with the shard stride of a [dashmap::DashMap].
 //! This has the advantage that consecutive integers are always in different shards, meaning lower contention when generating keys with steps of one.
 
-#![expect(unused, reason = "Will be used for optimization later")]
-
 use core::marker::PhantomData;
 use std::sync::OnceLock;
 
@@ -11,7 +9,7 @@ use nohash_hasher::NoHashHasher;
 /// Hasher used for distributing [nohash_hasher]-based keys evenly across a [dashmap::DashMap] for minimal
 /// locking behaviour
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct ShardHasher<T> {
+pub struct ShardHasher<T> {
     rot: u32,
     hasher: NoHashHasher<u32>,
     ph: PhantomData<T>,
@@ -36,19 +34,19 @@ const fn calc_shift(shard_count: usize) -> u32 {
 
 /// Builder for [ShardHasher]
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct BuildShardHasher<T> {
+pub struct BuildShardHasher<T> {
     rot: u32,
     ph: PhantomData<T>,
 }
 
 impl<T> BuildShardHasher<T> {
     /// A new defaut [BuildShardHasher]
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
     /// New [BuildShardHasher] for a specific shard count
-    pub(crate) fn new_for_shards(shard_count: usize) -> Self {
+    pub fn new_for_shards(shard_count: usize) -> Self {
         Self {
             rot: calc_shift(shard_count),
             ph: PhantomData,
@@ -56,7 +54,7 @@ impl<T> BuildShardHasher<T> {
     }
 
     /// New [BuildShardHasher] for a specific shard count
-    pub(crate) fn new_for_threads(thread_count: usize) -> Self {
+    pub fn new_for_threads(thread_count: usize) -> Self {
         Self {
             rot: calc_shift(shard_count_threads(thread_count)),
             ph: PhantomData,

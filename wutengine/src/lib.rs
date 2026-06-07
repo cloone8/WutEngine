@@ -15,7 +15,6 @@ pub mod runtime;
 pub mod system;
 pub mod thread;
 pub mod time;
-pub(crate) mod util;
 pub mod window;
 pub mod world;
 
