@@ -1,5 +1,7 @@
+//! Graphics APIs and rendering functionality
+
+use alloc::sync::Arc;
 use core::any::TypeId;
-use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
@@ -62,7 +64,7 @@ pub fn render_mesh(mesh: Arc<Mesh>, material: Arc<Material>, transform: Mat4) {
 /// Metadata and info on a [RenderPass].
 /// Construct with [Self::from_pass]
 #[derive(derive_more::Debug)]
-pub(crate) struct RenderPassInfo<T, D> {
+pub struct RenderPassInfo<T, D> {
     /// The type of the pass
     pub type_id: TypeId,
 
@@ -80,9 +82,9 @@ pub(crate) struct RenderPassInfo<T, D> {
 impl<T, D> Clone for RenderPassInfo<T, D> {
     fn clone(&self) -> Self {
         Self {
-            type_id: self.type_id.clone(),
-            name: self.name.clone(),
-            order: self.order.clone(),
+            type_id: self.type_id,
+            name: self.name,
+            order: self.order,
             constructor: self.constructor.clone(),
         }
     }

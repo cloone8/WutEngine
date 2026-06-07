@@ -380,6 +380,7 @@ pub fn gather_input(
     }
 }
 
+/// A shader that can be used for rendering the egui UI
 pub static EGUI_SHADER: LazyLock<SerializedShader> = LazyLock::new(|| {
     let descriptor = include_str!("egui.json");
     let source = include_str!("egui.wgsl");

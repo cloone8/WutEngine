@@ -46,16 +46,12 @@ derive_more = { workspace = true, features = [
 hecs.workspace = true
 winit.workspace = true
 nohash-hasher.workspace = true
-pollster.workspace = true
 image.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
-twox-hash.workspace = true
-dashmap = { workspace = true, features = ["rayon"] }
 rayon.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-toml.workspace = true
 spin_sleep = { workspace = true }
 
 # Optional dependencies

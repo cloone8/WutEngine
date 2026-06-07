@@ -3943,13 +3943,11 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 name = "wutengine"
 version = "0.6.0"
 dependencies = [
- "dashmap",
  "derive_more",
  "hecs",
  "image",
  "log",
  "nohash-hasher",
- "pollster",
  "profiling",
  "puffin_http",
  "rayon",
@@ -3957,8 +3955,6 @@ dependencies = [
  "serde_json",
  "smallvec",
  "spin_sleep",
- "toml",
- "twox-hash",
  "winit",
  "wutengine_asset",
  "wutengine_config",

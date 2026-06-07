@@ -1,3 +1,6 @@
+//! Development overlays
+
+use wutengine_config::toml;
 pub use wutengine_development_overlay::*;
 
 use core::error::Error;
