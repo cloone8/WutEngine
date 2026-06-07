@@ -1,4 +1,4 @@
-use glam::Mat4;
+use wutengine_math::Mat4;
 
 use crate::asset::AssetHandle;
 use crate::builtins::components::Transform;

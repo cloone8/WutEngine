@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use glam::Mat4;
+use wutengine_math::Mat4;
 
 use crate::builtins::components::rendering::CameraId;
 

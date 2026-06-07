@@ -1,11 +1,11 @@
 //! Mesh asset
 
-use glam::Vec2;
-use glam::Vec3;
-use glam::Vec4;
 use nohash_hasher::IntMap;
 use serde::Deserialize;
 use serde::Serialize;
+use wutengine_math::Vec2;
+use wutengine_math::Vec3;
+use wutengine_math::Vec4;
 
 use crate::SerializedAsset;
 

@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use wutengine_asset::assets::material::SerializedMaterial;
 use wutengine_util_macro::unique_id_type32;
 
-use glam::{Mat4, Vec2, Vec3, Vec4};
 use serde::{Deserialize, Serialize};
+use wutengine_math::{Mat4, Vec2, Vec3, Vec4};
 use wutengine_util_macro::VariantName;
 
 use crate::asset::{Asset, AssetHandle};

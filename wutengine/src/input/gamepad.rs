@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use glam::Vec2;
+use wutengine_math::Vec2;
 
 use crate::input::INPUT_MANAGER;
 

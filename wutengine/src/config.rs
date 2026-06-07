@@ -306,6 +306,8 @@ fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
 mod development_overlay {
     use std::collections::HashMap;
 
+    use wutengine_egui::egui;
+
     use crate::development_overlay::DevelopmentOverlayWindow;
 
     use super::CONFIG_MANAGER;

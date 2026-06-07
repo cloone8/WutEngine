@@ -3,6 +3,8 @@ resolver = "3"
 members = [
     "wutengine",
     "wutengine_asset",
+    "wutengine_egui",
+    "wutengine_math",
     "wutengine_shadercompiler",
     "wutengine_util_macro",
 ]
@@ -23,6 +25,8 @@ categories = ["game-engines"]
 wutengine = { path = "wutengine", version = "0.6.0" }
 wutengine_asset = { path = "wutengine_asset", version = "0.6.0" }
 wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
+wutengine_math = { path = "wutengine_math", version = "0.6.0" }
+wutengine_egui = { path = "wutengine_egui", version = "0.6.0" }
 wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 
 ### External dependencies ###

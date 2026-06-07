@@ -2,9 +2,9 @@
 
 use std::collections::HashSet;
 
-use glam::Vec2;
 use nohash_hasher::IntSet;
 use winit::event::ButtonId;
+use wutengine_math::Vec2;
 
 use crate::window::Window;
 

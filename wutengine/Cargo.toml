@@ -14,7 +14,7 @@ readme = "../README.md"
 
 [features]
 profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
-development_overlay = ["dep:egui"]
+development_overlay = ["dep:wutengine_egui"]
 asset_importers = ["wutengine_asset/importers"]
 
 [lints]
@@ -24,6 +24,7 @@ workspace = true
 wutengine_util_macro.workspace = true
 wutengine_shadercompiler.workspace = true
 wutengine_asset.workspace = true
+wutengine_math.workspace = true
 
 log.workspace = true
 derive_more = { workspace = true, features = [
@@ -57,7 +58,6 @@ pollster.workspace = true
 image.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
-glam = { workspace = true, features = ["bytemuck", "serde"] }
 twox-hash.workspace = true
 dashmap = { workspace = true, features = ["rayon"] }
 rayon.workspace = true
@@ -75,8 +75,5 @@ spin_sleep = { workspace = true }
 gilrs.workspace = true
 
 # Optional dependencies
-puffin_http = { workspace = true, optional = true } # Feature - profiling
-egui = { workspace = true, features = [
-    "rayon",
-    "bytemuck",
-], optional = true } # Feature - development overlay
+wutengine_egui = { workspace = true, optional = true } # Feature - development_overlay
+puffin_http = { workspace = true, optional = true }    # Feature - profiling

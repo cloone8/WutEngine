@@ -7,7 +7,6 @@ use std::sync::RwLock;
 use gamepad::Gamepad;
 use gamepad::GamepadId;
 use gilrs::Gilrs;
-use glam::Vec2;
 use keyboard::Keyboard;
 use keyboard::KeyboardId;
 use mouse::Mouse;
@@ -15,6 +14,7 @@ use mouse::MouseId;
 use winit::event::ButtonId;
 use winit::event::DeviceId;
 use winit::event::ElementState;
+use wutengine_math::Vec2;
 
 use crate::time;
 use crate::util::InitOnce;

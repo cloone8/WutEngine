@@ -3946,9 +3946,7 @@ dependencies = [
  "bytemuck",
  "dashmap",
  "derive_more",
- "egui",
  "gilrs",
- "glam 0.33.0",
  "hecs",
  "image",
  "log",
@@ -3968,6 +3966,8 @@ dependencies = [
  "wgpu",
  "winit",
  "wutengine_asset",
+ "wutengine_egui",
+ "wutengine_math",
  "wutengine_shadercompiler",
  "wutengine_util_macro",
 ]
@@ -3977,13 +3977,30 @@ name = "wutengine_asset"
 version = "0.6.0"
 dependencies = [
  "derive_more",
- "glam 0.33.0",
  "image",
  "log",
  "nohash-hasher",
  "profiling",
  "serde",
  "serde_bytes",
+ "wutengine_math",
+]
+
+[[package]]
+name = "wutengine_egui"
+version = "0.6.0"
+dependencies = [
+ "bytemuck",
+ "egui",
+ "wutengine_asset",
+ "wutengine_math",
+]
+
+[[package]]
+name = "wutengine_math"
+version = "0.6.0"
+dependencies = [
+ "glam 0.33.0",
 ]
 
 [[package]]

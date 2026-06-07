@@ -9,7 +9,6 @@ pub mod config;
 pub mod entity;
 pub mod graphics;
 pub mod input;
-pub mod math;
 pub mod physics;
 pub mod profiling;
 pub mod runtime;
@@ -34,3 +33,6 @@ pub use wgpu;
 
 #[doc(inline)]
 pub use wutengine_asset as asset;
+
+#[doc(inline)]
+pub use wutengine_math as math;

@@ -6,15 +6,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use egui_utils::ScissorRect;
-use egui_utils::egui_image_bytes;
 use egui_utils::gather_input;
-use egui_utils::sampler_from_egui;
-use egui_utils::tex_config_from_egui_data;
-use glam::vec2;
+use wutengine_asset::Asset;
 use wutengine_asset::AssetHandle;
 use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_egui::ScissorRect;
+use wutengine_egui::egui;
+use wutengine_egui::egui_image_bytes;
+use wutengine_egui::sampler_from_egui;
+use wutengine_egui::tex_config_from_egui_data;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util_macro::unique_id_type32;
 
@@ -28,14 +29,15 @@ use crate::graphics::shader::GVec2;
 use crate::graphics::shader::GVec3;
 use crate::graphics::shader::GVec4;
 use crate::graphics::texture::Texture;
+use crate::math::vec2;
 use crate::util::InitOnce;
 use crate::util::map;
 use crate::window::Window;
 
-mod egui_utils;
+#[doc(inline)]
+pub use wutengine_egui;
 
-//TODO: Remove later
-pub use egui;
+mod egui_utils;
 
 unique_id_type32! {
     DevOverlayWindowId
@@ -56,8 +58,8 @@ struct TextureMaterial {
 
 pub(crate) struct DevOverlayManager {
     active: AtomicBool,
-    egui_context: egui::Context,
-    textures: Mutex<HashMap<egui::TextureId, TextureMaterial>>,
+    egui_context: wutengine_egui::egui::Context,
+    textures: Mutex<HashMap<wutengine_egui::egui::TextureId, TextureMaterial>>,
     windows: Mutex<Vec<DevOverlayWindow>>,
 }
 
@@ -71,15 +73,19 @@ impl DevOverlayManager {
     fn new() -> Self {
         Self {
             active: AtomicBool::new(false),
-            egui_context: egui::Context::default(),
+            egui_context: wutengine_egui::egui::Context::default(),
             textures: Mutex::new(HashMap::new()),
             windows: Mutex::new(Vec::new()),
         }
     }
 }
 
+/// A WutEngine development overlay. Can be added to the engine using [crate::development_overlay::add_development_overlay_window]
 pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
+    /// The name of the overlay
     fn name(&self) -> &str;
+
+    /// Shows the UI
     fn show(&mut self, ui: &mut egui::Ui);
 }
 
@@ -399,7 +405,7 @@ fn upload_new_textures(
     let device = graphics::device();
 
     for (tex_id, delta) in to_set {
-        let sampler = sampler_from_egui(&delta.options);
+        let sampler = Sampler::from_serialized(&sampler_from_egui(&delta.options)).unwrap();
 
         match delta.pos {
             Some(pos) => {
@@ -518,6 +524,7 @@ pub fn is_enabled() -> bool {
     DEV_OVERLAY.active.load(Ordering::Acquire)
 }
 
+/// Add a new [DevelopmentOverlayWindow] to the engine
 pub fn add_development_overlay_window<T: DevelopmentOverlayWindow>(window: T) {
     DEV_OVERLAY.windows.lock().unwrap().push(DevOverlayWindow {
         id: DevOverlayWindowId::new(),
