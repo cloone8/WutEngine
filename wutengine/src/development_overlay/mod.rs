@@ -82,6 +82,11 @@ pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
     /// The name of the overlay
     fn name(&self) -> &str;
 
+    /// An icon to show on the overlay window. Optional. Should be an emoji or something similar
+    fn icon(&self) -> Option<&str> {
+        None
+    }
+
     /// Shows the UI
     fn show(&mut self, ui: &mut egui::Ui);
 }
@@ -135,7 +140,17 @@ pub(crate) fn render_if_active(
                         window.open = !window.open;
                     }
 
-                    egui::Window::new(window.window.name())
+                    let title_with_icon = window
+                        .window
+                        .icon()
+                        .map(|icon| format!("{} {}", icon, window.window.name()));
+
+                    let title_str = match &title_with_icon {
+                        Some(with_icon) => with_icon.as_str(),
+                        None => window.window.name(),
+                    };
+
+                    egui::Window::new(title_str)
                         .id(egui::Id::new(window.id))
                         .open(&mut window.open)
                         .show(ui, |ui| {

@@ -385,9 +385,12 @@ mod development_overlay {
             "Windows"
         }
 
+        fn icon(&self) -> Option<&str> {
+            Some("🪟")
+        }
+
         fn show(&mut self, ui: &mut wutengine_egui::egui::Ui) {
             let win_man = WINDOW_MANAGER.read().unwrap();
-
             let mut windows = Vec::new();
             for (id, info) in win_man.windows.iter() {
                 windows.push(*id);

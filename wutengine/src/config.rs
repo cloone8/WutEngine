@@ -396,6 +396,10 @@ mod development_overlay {
             "Config"
         }
 
+        fn icon(&self) -> Option<&str> {
+            Some("🛠️")
+        }
+
         fn show(&mut self, ui: &mut egui::Ui) {
             let as_ordered: BTreeMap<_, _> = CONFIG_MANAGER
                 .config
