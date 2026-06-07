@@ -243,9 +243,9 @@ fn gather_modifiers() -> egui::Modifiers {
 /// We also ignore '\r', '\n', '\t'.
 /// Newlines are handled by the `Key::Enter` event.
 fn is_printable_char(chr: char) -> bool {
-    let is_in_private_use_area = '\u{e000}' <= chr && chr <= '\u{f8ff}'
-        || '\u{f0000}' <= chr && chr <= '\u{ffffd}'
-        || '\u{100000}' <= chr && chr <= '\u{10fffd}';
+    let is_in_private_use_area = ('\u{e000}'..='\u{f8ff}').contains(&chr)
+        || ('\u{f0000}'..='\u{ffffd}').contains(&chr)
+        || ('\u{100000}'..='\u{10fffd}').contains(&chr);
 
     !is_in_private_use_area && !chr.is_ascii_control()
 }
@@ -355,6 +355,7 @@ pub fn gather_input(
 
 /// Attempts to map a WutEngine [LogicalKey](keyboard::LogicalKey) to an [egui::Key]
 #[inline]
+#[expect(clippy::too_many_lines, reason = "Big match")]
 pub fn wutengine_to_egui_key(key: keyboard::LogicalKey) -> Option<egui::Key> {
     match key {
         keyboard::LogicalKey::Character(c) => match c {

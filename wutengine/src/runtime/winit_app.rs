@@ -26,6 +26,10 @@ pub(crate) enum WinitEvent {
     /// Update the icon of a window
     UpdateIcon(Window, winit::window::Icon),
 
+    #[cfg(feature = "development_overlay")]
+    /// Surfaces should be reconfigured
+    ForceSurfaceReconfigure(Window),
+
     /// Someone requested the exit of the runtime through [crate::runtime::exit]
     RuntimeExitRequested,
 }
@@ -165,6 +169,11 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             WinitEvent::RuntimeExitRequested => {
                 log::debug!("Runtime exit was requested. Stopping");
                 event_loop.exit();
+            }
+
+            #[cfg(feature = "development_overlay")]
+            WinitEvent::ForceSurfaceReconfigure(window_id) => {
+                window::manager::refresh_cached_info(&window_id);
             }
         }
     }

@@ -16,8 +16,15 @@ use super::Window;
 static WINDOW_MANAGER: InitOnce<RwLock<WindowManager>> = InitOnce::new();
 
 /// Initializes the global window management subsystem
-pub(crate) fn initialize() {
+pub(crate) fn init() {
     InitOnce::init(&WINDOW_MANAGER, RwLock::new(WindowManager::new()));
+
+    #[cfg(feature = "development_overlay")]
+    {
+        crate::development_overlay::add_development_overlay_window(
+            development_overlay::WindowManagerOverlay::default(),
+        );
+    }
 }
 
 /// Registers a newly created window
@@ -358,6 +365,90 @@ impl WindowManager {
         Self {
             winit_to_engine: IntMap::default(),
             windows: IntMap::default(),
+        }
+    }
+}
+
+#[cfg(feature = "development_overlay")]
+mod development_overlay {
+    use wutengine_egui::egui;
+
+    use crate::development_overlay::DevelopmentOverlayWindow;
+
+    use super::WINDOW_MANAGER;
+
+    #[derive(Default)]
+    pub(super) struct WindowManagerOverlay {}
+
+    impl DevelopmentOverlayWindow for WindowManagerOverlay {
+        fn name(&self) -> &str {
+            "Windows"
+        }
+
+        fn show(&mut self, ui: &mut wutengine_egui::egui::Ui) {
+            let win_man = WINDOW_MANAGER.read().unwrap();
+
+            let mut windows = Vec::new();
+            for (id, info) in win_man.windows.iter() {
+                windows.push(*id);
+
+                egui::CollapsingHeader::new(id.to_string())
+                    .default_open(true)
+                    .show(ui, |ui| {
+                        ui.label(format!("Size: {}x{}", info.inner_size.0, info.inner_size.1));
+                        ui.label(format!("OS scale factor: {}", info.os_scale_factor));
+
+                        let Some(surface_config) = info.surface.get_configuration() else {
+                            return;
+                        };
+
+                        let wgpu::SurfaceConfiguration {
+                            usage,
+                            format,
+                            width: _,
+                            height: _,
+                            present_mode,
+                            desired_maximum_frame_latency,
+                            alpha_mode,
+                            view_formats,
+                        } = surface_config;
+
+                        ui.label(format!("Format: {format:?}"));
+
+                        ui.label(format!("View formats:"));
+                        ui.indent(id, |ui| {
+                            for tex_format in view_formats {
+                                ui.label(format!("{tex_format:?}"));
+                            }
+                        });
+
+                        ui.label(format!("Usages:"));
+                        ui.indent(id, |ui| {
+                            for (usage, _) in usage.iter_names() {
+                                ui.label(usage);
+                            }
+                        });
+
+                        ui.label(format!("Present mode: {present_mode:?}"));
+                        ui.label(format!(
+                            "Desired frame latency: {desired_maximum_frame_latency}"
+                        ));
+
+                        ui.label(format!("Alpha mode: {alpha_mode:?}"));
+                    });
+            }
+
+            drop(win_man);
+
+            ui.separator();
+
+            if ui.button("Reconfigure all").clicked() {
+                for window in windows {
+                    crate::runtime::notify_event_loop(
+                        crate::runtime::WinitEvent::ForceSurfaceReconfigure(window),
+                    );
+                }
+            }
         }
     }
 }

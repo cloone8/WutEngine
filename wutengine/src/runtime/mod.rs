@@ -143,7 +143,7 @@ pub fn run(
 
     log::debug!("Final schedule:\n{}", runtime.systems.dump());
 
-    window::manager::initialize();
+    window::manager::init();
     input::init();
     physics::init();
     world::init();
