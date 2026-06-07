@@ -62,6 +62,7 @@ pub fn queue() -> &'static wgpu::Queue {
     &GFX_QUEUE
 }
 
+/// Converts a [wutengine color](wutengine_math::Color) to a [wgpu color](wgpu::Color)
 pub const fn to_wgpu_color(color: wutengine_math::Color) -> wgpu::Color {
     wgpu::Color {
         r: color.r() as f64,

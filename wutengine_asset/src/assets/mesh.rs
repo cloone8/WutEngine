@@ -3,9 +3,9 @@
 use nohash_hasher::IntMap;
 use serde::Deserialize;
 use serde::Serialize;
+use wutengine_math::Color;
 use wutengine_math::Vec2;
 use wutengine_math::Vec3;
-use wutengine_math::Vec4;
 
 use crate::SerializedAsset;
 
@@ -25,7 +25,7 @@ pub struct SerializedMesh {
     pub uvs: IntMap<u8, Vec<Vec2>>,
 
     /// Color data. Should contain exactly as much elements as [Self::vertices], or be empty
-    pub colors: Vec<Vec4>,
+    pub colors: Vec<Color>,
 
     /// Whether the data should be kept on the CPU after the GPU side mesh is created
     pub keep_data: bool,

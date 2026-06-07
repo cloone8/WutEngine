@@ -33,7 +33,7 @@ pub enum NewVertexBufferErr {
     Zero,
 
     #[display(
-        "Date type {} is not compatible with vertex attribute {}",
+        "Datatype {} is not compatible with vertex attribute {}",
         ty,
         attribute
     )]
@@ -113,6 +113,7 @@ impl VertexBuffer {
         })
     }
 
+    /// Returns a reference to the raw [wgpu::Buffer]
     #[inline(always)]
     pub fn raw(&self) -> &wgpu::Buffer {
         &self.buffer
@@ -173,6 +174,7 @@ impl VertexDataType for GVec2<f32> {
     }
 }
 
+/// Returns the amount of bytes used by a given shader vertex attribute
 pub const fn attr_bytes(attr: ShaderVertexAttributeType) -> usize {
     match attr {
         ShaderVertexAttributeType::Position => size_of::<GVec3<f32>>(),

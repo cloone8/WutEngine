@@ -14,10 +14,13 @@ pub use toml;
 
 use wutengine_util::InitOnce;
 
+/// The global [ConfigManager]
 static CONFIG_MANAGER: InitOnce<ConfigManager> = InitOnce::new();
 
+/// A config manager
 #[derive(Debug)]
 struct ConfigManager {
+    /// All config keys
     config: DashMap<String, toml::Value>,
 }
 
@@ -39,6 +42,7 @@ pub fn init_and_load(path: Option<&Path>) {
     );
 }
 
+/// Loads an initial config map from a path
 fn load_from_file(path: &Path) -> DashMap<String, toml::Value> {
     let config_file_content = match std::fs::read_to_string(path) {
         Ok(content) => content,
@@ -84,6 +88,8 @@ pub enum ConfigKeyErr {
     NeedsSubcategory(#[error(not(source))] String),
 }
 
+/// Checks that a given config key string is valid, and returns a tuple of the main and subcategories
+/// if so
 fn validate_config_key(key: &str) -> Result<(&str, &str), ConfigKeyErr> {
     let Some((main_category, rest)) = key.split_once('.') else {
         log::warn!("Config key needs at least one main category and one subcategory: {key}");
@@ -164,6 +170,7 @@ pub fn get_raw(key: &str) -> Option<toml::Value> {
     val.cloned()
 }
 
+/// Finds a config key in the given table
 fn find_key<'a>(main_cat: &str, key: &str, tab: &'a toml::Table) -> Option<&'a toml::Value> {
     let keys = key.split('.').collect::<SmallVec<[_; 8]>>();
 
@@ -238,6 +245,7 @@ pub fn set_raw(key: &str, value: toml::Value) -> Result<(), ConfigKeyErr> {
     Ok(())
 }
 
+/// Sets a config key in the given category table
 fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
     let keys = key.split('.').collect::<SmallVec<[_; 8]>>();
 
@@ -297,6 +305,7 @@ fn set_key(key: &str, category: &mut toml::Value, val: toml::Value) {
     }
 }
 
+/// Creates a clone of the full config table
 pub fn get_all() -> HashMap<String, toml::Value> {
     CONFIG_MANAGER
         .config

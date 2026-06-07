@@ -54,16 +54,37 @@ pub fn step(dt: f32) {
 
 /// Physics manager
 pub(crate) struct PhysicsManager {
+    /// Gravity vector
     gravity: VecX,
+
+    /// All rigidbodies
     rigidbody_set: RigidBodySet,
+
+    /// All colliders
     collider_set: ColliderSet,
+
+    /// Integration parameters
     integration_parameters: IntegrationParameters,
+
+    /// The physics pipeline
     physics_pipeline: PhysicsPipeline,
+
+    /// The rapier islang manager
     island_manager: IslandManager,
+
+    /// Broad phase
     broad_phase: DefaultBroadPhase,
+
+    /// Narrow phase
     narrow_phase: NarrowPhase,
+
+    /// All impulse joints
     impulse_joint_set: ImpulseJointSet,
+
+    /// All multibody joints
     multibody_joint_set: MultibodyJointSet,
+
+    /// CCD solver
     ccd_solver: CCDSolver,
 }
 

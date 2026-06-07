@@ -1,3 +1,5 @@
+//! Wrapper around a [wgpu::BindGroup]
+
 use core::num::NonZero;
 use std::collections::HashMap;
 
@@ -292,6 +294,7 @@ impl BindGroup {
         self.native.as_ref().map(|native| &native.1)
     }
 
+    /// Returns the native [wgpu::BindGroupLayout]
     #[inline(always)]
     pub fn layout(&self) -> &wgpu::BindGroupLayout {
         &self.layout

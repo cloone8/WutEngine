@@ -85,8 +85,12 @@ impl Mesh {
                     data.colors.len()
                 );
             } else {
-                let color_buffer =
-                    Vec::from_iter(data.colors.iter().copied().map(GVec4::<f32>::from));
+                let color_buffer = Vec::from_iter(
+                    data.colors
+                        .iter()
+                        .copied()
+                        .map(|color| GVec4::<f32>::from(color.as_vec4())),
+                );
                 let color_vertex_buffer = VertexBuffer::new(
                     &color_buffer,
                     ShaderVertexAttributeType::Color,

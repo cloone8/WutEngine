@@ -1,6 +1,7 @@
+//! Graphics initialization
+
 use alloc::sync::Arc;
 
-use crate::config;
 use crate::config::GraphicsConfig;
 use wutengine_util::InitOnce;
 

@@ -1,9 +1,11 @@
 //! Development overlay tools and API
 
+extern crate alloc;
+
+use alloc::sync::Arc;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
@@ -43,7 +45,7 @@ unique_id_type32! {
     DevOverlayWindowId
 }
 
-pub static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new();
+static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new();
 
 #[doc(hidden)]
 pub fn init() {
@@ -506,10 +508,7 @@ fn upload_new_textures(
                     .raw_bind_group_mut()
                     .set_parameter(
                         "screen_size",
-                        MaterialParameter::Vec2(vec2(
-                            surface_points.0 as f32,
-                            surface_points.1 as f32,
-                        )),
+                        MaterialParameter::Vec2(vec2(surface_points.0, surface_points.1)),
                         queue,
                     )
                     .unwrap();
