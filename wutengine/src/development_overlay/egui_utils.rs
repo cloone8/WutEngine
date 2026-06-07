@@ -4,8 +4,8 @@ use wutengine_math::Vec2;
 
 use crate::input;
 use crate::input::keyboard;
-use wutengine_util::map;
 use crate::window::Window;
+use wutengine_util::map;
 
 use wutengine_egui::egui;
 
@@ -41,6 +41,7 @@ fn add_mouse_events(window: Window, modifiers: egui::Modifiers, events: &mut Vec
     }
 
     if let Some((pointer_window, pointer_pos)) = input::mouse::screen_pos(None)
+        && let Ok(pointer_window) = Window::try_from(pointer_window)
         && pointer_window == window
     {
         let pointer_pos = to_egui_pos2(pointer_pos);

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use wutengine_math::Vec2;
 
-use crate::input::INPUT_MANAGER;
+use crate::INPUT_MANAGER;
 
 use super::DeviceSet;
 
@@ -54,7 +54,7 @@ impl Gamepad {
 }
 
 /// Poll for new gamepad events
-pub(crate) fn poll_for_events() {
+pub fn poll_for_events() {
     profiling::function_scope!();
 
     let Some(gamepad_manager) = INPUT_MANAGER.gamepad_manager.as_ref() else {

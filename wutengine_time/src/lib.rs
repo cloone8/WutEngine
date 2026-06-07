@@ -1,4 +1,4 @@
-//! Time management and functions
+#![doc = include_str!("../README.md")]
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
@@ -158,7 +158,8 @@ impl Default for TimeManagerConfig {
 }
 
 /// Initializes the time manager with the specified config
-pub(crate) fn init() {
+#[doc(hidden)]
+pub fn init() {
     let mut config = TimeManagerConfig::default();
     config.validate();
 

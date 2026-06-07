@@ -3946,7 +3946,6 @@ dependencies = [
  "bytemuck",
  "dashmap",
  "derive_more",
- "gilrs",
  "hecs",
  "image",
  "log",
@@ -3967,8 +3966,10 @@ dependencies = [
  "winit",
  "wutengine_asset",
  "wutengine_egui",
+ "wutengine_input",
  "wutengine_math",
  "wutengine_shadercompiler",
+ "wutengine_time",
  "wutengine_util",
  "wutengine_util_macro",
 ]
@@ -4000,6 +4001,17 @@ dependencies = [
 [[package]]
 name = "wutengine_input"
 version = "0.6.0"
+dependencies = [
+ "derive_more",
+ "gilrs",
+ "log",
+ "nohash-hasher",
+ "profiling",
+ "winit",
+ "wutengine_math",
+ "wutengine_time",
+ "wutengine_util",
+]
 
 [[package]]
 name = "wutengine_math"
@@ -4018,6 +4030,15 @@ dependencies = [
  "nohash-hasher",
  "profiling",
  "smallvec",
+]
+
+[[package]]
+name = "wutengine_time"
+version = "0.6.0"
+dependencies = [
+ "log",
+ "profiling",
+ "wutengine_util",
 ]
 
 [[package]]

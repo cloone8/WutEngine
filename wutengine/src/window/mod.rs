@@ -1,5 +1,7 @@
 //! Window creation and management
 
+use core::num::NonZeroU32;
+
 use winit::window::WindowAttributes;
 use wutengine_util_macro::unique_id_type32;
 
@@ -140,6 +142,28 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
         }
 
         attrs
+    }
+}
+
+impl From<Window> for wutengine_input::WindowIdentifier {
+    #[inline]
+    fn from(value: Window) -> Self {
+        Self::new(u64::from(value.0.get()))
+    }
+}
+
+impl TryFrom<wutengine_input::WindowIdentifier> for Window {
+    type Error = u64;
+
+    #[inline]
+    fn try_from(value: wutengine_input::WindowIdentifier) -> Result<Self, Self::Error> {
+        match u32::try_from(value.raw()) {
+            Ok(as_32) => match NonZeroU32::new(as_32) {
+                Some(nonzero) => Ok(Self(nonzero)),
+                None => Err(value.raw()),
+            },
+            Err(_) => Err(value.raw()),
+        }
     }
 }
 

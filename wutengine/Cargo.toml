@@ -25,7 +25,9 @@ wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_shadercompiler.workspace = true
 wutengine_asset.workspace = true
+wutengine_input.workspace = true
 wutengine_math.workspace = true
+wutengine_time.workspace = true
 
 log.workspace = true
 derive_more = { workspace = true, features = [
@@ -73,7 +75,6 @@ bytemuck = { workspace = true, features = [
 rapier2d = { workspace = true, features = ["parallel", "simd-stable"] }
 rapier3d = { workspace = true, features = ["parallel", "simd-stable"] }
 spin_sleep = { workspace = true }
-gilrs.workspace = true
 
 # Optional dependencies
 wutengine_egui = { workspace = true, optional = true } # Feature - development_overlay

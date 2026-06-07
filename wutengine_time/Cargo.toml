@@ -1,6 +1,6 @@
 [package]
-name = "wutengine_input"
-description = "Input handling for WutEngine"
+name = "wutengine_time"
+description = "Time management for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,16 +13,9 @@ categories.workspace = true
 
 [dependencies]
 wutengine_util.workspace = true
-wutengine_math.workspace = true
-wutengine_time.workspace = true
 
 log.workspace = true
-winit.workspace = true
-gilrs.workspace = true
-nohash-hasher.workspace = true
 profiling.workspace = true
-derive_more = { workspace = true, features = ["display", "from"] }
-
 
 [lints]
 workspace = true

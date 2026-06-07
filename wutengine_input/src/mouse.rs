@@ -6,7 +6,7 @@ use nohash_hasher::IntSet;
 use winit::event::ButtonId;
 use wutengine_math::Vec2;
 
-use crate::window::Window;
+use crate::WindowIdentifier;
 
 use super::INPUT_MANAGER;
 
@@ -54,7 +54,7 @@ pub(crate) struct Mouse {
 
     /// The position of the mouse cursor relative to a window.
     /// If [None], the cursor is not currently on any WutEngine window
-    window_position: Option<(Window, Vec2)>,
+    window_position: Option<(WindowIdentifier, Vec2)>,
 }
 
 impl Default for Mouse {
@@ -114,7 +114,7 @@ impl Mouse {
 
     /// Sets the position of this mouse relative to a window. If [None],
     /// the mouse is not currently on any window.
-    pub(crate) fn set_window_position(&mut self, position: Option<(Window, Vec2)>) {
+    pub(crate) fn set_window_position(&mut self, position: Option<(WindowIdentifier, Vec2)>) {
         self.window_position = position;
     }
 }
@@ -158,7 +158,7 @@ fn get_mouse_and<T>(to_query: Option<MouseId>, func: impl FnOnce(Option<&Mouse>)
 /// for the latest changed mouse device.
 ///
 /// If the specified mouse (or the latest mouse) could not be found, returns [None]
-pub fn screen_pos(device: Option<MouseId>) -> Option<(Window, Vec2)> {
+pub fn screen_pos(device: Option<MouseId>) -> Option<(WindowIdentifier, Vec2)> {
     get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
             mouse.window_position
@@ -177,7 +177,7 @@ pub fn screen_pos(device: Option<MouseId>) -> Option<(Window, Vec2)> {
 /// for the latest changed mouse device.
 ///
 /// If the specified mouse (or the latest mouse) could not be found, returns [None]
-pub fn window_pos(device: Option<MouseId>, window: Window) -> Option<Vec2> {
+pub fn window_pos(device: Option<MouseId>, window: WindowIdentifier) -> Option<Vec2> {
     get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
             mouse
