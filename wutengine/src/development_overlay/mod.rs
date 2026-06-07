@@ -109,6 +109,7 @@ pub(crate) fn render_if_active(
         egui::Window::new("WutEngine Development Overlay")
             .collapsible(false)
             .order(egui::Order::Background)
+            .resizable(false)
             .default_open(true)
             .show(ui, |ui| {
                 if windows.is_empty() {
