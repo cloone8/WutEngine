@@ -59,6 +59,7 @@ impl Display for WindowIdentifier {
 
 //TODO: Make input device trait?
 
+/// A set of input devices, either uniquely identifier ([Self::Identified]) or not ([Self::Unidentified])
 #[derive(Debug)]
 enum DeviceSet<K, V> {
     /// Only unidentified devices.
@@ -69,6 +70,7 @@ enum DeviceSet<K, V> {
 }
 
 impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
+    /// Removes an identified device from the set
     fn remove_device(&mut self, device: &K) {
         if let Self::Identified(devices) = self {
             devices.remove(device);
@@ -79,6 +81,7 @@ impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
         }
     }
 
+    /// Executes a function for each device
     fn for_each(&mut self, mut func: impl FnMut(&mut V)) {
         match self {
             Self::Unidentified(device) => func(device),
@@ -86,6 +89,9 @@ impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
         }
     }
 
+    /// Updates a device (identified or not) in the set.
+    /// If an identified device is updated but does not yet exist, the device
+    /// is automatically added to the set.
     fn update_device(&mut self, device: Option<&K>, mut func: impl FnMut(&mut V)) {
         if let Self::Unidentified(unidentified_device) = self {
             match device {
@@ -117,6 +123,7 @@ impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
         }
     }
 
+    /// Returns an identified device, if it exists
     fn get_identified_device(&self, device: &K) -> Option<&V> {
         if let Self::Identified(devices) = self {
             devices.get(device)
@@ -125,6 +132,7 @@ impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
         }
     }
 
+    /// Returns an identified device mutably, if it exists
     fn get_identified_device_mut(&mut self, device: &K) -> Option<&mut V> {
         if let Self::Identified(devices) = self {
             devices.get_mut(device)
@@ -133,6 +141,7 @@ impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
         }
     }
 
+    /// Returns any device in the set
     fn get_any_device(&self) -> &V {
         match self {
             Self::Unidentified(unidentified_device) => unidentified_device,
@@ -153,12 +162,25 @@ impl<K, V: Default> Default for DeviceSet<K, V> {
 /// Raw input manager
 #[derive(Debug)]
 pub(crate) struct InputManager {
+    /// Gamepad manager
     gamepad_manager: Option<Mutex<Gilrs>>,
+
+    /// The most recently used mouse
     most_recent_mouse: RwLock<Option<MouseId>>,
+
+    /// The most recently used keyboard
     most_recent_keyboard: RwLock<Option<KeyboardId>>,
+
+    /// The most recently used gamepad
     most_recent_gamepad: RwLock<Option<GamepadId>>,
+
+    /// All known mice
     mice: RwLock<DeviceSet<MouseId, Mouse>>,
+
+    /// All known keyboards
     keyboards: RwLock<DeviceSet<KeyboardId, Keyboard>>,
+
+    /// All known gamepads
     gamepads: RwLock<DeviceSet<GamepadId, Gamepad>>,
 }
 
@@ -186,10 +208,12 @@ impl Default for InputManager {
 
 /// Private API
 impl InputManager {
+    /// Returns a new default [InputManager]
     fn new() -> Self {
         Self::default()
     }
 
+    /// Removes a winit device from the manager
     fn remove_winit_device(&self, device: DeviceId) {
         {
             if let Some(mouse_id) = MouseId::from_winit(device) {
@@ -203,7 +227,8 @@ impl InputManager {
         }
     }
 
-    fn reset_delta(&self) {
+    /// Advances the input manager and all devices to the next frame
+    fn next_frame(&self) {
         self.mice.write().unwrap().for_each(Mouse::next_frame);
         self.keyboards
             .write()
@@ -212,6 +237,7 @@ impl InputManager {
         self.gamepads.write().unwrap().for_each(Gamepad::next_frame);
     }
 
+    /// Sets the most recent mouse
     fn set_most_recent_mouse(&self, mouse: MouseId) {
         log::trace!("Setting most recent mouse to {mouse:?}");
 
@@ -220,6 +246,7 @@ impl InputManager {
         *most_recent = Some(mouse);
     }
 
+    /// Sets the most recent keyboard
     fn set_most_recent_keyboard(&self, keyboard: KeyboardId) {
         log::trace!("Setting most recent keyboard to {keyboard:?}");
 
@@ -228,6 +255,7 @@ impl InputManager {
         *most_recent = Some(keyboard);
     }
 
+    /// Sets the most recent gamepad
     fn set_most_recent_gamepad(&self, gamepad: GamepadId) {
         log::trace!("Setting most recent gamepad to {gamepad:?}");
 
@@ -236,6 +264,7 @@ impl InputManager {
         *most_recent = Some(gamepad);
     }
 
+    /// Adds physical non-mapped mouse motion to the given mouse
     fn mouse_motion(&self, mouse: Option<MouseId>, delta: Vec2) {
         if let Some(identified_mouse) = mouse {
             self.set_most_recent_mouse(identified_mouse);
@@ -248,6 +277,7 @@ impl InputManager {
         });
     }
 
+    /// Sets the mouse scroll value for the given mouse
     fn mouse_scroll(&self, mouse: Option<MouseId>, delta: Vec2) {
         if let Some(identified_mouse) = mouse {
             self.set_most_recent_mouse(identified_mouse);
@@ -260,6 +290,7 @@ impl InputManager {
         });
     }
 
+    /// Sets the physical mouse button state for a given mouse
     fn mouse_button(&self, mouse: Option<MouseId>, button: ButtonId, state: ElementState) {
         if let Some(identified_mouse) = mouse {
             self.set_most_recent_mouse(identified_mouse);
@@ -273,6 +304,7 @@ impl InputManager {
         });
     }
 
+    /// Sets the mouse position for a mouse
     fn mouse_window_position(
         &self,
         mouse: Option<MouseId>,
@@ -289,6 +321,7 @@ impl InputManager {
         });
     }
 
+    /// Adds a physical key state to the given keyboard
     fn keyboard_key(&self, keyboard: Option<KeyboardId>, key: keyboard::Key, state: ElementState) {
         if let Some(identified_keyboard) = keyboard {
             self.set_most_recent_keyboard(identified_keyboard);
@@ -302,6 +335,7 @@ impl InputManager {
         });
     }
 
+    /// Adds a logical key input to the given keyboard
     fn keyboard_logical_key(
         &self,
         keyboard: Option<KeyboardId>,
@@ -324,6 +358,7 @@ impl InputManager {
         });
     }
 
+    /// Adds text input to the given keyboard
     fn keyboard_text(&self, keyboard: Option<KeyboardId>, text: &str) {
         assert!(!text.is_empty(), "Cannot send empty text to keyboard");
 
@@ -498,8 +533,8 @@ pub fn insert_raw_window_event(
 /// Resets all per-frame delta values back to zero.
 /// Should be called by the engine runtime at the end of each rendered frame, so
 /// all new input events count for the next frame
-pub fn reset_delta() {
+pub fn next_frame() {
     profiling::function_scope!();
 
-    INPUT_MANAGER.reset_delta();
+    INPUT_MANAGER.next_frame();
 }

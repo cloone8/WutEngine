@@ -25,6 +25,7 @@ pub const BUTTON_MIDDLE: u32 = 2;
 pub struct MouseId(winit::event::DeviceId);
 
 impl MouseId {
+    /// Maps a winit device to a [MouseId], if the winit device is valid
     #[inline(always)]
     pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
         if device != winit::event::DeviceId::dummy() {

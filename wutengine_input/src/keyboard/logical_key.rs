@@ -18,13 +18,19 @@ pub enum LogicalKey {
     Unknown(UnknownLogicalKey),
 }
 
+/// An unknown logical key with its identifier
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum UnknownLogicalKey {
+    /// Keycode
     Code(u32),
+
+    /// String identifier
     String(String),
 }
 
 impl LogicalKey {
+    /// Tries to map a [winit logical key](winit::keyboard::Key) to a [LogicalKey].
+    /// Returns [None] if the key could not be mapped
     pub fn try_from_winit(logical: &winit::keyboard::Key) -> Option<Self> {
         match logical {
             winit::keyboard::Key::Named(named) => {
@@ -93,10 +99,14 @@ pub enum LogicalNamed {
     Shift,
     /// The Symbol modifier key (used on some virtual keyboards).
     Symbol,
+
+    /// Legacy key
     SymbolLock,
-    // Legacy modifier key. Also called "Super" in certain places.
+
+    /// Legacy modifier key. Also called "Super" in certain places.
     Meta,
-    // Legacy modifier key.
+
+    /// Legacy modifier key.
     Hyper,
     /// Used to enable "super" modifier function for interpreting concurrent or subsequent keyboard
     /// input. This key value is used for the "Windows Logo" key and the Apple `Command` or `⌘`
@@ -165,6 +175,8 @@ pub enum LogicalNamed {
     Again,
     /// The Attention (Attn) key.
     Attn,
+
+    /// The `cancel` key. Legacy
     Cancel,
     /// Show the application’s context menu.
     /// This key is commonly found between the right `Super` key and the right `Control` key.
@@ -173,6 +185,8 @@ pub enum LogicalNamed {
     /// now more generally used to exit or "escape" the current context, such as closing a dialog
     /// or exiting full screen mode.
     Escape,
+
+    /// The `execute` key
     Execute,
     /// Open the Find dialog. (`APPCOMMAND_FIND`)
     Find,
@@ -191,6 +205,8 @@ pub enum LogicalNamed {
     Play,
     /// The properties (Props) key.
     Props,
+
+    /// The `select` key
     Select,
     /// The ZoomIn key. (`KEYCODE_ZOOM_IN`)
     ZoomIn,
@@ -203,6 +219,8 @@ pub enum LogicalNamed {
     BrightnessUp,
     /// Toggle removable media to eject (open) and insert (close) state. (`KEYCODE_MEDIA_EJECT`)
     Eject,
+
+    /// The `log off` key
     LogOff,
     /// Toggle power state. (`KEYCODE_POWER`)
     /// Note: Note: Some devices might not expose this key to the operating environment.
@@ -222,6 +240,8 @@ pub enum LogicalNamed {
     WakeUp,
     /// Initiate the multi-candidate mode.
     AllCandidates,
+
+    /// Alphanumeric key/mode
     Alphanumeric,
     /// Initiate the Code Input mode to allow characters to be entered by
     /// their code points.
@@ -244,16 +264,28 @@ pub enum LogicalNamed {
     GroupPrevious,
     /// Toggle between or cycle through input modes of IMEs.
     ModeChange,
+
+    /// Next IME candidate
     NextCandidate,
     /// Accept current input method sequence without
     /// conversion in IMEs.
     NonConvert,
+
+    /// Previous IME candidate
     PreviousCandidate,
+
+    /// IME process
     Process,
+
+    /// IME single candidate
     SingleCandidate,
     /// Toggle between Hangul and English modes.
     HangulMode,
+
+    /// Toggle Hanja mode
     HanjaMode,
+
+    /// Toggle Junja mode
     JunjaMode,
     /// The Eisu key. This key may close the IME, but its purpose is defined by the current IME.
     /// (`KEYCODE_EISU`)
@@ -405,12 +437,20 @@ pub enum LogicalNamed {
     LaunchMail,
     /// The "Media Player" key. (`APPCOMMAND_LAUNCH_MEDIA_SELECT`)
     LaunchMediaPlayer,
+
+    /// Launch music player key
     LaunchMusicPlayer,
+    /// Launch phone key
     LaunchPhone,
+    /// Launch screen saver key
     LaunchScreenSaver,
+    /// Launch spreadsheet key
     LaunchSpreadsheet,
+    /// Launch web browser key
     LaunchWebBrowser,
+    /// Launch web cam key
     LaunchWebCam,
+    /// Launch word processor key
     LaunchWordProcessor,
     /// Navigate to previous content or page in current history. (`APPCOMMAND_BROWSER_BACKWARD`)
     BrowserBack,
@@ -443,11 +483,15 @@ pub enum LogicalNamed {
     GoHome,
     /// The Headset Hook key. (`KEYCODE_HEADSETHOOK`)
     HeadsetHook,
+
+    /// Last number redial key
     LastNumberRedial,
     /// The Notification key. (`KEYCODE_NOTIFICATION`)
     Notification,
     /// Toggle between manner mode state: silent, vibrate, ring, ... (`KEYCODE_MANNER_MODE`)
     MannerMode,
+
+    /// Voice dial key
     VoiceDial,
     /// Switch to viewing TV. (`KEYCODE_TV`)
     TV,
@@ -761,7 +805,10 @@ pub enum LogicalNamed {
 }
 
 impl LogicalNamed {
+    /// Attempts to map a [winit named key](winit::keyboard::NamedKey) to a [LogicalNamed].
+    /// If the key could not be mapped, returns [None]
     #[inline]
+    #[expect(clippy::too_many_lines, reason = "Big match statement")]
     pub const fn from_winit(winit: winit::keyboard::NamedKey) -> Option<Self> {
         Some(match winit {
             winit::keyboard::NamedKey::Alt => Self::Alt,

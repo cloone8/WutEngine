@@ -16,6 +16,7 @@ use super::INPUT_MANAGER;
 pub struct KeyboardId(winit::event::DeviceId);
 
 impl KeyboardId {
+    /// Maps a winit device to a [KeyboardId], if the winit device is valid
     #[inline(always)]
     pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
         if device != winit::event::DeviceId::dummy() {
@@ -35,14 +36,21 @@ pub(crate) struct Keyboard {
     /// The currently held keys
     pressed_keys: HashSet<Key>,
 
-    /// Logical keyboard inputs. Mostly used by UI
+    /// Logical keyboard inputs, ordered by when they happened. Mostly used by UI
     logical_inputs: Vec<LogicalInput>,
 }
 
+/// A logical keyboard input. Includes any OS mappings and composite inputs.
+/// Mostly used by UI rendering and text editing
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LogicalInput {
+    /// A key was pressed
     Pressed(LogicalKey),
+
+    /// Text was entered. This includes control characters and other non-printable strings
     Text(String),
+
+    /// A key was released
     Released(LogicalKey),
 }
 
@@ -86,6 +94,7 @@ impl Keyboard {
         }
     }
 
+    /// Add a new logical input to the keyboard
     pub(crate) fn add_logical_input(&mut self, logical: LogicalInput) {
         self.logical_inputs.push(logical);
     }
@@ -205,6 +214,14 @@ pub fn key_released(device: Option<KeyboardId>, key: Key) -> bool {
     })
 }
 
+/// Returns all keys pressed this frame. If the key
+/// was not first pressed last frame, this always returns `false`. To get the held keys,
+/// even if it they were also held before, see [held_keys]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed keyboard device.
+///
+/// If the specified keyboard (or the latest keyboard) could not be found, returns an empty set
 pub fn pressed_keys(device: Option<KeyboardId>) -> HashSet<Key> {
     get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
@@ -219,6 +236,13 @@ pub fn pressed_keys(device: Option<KeyboardId>) -> HashSet<Key> {
     })
 }
 
+/// Returns all keys held this frame. To get the keys that were first pressed
+/// this frame, see [pressed_keys]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed keyboard device.
+///
+/// If the specified keyboard (or the latest keyboard) could not be found, returns an empty set
 pub fn held_keys(device: Option<KeyboardId>) -> HashSet<Key> {
     get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
@@ -229,6 +253,15 @@ pub fn held_keys(device: Option<KeyboardId>) -> HashSet<Key> {
     })
 }
 
+/// Returns all keys released this frame. If the key
+/// was not held down last frame, it will not be included. To get the full
+/// set of held keys (which can also be used for checking if a key was not held),
+/// see [held_keys]
+///
+/// If `device` is [None], returns the value
+/// for the latest changed keyboard device.
+///
+/// If the specified keyboard (or the latest keyboard) could not be found, returns an empty set
 pub fn released_keys(device: Option<KeyboardId>) -> HashSet<Key> {
     get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
@@ -243,6 +276,13 @@ pub fn released_keys(device: Option<KeyboardId>) -> HashSet<Key> {
     })
 }
 
+/// Returns all logical inputs that were made this frame, in order. This should
+/// mostly be used by UI code and other non-gameplay functionality.
+///
+/// If `device` is [None], returns the values
+/// for the latest changed keyboard device.
+///
+/// If the specified keyboard (or the latest keyboard) could not be found, returns an empty vector
 pub fn logical_inputs(device: Option<KeyboardId>) -> Vec<LogicalInput> {
     get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
