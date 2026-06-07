@@ -45,6 +45,8 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
         profiling::scope!("Initialize");
 
+        window::manager::refresh_display_info(event_loop);
+
         log::info!("Winit resume received, running runtime initialization code");
 
         if !graphics::initialize_graphics_context() {

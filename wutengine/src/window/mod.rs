@@ -2,6 +2,7 @@
 
 use core::num::NonZeroU32;
 
+use manager::DisplayExclusiveFullscreenMode;
 use winit::window::WindowAttributes;
 use wutengine_util_macro::unique_id_type32;
 
@@ -16,6 +17,11 @@ pub(crate) mod pacer;
 unique_id_type32! {
     /// The handle to a WutEngine window
     pub Window
+}
+
+unique_id_type32! {
+    /// The handle to a display
+    pub Display
 }
 
 /// Config used to create a new window with [Window::create]
@@ -43,6 +49,22 @@ pub struct WindowConfig {
 
     /// Whether vsync is enabled. Defaults to [None], which picks whatever is configured through the config manager
     pub vsync: Option<bool>,
+
+    /// Fullscreen mode. If [None], is windowed
+    pub fullscreen: Option<FullscreenMode>,
+}
+
+#[derive(Debug, Clone)]
+pub enum FullscreenMode {
+    Borderless(BorderlessTarget),
+    Exclusive(DisplayExclusiveFullscreenMode),
+}
+
+#[derive(Debug, Clone)]
+pub enum BorderlessTarget {
+    Current,
+    Primary,
+    Specific(Display),
 }
 
 impl Default for WindowConfig {
@@ -55,6 +77,7 @@ impl Default for WindowConfig {
             resizable: true,
             icon: None,
             vsync: None,
+            fullscreen: Some(FullscreenMode::Borderless(BorderlessTarget::Primary)),
         }
     }
 }
@@ -127,6 +150,61 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
 
         attrs = attrs.with_resizable(value.resizable);
         attrs = attrs.with_inner_size(winit::dpi::PhysicalSize::new(inner_size.0, inner_size.1));
+
+        if let Some(fullscreen_mode) = value.fullscreen {
+            match fullscreen_mode {
+                FullscreenMode::Borderless(borderless_target) => {
+                    let display_handle = match borderless_target {
+                        BorderlessTarget::Current => None,
+                        BorderlessTarget::Primary => {
+                            match crate::window::manager::primary_display() {
+                                Some(disp) => Some(disp),
+                                None => {
+                                    log::error!(
+                                        "Failed to determine primary display. Falling back to borderless mode on current display"
+                                    );
+                                    None
+                                }
+                            }
+                        }
+                        BorderlessTarget::Specific(display) => Some(display),
+                    };
+
+                    let target_handle = match display_handle {
+                        Some(disp) => {
+                            match crate::window::manager::monitor_handle_from_display(disp) {
+                                Some(handle) => Some(handle),
+                                None => {
+                                    log::error!(
+                                        "Target display {disp} does not exist anymore. Falling back to borderless mode on current display"
+                                    );
+                                    None
+                                }
+                            }
+                        }
+                        None => None,
+                    };
+
+                    attrs = attrs.with_fullscreen(Some(winit::window::Fullscreen::Borderless(
+                        target_handle,
+                    )));
+                }
+                FullscreenMode::Exclusive(video_mode) => {
+                    // Check is not strictly needed, but not a bad idea anyway
+                    if crate::window::manager::monitor_handle_from_display(video_mode.0).is_some() {
+                        attrs = attrs.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
+                            video_mode.1,
+                        )));
+                    } else {
+                        //TODO: Fall back to borderless instead
+                        log::error!(
+                            "Target display {} does not exist anymore. Falling back to windowed",
+                            video_mode.0
+                        );
+                    }
+                }
+            }
+        }
 
         if let Some(icon) = value.icon
             && let Some(native_icon) = icon.into_native_icon()
@@ -219,4 +297,18 @@ impl Window {
     pub fn get_scale_factor(self) -> f64 {
         crate::window::manager::get_scale_factor(self).unwrap_or(1.0)
     }
+}
+
+impl Display {
+    pub fn exclusive_fullscreen_modes(self) -> Vec<DisplayExclusiveFullscreenMode> {
+        crate::window::manager::exclusive_fullscreen_modes(self).unwrap_or_default()
+    }
+}
+
+pub fn get_displays() -> Vec<Display> {
+    crate::window::manager::get_displays()
+}
+
+pub fn primary_display() -> Display {
+    crate::window::manager::primary_display().expect("No displays connected")
 }

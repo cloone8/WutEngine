@@ -11,6 +11,7 @@ use crate::config;
 use crate::graphics;
 use wutengine_util::{InitOnce, assert_main_thread};
 
+use super::Display;
 use super::Window;
 
 /// The global [WindowManager]
@@ -144,6 +145,51 @@ pub(crate) fn refresh_cached_info(id: &crate::window::Window) {
     window.reconfigure_surface();
 }
 
+/// Refreshes the known displays
+pub(crate) fn refresh_display_info(event_loop: &winit::event_loop::ActiveEventLoop) {
+    profiling::function_scope!();
+    assert_main_thread!();
+
+    let primary_display = event_loop.primary_monitor();
+    let all_displays = event_loop.available_monitors().collect::<Vec<_>>();
+
+    let mut window_manager = WINDOW_MANAGER.write().unwrap();
+    window_manager.primary_display = None;
+
+    let mut new_display_map = IntMap::default();
+
+    for monitor_handle in all_displays {
+        let id = find_existing_display_id(&window_manager, &monitor_handle).unwrap_or_default();
+
+        let mut is_primary = false;
+        if let Some(primary_display) = &primary_display
+            && &monitor_handle == primary_display
+        {
+            window_manager.primary_display = Some(id);
+            is_primary = true;
+        }
+
+        let info = DisplayInfo::from_monitor_handle(id, monitor_handle, is_primary);
+
+        new_display_map.insert(id, info);
+    }
+
+    window_manager.displays = new_display_map;
+}
+
+fn find_existing_display_id(
+    window_manager: &WindowManager,
+    monitor_handle: &winit::monitor::MonitorHandle,
+) -> Option<Display> {
+    for (id, info) in window_manager.displays.iter() {
+        if &info.handle == monitor_handle {
+            return Some(*id);
+        }
+    }
+
+    None
+}
+
 /// For a given [winit::window::WindowId], returns the WutEngine [WindowId] if one can be found
 pub(crate) fn find_id(native_id: winit::window::WindowId) -> Option<Window> {
     profiling::function_scope!();
@@ -193,6 +239,47 @@ pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Windo
     }
 }
 
+pub(crate) fn get_displays() -> Vec<Display> {
+    WINDOW_MANAGER
+        .read()
+        .unwrap()
+        .displays
+        .keys()
+        .copied()
+        .collect()
+}
+
+pub(crate) fn primary_display() -> Option<Display> {
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    if let Some(prim_id) = window_manager.primary_display {
+        return Some(prim_id);
+    }
+
+    // Fallback: if we can't determine the primary display just return an arbitrary one
+    window_manager.displays.keys().copied().next()
+}
+
+pub(crate) fn monitor_handle_from_display(id: Display) -> Option<winit::monitor::MonitorHandle> {
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    window_manager
+        .displays
+        .get(&id)
+        .map(|info| info.handle.clone())
+}
+
+pub(crate) fn exclusive_fullscreen_modes(
+    id: Display,
+) -> Option<Vec<DisplayExclusiveFullscreenMode>> {
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    window_manager
+        .displays
+        .get(&id)
+        .map(|info| info.video_modes.clone())
+}
+
 fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::SurfaceTexture> {
     match surface.get_current_texture() {
         wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
@@ -231,6 +318,9 @@ struct WindowManager {
     winit_to_engine: IntMap<u64, crate::window::Window>,
 
     windows: IntMap<crate::window::Window, WindowInfo>,
+
+    primary_display: Option<crate::window::Display>,
+    displays: IntMap<crate::window::Display, DisplayInfo>,
 }
 
 #[derive(Debug)]
@@ -366,6 +456,47 @@ impl WindowManager {
         Self {
             winit_to_engine: IntMap::default(),
             windows: IntMap::default(),
+            primary_display: None,
+            displays: IntMap::default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct DisplayInfo {
+    handle: winit::monitor::MonitorHandle,
+    name: Option<String>,
+    size: (u32, u32),
+    scaling_factor: f64,
+    video_modes: Vec<DisplayExclusiveFullscreenMode>,
+    is_primary: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct DisplayExclusiveFullscreenMode(
+    pub(super) Display,
+    pub(super) winit::monitor::VideoModeHandle,
+);
+
+impl DisplayInfo {
+    fn from_monitor_handle(
+        id: Display,
+        handle: winit::monitor::MonitorHandle,
+        is_primary: bool,
+    ) -> Self {
+        profiling::function_scope!();
+        assert_main_thread!();
+
+        Self {
+            name: handle.name(),
+            size: (handle.size().width, handle.size().height),
+            scaling_factor: handle.scale_factor(),
+            video_modes: handle
+                .video_modes()
+                .map(|videomode| DisplayExclusiveFullscreenMode(id, videomode))
+                .collect(),
+            is_primary,
+            handle,
         }
     }
 }
