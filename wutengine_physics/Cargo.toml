@@ -1,0 +1,30 @@
+[package]
+name = "wutengine_physics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[features]
+phys2d = ["dep:rapier2d"]
+phys3d = ["dep:rapier3d"]
+
+[dependencies]
+wutengine_util.workspace = true
+
+rapier2d = { workspace = true, features = [
+    "parallel",
+    "simd-stable",
+], optional = true } # Feature - phys2d
+rapier3d = { workspace = true, features = [
+    "parallel",
+    "simd-stable",
+], optional = true } # Feature - phys3d
+
+[lints]
+workspace = true

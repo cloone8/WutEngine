@@ -3953,8 +3953,6 @@ dependencies = [
  "pollster",
  "profiling",
  "puffin_http",
- "rapier2d",
- "rapier3d",
  "rayon",
  "serde",
  "serde_json",
@@ -3968,6 +3966,7 @@ dependencies = [
  "wutengine_egui",
  "wutengine_input",
  "wutengine_math",
+ "wutengine_physics",
  "wutengine_shadercompiler",
  "wutengine_time",
  "wutengine_util",
@@ -4021,6 +4020,15 @@ name = "wutengine_math"
 version = "0.6.0"
 dependencies = [
  "glam 0.33.0",
+]
+
+[[package]]
+name = "wutengine_physics"
+version = "0.6.0"
+dependencies = [
+ "rapier2d",
+ "rapier3d",
+ "wutengine_util",
 ]
 
 [[package]]

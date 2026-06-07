@@ -208,7 +208,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             surface.present();
         }
 
-        input::reset_delta();
+        input::next_frame();
 
         self.frame_pacer.frame_rendered();
         self.frame_pacer.wait_for_limit();

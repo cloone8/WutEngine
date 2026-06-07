@@ -4,6 +4,9 @@ This file documents the most important changes for each released version.
 
 ## [v0.6.0]
 - Complete rewrite. Abandoned custom render abstraction layer in favour of WGPU
+- Added development overlay support
+- Added custom render pass support
+- Too many changes to list. Basically a new engine!
 
 ## [v0.5.0]
 - Removed custom `as_any` and `as_any_mut` implementations for various traits in favour of Rust 1.86 trait upcasting

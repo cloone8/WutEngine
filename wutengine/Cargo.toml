@@ -28,6 +28,7 @@ wutengine_asset.workspace = true
 wutengine_input.workspace = true
 wutengine_math.workspace = true
 wutengine_time.workspace = true
+wutengine_physics = { workspace = true, features = ["phys2d", "phys3d"] }
 
 log.workspace = true
 derive_more = { workspace = true, features = [
@@ -72,8 +73,6 @@ bytemuck = { workspace = true, features = [
     "must_cast",
     "const_zeroed",
 ] }
-rapier2d = { workspace = true, features = ["parallel", "simd-stable"] }
-rapier3d = { workspace = true, features = ["parallel", "simd-stable"] }
 spin_sleep = { workspace = true }
 
 # Optional dependencies

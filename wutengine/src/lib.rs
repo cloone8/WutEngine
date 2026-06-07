@@ -8,7 +8,6 @@ pub mod component;
 pub mod config;
 pub mod entity;
 pub mod graphics;
-pub mod physics;
 pub mod profiling;
 pub mod runtime;
 pub mod system;
@@ -39,3 +38,6 @@ pub use wutengine_input as input;
 
 #[doc(inline)]
 pub use wutengine_time as time;
+
+#[doc(inline)]
+pub use wutengine_physics as physics;
