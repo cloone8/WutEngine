@@ -14,13 +14,14 @@ readme = "../README.md"
 
 [features]
 profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
-development_overlay = ["dep:wutengine_egui"]
+development_overlay = ["dep:wutengine_development_overlay"]
 asset_importers = ["wutengine_asset/importers"]
 
 [lints]
 workspace = true
 
 [dependencies]
+wutengine_graphics.workspace = true
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_shadercompiler.workspace = true
@@ -28,7 +29,7 @@ wutengine_asset.workspace = true
 wutengine_input.workspace = true
 wutengine_math.workspace = true
 wutengine_time.workspace = true
-
+wutengine_config.workspace = true
 wutengine_physics2d.workspace = true
 wutengine_physics3d.workspace = true
 
@@ -44,21 +45,6 @@ derive_more = { workspace = true, features = [
 ] }
 hecs.workspace = true
 winit.workspace = true
-wgpu = { workspace = true, features = [
-    # Shader languages
-    "naga-ir",
-
-    # Backends
-    "dx12",
-    "vulkan",
-    "metal",
-    "webgpu",
-
-    # Other features
-    "std",
-    "web",
-    "parking_lot",
-] }
 nohash-hasher.workspace = true
 pollster.workspace = true
 image.workspace = true
@@ -70,13 +56,8 @@ rayon.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 toml.workspace = true
-bytemuck = { workspace = true, features = [
-    "derive",
-    "must_cast",
-    "const_zeroed",
-] }
 spin_sleep = { workspace = true }
 
 # Optional dependencies
-wutengine_egui = { workspace = true, optional = true } # Feature - development_overlay
-puffin_http = { workspace = true, optional = true }    # Feature - profiling
+wutengine_development_overlay = { workspace = true, optional = true } # Feature - development_overlay
+puffin_http = { workspace = true, optional = true }                   # Feature - profiling

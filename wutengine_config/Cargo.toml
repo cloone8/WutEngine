@@ -1,6 +1,5 @@
 [package]
-name = "wutengine_egui"
-description = "egui intergration for WutEngine"
+name = "wutengine_config"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,15 +11,15 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-wutengine_math.workspace = true
-wutengine_asset.workspace = true
-wutengine_input.workspace = true
 wutengine_util.workspace = true
 
 log.workspace = true
-bytemuck.workspace = true
-egui = { workspace = true, features = ["rayon", "bytemuck"] }
-serde_json.workspace = true
+profiling.workspace = true
+dashmap.workspace = true
+serde.workspace = true
+smallvec.workspace = true
+toml.workspace = true
+derive_more = { workspace = true, features = ["display", "error", "from"] }
 
 [lints]
 workspace = true

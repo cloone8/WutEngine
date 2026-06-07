@@ -47,7 +47,7 @@ pub fn init() {
 pub fn step(dt: f32) {
     profiling::function_scope!();
 
-    log::debug!("Stepping physics with dt: {dt}");
+    log::debug!("Stepping simulation with dt: {dt}");
 
     PHYSICS_MANAGER.write().unwrap().step(dt);
 }
@@ -88,8 +88,6 @@ impl PhysicsManager {
     /// Step the physics simulation by a given delta-time
     fn step(&mut self, dt: f32) {
         profiling::function_scope!();
-
-        log::info!("Stepping physics with dt: {dt}");
 
         self.integration_parameters.dt = dt;
 

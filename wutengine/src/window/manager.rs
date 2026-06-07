@@ -2,6 +2,7 @@
 
 use alloc::sync::Arc;
 use std::sync::RwLock;
+use wutengine_graphics::wgpu;
 
 use nohash_hasher::IntMap;
 use smallvec::SmallVec;
@@ -371,7 +372,9 @@ impl WindowManager {
 
 #[cfg(feature = "development_overlay")]
 mod development_overlay {
-    use wutengine_egui::egui;
+
+    use wutengine_development_overlay::wutengine_egui::egui;
+    use wutengine_graphics::wgpu;
 
     use crate::development_overlay::DevelopmentOverlayWindow;
 
@@ -389,7 +392,7 @@ mod development_overlay {
             Some("🪟")
         }
 
-        fn show(&mut self, ui: &mut wutengine_egui::egui::Ui) {
+        fn show(&mut self, ui: &mut egui::Ui) {
             let win_man = WINDOW_MANAGER.read().unwrap();
             let mut windows = Vec::new();
             for (id, info) in win_man.windows.iter() {

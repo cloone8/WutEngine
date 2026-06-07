@@ -1,12 +1,12 @@
 use wutengine_math::Mat4;
 
-use crate::asset::AssetHandle;
 use crate::builtins::components::Transform;
 use crate::component::Component;
 use crate::graphics;
 use crate::graphics::material::Material;
 use crate::graphics::mesh::Mesh;
 use crate::system::Phase;
+use wutengine_asset::AssetHandle;
 
 /// A static mesh renderer
 #[derive(Debug, Default)]

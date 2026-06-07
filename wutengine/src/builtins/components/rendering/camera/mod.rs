@@ -4,24 +4,26 @@ use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_asset::assets::sampler::FilterMode;
 use wutengine_asset::assets::sampler::WrapMode;
 use wutengine_asset::assets::sampler::WrapModeType;
+use wutengine_graphics::BindGroup;
+use wutengine_graphics::internal_bind_groups::create_camera_bind_group;
+use wutengine_graphics::wgpu;
+use wutengine_math::Color;
 use wutengine_math::Mat4;
 use wutengine_shadercompiler::CAMERA_PARAMS_BIND_GROUP_INDEX;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util_macro::unique_id_type32;
 
 use crate::builtins::components::Transform;
-use crate::color::Color;
 use crate::component::Component;
-use crate::graphics::BindGroup;
-use crate::graphics::internal_bind_groups::create_camera_bind_group;
+use crate::graphics::DrawCommand;
 use crate::graphics::material::{Material, MaterialParameter};
 use crate::graphics::renderpass::RenderPass;
 use crate::graphics::sampler::Sampler;
 use crate::graphics::texture::Texture;
 use crate::system::Phase;
-use wutengine_util::map;
 use crate::window::Window;
 use crate::{builtins, graphics};
+use wutengine_util::map;
 
 mod target;
 pub use target::*;
@@ -92,7 +94,7 @@ pub(crate) struct CameraRenderPass {
 
     /// The pass itself
     #[debug(skip)]
-    pub(crate) pass: Box<dyn RenderPass>,
+    pub(crate) pass: Box<dyn RenderPass<Camera, DrawCommand>>,
 }
 
 impl Default for Camera {
@@ -354,7 +356,7 @@ impl Camera {
         };
 
         blit_material
-            .user_bind_group
+            .raw_bind_group_mut()
             .update_bind_group(graphics::device());
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -379,7 +381,7 @@ impl Camera {
             MATERIAL_PARAMS_BIND_GROUP_INDEX,
             Some(
                 blit_material
-                    .user_bind_group
+                    .raw_bind_group()
                     .get_bind_group()
                     .expect("Blit material bind group out of date"),
             ),
@@ -425,11 +427,11 @@ impl Camera {
             Sampler::new(FilterMode::Linear, WrapModeType::Single(WrapMode::Clamp)).into(),
         );
 
-        mat.user_bind_group
+        mat.raw_bind_group_mut()
             .set_parameter("source_texture", tex_param, graphics::queue())
             .unwrap();
 
-        mat.user_bind_group
+        mat.raw_bind_group_mut()
             .set_parameter("source_sampler", sampler_param, graphics::queue())
             .unwrap();
     }

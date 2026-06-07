@@ -1,4 +1,7 @@
-use crate::color::Color;
+use wutengine_graphics::wgpu;
+use wutengine_math::Color;
+
+use crate::graphics;
 
 /// The background of the [super::Camera] viewport
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +18,7 @@ impl CameraBackground {
     pub fn to_wgpu_load_op(self) -> wgpu::LoadOp<wgpu::Color> {
         match self {
             Self::None => wgpu::LoadOp::Load,
-            Self::Color(color) => wgpu::LoadOp::Clear(color.into()),
+            Self::Color(color) => wgpu::LoadOp::Clear(graphics::to_wgpu_color(color)),
         }
     }
 }

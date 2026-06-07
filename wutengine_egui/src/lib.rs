@@ -1,9 +1,13 @@
 #![doc = include_str!("../README.md")]
 
+use std::sync::LazyLock;
+
 use wutengine_asset::assets::sampler::FilterMode;
 use wutengine_asset::assets::sampler::SerializedSampler;
 use wutengine_asset::assets::sampler::WrapMode;
 use wutengine_asset::assets::sampler::WrapModeType;
+use wutengine_asset::assets::shader::SerializedShader;
+use wutengine_asset::assets::shader::ShaderSource;
 use wutengine_asset::assets::texture::TextureConfig;
 use wutengine_asset::assets::texture::TextureFormat;
 use wutengine_input::WindowIdentifier;
@@ -375,3 +379,16 @@ pub fn gather_input(
         system_theme: None,
     }
 }
+
+pub static EGUI_SHADER: LazyLock<SerializedShader> = LazyLock::new(|| {
+    let descriptor = include_str!("egui.json");
+    let source = include_str!("egui.wgsl");
+
+    let mut shader =
+        serde_json::from_str::<SerializedShader>(descriptor).expect("Could not get egui shader");
+    shader.source = ShaderSource::Inline {
+        content: source.to_owned(),
+    };
+
+    shader
+});

@@ -1,0 +1,53 @@
+[package]
+name = "wutengine_graphics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+wutengine_util.workspace = true
+wutengine_util_macro.workspace = true
+wutengine_asset.workspace = true
+wutengine_math.workspace = true
+wutengine_shadercompiler.workspace = true
+wutengine_config.workspace = true
+
+log.workspace = true
+profiling.workspace = true
+smallvec.workspace = true
+derive_more = { workspace = true, features = ["display", "from", "error"] }
+wgpu = { workspace = true, features = [
+    # Shader languages
+    "naga-ir",
+
+    # Backends
+    "dx12",
+    "vulkan",
+    "metal",
+    "webgpu",
+
+    # Other features
+    "std",
+    "web",
+    "parking_lot",
+] }
+nohash-hasher.workspace = true
+serde = { workspace = true, features = ["derive"] }
+dashmap = { workspace = true, features = ["rayon"] }
+bytemuck = { workspace = true, features = [
+    "derive",
+    "must_cast",
+    "const_zeroed",
+] }
+pollster.workspace = true
+twox-hash.workspace = true
+image = { workspace = true }
+
+[lints]
+workspace = true

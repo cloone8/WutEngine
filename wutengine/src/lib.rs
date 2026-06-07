@@ -3,9 +3,7 @@
 extern crate alloc;
 
 pub mod builtins;
-pub mod color;
 pub mod component;
-pub mod config;
 pub mod entity;
 pub mod graphics;
 pub mod profiling;
@@ -25,9 +23,6 @@ pub use hecs;
 pub use log;
 
 #[doc(inline)]
-pub use wgpu;
-
-#[doc(inline)]
 pub use wutengine_asset as asset;
 
 #[doc(inline)]
@@ -44,3 +39,6 @@ pub use wutengine_physics2d as physics2d;
 
 #[doc(inline)]
 pub use wutengine_physics3d as physics3d;
+
+#[doc(inline)]
+pub use wutengine_config as config;

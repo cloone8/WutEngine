@@ -2,9 +2,9 @@
 
 use std::sync::LazyLock;
 
-use crate::asset::AssetHandle;
 use crate::graphics::shader::Shader;
 use wutengine_asset::Asset;
+use wutengine_asset::AssetHandle;
 use wutengine_asset::assets::shader::SerializedShader;
 use wutengine_asset::assets::shader::ShaderSource;
 
@@ -36,8 +36,3 @@ pub static BLIT: LazyLock<AssetHandle<Shader>> =
 /// Unlit shader
 pub static UNLIT: LazyLock<AssetHandle<Shader>> =
     LazyLock::new(|| from_descriptor_and_source!("unlit"));
-
-#[cfg(feature = "development_overlay")]
-/// Egui shader
-pub static EGUI: LazyLock<AssetHandle<Shader>> =
-    LazyLock::new(|| from_descriptor_and_source!("egui"));

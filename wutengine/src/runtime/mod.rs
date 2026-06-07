@@ -8,12 +8,14 @@ use std::time::Instant;
 
 use derive_more::{Display, Error, From};
 use winit::error::EventLoopError;
+use wutengine_graphics::wgpu;
 
 use crate::builtins::components::rendering::Camera;
+use crate::builtins::components::rendering::CameraRenderPass;
 use crate::builtins::components::rendering::GlobalRenderPass;
 use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
-use crate::graphics::renderpass::RenderPassInfo;
+use crate::graphics::RenderPassInfo;
 use crate::input;
 use crate::system::{self, Phase, SystemManager};
 use crate::window::{self, Window};
@@ -116,7 +118,12 @@ pub fn run(
     wutengine_util::set_cur_thread_as_main_thread();
 
     #[cfg(feature = "development_overlay")]
-    crate::development_overlay::init();
+    {
+        use crate::development_overlay::ConfigOverlay;
+
+        crate::development_overlay::init();
+        crate::development_overlay::add_development_overlay_window(ConfigOverlay::default());
+    }
 
     let mut runtime = Runtime {
         frame_pacer: window::pacer::FramePacer::default(),
@@ -262,9 +269,12 @@ impl Runtime {
             let main_surface = surfaces.first();
 
             if let Some((window, surface_tex)) = main_surface {
-                if let Some(overlay_buffer) =
-                    crate::development_overlay::render_if_active(*window, surface_tex)
-                {
+                if let Some(overlay_buffer) = crate::development_overlay::render_if_active(
+                    input::WindowIdentifier::from(*window),
+                    surface_tex,
+                    window.get_scale_factor() as f32,
+                    time::unscaled_time64(),
+                ) {
                     buffers.push(overlay_buffer);
                 }
             }
@@ -277,7 +287,7 @@ impl Runtime {
 
     fn render_camera(
         camera: &mut Camera,
-        passes: &[RenderPassInfo],
+        passes: &[RenderPassInfo<Camera, DrawCommand>],
         draw_commands: &[DrawCommand],
     ) -> Option<wgpu::CommandEncoder> {
         profiling::function_scope!();
@@ -290,7 +300,7 @@ impl Runtime {
             return None;
         }
 
-        graphics::renderpass::sync_camera_passes(camera, passes);
+        sync_camera_passes(camera, passes);
 
         let mut encoder =
             graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -317,6 +327,53 @@ impl Runtime {
         }
 
         Some(encoder)
+    }
+}
+
+/// Synchronize the passes on the camera with the passes in `passes`, deleting
+/// any passes not in `passes`, and adding missing onces
+pub fn sync_camera_passes(camera: &mut Camera, passes: &[RenderPassInfo<Camera, DrawCommand>]) {
+    profiling::scope!("Synchronize passes");
+
+    let cam_id = camera.get_id();
+
+    // Remove all passes not present in the global runtime
+    camera.render_passes.retain(|camera_pass| {
+        let should_keep = passes
+            .iter()
+            .any(|runtime_pass| runtime_pass.type_id == camera_pass.type_id);
+
+        if !should_keep {
+            log::debug!("Removing pass {} from camera {}", camera_pass.name, cam_id);
+        }
+
+        should_keep
+    });
+
+    // Add passes present in the runtime, but missing in the camera
+    let mut passes_added = false;
+
+    for pass in passes {
+        if !camera
+            .render_passes
+            .iter()
+            .any(|camera_pass| camera_pass.type_id == pass.type_id)
+        {
+            log::debug!("Adding pass {} to camera {}", pass.name, cam_id);
+
+            camera.render_passes.push(CameraRenderPass {
+                type_id: pass.type_id,
+                name: pass.name,
+                order: pass.order,
+                pass: (pass.constructor)(),
+            });
+
+            passes_added = true;
+        }
+    }
+
+    if passes_added {
+        camera.render_passes.sort_by_key(|p| p.order);
     }
 }
 
