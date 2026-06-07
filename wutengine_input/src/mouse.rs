@@ -19,6 +19,12 @@ pub const BUTTON_RIGHT: u32 = 1;
 /// Middle mouse button
 pub const BUTTON_MIDDLE: u32 = 2;
 
+/// "Back" mouse button
+pub const BUTTON_BACK: u32 = 3;
+
+/// "Forward" mouse button
+pub const BUTTON_FORWARD: u32 = 4;
+
 /// A mouse input device
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
