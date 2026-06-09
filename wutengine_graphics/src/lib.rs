@@ -71,6 +71,12 @@ pub fn active_config() -> &'static GraphicsRuntimeConfig {
     &ACTIVE_CONFIG
 }
 
+/// Returns whether all features in `features` are currently supported
+#[inline(always)]
+pub fn features_supported(features: wgpu::Features) -> bool {
+    ACTIVE_CONFIG.features.contains(features)
+}
+
 /// Converts a [wutengine color](wutengine_math::Color) to a [wgpu color](wgpu::Color)
 pub const fn to_wgpu_color(color: wutengine_math::Color) -> wgpu::Color {
     wgpu::Color {
