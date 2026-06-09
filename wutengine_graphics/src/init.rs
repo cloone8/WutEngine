@@ -89,7 +89,7 @@ pub fn initialize_graphics_context() -> bool {
         &super::ACTIVE_CONFIG,
         GraphicsRuntimeConfig {
             backend: config.backend,
-            features: adapter_requested_features,
+            features: super::GFX_DEVICE.features(),
             limits: super::GFX_DEVICE.limits(),
         },
     );
