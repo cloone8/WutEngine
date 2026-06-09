@@ -103,4 +103,8 @@ pub struct GraphicsRuntimeConfig {
 
     /// The active GPU/API limits
     pub limits: wgpu::Limits,
+
+    /// Supported non-standard features. Always check this
+    /// before using a wgpu feature that uses one
+    pub features: wgpu::Features,
 }

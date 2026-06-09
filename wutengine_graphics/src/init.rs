@@ -51,9 +51,24 @@ pub fn initialize_graphics_context() -> bool {
         adapter_info.driver_info
     );
 
+    // We request all features supported by the device, excluding "unwanted" ones.
+    let adapter_requested_features =
+        adapter.features() & (!unwanted_features_mask(adapter_info.device_type));
+
+    if log::log_enabled!(log::Level::Debug) {
+        let mut features_string = String::new();
+
+        for (feature, _) in adapter_requested_features.iter_names() {
+            features_string = format!("{features_string}\n\t{feature}");
+        }
+
+        log::debug!("Supported features:{features_string}");
+    }
+
     let (device, queue) =
         match pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("WutEngine Main GPU"),
+            required_features: adapter_requested_features,
             ..Default::default()
         })) {
             Ok(dq) => dq,
@@ -74,11 +89,24 @@ pub fn initialize_graphics_context() -> bool {
         &super::ACTIVE_CONFIG,
         GraphicsRuntimeConfig {
             backend: config.backend,
+            features: adapter_requested_features,
             limits: super::GFX_DEVICE.limits(),
         },
     );
 
     true
+}
+
+/// A mask of all unwanted API features. This includes experimental features,
+/// and mappable primary buffers on non-shared memory systems
+const fn unwanted_features_mask(device_type: wgpu::DeviceType) -> wgpu::Features {
+    let mut mask = wgpu::Features::all_experimental_mask();
+
+    if !matches!(device_type, wgpu::DeviceType::IntegratedGpu) {
+        mask = mask.union(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS);
+    }
+
+    mask
 }
 
 fn on_device_lost(reason: wgpu::DeviceLostReason, message: String) {
