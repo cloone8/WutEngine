@@ -38,6 +38,9 @@ static GFX_DEVICE: InitOnce<wgpu::Device> = InitOnce::new();
 /// The global [wgpu::Queue]
 static GFX_QUEUE: InitOnce<wgpu::Queue> = InitOnce::new();
 
+/// The global active [graphics configuration](GraphicsRuntimeConfig)
+static ACTIVE_CONFIG: InitOnce<GraphicsRuntimeConfig> = InitOnce::new();
+
 /// Returns the global graphics adapter
 #[inline(always)]
 pub fn adapter() -> &'static wgpu::Adapter {
@@ -60,6 +63,12 @@ pub fn device() -> &'static wgpu::Device {
 #[inline(always)]
 pub fn queue() -> &'static wgpu::Queue {
     &GFX_QUEUE
+}
+
+/// Returns the active [graphics configuration](GraphicsRuntimeConfig)
+#[inline(always)]
+pub fn active_config() -> &'static GraphicsRuntimeConfig {
+    &ACTIVE_CONFIG
 }
 
 /// Converts a [wutengine color](wutengine_math::Color) to a [wgpu color](wgpu::Color)

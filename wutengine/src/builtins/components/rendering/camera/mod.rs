@@ -424,7 +424,12 @@ impl Camera {
         );
 
         let sampler_param = MaterialParameter::Sampler(
-            Sampler::new(FilterMode::Linear, WrapModeType::Single(WrapMode::Clamp)).into(),
+            Sampler::new(
+                FilterMode::Linear,
+                FilterMode::Linear,
+                WrapModeType::Single(WrapMode::Clamp),
+            )
+            .into(),
         );
 
         mat.raw_bind_group_mut()

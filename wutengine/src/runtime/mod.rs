@@ -105,7 +105,7 @@ impl Default for InitRuntimeConfig {
 ///
 /// Can only be called once per process
 pub fn run(
-    systems: SystemManifest,
+    initial_systems: SystemManifest,
     config: InitRuntimeConfig,
     post_start: Option<Box<dyn FnOnce()>>,
 ) -> Result<(), Box<RuntimeStartErr>> {
@@ -145,7 +145,7 @@ pub fn run(
         }
     }
 
-    runtime.systems.build_schedule(systems);
+    runtime.systems.build_schedule(initial_systems);
 
     log::debug!("Final schedule:\n{}", runtime.systems.dump());
 
@@ -265,12 +265,21 @@ impl Runtime {
 
         #[cfg(feature = "development_overlay")]
         {
-            //TODO: Pick main surface according to some metric, not just arbitrarily the first
-            let main_surface = surfaces.first();
+            use wutengine_development_overlay::wutengine_egui;
+
+            let main_surface = surfaces.iter().find(|(win, _)| win.is_primary());
 
             if let Some((window, surface_tex)) = main_surface {
+                let egui_window_info = wutengine_egui::EguiWindowInfo {
+                    focused: window.is_focused(),
+                    occluded: window.is_occluded(),
+                    minimized: window.is_minimized(),
+                    maximized: window.is_maximized(),
+                };
+
                 if let Some(overlay_buffer) = crate::development_overlay::render_if_active(
                     input::WindowIdentifier::from(*window),
+                    &egui_window_info,
                     surface_tex,
                     window.get_scale_factor() as f32,
                     time::unscaled_time64(),

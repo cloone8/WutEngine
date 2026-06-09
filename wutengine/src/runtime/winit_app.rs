@@ -7,6 +7,7 @@ use alloc::sync::Arc;
 
 use crate::config;
 use crate::input;
+use crate::runtime::notify_event_loop;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
 
@@ -26,8 +27,7 @@ pub(crate) enum WinitEvent {
     /// Update the icon of a window
     UpdateIcon(Window, winit::window::Icon),
 
-    #[cfg(feature = "development_overlay")]
-    /// Surfaces should be reconfigured
+    /// Surface should be reconfigured
     ForceSurfaceReconfigure(Window),
 
     /// Someone requested the exit of the runtime through [crate::runtime::exit]
@@ -45,7 +45,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
         profiling::scope!("Initialize");
 
-        window::manager::refresh_display_info(event_loop);
+        window::manager::refresh_displays(event_loop);
 
         log::info!("Winit resume received, running runtime initialization code");
 
@@ -83,12 +83,25 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
         profiling::function_scope!();
 
-        let Some(id) = window::manager::find_id(native_id) else {
-            log::warn!(
-                "Could not find WutEngine window for native ID: {}",
-                u64::from(native_id)
-            );
-            return;
+        let id = match window::manager::find_id(native_id) {
+            window::manager::WindowState::Alive(id) => id,
+            window::manager::WindowState::BeingDestroyed => {
+                // Window is being destroyed, so we ignore it and just wait for winit to finish cleanup
+
+                if matches!(event, winit::event::WindowEvent::Destroyed) {
+                    window::manager::winit_window_destroyed(native_id);
+                }
+
+                return;
+            }
+            window::manager::WindowState::NotFound => {
+                // Window not actually found. We made an error with tracking somewhere.
+                log::error!(
+                    "Could not find WutEngine window for native ID: {}",
+                    u64::from(native_id)
+                );
+                return;
+            }
         };
 
         let was_handled_window_input_event =
@@ -102,12 +115,12 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             WindowEvent::CloseRequested => {
                 profiling::scope!("Close Requested");
 
-                event_loop.exit();
+                notify_event_loop(WinitEvent::CloseWindow(id));
             }
             WindowEvent::Resized(_) => {
                 profiling::scope!("Resized");
 
-                window::manager::refresh_cached_info(&id);
+                window::manager::refresh_window(&id, false);
 
                 if cfg!(windows) {
                     // Workaround for https://github.com/rust-windowing/winit/issues/3272
@@ -121,7 +134,17 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 log::debug!("Window {id} changed scale factor to: {scale_factor}");
 
-                window::manager::refresh_cached_info(&id);
+                window::manager::refresh_window(&id, false);
+            }
+            WindowEvent::Focused(_) => {
+                profiling::scope!("Focused");
+
+                window::manager::refresh_window(&id, false);
+            }
+            WindowEvent::Occluded(occluded) => {
+                profiling::scope!("Occluded");
+
+                window::manager::notify_window_occluded(&id, occluded);
             }
             _ => {}
         }
@@ -159,7 +182,14 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 log::debug!("Handling close window request for window {window_id}");
 
-                window::manager::close_window(window_id);
+                let remaining_windows = window::manager::close_window(window_id);
+
+                if remaining_windows == 0 {
+                    log::info!(
+                        "Stopping the WutEngine runtime because there are no more windows remaining"
+                    );
+                    event_loop.exit();
+                }
             }
             WinitEvent::UpdateIcon(window_id, icon) => {
                 profiling::scope!("Update Icon");
@@ -172,10 +202,8 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
                 log::debug!("Runtime exit was requested. Stopping");
                 event_loop.exit();
             }
-
-            #[cfg(feature = "development_overlay")]
             WinitEvent::ForceSurfaceReconfigure(window_id) => {
-                window::manager::refresh_cached_info(&window_id);
+                window::manager::refresh_window(&window_id, true);
             }
         }
     }

@@ -1,6 +1,7 @@
 //! Module housing the window manager
 
 use alloc::sync::Arc;
+use nohash_hasher::IntSet;
 use std::sync::RwLock;
 use wutengine_graphics::wgpu;
 
@@ -41,43 +42,49 @@ pub(crate) fn new_window(
 
     assert_main_thread!();
 
-    let native_id = window.id();
-    let info = WindowInfo::new(id, window, surface);
-
     let mut window_manager = WINDOW_MANAGER.write().unwrap();
+
+    let native_id = window.id();
+    let is_primary = window_manager.windows.is_empty(); // First window is always the primary window
+
+    let info = WindowInfo::new(id, window.title(), is_primary, window, surface);
+
     window_manager.winit_to_engine.insert(native_id.into(), id);
     window_manager.windows.insert(id, info);
 }
 
-/// Returns the size of the given window in pixels.
+/// Locks the window manager, and calls `map_func` with an iterator containing all open windows
 ///
-/// If the window does not exists, returns [None]
-pub(crate) fn get_size(id: Window) -> Option<(u32, u32)> {
+/// The window manager is locked for the duration of the callback
+#[inline(always)]
+pub(super) fn get_windows_and<T>(map_func: impl FnOnce(&IntMap<Window, WindowInfo>) -> T) -> T {
     profiling::function_scope!();
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
-    window_manager.windows.get(&id).map(|info| info.inner_size)
+
+    map_func(&window_manager.windows)
 }
 
-/// Returns the scale factor for the given window
+/// Locks the window manager, and calls `map_func` with a reference to the window info for `id`, if it exists.
 ///
-/// If the window does not exists, returns [None]
-pub(crate) fn get_scale_factor(id: Window) -> Option<f64> {
+/// The window manager is locked for the duration of the callback
+#[inline(always)]
+pub(super) fn get_window_and<T>(id: Window, map_func: impl FnOnce(Option<&WindowInfo>) -> T) -> T {
     profiling::function_scope!();
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
-    window_manager
-        .windows
-        .get(&id)
-        .map(|info| info.os_scale_factor)
+
+    map_func(window_manager.windows.get(&id))
 }
 
 /// Instructs the [WindowManager] to destroy the given window.
 ///
 /// If the window does not exist, does nothing.
 ///
+/// Returns the amount of remaining windows.
+///
 /// Must be called from the main thread
-pub(crate) fn close_window(id: crate::window::Window) {
+pub(crate) fn close_window(id: crate::window::Window) -> usize {
     profiling::function_scope!();
 
     assert_main_thread!();
@@ -86,13 +93,42 @@ pub(crate) fn close_window(id: crate::window::Window) {
 
     let Some(info) = window_manager.windows.remove(&id) else {
         log::warn!("Window {id} was already closed");
-        return;
+        return window_manager.windows.len();
     };
+
+    window_manager
+        .being_destroyed
+        .insert(u64::from(info.native.id()));
 
     let removed = window_manager
         .winit_to_engine
         .remove(&info.native.id().into());
+
     assert!(removed.is_some(), "Native to engine ID map was missing");
+
+    if info.is_primary {
+        // Grab an arbitrary window to be the primary one, given that the user did not appoint one themself
+        if let Some((_, window_info)) = window_manager.windows.iter_mut().next() {
+            window_info.is_primary = true;
+        }
+    }
+
+    window_manager.windows.len()
+}
+
+/// Notifies the window manager that a native [winit] window was fully destroyed
+pub(crate) fn winit_window_destroyed(id: winit::window::WindowId) {
+    profiling::function_scope!();
+
+    assert_main_thread!();
+
+    let mut window_manager = WINDOW_MANAGER.write().unwrap();
+
+    let removed = window_manager.being_destroyed.remove(&u64::from(id));
+
+    if !removed {
+        log::error!("Destroyed winit window was not tracked as being destroyed. Internal error");
+    }
 }
 
 /// Updates the icon of the given window to the new one.
@@ -122,17 +158,42 @@ pub(crate) fn set_icon(id: crate::window::Window, icon: winit::window::Icon) {
     window.native.set_window_icon(Some(icon));
 }
 
-/// Refreshes the cached info for a given [WindowId]. Should be called by the main
+/// Marks window `id` as the new primary window
+pub(crate) fn appoint_primary_window(id: crate::window::Window) {
+    profiling::function_scope!();
+
+    let mut window_manager = WINDOW_MANAGER.write().unwrap();
+
+    // We first set the new primary window directly on the window in question,
+    // to make sure it still exists so that we are not left without a primary window
+    // by accident
+    let Some(window) = window_manager.windows.get_mut(&id) else {
+        log::error!("Could not update icon for window {id} because it could not be found");
+        return;
+    };
+
+    window.is_primary = true;
+
+    // Now we unset all other windows to non-primary
+    for (&win_id, window) in window_manager.windows.iter_mut() {
+        if win_id != id {
+            window.is_primary = false;
+        }
+    }
+}
+
+/// Refreshes the cached info for the given [Window]. Should be called by the main
 /// engine runtime when a relevant [winit] event is received, or if some other window
-/// attribute was changed.
+/// attribute was changed. Also reconfigures the window surface if any attributes that influence
+/// it have changed, or when `force_reconfigure` is `true`
 ///
 /// Must be called from the main thread
-pub(crate) fn refresh_cached_info(id: &crate::window::Window) {
+pub(crate) fn refresh_window(id: &crate::window::Window, force_reconfigure: bool) {
     profiling::function_scope!();
 
     assert_main_thread!();
 
-    log::trace!("Refreshing cached window info for {id}");
+    log::trace!("Refreshing window info for {id}");
 
     let mut window_manager = WINDOW_MANAGER.write().unwrap();
 
@@ -141,14 +202,40 @@ pub(crate) fn refresh_cached_info(id: &crate::window::Window) {
         return;
     };
 
-    window.refresh();
-    window.reconfigure_surface();
+    let should_reconfigure = window.refresh();
+
+    if force_reconfigure || should_reconfigure {
+        log::debug!("Reconfiguring window surface for {id}");
+        window.reconfigure_surface();
+    }
+}
+
+/// Notifies the window manager that the occlusion status of window `id` has changed
+pub(crate) fn notify_window_occluded(id: &crate::window::Window, occluded: bool) {
+    profiling::function_scope!();
+
+    assert_main_thread!();
+
+    log::debug!("Changing occluded status of window {id} to {occluded}");
+
+    let mut window_manager = WINDOW_MANAGER.write().unwrap();
+
+    let Some(window) = window_manager.windows.get_mut(id) else {
+        log::error!(
+            "Could not change occluded status of window {id} to {occluded} because it could not be found"
+        );
+        return;
+    };
+
+    window.occluded = occluded;
 }
 
 /// Refreshes the known displays
-pub(crate) fn refresh_display_info(event_loop: &winit::event_loop::ActiveEventLoop) {
+pub(crate) fn refresh_displays(event_loop: &winit::event_loop::ActiveEventLoop) {
     profiling::function_scope!();
     assert_main_thread!();
+
+    log::trace!("Refreshing display info");
 
     let primary_display = event_loop.primary_monitor();
     let all_displays = event_loop.available_monitors().collect::<Vec<_>>();
@@ -190,16 +277,38 @@ fn find_existing_display_id(
     None
 }
 
-/// For a given [winit::window::WindowId], returns the WutEngine [WindowId] if one can be found
-pub(crate) fn find_id(native_id: winit::window::WindowId) -> Option<Window> {
+/// The state of a native window
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum WindowState {
+    /// Window is alive in WutEngine, and has a user-accessible ID
+    Alive(Window),
+
+    /// Window is being destroyed. It is no longer accessible by WutEngine users,
+    /// but we're still waiting for winit to confirm destruction
+    BeingDestroyed,
+
+    /// Unknown window. Something has gone wrong
+    NotFound,
+}
+
+/// For a given [winit::window::WindowId], returns the WutEngine [Window] if one can be found
+pub(crate) fn find_id(native_id: winit::window::WindowId) -> WindowState {
     profiling::function_scope!();
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
-    window_manager
-        .winit_to_engine
-        .get(&native_id.into())
-        .copied()
+    if let Some(window) = window_manager.winit_to_engine.get(&native_id.into()) {
+        return WindowState::Alive(*window);
+    }
+
+    if window_manager
+        .being_destroyed
+        .contains(&u64::from(native_id))
+    {
+        return WindowState::BeingDestroyed;
+    }
+
+    WindowState::NotFound
 }
 
 /// Returns the surface textures for all current windows that have a valid one.
@@ -239,7 +348,22 @@ pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Windo
     }
 }
 
-pub(crate) fn get_displays() -> Vec<Display> {
+/// Locks the window manager, and calls `map_func` with a reference to the display info for `id`, if it exists.
+///
+/// The window manager is locked for the duration of the callback
+#[inline(always)]
+pub(super) fn get_display_and<T>(
+    id: Display,
+    map_func: impl FnOnce(Option<&DisplayInfo>) -> T,
+) -> T {
+    profiling::function_scope!();
+
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    map_func(window_manager.displays.get(&id))
+}
+
+pub(super) fn get_displays() -> Vec<Display> {
     WINDOW_MANAGER
         .read()
         .unwrap()
@@ -249,7 +373,7 @@ pub(crate) fn get_displays() -> Vec<Display> {
         .collect()
 }
 
-pub(crate) fn primary_display() -> Option<Display> {
+pub(super) fn primary_display() -> Option<Display> {
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
     if let Some(prim_id) = window_manager.primary_display {
@@ -260,7 +384,7 @@ pub(crate) fn primary_display() -> Option<Display> {
     window_manager.displays.keys().copied().next()
 }
 
-pub(crate) fn monitor_handle_from_display(id: Display) -> Option<winit::monitor::MonitorHandle> {
+pub(super) fn monitor_handle_from_display(id: Display) -> Option<winit::monitor::MonitorHandle> {
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
     window_manager
@@ -269,22 +393,14 @@ pub(crate) fn monitor_handle_from_display(id: Display) -> Option<winit::monitor:
         .map(|info| info.handle.clone())
 }
 
-pub(crate) fn exclusive_fullscreen_modes(
-    id: Display,
-) -> Option<Vec<DisplayExclusiveFullscreenMode>> {
-    let window_manager = WINDOW_MANAGER.read().unwrap();
-
-    window_manager
-        .displays
-        .get(&id)
-        .map(|info| info.video_modes.clone())
-}
-
 fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::SurfaceTexture> {
     match surface.get_current_texture() {
         wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
         wgpu::CurrentSurfaceTexture::Suboptimal(sfctex) => {
             log::warn!("Suboptimal surface for window {window}, should recreate");
+            crate::runtime::notify_event_loop(crate::runtime::WinitEvent::ForceSurfaceReconfigure(
+                window,
+            ));
             Some(sfctex)
         }
         wgpu::CurrentSurfaceTexture::Timeout => {
@@ -295,7 +411,10 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::S
             None
         }
         wgpu::CurrentSurfaceTexture::Outdated => {
-            log::error!("Surface texture for window {window} is outdated");
+            log::warn!("Surface texture for window {window} is outdated");
+            crate::runtime::notify_event_loop(crate::runtime::WinitEvent::ForceSurfaceReconfigure(
+                window,
+            ));
             None
         }
         wgpu::CurrentSurfaceTexture::Lost => {
@@ -317,6 +436,9 @@ struct WindowManager {
     /// it to a [u64] for use in this map
     winit_to_engine: IntMap<u64, crate::window::Window>,
 
+    /// Winit windows currently being destroyed
+    being_destroyed: IntSet<u64>,
+
     windows: IntMap<crate::window::Window, WindowInfo>,
 
     primary_display: Option<crate::window::Display>,
@@ -324,20 +446,39 @@ struct WindowManager {
 }
 
 #[derive(Debug)]
-struct WindowInfo {
+pub(super) struct WindowInfo {
     /// The engine-internal ID
-    id: Window,
+    pub(super) id: Window,
+
+    pub(super) title: String,
+
+    /// Whether this is the primary window
+    pub(super) is_primary: bool,
 
     /// The actual native window handle
-    native: Arc<winit::window::Window>,
+    pub(super) native: Arc<winit::window::Window>,
 
-    surface: wgpu::Surface<'static>,
+    /// The rendering surface for the window
+    pub(super) surface: wgpu::Surface<'static>,
 
     /// The physical window size, in pixels `W x H`
-    inner_size: (u32, u32),
+    pub(super) inner_size: (u32, u32),
 
     /// The OS-provided scale factor for the window
-    os_scale_factor: f64,
+    pub(super) os_scale_factor: f64,
+
+    /// Whether the window is currently focused
+    pub(super) focused: bool,
+
+    /// Whether the window is known to be occluded. Not supported
+    /// by every OS, in which case this will always be `false`
+    pub(super) occluded: bool,
+
+    /// Whether the window is currently minimized
+    pub(super) minimized: bool,
+
+    /// Whether the window is currently maximized
+    pub(super) maximized: bool,
 }
 
 impl WindowInfo {
@@ -346,37 +487,80 @@ impl WindowInfo {
     /// on non-main threads
     pub(crate) fn new(
         id: Window,
+        title: String,
+        is_primary: bool,
         native: Arc<winit::window::Window>,
         surface: wgpu::Surface<'static>,
     ) -> Self {
         let mut new = Self {
             id,
+            title,
+            is_primary,
             native,
             surface,
             inner_size: (0, 0),
             os_scale_factor: 1.0,
+            focused: true,
+            occluded: false,
+            minimized: false,
+            maximized: false,
         };
 
-        new.refresh();
-        new.reconfigure_surface();
+        let can_configure = new.refresh();
+
+        if can_configure {
+            new.reconfigure_surface();
+        }
 
         new
     }
 
-    /// Refresh all cached window information
-    fn refresh(&mut self) {
+    /// Refresh all cached window information.
+    ///
+    /// Returns whether the surface should also be reconfigured
+    fn refresh(&mut self) -> bool {
         assert_main_thread!();
 
         log::trace!("Refreshing cached information for window {}", self.id);
 
+        self.title = self.native.title();
+
+        let prev_inner_size = self.inner_size;
+
         self.inner_size = self.native.inner_size().into();
         self.os_scale_factor = self.native.scale_factor();
+
+        let prev_focused = self.focused;
+        self.focused = self.native.has_focus();
+
+        if self.focused != prev_focused {
+            log::debug!(
+                "Window {} changed focus state to: {}",
+                self.id,
+                self.focused
+            );
+        }
+
+        if let Some(minimized) = self.native.is_minimized() {
+            self.minimized = minimized;
+        }
+
+        self.maximized = self.native.is_maximized();
+
+        // We can't configure a 0-sized surface, so do not reconfigure if so
+        self.inner_size != (0, 0) && prev_inner_size != self.inner_size
     }
 
     fn reconfigure_surface(&self) {
         log::debug!("Reconfiguring surface for window {}", self.id);
 
         let size = self.inner_size;
+
+        if size == (0, 0) {
+            log::error!("Cannot configure a size 0 surface. Internal error");
+            return;
+        }
+
         let surface = &self.surface;
         let surface_caps = surface.get_capabilities(graphics::adapter());
 
@@ -455,6 +639,7 @@ impl WindowManager {
     pub(crate) fn new() -> Self {
         Self {
             winit_to_engine: IntMap::default(),
+            being_destroyed: IntSet::default(),
             windows: IntMap::default(),
             primary_display: None,
             displays: IntMap::default(),
@@ -463,20 +648,51 @@ impl WindowManager {
 }
 
 #[derive(Debug)]
-struct DisplayInfo {
-    handle: winit::monitor::MonitorHandle,
-    name: Option<String>,
-    size: (u32, u32),
-    scaling_factor: f64,
-    video_modes: Vec<DisplayExclusiveFullscreenMode>,
-    is_primary: bool,
+pub(super) struct DisplayInfo {
+    pub(super) handle: winit::monitor::MonitorHandle,
+    pub(super) name: Option<String>,
+    pub(super) size: (u32, u32),
+    pub(super) refresh_rate_millihertz: u32,
+    pub(super) scaling_factor: f64,
+    pub(super) video_modes: Vec<DisplayExclusiveFullscreenMode>,
+    pub(super) is_primary: bool,
 }
 
+/// A video mode for [super::FullscreenMode::Exclusive]. Combines
+/// a target display, a resolution, refresh rate, and an amount of bits-per-color
 #[derive(Debug, Clone)]
 pub struct DisplayExclusiveFullscreenMode(
     pub(super) Display,
     pub(super) winit::monitor::VideoModeHandle,
 );
+
+impl DisplayExclusiveFullscreenMode {
+    /// The target display for this fullscreen mode
+    #[inline]
+    pub const fn display(&self) -> Display {
+        self.0
+    }
+
+    /// The resolution of this mode
+    #[inline]
+    pub fn resolution(&self) -> (u32, u32) {
+        let phys_size = self.1.size();
+
+        (phys_size.width, phys_size.height)
+    }
+
+    /// The refresh rate in millihertz for this mode
+    #[inline]
+    pub fn refresh_rate_millihertz(&self) -> u32 {
+        self.1.refresh_rate_millihertz()
+    }
+
+    /// The available bits per color for this mode
+    #[inline]
+    pub fn bits_per_color(&self) -> u16 {
+        self.1.bit_depth()
+    }
+}
 
 impl DisplayInfo {
     fn from_monitor_handle(
@@ -490,6 +706,9 @@ impl DisplayInfo {
         Self {
             name: handle.name(),
             size: (handle.size().width, handle.size().height),
+            refresh_rate_millihertz: handle
+                .refresh_rate_millihertz()
+                .expect("Display dissapeared during configuration"),
             scaling_factor: handle.scale_factor(),
             video_modes: handle
                 .video_modes()
@@ -529,11 +748,24 @@ mod development_overlay {
             for (id, info) in win_man.windows.iter() {
                 windows.push(*id);
 
-                egui::CollapsingHeader::new(id.to_string())
+                let title = if info.is_primary {
+                    format!("{} [Primary Window]", info.title)
+                } else {
+                    info.title.clone()
+                };
+
+                egui::CollapsingHeader::new(title)
+                    .id_salt(*id)
                     .default_open(true)
                     .show(ui, |ui| {
+                        ui.label(format!("ID: {id}"));
                         ui.label(format!("Size: {}x{}", info.inner_size.0, info.inner_size.1));
                         ui.label(format!("OS scale factor: {}", info.os_scale_factor));
+
+                        ui.label(format!("Focused: {}", info.focused));
+                        ui.label(format!("Occluded: {}", info.occluded));
+                        ui.label(format!("Minimized: {}", info.minimized));
+                        ui.label(format!("Maximized: {}", info.maximized));
 
                         let Some(surface_config) = info.surface.get_configuration() else {
                             return;
@@ -572,6 +804,12 @@ mod development_overlay {
                         ));
 
                         ui.label(format!("Alpha mode: {alpha_mode:?}"));
+
+                        if ui.button("Reconfigure").clicked() {
+                            crate::runtime::notify_event_loop(
+                                crate::runtime::WinitEvent::ForceSurfaceReconfigure(*id),
+                            );
+                        }
                     });
             }
 

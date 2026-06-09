@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::any::TypeId;
 use core::num::NonZero;
 use std::collections::HashSet;
@@ -10,29 +11,20 @@ use crate::system::{GenericSystem, Phase, Queryable, SystemId};
 /// system schedule.
 ///
 /// Created with [Self::default], or [Self::empty] if the default systems are not desired
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SystemManifest {
     /// The systems added to the manifest. Not in any particular order
     pub(crate) systems: Vec<PendingSystem>,
 }
 
 /// A configuration for a system added to a [SystemManifest]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SystemConfig<'a> {
     /// Any dependencies on previously insteded systems
     pub dependencies: &'a [SystemId],
 
     /// How many query results are processed on a single thread, before the work is split onto another.
     pub parallel_batch_size: Option<NonZero<u32>>,
-}
-
-impl<'a> Default for SystemConfig<'a> {
-    fn default() -> Self {
-        Self {
-            dependencies: &[],
-            parallel_batch_size: Some(NonZero::new(1024).unwrap()),
-        }
-    }
 }
 
 impl SystemManifest {
@@ -100,7 +92,7 @@ impl SystemManifest {
 
         let batch_size = config.parallel_batch_size;
 
-        let callback: Box<GenericSystem> = Box::new(move |world: &crate::world::World| {
+        let callback: Arc<GenericSystem> = Arc::new(move |world: &crate::world::World| {
             let _name_str = name.unwrap_or("<unnamed system>");
 
             profiling::scope!("System callback", _name_str);
@@ -140,7 +132,7 @@ impl SystemManifest {
             phase,
             shared_borrows,
             exclusive_borrows,
-            dependencies: Vec::from(config.dependencies),
+            dependencies: config.dependencies.to_vec(),
             callback,
         });
 
@@ -160,7 +152,7 @@ impl Default for SystemManifest {
 
 /// A collection of information on an unscheduled system. Used later
 /// for proper scheduling and ordering
-#[derive(derive_more::Debug)]
+#[derive(derive_more::Debug, Clone)]
 pub(crate) struct PendingSystem {
     /// The system name, if any
     pub(crate) name: Option<&'static str>,
@@ -182,5 +174,5 @@ pub(crate) struct PendingSystem {
 
     /// The actual system-running callback
     #[debug(skip)]
-    pub(crate) callback: Box<GenericSystem>,
+    pub(crate) callback: Arc<GenericSystem>,
 }

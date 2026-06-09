@@ -10,8 +10,11 @@ use crate::SerializedAsset;
 /// Data for a sampler
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct SerializedSampler {
-    /// Filtering mode the sampler uses
-    pub filtering: FilterMode,
+    /// Filtering mode the sampler uses for filtering in the same mip level
+    pub texture_filtering: FilterMode,
+
+    /// Filtering mode the sampler uses for filtering between different mip levels
+    pub mipmap_filtering: FilterMode,
 
     /// Wrapping mode the sampler uses
     pub wrapping: WrapModeType,

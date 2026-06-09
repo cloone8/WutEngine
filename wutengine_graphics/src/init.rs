@@ -2,6 +2,7 @@
 
 use alloc::sync::Arc;
 
+use crate::GraphicsRuntimeConfig;
 use crate::config::GraphicsConfig;
 use wutengine_util::InitOnce;
 
@@ -69,6 +70,13 @@ pub fn initialize_graphics_context() -> bool {
     InitOnce::init(&super::GFX_INSTANCE, instance);
     InitOnce::init(&super::GFX_DEVICE, device);
     InitOnce::init(&super::GFX_QUEUE, queue);
+    InitOnce::init(
+        &super::ACTIVE_CONFIG,
+        GraphicsRuntimeConfig {
+            backend: config.backend,
+            limits: super::GFX_DEVICE.limits(),
+        },
+    );
 
     true
 }

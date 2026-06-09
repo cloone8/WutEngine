@@ -60,10 +60,23 @@ pub fn egui_image_bytes(image: &egui::epaint::ImageData) -> &[u8] {
 #[inline]
 pub fn sampler_from_egui(options: &egui::TextureOptions) -> SerializedSampler {
     let filtering = filter_mode_from_egui(options.magnification);
+
+    if options.magnification != options.minification {
+        log::warn!(
+            "Different min/mag filters ({:?}/{:?}) for egui texture. This is not yet supported",
+            options.minification,
+            options.magnification
+        );
+    }
+
     let wrapping = wrap_mode_from_egui(options.wrap_mode);
 
     SerializedSampler {
-        filtering,
+        texture_filtering: filtering,
+        mipmap_filtering: options
+            .mipmap_mode
+            .map(filter_mode_from_egui)
+            .unwrap_or_default(),
         wrapping,
     }
 }
@@ -326,9 +339,27 @@ fn add_keyboard_events(events: &mut Vec<egui::Event>) -> egui::Modifiers {
     modifiers
 }
 
+/// Information for the window we're rendering [egui] on
+#[derive(Debug, Clone, Copy)]
+pub struct EguiWindowInfo {
+    /// Window is in focus
+    pub focused: bool,
+
+    /// Window is occluded
+    pub occluded: bool,
+
+    /// Window is minimized
+    pub minimized: bool,
+
+    /// Window is maximized
+    pub maximized: bool,
+}
+
 /// Returns the input required to run [egui] for a frame
 pub fn gather_input(
     window: WindowIdentifier,
+    window_info: &EguiWindowInfo,
+    tex2d_size_limit: usize,
     real_time_secs: f64,
     scale_factor: f32,
     surface_points: (f32, f32),
@@ -339,6 +370,7 @@ pub fn gather_input(
     };
 
     let mut egui_events = Vec::new();
+    //TODO: Emit egui window focus event if focus changed
 
     let modifiers = add_keyboard_events(&mut egui_events);
 
@@ -359,23 +391,23 @@ pub fn gather_input(
                 monitor_size: None,
                 inner_rect: Some(sfc_rect),
                 outer_rect: None,
-                minimized: None,
-                maximized: None,
+                minimized: Some(window_info.minimized),
+                maximized: Some(window_info.maximized),
                 fullscreen: None,
-                focused: Some(true),
-                occluded: None
+                focused: Some(window_info.focused),
+                occluded: Some(window_info.occluded)
             }
         ],
         safe_area_insets: None,
         screen_rect: Some(sfc_rect),
-        max_texture_side: None,
+        max_texture_side: Some(tex2d_size_limit),
         time: Some(real_time_secs),
         predicted_dt: 1.0 / 60.0,
         modifiers,
         events: egui_events,
         hovered_files: vec![],
         dropped_files: vec![],
-        focused: true,
+        focused: window_info.focused,
         system_theme: None,
     }
 }

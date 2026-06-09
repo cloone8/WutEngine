@@ -261,6 +261,8 @@ impl<A: Asset> From<FromSerializedAnyErr<A::FromSerializedErr>> for ImportErr<A>
 
 /// Imports a new asset from a given path
 pub fn import<A: Asset>(asset: impl AsRef<Path>) -> Result<AssetHandle<A>, ImportErr<A>> {
+    profiling::function_scope!();
+
     let asset_path = asset.as_ref();
 
     let asset_type = asset_path
@@ -281,6 +283,8 @@ pub fn import_from_bytes<A: Asset>(
     file_type: &str,
     asset_dir: Option<&Path>,
 ) -> Result<AssetHandle<A>, ImportErr<A>> {
+    profiling::function_scope!();
+
     let registered_importers = IMPORTERS.read().unwrap();
 
     let mut importer_errs = Vec::new();

@@ -6,10 +6,14 @@ use manager::DisplayExclusiveFullscreenMode;
 use winit::window::WindowAttributes;
 use wutengine_util_macro::unique_id_type32;
 
+use crate::graphics;
 use crate::runtime;
 
 mod icon;
 pub use icon::*;
+
+mod display;
+pub use display::*;
 
 pub(crate) mod manager;
 pub(crate) mod pacer;
@@ -17,11 +21,6 @@ pub(crate) mod pacer;
 unique_id_type32! {
     /// The handle to a WutEngine window
     pub Window
-}
-
-unique_id_type32! {
-    /// The handle to a display
-    pub Display
 }
 
 /// Config used to create a new window with [Window::create]
@@ -54,16 +53,28 @@ pub struct WindowConfig {
     pub fullscreen: Option<FullscreenMode>,
 }
 
+/// Fullscreen window configuration
 #[derive(Debug, Clone)]
 pub enum FullscreenMode {
+    /// Borderless fullscreen. Preferred fullscreen method on most systems (even for games on all
+    /// supported Windows versions), so use this
+    /// unless you have a very specific reason not to
     Borderless(BorderlessTarget),
+
+    /// Exclusive fullscreen mode. Not supported everywhere
     Exclusive(DisplayExclusiveFullscreenMode),
 }
 
+/// Target display for [FullscreenMode::Borderless]
 #[derive(Debug, Clone)]
 pub enum BorderlessTarget {
+    /// The display the window is currently (or initially) on
     Current,
+
+    /// The primary display
     Primary,
+
+    /// A specific display
     Specific(Display),
 }
 
@@ -151,58 +162,13 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
         attrs = attrs.with_resizable(value.resizable);
         attrs = attrs.with_inner_size(winit::dpi::PhysicalSize::new(inner_size.0, inner_size.1));
 
-        if let Some(fullscreen_mode) = value.fullscreen {
-            match fullscreen_mode {
-                FullscreenMode::Borderless(borderless_target) => {
-                    let display_handle = match borderless_target {
-                        BorderlessTarget::Current => None,
-                        BorderlessTarget::Primary => {
-                            match crate::window::manager::primary_display() {
-                                Some(disp) => Some(disp),
-                                None => {
-                                    log::error!(
-                                        "Failed to determine primary display. Falling back to borderless mode on current display"
-                                    );
-                                    None
-                                }
-                            }
-                        }
-                        BorderlessTarget::Specific(display) => Some(display),
-                    };
+        if let Some(mut fullscreen_mode) = value.fullscreen {
+            let (is_set, new_attrs) = try_set_exclusive_fullscreen(attrs, &mut fullscreen_mode);
+            attrs = new_attrs;
 
-                    let target_handle = match display_handle {
-                        Some(disp) => {
-                            match crate::window::manager::monitor_handle_from_display(disp) {
-                                Some(handle) => Some(handle),
-                                None => {
-                                    log::error!(
-                                        "Target display {disp} does not exist anymore. Falling back to borderless mode on current display"
-                                    );
-                                    None
-                                }
-                            }
-                        }
-                        None => None,
-                    };
-
-                    attrs = attrs.with_fullscreen(Some(winit::window::Fullscreen::Borderless(
-                        target_handle,
-                    )));
-                }
-                FullscreenMode::Exclusive(video_mode) => {
-                    // Check is not strictly needed, but not a bad idea anyway
-                    if crate::window::manager::monitor_handle_from_display(video_mode.0).is_some() {
-                        attrs = attrs.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(
-                            video_mode.1,
-                        )));
-                    } else {
-                        //TODO: Fall back to borderless instead
-                        log::error!(
-                            "Target display {} does not exist anymore. Falling back to windowed",
-                            video_mode.0
-                        );
-                    }
-                }
+            if !is_set {
+                let (_, new_attrs) = try_set_borderless_fullscreen(attrs, &fullscreen_mode);
+                attrs = new_attrs;
             }
         }
 
@@ -221,6 +187,89 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
 
         attrs
     }
+}
+
+fn try_set_exclusive_fullscreen(
+    attrs: winit::window::WindowAttributes,
+    fullscreen_mode: &mut FullscreenMode,
+) -> (bool, winit::window::WindowAttributes) {
+    let FullscreenMode::Exclusive(mode) = fullscreen_mode else {
+        return (false, attrs);
+    };
+
+    let backend = graphics::active_config().backend;
+
+    if !backend.supports_exclusive_fullscreen() {
+        log::error!(
+            "Graphics backend {backend} does not support exclusive fullscreen mode. Falling back to borderless",
+        );
+        *fullscreen_mode = FullscreenMode::Borderless(BorderlessTarget::Specific(mode.0));
+        return (false, attrs);
+    }
+
+    // Check is not strictly needed, but not a bad idea anyway
+    if crate::window::manager::monitor_handle_from_display(mode.0).is_some() {
+        (
+            true,
+            attrs.with_fullscreen(Some(winit::window::Fullscreen::Exclusive(mode.1.clone()))),
+        )
+    } else {
+        log::error!(
+            "Target display {} does not exist anymore. Falling back to borderless on primary",
+            mode.0
+        );
+        *fullscreen_mode = FullscreenMode::Borderless(BorderlessTarget::Primary);
+        (false, attrs)
+    }
+}
+
+fn try_set_borderless_fullscreen(
+    attrs: winit::window::WindowAttributes,
+    fullscreen_mode: &FullscreenMode,
+) -> (bool, winit::window::WindowAttributes) {
+    let FullscreenMode::Borderless(borderless_target) = fullscreen_mode else {
+        return (false, attrs);
+    };
+
+    let display_handle = match borderless_target {
+        BorderlessTarget::Current => None,
+        BorderlessTarget::Primary => match crate::window::manager::primary_display() {
+            Some(disp) => Some(disp),
+            None => {
+                log::error!(
+                    "Failed to determine primary display. Falling back to borderless mode on current display"
+                );
+                None
+            }
+        },
+        BorderlessTarget::Specific(display) => Some(*display),
+    };
+
+    let target_handle = match display_handle {
+        Some(disp) => match crate::window::manager::monitor_handle_from_display(disp) {
+            Some(handle) => Some(handle),
+            None => {
+                log::error!(
+                    "Target display {disp} does not exist anymore. Falling back to borderless mode on current display"
+                );
+                None
+            }
+        },
+        None => None,
+    };
+
+    #[allow(unused_mut, reason = "Is mutated depending on platform")]
+    let mut attrs =
+        attrs.with_fullscreen(Some(winit::window::Fullscreen::Borderless(target_handle)));
+
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    {
+        use winit::platform::macos::WindowAttributesExtMacOS;
+
+        attrs = attrs.with_borderless_game(true);
+    }
+
+    (true, attrs)
 }
 
 impl From<Window> for wutengine_input::WindowIdentifier {
@@ -247,7 +296,25 @@ impl TryFrom<wutengine_input::WindowIdentifier> for Window {
 
 /// Proxy APIs for usability purposes
 impl Window {
+    /// Returns the primary window, if any
+    #[inline]
+    pub fn primary() -> Option<Self> {
+        crate::window::manager::get_windows_and(|windows| {
+            windows
+                .iter()
+                .find(|(_, info)| info.is_primary)
+                .map(|(win, _)| *win)
+        })
+    }
+
+    /// Returns the opened windows, if any
+    #[inline]
+    pub fn opened() -> Vec<Self> {
+        crate::window::manager::get_windows_and(|windows| windows.keys().copied().collect())
+    }
+
     /// Creates a new window with the given configuration
+    #[inline]
     pub fn create(config: WindowConfig) -> Self {
         let mut config = config;
         let id = Window::new();
@@ -267,6 +334,7 @@ impl Window {
     }
 
     /// Closes the window with the given ID, if it is not already closed
+    #[inline]
     pub fn destroy(self) {
         let window = self;
         log::info!("Closing window with ID {window}");
@@ -275,6 +343,7 @@ impl Window {
     }
 
     /// Updates the icon of the given window to the provided one
+    #[inline]
     pub fn set_icon(self, icon: Icon) {
         let window = self;
         log::trace!("Updating icon for window {window}");
@@ -284,31 +353,89 @@ impl Window {
         }
     }
 
+    /// Returns whether this window is the primary window
+    #[inline]
+    pub fn is_primary(self) -> bool {
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.is_primary).unwrap_or(false)
+        })
+    }
+
+    /// Appoints this window as the "primary" window
+    #[inline]
+    pub fn make_primary(self) {
+        crate::window::manager::appoint_primary_window(self);
+    }
+
     /// Returns the size of this window in pixels.
     /// If the window is not yet created or is already destroyed, returns (0,0)
     #[inline]
     pub fn get_size(self) -> (u32, u32) {
-        crate::window::manager::get_size(self).unwrap_or((0, 0))
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.inner_size).unwrap_or((0, 0))
+        })
     }
 
     /// Returns the OS scale factor of this window.
     /// If the window is not yet created or is already destroyed, 1.0
     #[inline]
     pub fn get_scale_factor(self) -> f64 {
-        crate::window::manager::get_scale_factor(self).unwrap_or(1.0)
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.os_scale_factor).unwrap_or(1.0)
+        })
     }
-}
 
-impl Display {
-    pub fn exclusive_fullscreen_modes(self) -> Vec<DisplayExclusiveFullscreenMode> {
-        crate::window::manager::exclusive_fullscreen_modes(self).unwrap_or_default()
+    /// Returns whether this window is currently focused
+    #[inline]
+    pub fn is_focused(self) -> bool {
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.focused).unwrap_or(true)
+        })
     }
-}
 
-pub fn get_displays() -> Vec<Display> {
-    crate::window::manager::get_displays()
-}
+    /// Returns whether this window is currently fully occluded.
+    /// Not supported by every platform, in which case this will always
+    /// return `false`
+    #[inline]
+    pub fn is_occluded(self) -> bool {
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.occluded).unwrap_or(false)
+        })
+    }
 
-pub fn primary_display() -> Display {
-    crate::window::manager::primary_display().expect("No displays connected")
+    /// Returns whether this window is currently (known to be) minimized
+    #[inline]
+    pub fn is_minimized(self) -> bool {
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.minimized).unwrap_or(false)
+        })
+    }
+
+    /// Returns whether this window is currently maximized
+    #[inline]
+    pub fn is_maximized(self) -> bool {
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.maximized).unwrap_or(false)
+        })
+    }
+
+    /// Returns whether this window is currently in the foreground.
+    ///
+    /// Shorthand for `!self.is_occluded() && !self.is_minimized() && self.is_focused()`
+    #[inline]
+    pub fn is_foreground(self) -> bool {
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| !win.occluded && win.focused && !win.minimized)
+                .unwrap_or(true)
+        })
+    }
+
+    /// Forces reconfiguration of the window surface. Should usually not be called,
+    /// except when vsync or frame settings have recently been manually changed
+    #[inline]
+    pub fn force_reconfigure(self) {
+        log::debug!("Forcing window {self} reconfiguration");
+
+        crate::runtime::notify_event_loop(runtime::WinitEvent::ForceSurfaceReconfigure(self));
+    }
 }

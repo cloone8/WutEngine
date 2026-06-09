@@ -19,13 +19,18 @@ use super::cache;
 pub(crate) static DEFAULT_SAMPLER: LazyLock<Sampler> = LazyLock::new(|| {
     log::debug!("Loading default sampler");
 
-    Sampler::new(FilterMode::Linear, WrapModeType::Single(WrapMode::Repeat))
+    Sampler::new(
+        FilterMode::Linear,
+        FilterMode::Linear,
+        WrapModeType::Single(WrapMode::Repeat),
+    )
 });
 
 /// A texture sampler descriptor.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Sampler {
-    filtering: FilterMode,
+    tex_filtering: FilterMode,
+    mip_filtering: FilterMode,
     wrapping: WrapModeType,
     native: Arc<wgpu::Sampler>,
 }
@@ -39,7 +44,11 @@ impl Asset for Sampler {
     where
         Self: Sized,
     {
-        Ok(Sampler::new(serialized.filtering, serialized.wrapping))
+        Ok(Sampler::new(
+            serialized.texture_filtering,
+            serialized.mipmap_filtering,
+            serialized.wrapping,
+        ))
     }
 }
 
@@ -51,7 +60,7 @@ macro_rules! predefined_sampler {
 
             log::debug!("Loading predefined sampler: {}, {}", filt, wrap);
 
-            Sampler::new(filt, wrap)
+            Sampler::new(filt, filt, wrap)
         });
 
         &SAMPLER
@@ -93,17 +102,23 @@ impl Sampler {
 
 impl Sampler {
     /// Creates a new sampler with the given sampling mode
-    pub fn new(filtering: FilterMode, wrapping: WrapModeType) -> Self {
+    pub fn new(
+        tex_filtering: FilterMode,
+        mip_filtering: FilterMode,
+        wrapping: WrapModeType,
+    ) -> Self {
         profiling::function_scope!();
 
         let cache_key = SamplerCacheKey {
-            filtering,
+            tex_filtering,
+            mip_filtering,
             wrapping,
         };
 
         if let Some(cached) = cache::sampler::find(&cache_key) {
             return Self {
-                filtering,
+                tex_filtering,
+                mip_filtering,
                 wrapping,
                 native: cached,
             };
@@ -111,21 +126,25 @@ impl Sampler {
 
         log::debug!("Creating new sampler object");
 
+        let tex_filter = asset_filter_mode_to_wgpu_filter_mode(tex_filtering);
+        let mip_filter = asset_filter_mode_to_wgpu_mipmap_filter_mode(mip_filtering);
+
         let desc = wgpu::wgt::SamplerDescriptor {
             label: None,
             address_mode_u: asset_wrap_mode_to_wgpu(wrapping.get_u()),
             address_mode_v: asset_wrap_mode_to_wgpu(wrapping.get_v()),
             address_mode_w: asset_wrap_mode_to_wgpu(wrapping.get_w()),
-            mag_filter: asset_filter_mode_to_wgpu(filtering),
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+            mag_filter: tex_filter,
+            min_filter: tex_filter,
+            mipmap_filter: mip_filter,
             ..Default::default()
         };
 
         let new_sampler = GFX_DEVICE.create_sampler(&desc);
 
         Self {
-            filtering,
+            tex_filtering,
+            mip_filtering,
             wrapping,
             native: cache::sampler::insert(cache_key, new_sampler),
         }
@@ -148,9 +167,21 @@ pub const fn asset_wrap_mode_to_wgpu(asset_wrap_mode: WrapMode) -> wgpu::Address
 }
 
 /// Converts the filtering mode to a [wgpu::FilterMode]
-pub const fn asset_filter_mode_to_wgpu(asset_filter_mode: FilterMode) -> wgpu::FilterMode {
+pub const fn asset_filter_mode_to_wgpu_filter_mode(
+    asset_filter_mode: FilterMode,
+) -> wgpu::FilterMode {
     match asset_filter_mode {
         FilterMode::Linear => wgpu::FilterMode::Linear,
         FilterMode::Nearest => wgpu::FilterMode::Nearest,
+    }
+}
+
+/// Converts the filtering mode to a [wgpu::MipmapFilterMode]
+pub const fn asset_filter_mode_to_wgpu_mipmap_filter_mode(
+    asset_filter_mode: FilterMode,
+) -> wgpu::MipmapFilterMode {
+    match asset_filter_mode {
+        FilterMode::Linear => wgpu::MipmapFilterMode::Linear,
+        FilterMode::Nearest => wgpu::MipmapFilterMode::Nearest,
     }
 }

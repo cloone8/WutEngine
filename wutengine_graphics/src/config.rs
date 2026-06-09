@@ -49,6 +49,18 @@ pub enum GraphicsBackend {
     WebGPU,
 }
 
+impl GraphicsBackend {
+    /// Returns whether this graphics backend supports exclusive fullscreen mode
+    pub const fn supports_exclusive_fullscreen(self) -> bool {
+        match self {
+            Self::Vulkan => true,
+            Self::DX12 => false,
+            Self::Metal => true,
+            Self::WebGPU => false,
+        }
+    }
+}
+
 impl Default for GraphicsBackend {
     fn default() -> Self {
         if cfg!(target_arch = "wasm32") {
@@ -81,4 +93,14 @@ impl From<GraphicsBackend> for wgpu::Backends {
             GraphicsBackend::WebGPU => Self::BROWSER_WEBGPU,
         }
     }
+}
+
+/// The set of used graphics configuration options
+#[derive(Debug, Clone)]
+pub struct GraphicsRuntimeConfig {
+    /// The used backend
+    pub backend: GraphicsBackend,
+
+    /// The active GPU/API limits
+    pub limits: wgpu::Limits,
 }

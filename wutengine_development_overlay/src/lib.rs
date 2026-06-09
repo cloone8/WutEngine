@@ -104,7 +104,8 @@ pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
 }
 
 pub fn render_if_active(
-    window: wutengine_input::WindowIdentifier,
+    input_window: wutengine_input::WindowIdentifier,
+    window_info: &wutengine_egui::EguiWindowInfo,
     surface: &wgpu::SurfaceTexture,
     scale_factor: f32,
     real_secs_since_start: f64,
@@ -127,8 +128,14 @@ pub fn render_if_active(
         sfc_size.1 as f32 / scale_factor,
     );
 
-    let egui_input =
-        wutengine_egui::gather_input(window, real_secs_since_start, scale_factor, sfc_points);
+    let egui_input = wutengine_egui::gather_input(
+        input_window,
+        window_info,
+        graphics::active_config().limits.max_texture_dimension_2d as usize,
+        real_secs_since_start,
+        scale_factor,
+        sfc_points,
+    );
 
     let mut windows = DEV_OVERLAY.windows.lock().unwrap();
 
@@ -481,7 +488,7 @@ fn upload_new_textures(
                 );
             }
             None => {
-                let texture = Texture::new(&tex_config_from_egui_data(&delta.image));
+                let texture = Texture::new(&tex_config_from_egui_data(&delta.image), 1);
                 texture.set_data(egui_image_bytes(&delta.image));
 
                 let mut material = Material::new(EGUI_SHADER.clone(), map![]);

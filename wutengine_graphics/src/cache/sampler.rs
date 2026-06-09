@@ -10,8 +10,11 @@ use super::GraphicsCache;
 /// Cache key for a [crate::sampler::Sampler]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct SamplerCacheKey {
-    /// Filter mode
-    pub(crate) filtering: FilterMode,
+    /// Texture filter mode
+    pub(crate) tex_filtering: FilterMode,
+
+    /// Mipmap filter mode
+    pub(crate) mip_filtering: FilterMode,
 
     /// Wrapping mode
     pub(crate) wrapping: WrapModeType,

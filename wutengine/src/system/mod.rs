@@ -1,5 +1,6 @@
 //! WutEngine ECS system registration and query helpers
 
+use alloc::sync::Arc;
 use core::any::TypeId;
 use core::fmt::Display;
 use core::sync::atomic::{AtomicU32, Ordering};
@@ -11,8 +12,9 @@ mod scheduler;
 
 pub use queryable::*;
 
-use wutengine_util::assert_main_thread;
+use crate::runtime::SystemManifest;
 use crate::world::World;
+use wutengine_util::assert_main_thread;
 
 /// The generic type used for a non-typed system callback.
 pub(crate) type GenericSystem = dyn Fn(&World) + Send + Sync + 'static;
@@ -60,6 +62,7 @@ impl Ord for SystemId {
 /// The system manager. Contains the full schedule of all systems, ordered by phase
 #[derive(Debug)]
 pub(crate) struct SystemManager {
+    current_manifest: SystemManifest,
     by_phase: Vec<(Phase, Vec<SystemSet>)>,
 }
 
@@ -67,6 +70,7 @@ impl SystemManager {
     /// Creates a new [SystemManager] without any systems
     pub(crate) fn new() -> Self {
         Self {
+            current_manifest: SystemManifest::empty(),
             by_phase: Vec::new(),
         }
     }
@@ -126,7 +130,7 @@ struct SystemSet {
     exclusive_borrows: HashSet<TypeId>,
 
     #[debug("{} systems", systems.len())]
-    systems: Vec<Box<GenericSystem>>,
+    systems: Vec<Arc<GenericSystem>>,
 }
 
 impl SystemSet {
