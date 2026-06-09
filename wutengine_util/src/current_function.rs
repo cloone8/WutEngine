@@ -17,8 +17,6 @@ pub fn clean_function_name(name: &str) -> &str {
     };
 
     name
-    // // Remove any additional trailing suffixes
-    // shorten_rust_function_name(name.trim_end_matches(USELESS_CLOSURE_SUFFIX))
 }
 
 #[doc(hidden)]
@@ -26,6 +24,7 @@ pub fn clean_function_name(name: &str) -> &str {
 pub fn type_name_of<T>(_: T) -> &'static str {
     core::any::type_name::<T>()
 }
+
 /// Returns the name of the calling function without a long module path prefix
 #[macro_export]
 macro_rules! current_function_name {
