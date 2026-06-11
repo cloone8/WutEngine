@@ -1,0 +1,64 @@
+[workspace]
+resolver = "3"
+members = ["wutengine_editor"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+authors = ["Wouter de Bruijn <wouter@wutru.io>"]
+publish = false
+
+[profile.dev]
+opt-level = 1
+debug-assertions = true
+debug = true
+panic = "abort"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[workspace.lints.rust]
+# Groups
+future_incompatible = { level = "warn", priority = -1 }
+nonstandard_style = { level = "warn", priority = -1 }
+
+# Individual lints
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unreachable_pub = "warn"
+unused_crate_dependencies = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+cargo = { level = "warn", priority = -1 }
+missing_assert_messages = "warn"
+missing_docs_in_private_items = "warn"
+missing_assert_message = "warn"
+allow_attributes_without_reason = "warn"
+std_instead_of_core = "warn"
+std_instead_of_alloc = "warn"
+too_many_lines = "warn"
+unused_self = "warn"
+mutex_integer = "warn"
+large_stack_arrays = "warn"
+large_types_passed_by_value = "warn"
+borrow_as_ptr = "warn"
+doc_broken_link = "warn"
+empty_drop = "warn"
+fallible_impl_from = "warn"
+fn_params_excessive_bools = "warn"
+infinite_loop = "warn"
+verbose_file_reads = "warn"
+unneeded_field_pattern = "warn"
+unimplemented = "warn"
+todo = "warn"
+suspicious_operation_groupings = "warn"
+needless_collect = "warn"
+needless_pass_by_ref_mut = "warn"
+needless_raw_strings = "warn"
+self_named_module_files = "deny"
+missing_fields_in_debug = "warn"
