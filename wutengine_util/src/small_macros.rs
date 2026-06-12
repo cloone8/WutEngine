@@ -47,3 +47,55 @@ macro_rules! unreachable_dbg {
         ::core::hint::unreachable_unchecked();
     }};
 }
+
+/// Logs at the given level, but only once. Same syntax as [log::log]
+#[macro_export]
+macro_rules! log_once {
+    ($level:expr, $($arg:tt)*) => {{
+        static LOG_ONCE: ::std::sync::Once = ::std::sync::Once::new();
+
+        LOG_ONCE.call_once(|| {
+            ::log::log!($level, $($arg)*);
+        });
+    }};
+}
+
+/// Shorthand for [log_once] with level [log::Level::Trace]
+#[macro_export]
+macro_rules! trace_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!(::log::Level::Trace, $($arg)*);
+    };
+}
+
+/// Shorthand for [log_once] with level [log::Level::Debug]
+#[macro_export]
+macro_rules! debug_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!(::log::Level::Debug, $($arg)*);
+    };
+}
+
+/// Shorthand for [log_once] with level [log::Level::Info]
+#[macro_export]
+macro_rules! info_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!(::log::Level::Info, $($arg)*);
+    };
+}
+
+/// Shorthand for [log_once] with level [log::Level::Warn]
+#[macro_export]
+macro_rules! warn_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!(::log::Level::Warn, $($arg)*);
+    };
+}
+
+/// Shorthand for [log_once] with level [log::Level::Error]
+#[macro_export]
+macro_rules! error_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!(::log::Level::Error, $($arg)*);
+    };
+}
