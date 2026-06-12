@@ -1,0 +1,31 @@
+[package]
+name = "wutengine_audio"
+description = "Audio management for WutEngine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+wutengine_asset.workspace = true
+wutengine_util.workspace = true
+
+log.workspace = true
+profiling.workspace = true
+rodio = { workspace = true, features = [
+    "dither",
+    "flac",
+    "vorbis",
+    "wav",
+    "playback",
+    "recording",
+    "tracing",
+] }
+
+[lints]
+workspace = true

@@ -1,5 +1,6 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
+use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -10,6 +11,7 @@ use derive_more::{Display, Error, From};
 use winit::error::EventLoopError;
 use wutengine_graphics::wgpu;
 
+use crate::audio;
 use crate::builtins::components::rendering::Camera;
 use crate::builtins::components::rendering::CameraRenderPass;
 use crate::builtins::components::rendering::GlobalRenderPass;
@@ -17,6 +19,8 @@ use crate::entity::{self, EntityManager};
 use crate::graphics::DrawCommand;
 use crate::graphics::RenderPassInfo;
 use crate::input;
+use crate::physics2d;
+use crate::physics3d;
 use crate::system::{self, Phase, SystemManager};
 use crate::window::{self, Window};
 use crate::{graphics, time, world};
@@ -113,9 +117,25 @@ pub fn run(
         return Err(Box::new(RuntimeStartErr::AlreadyRunning));
     }
 
-    log::info!("Starting WutEngine");
-
     wutengine_util::set_cur_thread_as_main_thread();
+
+    // Initialize the config manager first, so all other managers and engine systems
+    // can read from it to configure themselves
+    let mut logs = crate::config::init_and_load(config.config_file.as_deref());
+
+    for (key, val) in config.config_overrides {
+        if let Err(e) = crate::config::set_raw(&key, val) {
+            logs.push((
+                log::Level::Warn,
+                format!("Failed to set config override `{key}` due to error: {e}"),
+            ));
+        }
+    }
+
+    // Then the logger, so we can receive proper feedback
+    initialize_logger(logs);
+
+    log::info!("Starting WutEngine");
 
     #[cfg(feature = "development_overlay")]
     {
@@ -123,6 +143,9 @@ pub fn run(
 
         crate::development_overlay::init();
         crate::development_overlay::add_development_overlay_window(ConfigOverlay::default());
+        crate::development_overlay::add_development_overlay_window(
+            crate::profiling::development_overlay::ProfilingOverlay::default(),
+        );
     }
 
     let mut runtime = Runtime {
@@ -135,24 +158,15 @@ pub fn run(
         draw_commands: graphics::initialize_command_queue(),
     };
 
-    // Initialize the config manager first, so all other managers and engine systems
-    // can read from it to configure themselves
-    crate::config::init_and_load(config.config_file.as_deref());
-
-    for (key, val) in config.config_overrides {
-        if let Err(e) = crate::config::set_raw(&key, val) {
-            log::warn!("Failed to set config override `{key}` due to error: {e}");
-        }
-    }
-
     runtime.systems.build_schedule(initial_systems);
 
     log::debug!("Final schedule:\n{}", runtime.systems.dump());
 
     window::manager::init();
     input::init();
-    crate::physics2d::init();
-    crate::physics3d::init();
+    physics2d::init();
+    physics3d::init();
+    audio::init();
     world::init();
 
     let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event()
@@ -172,6 +186,61 @@ pub fn run(
     Ok(())
 }
 
+fn initialize_logger(queued_messages: Vec<(log::Level, String)>) {
+    let default_internal_level = crate::config::try_get("wutengine.log.default_internal_level")
+        .unwrap_or(if cfg!(debug_assertions) {
+            log::LevelFilter::Info
+        } else {
+            log::LevelFilter::Warn
+        });
+
+    let default_external_level = crate::config::try_get("wutengine.log.default_external_level")
+        .unwrap_or(if cfg!(debug_assertions) {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        });
+
+    let logger = wutengine_logger::ModuleLogger::new(
+        wutengine_logger::LoggerFactory {
+            create_logger: Box::new(log_factory_fn),
+        },
+        default_internal_level,
+        default_external_level,
+    );
+
+    let result = log::set_boxed_logger(Box::new(logger));
+
+    if result.is_ok() {
+        // `set_boxed_logger` returns an error if the global logger was already
+        // initialized. Therefore, if we _dont_ get an error, we can assume that
+        // we have to do all the initialization.
+
+        // We set the max level to the static max level, because the individual
+        // subsystem loggers can have their own individual filters
+        log::set_max_level(log::STATIC_MAX_LEVEL);
+    } else {
+        // Logger was already initialized, so we can safely log here
+        log::info!("A logger was already initialized, so not setting WutEngine logger");
+    }
+
+    for (level, msg) in queued_messages {
+        log::log!(level, "Queued log: {msg}");
+    }
+}
+
+fn log_factory_fn(filter: log::LevelFilter, _target: Option<(&str, bool)>) -> Arc<dyn log::Log> {
+    Arc::from(simplelog::TermLogger::new(
+        filter,
+        simplelog::ConfigBuilder::new()
+            .set_location_level(log::LevelFilter::Debug)
+            .set_target_level(log::LevelFilter::Error)
+            .build(),
+        simplelog::TerminalMode::Stdout,
+        simplelog::ColorChoice::Auto,
+    ) as Box<dyn log::Log>)
+}
+
 impl Runtime {
     fn run_frame_logic(&self) {
         profiling::function_scope!();
@@ -185,10 +254,10 @@ impl Runtime {
                 profiling::scope!("Run physics");
                 rayon::join(
                     || {
-                        crate::physics2d::step(time::fixed_delta());
+                        physics2d::step(time::fixed_delta());
                     },
                     || {
-                        crate::physics3d::step(time::fixed_delta());
+                        physics3d::step(time::fixed_delta());
                     },
                 );
             }

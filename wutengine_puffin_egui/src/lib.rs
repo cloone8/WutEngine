@@ -6,10 +6,8 @@
 //! # egui_ctx.begin_frame(Default::default());
 //! puffin_egui::profiler_window(&egui_ctx);
 //! ```
-
-#![forbid(unsafe_code)]
-// crate-specific exceptions:
-#![allow(clippy::float_cmp, clippy::manual_range_contains)]
+//!
+//! Initially forked from [puffin](https://github.com/EmbarkStudios/puffin/commit/7e08a533f9debfb7d051547263d2ab84c666314f)
 
 mod filter;
 mod flamegraph;
@@ -18,15 +16,17 @@ mod stats;
 
 pub use {egui, maybe_mut_ref::MaybeMutRef, puffin};
 
+use core::time::Duration;
 use egui::{scroll_area::ScrollSource, *};
 use puffin::*;
+use std::sync::Mutex;
+use std::time::Instant;
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     iter,
     sync::Arc,
 };
-use time::OffsetDateTime;
 
 const ERROR_COLOR: Color32 = Color32::RED;
 const HOVER_COLOR: Rgba = Rgba::from_rgb(0.8, 0.8, 0.8);
@@ -84,14 +84,14 @@ pub fn profiler_window(ctx: &egui::Context) -> bool {
     open
 }
 
-static PROFILE_UI: std::sync::LazyLock<parking_lot::Mutex<GlobalProfilerUi>> =
+static PROFILE_UI: std::sync::LazyLock<Mutex<GlobalProfilerUi>> =
     std::sync::LazyLock::new(Default::default);
 
 /// Show the profiler.
 ///
 /// Call this from within an [`egui::Window`], or use [`profiler_window`] instead.
 pub fn profiler_ui(ui: &mut egui::Ui) {
-    let mut profile_ui = PROFILE_UI.lock();
+    let mut profile_ui = PROFILE_UI.lock().unwrap();
 
     profile_ui.ui(ui);
 }
@@ -205,7 +205,7 @@ impl Streams {
 #[derive(Clone)]
 pub struct SelectedFrames {
     /// ordered, but not necessarily in sequence
-    pub frames: vec1::Vec1<Arc<UnpackedFrameData>>,
+    pub frames: Vec<Arc<UnpackedFrameData>>,
     pub raw_range_ns: (NanoSecond, NanoSecond),
     pub merged_range_ns: (NanoSecond, NanoSecond),
     pub threads: BTreeMap<ThreadInfo, Streams>,
@@ -218,17 +218,20 @@ impl SelectedFrames {
     ) -> Option<Self> {
         let mut it = frames;
         let first = it.next()?;
-        let mut frames = vec1::Vec1::new(first);
+        let mut frames = vec![first];
         frames.extend(it);
 
-        Some(Self::from_vec1(scope_collection, frames))
+        Some(Self::from_vec(scope_collection, frames))
     }
 
-    fn from_vec1(
+    fn from_vec(
         scope_collection: &ScopeCollection,
-        mut frames: vec1::Vec1<Arc<UnpackedFrameData>>,
+        mut frames: Vec<Arc<UnpackedFrameData>>,
     ) -> Self {
         puffin::profile_function!();
+
+        assert!(frames.len() >= 1, "Need at least one frame");
+
         frames.sort_by_key(|f| f.frame_index());
         frames.dedup_by_key(|f| f.frame_index());
 
@@ -255,7 +258,10 @@ impl SelectedFrames {
             }
         }
 
-        let raw_range_ns = (frames.first().range_ns().0, frames.last().range_ns().1);
+        let raw_range_ns = (
+            frames.first().unwrap().range_ns().0,
+            frames.last().unwrap().range_ns().1,
+        );
 
         Self {
             frames,
@@ -313,7 +319,7 @@ pub struct ProfilerUi {
 
     /// When did we last run a pass to pack all the frames?
     #[cfg_attr(feature = "serde", serde(skip))]
-    last_pack_pass: Option<web_time::Instant>,
+    last_pack_pass: Option<Instant>,
 
     /// Order to sort scopes in table view
     sort_order: stats::SortOrder,
@@ -413,18 +419,16 @@ impl ProfilerUi {
         if !frame_view.pack_frames() {
             return;
         }
-        let last_pack_pass = self
-            .last_pack_pass
-            .get_or_insert_with(web_time::Instant::now);
+        let last_pack_pass = self.last_pack_pass.get_or_insert_with(Instant::now);
         let time_since_last_pack = last_pack_pass.elapsed();
-        if time_since_last_pack > web_time::Duration::from_secs(1) {
+        if time_since_last_pack > Duration::from_secs(1) {
             puffin::profile_scope!("pack_pass");
             for frame in self.all_known_frames(frame_view) {
                 if !self.is_selected(frame_view, frame.frame_index()) {
                     frame.pack();
                 }
             }
-            self.last_pack_pass = Some(web_time::Instant::now());
+            self.last_pack_pass = Some(Instant::now());
         }
     }
 
@@ -432,7 +436,6 @@ impl ProfilerUi {
     ///
     /// Call this from within an [`egui::Window`], or use [`Self::window`] instead.
     pub fn ui(&mut self, ui: &mut egui::Ui, frame_view: &mut MaybeMutRef<'_, FrameView>) {
-        #![allow(clippy::collapsible_else_if)]
         puffin::profile_function!();
 
         self.run_pack_pass_if_needed(frame_view);
@@ -519,9 +522,9 @@ impl ProfilerUi {
                         {
                             self.pause_and_select(
                                 frame_view,
-                                SelectedFrames::from_vec1(
+                                SelectedFrames::from_vec(
                                     frame_view.scope_collection(),
-                                    vec1::vec1![latest],
+                                    vec![latest],
                                 ),
                             );
                         }
@@ -533,7 +536,7 @@ impl ProfilerUi {
         });
 
         if frames.frames.len() == 1 {
-            let frame = frames.frames.first();
+            let frame = frames.frames.first().unwrap();
 
             let num_scopes = frame.meta.num_scopes;
             let realistic_ns_overhead = 200.0; // Micro-benchmarks puts it at 50ns, but real-life tests show it's much higher.
@@ -818,13 +821,15 @@ fn frames_info_ui(ui: &mut egui::Ui, selection: &SelectedFrames) {
     let frame_indices = if selection.frames.len() == 1 {
         format!("frame #{}", selection.frames[0].frame_index())
     } else if selection.frames.len() as u64
-        == selection.frames.last().frame_index() - selection.frames.first().frame_index() + 1
+        == selection.frames.last().unwrap().frame_index()
+            - selection.frames.first().unwrap().frame_index()
+            + 1
     {
         format!(
             "{} frames (#{} - #{})",
             selection.frames.len(),
-            selection.frames.first().frame_index(),
-            selection.frames.last().frame_index()
+            selection.frames.first().unwrap().frame_index(),
+            selection.frames.last().unwrap().frame_index()
         )
     } else {
         format!("{} frames", selection.frames.len())
@@ -845,14 +850,13 @@ fn frames_info_ui(ui: &mut egui::Ui, selection: &SelectedFrames) {
 fn format_time(nanos: NanoSecond) -> Option<String> {
     let years_since_epoch = nanos / 1_000_000_000 / 60 / 60 / 24 / 365;
     if 50 <= years_since_epoch && years_since_epoch <= 150 {
-        let offset = OffsetDateTime::from_unix_timestamp_nanos(nanos as i128).ok()?;
+        let datetime = jiff::Timestamp::from_nanosecond(nanos as i128)
+            .ok()?
+            .to_zoned(jiff::tz::TimeZone::system());
 
-        let format_desc = time::macros::format_description!(
-            "[year]-[month]-[day] [hour]:[minute]:[second].[subsecond digits:3]"
-        );
-        let datetime = offset.format(&format_desc).ok()?;
+        let datetime_fmt = datetime.strftime("%F %T%.3f").to_string();
 
-        Some(datetime)
+        Some(datetime_fmt)
     } else {
         None // `nanos` is likely not counting from epoch.
     }

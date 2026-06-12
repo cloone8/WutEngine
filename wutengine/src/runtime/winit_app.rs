@@ -224,6 +224,9 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let _ = event_loop;
 
+        // Toggle profiling scopes
+        crate::profiling::change_scope_active_status();
+
         // We wait for the rendering target to become available in the beginning of the frame,
         // because then if we block on vsync or similar the simulation will not be out of date
         let surfaces = window::manager::get_surface_textures();

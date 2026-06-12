@@ -8,6 +8,14 @@ use crate::component::Component;
 #[repr(transparent)]
 pub struct Name(pub(crate) String);
 
+impl Name {
+    /// Create a new [Name] from the given string
+    #[inline]
+    pub fn new(name: String) -> Self {
+        Self(name)
+    }
+}
+
 impl Component for Name {}
 
 impl Deref for Name {
@@ -16,15 +24,6 @@ impl Deref for Name {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         &self.0
-    }
-}
-
-impl<T> From<T> for Name
-where
-    T: Into<String>,
-{
-    fn from(value: T) -> Self {
-        Self(value.into())
     }
 }
 

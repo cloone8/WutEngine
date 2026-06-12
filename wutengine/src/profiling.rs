@@ -1,78 +1,64 @@
 //! Profiling related functionality
 
-use core::net::IpAddr;
-
 pub use profiling::*;
 
-#[cfg(all(feature = "profiling", not(target_arch = "wasm32")))]
+#[cfg(feature = "profiling")]
 mod internal {
 
-    use core::net::{IpAddr, Ipv4Addr};
-    use std::sync::Mutex;
+    #[cfg(feature = "development_overlay")]
+    pub(super) static DEV_OVERLAY_WINDOW_OPEN: core::sync::atomic::AtomicBool =
+        core::sync::atomic::AtomicBool::new(false);
 
-    use puffin_http::Server;
-
-    static CURRENT_HTTP_SERVER: Mutex<Option<Server>> = Mutex::new(None);
-
-    pub(super) fn set_profiling_state() {
-        let should_be_enabled = CURRENT_HTTP_SERVER.lock().unwrap().is_some();
-
-        profiling::puffin::set_scopes_on(should_be_enabled);
+    #[cfg(feature = "development_overlay")]
+    pub(super) fn dev_overlay_open() -> bool {
+        DEV_OVERLAY_WINDOW_OPEN.load(core::sync::atomic::Ordering::Acquire)
     }
+}
 
-    pub(super) fn start_http_server_impl(addr: Option<IpAddr>, port: Option<u16>) {
-        let mut global_server = CURRENT_HTTP_SERVER.lock().unwrap();
-
-        if global_server.is_some() {
-            return;
-        }
-
-        let full_addr = format!(
-            "{}:{}",
-            addr.unwrap_or(Ipv4Addr::UNSPECIFIED.into()),
-            port.unwrap_or(puffin_http::DEFAULT_PORT)
-        );
-
-        log::info!("Starting profiling HTTP server on address: {full_addr}");
-
-        let server = match puffin_http::Server::new(&full_addr) {
-            Ok(s) => s,
-            Err(e) => {
-                log::error!("Failed to start puffin HTTP server: {}", e);
-                return;
+pub(crate) fn change_scope_active_status() {
+    #[cfg(feature = "profiling")]
+    {
+        let overlay_active = cfg_select! {
+            feature = "development_overlay" => {
+                internal::dev_overlay_open()
             }
+            _ => false
         };
 
-        *global_server = Some(server);
+        puffin::set_scopes_on(overlay_active);
     }
+}
 
-    pub(super) fn stop_http_server_impl() {
-        let mut global_server = CURRENT_HTTP_SERVER.lock().unwrap();
+#[cfg(feature = "development_overlay")]
+pub(crate) mod development_overlay {
+    use wutengine_development_overlay::DevelopmentOverlayWindow;
 
-        let srv = global_server.take();
+    #[derive(Debug, Default)]
+    pub(crate) struct ProfilingOverlay;
 
-        if srv.is_some() {
-            log::info!("Stopping profiling HTTP server");
+    impl DevelopmentOverlayWindow for ProfilingOverlay {
+        fn name(&self) -> &str {
+            "Profiler"
         }
-    }
-}
 
-/// Starts the profiler HTTP server at the given address and port
-#[allow(unused_variables, reason = "Does nothing in builds without profiling")]
-pub fn start_http_server(addr: Option<IpAddr>, port: Option<u16>) {
-    #[cfg(all(feature = "profiling", not(target_arch = "wasm32")))]
-    {
-        internal::start_http_server_impl(addr, port);
-        internal::set_profiling_state();
-    }
-}
+        fn icon(&self) -> Option<&str> {
+            Some("🚀")
+        }
 
-/// Stops the current profiler HTTP server
-#[allow(unused_variables, reason = "Does nothing in builds without profiling")]
-pub fn stop_http_server() {
-    #[cfg(all(feature = "profiling", not(target_arch = "wasm32")))]
-    {
-        internal::stop_http_server_impl();
-        internal::set_profiling_state();
+        #[cfg(not(feature = "profiling"))]
+        fn show(&mut self, ui: &mut wutengine_development_overlay::wutengine_egui::egui::Ui) {
+            ui.label("Profiling not enabled in build");
+        }
+
+        #[cfg(feature = "profiling")]
+        fn show(&mut self, ui: &mut wutengine_development_overlay::wutengine_egui::egui::Ui) {
+            wutengine_puffin_egui::profiler_ui(ui);
+        }
+
+        #[cfg(feature = "profiling")]
+        fn window_state_changed(&mut self, opened: bool) {
+            super::internal::DEV_OVERLAY_WINDOW_OPEN
+                .store(opened, core::sync::atomic::Ordering::Release);
+        }
     }
 }

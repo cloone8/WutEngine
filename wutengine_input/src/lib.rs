@@ -395,10 +395,14 @@ pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEven
 
     match event {
         winit::event::DeviceEvent::Added => {
-            //Nothing to do
+            profiling::scope!("Device added");
+
+            log::debug!("Raw input device added: {device:?}");
         }
         winit::event::DeviceEvent::Removed => {
             profiling::scope!("Device removed");
+
+            log::info!("Raw input device added: {device:?}");
 
             INPUT_MANAGER.remove_winit_device(device);
         }

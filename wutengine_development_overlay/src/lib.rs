@@ -101,6 +101,11 @@ pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
 
     /// Shows the UI
     fn show(&mut self, ui: &mut egui::Ui);
+
+    /// Called when the window was either opened or closed
+    fn window_state_changed(&mut self, opened: bool) {
+        _ = opened;
+    }
 }
 
 pub fn render_if_active(
@@ -154,6 +159,7 @@ pub fn render_if_active(
                 for window in windows.iter_mut() {
                     if ui.button(window.window.name()).clicked() {
                         window.open = !window.open;
+                        window.window.window_state_changed(window.open);
                     }
 
                     let title_with_icon = window

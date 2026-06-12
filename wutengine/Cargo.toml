@@ -13,7 +13,7 @@ rust-version.workspace = true
 readme = "../README.md"
 
 [features]
-profiling = ["dep:puffin_http", "profiling/profile-with-puffin"]
+profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]
 development_overlay = ["dep:wutengine_development_overlay"]
 asset_importers = ["wutengine_asset/importers"]
 
@@ -32,8 +32,11 @@ wutengine_time.workspace = true
 wutengine_config.workspace = true
 wutengine_physics2d.workspace = true
 wutengine_physics3d.workspace = true
+wutengine_audio.workspace = true
+wutengine_logger.workspace = true
 
 log.workspace = true
+simplelog.workspace = true
 derive_more = { workspace = true, features = [
     "display",
     "error",
@@ -56,4 +59,10 @@ spin_sleep = { workspace = true }
 
 # Optional dependencies
 wutengine_development_overlay = { workspace = true, optional = true } # Feature - development_overlay
-puffin_http = { workspace = true, optional = true }                   # Feature - profiling
+wutengine_puffin_egui = { workspace = true, optional = true }         # Feature - profiling
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = ["Win32_System_SystemInformation"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = { workspace = true }

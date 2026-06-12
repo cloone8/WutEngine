@@ -112,7 +112,7 @@ impl Entity {
     pub fn spawn(name: impl Into<String>) -> Self {
         let id = crate::world::get_world().ecs.reserve_entity();
 
-        let name = Name::from(name);
+        let name = Name::new(name.into());
         let new_entity = Entity(id);
 
         log::debug!("Spawning new entity {name} ({new_entity})");

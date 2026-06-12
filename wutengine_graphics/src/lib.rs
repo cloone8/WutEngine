@@ -1,4 +1,4 @@
-//! WutEngine graphics layer
+#![doc = include_str!("../README.md")]
 
 extern crate alloc;
 

@@ -26,6 +26,9 @@ pub use log;
 pub use wutengine_asset as asset;
 
 #[doc(inline)]
+pub use wutengine_audio as audio;
+
+#[doc(inline)]
 pub use wutengine_math as math;
 
 #[doc(inline)]

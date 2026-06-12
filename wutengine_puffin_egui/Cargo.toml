@@ -21,15 +21,7 @@ indexmap.workspace = true
 log.workspace = true
 puffin = { workspace = true, features = ["packing"] }
 serde = { workspace = true, optional = true }
-
-[dev-dependencies]
-eframe = { workspace = true, features = [
-    "default_fonts",
-    "glow",
-    "persistence",
-    "wayland",
-    "x11",
-] }
+jiff.workspace = true
 
 [lints]
 workspace = true

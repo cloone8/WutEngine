@@ -28,9 +28,13 @@ struct ConfigManager {
 /// given path. If no path is provided, no initial configuration is loaded, and
 /// all keys will return their default value
 #[doc(hidden)]
-pub fn init_and_load(path: Option<&Path>) {
+pub fn init_and_load(path: Option<&Path>) -> Vec<(log::Level, String)> {
+    //NOTE: The logger is not yet set up here, so we buffer any messages here and return them
+    // to the caller so they can emit them later
+    let mut messages = Vec::new();
+
     let initial_values = match path {
-        Some(path) => load_from_file(path),
+        Some(path) => load_from_file(path, &mut messages),
         None => DashMap::default(),
     };
 
@@ -40,25 +44,39 @@ pub fn init_and_load(path: Option<&Path>) {
             config: initial_values,
         },
     );
+
+    messages
 }
 
 /// Loads an initial config map from a path
-fn load_from_file(path: &Path) -> DashMap<String, toml::Value> {
+///
+/// NOTE: You cannot call macro's from [log] here because the logger
+/// hasn't been set up yet. Instead, place them in `log_messages`
+fn load_from_file(
+    path: &Path,
+    log_messages: &mut Vec<(log::Level, String)>,
+) -> DashMap<String, toml::Value> {
     let config_file_content = match std::fs::read_to_string(path) {
         Ok(content) => content,
         Err(e) if e.kind() == ErrorKind::NotFound => {
-            log::info!(
-                "Config file \"{}\" not found. Assuming default configuration",
-                path.to_string_lossy()
-            );
+            log_messages.push((
+                log::Level::Info,
+                format!(
+                    "Config file \"{}\" not found. Assuming default configuration",
+                    path.to_string_lossy()
+                ),
+            ));
 
             return DashMap::default();
         }
         Err(e) => {
-            log::error!(
-                "Could not read config file \"{}\" due to I/O error: {e}. Returning default values for all config requests",
-                path.to_string_lossy()
-            );
+            log_messages.push((
+                log::Level::Error,
+                format!(
+                    "Could not read config file \"{}\" due to I/O error: {e}. Returning default values for all config requests",
+                    path.to_string_lossy()
+                )
+            ));
 
             return DashMap::default();
         }
@@ -67,9 +85,12 @@ fn load_from_file(path: &Path) -> DashMap<String, toml::Value> {
     let config_toml = match toml::Table::from_str(&config_file_content) {
         Ok(config_toml) => config_toml,
         Err(e) => {
-            log::error!(
-                "Could not parse config file due to error: {e}. Returning default values for all config requests"
-            );
+            log_messages.push((
+                log::Level::Error,
+                format!(
+                    "Could not parse config file due to error: {e}. Returning default values for all config requests"
+                )
+            ));
             return DashMap::default();
         }
     };

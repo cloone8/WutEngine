@@ -36,7 +36,7 @@ impl Sorting {
                 threads.sort_by_key(|info| info.start_time_ns);
             }
             SortBy::Name => {
-                threads.sort_by(|a, b| natord::compare_ignore_case(&a.name, &b.name));
+                threads.sort_by(|a, b| a.name.cmp(&b.name));
             }
         }
         if self.reversed {
@@ -614,7 +614,6 @@ fn grid_text(grid_ns: NanoSecond) -> String {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn paint_record(
     info: &Info<'_>,
     options: &mut Options,
@@ -644,7 +643,7 @@ fn paint_record(
     };
 
     let Some(scope_details) = info.scope_collection.fetch_by_id(&scope_id) else {
-        log_once::warn_once!("Missing scope metadata");
+        log::warn!("Missing scope metadata");
         return PaintResult::Culled;
     };
 
@@ -778,7 +777,7 @@ fn paint_scope(
 
         if result == PaintResult::Hovered {
             let Some(scope_details) = info.scope_collection.fetch_by_id(&scope.id) else {
-                log_once::warn_once!("Missing scope metadata");
+                log::warn!("Missing scope metadata");
                 return Ok(PaintResult::Culled);
             };
             Tooltip::always_open(
@@ -904,10 +903,8 @@ fn merge_scope_tooltip(
     merge: &MergeScope<'_>,
     num_frames: usize,
 ) {
-    #![allow(clippy::collapsible_else_if)]
-
     let Some(scope_details) = scope_collection.fetch_by_id(&merge.id) else {
-        log_once::warn_once!("Missing scope metadata");
+        log::warn!("Missing scope metadata");
         return;
     };
 
