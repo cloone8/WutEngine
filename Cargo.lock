@@ -4809,6 +4809,7 @@ dependencies = [
  "wutengine_math",
  "wutengine_time",
  "wutengine_util",
+ "wutengine_util_macro",
 ]
 
 [[package]]

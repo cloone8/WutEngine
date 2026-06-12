@@ -232,3 +232,82 @@ pub fn derive_variant_name(input: proc_macro::TokenStream) -> proc_macro::TokenS
 
     expanded.into()
 }
+
+/// Adds a `Self::variant_index` method containing the index of the variant of the enum, with
+/// the same visibility as the enum itself
+#[proc_macro_derive(VariantIndex, attributes(index_repr))]
+pub fn derive_variant_index(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let derive_input: syn::DeriveInput = syn::parse(input).unwrap();
+
+    let ident = derive_input.ident;
+    let generics = derive_input.generics.params;
+
+    let mut repr_type = None;
+
+    for attr in derive_input.attrs {
+        if let Some(ident) = attr.path().get_ident() {
+            if ident == "index_repr" {
+                repr_type = Some(attr.parse_args::<syn::Type>().unwrap());
+                break;
+            }
+        }
+    }
+
+    let repr_type = repr_type.unwrap_or(syn::parse_str("u32").unwrap());
+
+    let variants = match derive_input.data {
+        syn::Data::Enum(enum_item) => enum_item.variants,
+        _ => panic!("VariantIndex only works on Enums"),
+    };
+
+    let mut variant_indices = Vec::new();
+
+    for (index, variant) in variants.into_iter().enumerate() {
+        let ident = variant.ident;
+
+        let index = syn::Index {
+            index: index as u32,
+            span: ident.span(),
+        };
+
+        match variant.fields {
+            syn::Fields::Named(_) => {
+                variant_indices.push(quote! { Self::#ident {..} => #index, });
+            }
+            syn::Fields::Unnamed(_) => {
+                variant_indices.push(quote! { Self::#ident(_) => #index, });
+            }
+            syn::Fields::Unit => {
+                variant_indices.push(quote! { Self::#ident => #index, });
+            }
+        }
+    }
+
+    let vis = derive_input.vis;
+
+    let func_imp = quote! {
+        /// The index of the variant of [Self]
+        #[inline]
+        #vis const fn variant_index(&self) -> #repr_type {
+            match self {
+                #(#variant_indices)*
+            }
+        }
+    };
+
+    let expanded = if generics.is_empty() {
+        quote! {
+            impl #ident {
+                #func_imp
+            }
+        }
+    } else {
+        quote! {
+            impl<#generics> #ident<#generics> {
+                #func_imp
+            }
+        }
+    };
+
+    expanded.into()
+}

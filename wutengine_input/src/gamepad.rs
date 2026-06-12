@@ -1,8 +1,8 @@
 //! Gamepad handling and APIs
 
-use std::collections::HashMap;
-
+use nohash_hasher::IntMap;
 use wutengine_math::Vec2;
+use wutengine_util_macro::VariantIndex;
 
 use crate::INPUT_MANAGER;
 
@@ -17,16 +17,16 @@ pub struct GamepadId(gilrs::GamepadId);
 #[derive(Debug)]
 pub(crate) struct Gamepad {
     /// Current button values, between 0.0 and 1.0
-    pub(crate) button_values: HashMap<Button, f32>,
+    pub(crate) button_values: IntMap<Button, f32>,
 
     /// Previous button values, between 0.0 and 1.0
-    pub(crate) prev_button_values: HashMap<Button, f32>,
+    pub(crate) prev_button_values: IntMap<Button, f32>,
 
     /// Current axis values, between 0.0 and 1.0
-    pub(crate) axis_values: HashMap<Axis, Vec2>,
+    pub(crate) axis_values: IntMap<Axis, Vec2>,
 
     /// Previous axis values, between 0.0 and 1.0
-    pub(crate) prev_axis_values: HashMap<Axis, Vec2>,
+    pub(crate) prev_axis_values: IntMap<Axis, Vec2>,
 }
 
 impl Default for Gamepad {
@@ -45,9 +45,13 @@ impl Gamepad {
         }
     }
 
+    pub(crate) fn preprocess_frame(&mut self){
+
+    }
+
     /// Clears the frame-specific data for this gamepad, ensuring all new
     /// input gets registered to the next frame
-    pub(crate) fn next_frame(&mut self) {
+    pub(crate) fn end_frame(&mut self) {
         self.prev_button_values.clone_from(&self.button_values);
         self.prev_axis_values.clone_from(&self.axis_values);
     }
@@ -181,7 +185,8 @@ fn set_axis_or_button_value(
 /// Gamepad buttons.
 ///
 /// Based on [gilrs 0.11.2](https://docs.rs/gilrs/0.11.2/gilrs/)
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, VariantIndex)]
+#[index_repr(u32)]
 pub enum Button {
     /// Right button pad, south button
     South,
@@ -246,6 +251,20 @@ pub enum Button {
 }
 
 impl Button {
+    /// Get this [Button] as a u64
+    #[inline]
+    pub const fn as_u64(self) -> u64 {
+        let native_code = if let Self::Raw(native) = self {
+            native
+        } else {
+            0
+        };
+
+        let variant = self.variant_index();
+
+        ((variant as u64) << 32) | (native_code as u64)
+    }
+
     #[inline]
     fn from_gilrs(gilrs_btn: gilrs::Button, gilrs_ev: gilrs::ev::Code) -> Self {
         match gilrs_btn {
@@ -273,10 +292,20 @@ impl Button {
     }
 }
 
+impl core::hash::Hash for Button {
+    #[inline(always)]
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        state.write_u64(self.as_u64());
+    }
+}
+
+impl nohash_hasher::IsEnabled for Button {}
+
 /// Gamepad axes
 ///
 /// Based on [gilrs 0.11.2](https://docs.rs/gilrs/0.11.2/gilrs/)
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, VariantIndex)]
+#[index_repr(u8)]
 pub enum Axis {
     /// Left stick
     LeftStick,
@@ -284,6 +313,15 @@ pub enum Axis {
     /// Right stick
     RightStick,
 }
+
+impl core::hash::Hash for Axis {
+    #[inline(always)]
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        state.write_u8(self.variant_index());
+    }
+}
+
+impl nohash_hasher::IsEnabled for Axis {}
 
 impl Axis {
     #[inline]

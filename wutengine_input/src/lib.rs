@@ -228,13 +228,13 @@ impl InputManager {
     }
 
     /// Advances the input manager and all devices to the next frame
-    fn next_frame(&self) {
-        self.mice.write().unwrap().for_each(Mouse::next_frame);
+    fn end_frame(&self) {
+        self.mice.write().unwrap().for_each(Mouse::end_frame);
         self.keyboards
             .write()
             .unwrap()
-            .for_each(Keyboard::next_frame);
-        self.gamepads.write().unwrap().for_each(Gamepad::next_frame);
+            .for_each(Keyboard::end_frame);
+        self.gamepads.write().unwrap().for_each(Gamepad::end_frame);
     }
 
     /// Sets the most recent mouse
@@ -537,8 +537,8 @@ pub fn insert_raw_window_event(
 /// Resets all per-frame delta values back to zero.
 /// Should be called by the engine runtime at the end of each rendered frame, so
 /// all new input events count for the next frame
-pub fn next_frame() {
+pub fn end_frame() {
     profiling::function_scope!();
 
-    INPUT_MANAGER.next_frame();
+    INPUT_MANAGER.end_frame();
 }

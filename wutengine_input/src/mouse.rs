@@ -82,9 +82,11 @@ impl Mouse {
         }
     }
 
+    pub(crate) fn preprocess_frame(&mut self) {}
+
     /// Clears the frame-specific data for this mouse, ensuring all new
     /// input gets registered to the next frame
-    pub(crate) fn next_frame(&mut self) {
+    pub(crate) fn end_frame(&mut self) {
         self.scroll_delta = Vec2::ZERO;
         self.pos_delta = Vec2::ZERO;
 

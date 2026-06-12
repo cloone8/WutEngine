@@ -7,6 +7,7 @@ mod logical_key;
 
 pub use key::*;
 pub use logical_key::*;
+use nohash_hasher::IntSet;
 
 use super::INPUT_MANAGER;
 
@@ -31,10 +32,10 @@ impl KeyboardId {
 #[derive(Debug, Clone)]
 pub(crate) struct Keyboard {
     /// The held keys in the previous frame
-    prev_pressed_keys: HashSet<Key>,
+    prev_pressed_keys: IntSet<Key>,
 
     /// The currently held keys
-    pressed_keys: HashSet<Key>,
+    pressed_keys: IntSet<Key>,
 
     /// Logical keyboard inputs, ordered by when they happened. Mostly used by UI
     logical_inputs: Vec<LogicalInput>,
@@ -71,7 +72,7 @@ impl Keyboard {
     }
 
     /// Makes sure that all new input is registered to the next frame
-    pub(crate) fn next_frame(&mut self) {
+    pub(crate) fn end_frame(&mut self) {
         self.prev_pressed_keys.clone_from(&self.pressed_keys);
         self.logical_inputs.clear();
     }
@@ -243,7 +244,7 @@ pub fn pressed_keys(device: Option<KeyboardId>) -> HashSet<Key> {
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns an empty set
-pub fn held_keys(device: Option<KeyboardId>) -> HashSet<Key> {
+pub fn held_keys(device: Option<KeyboardId>) -> IntSet<Key> {
     get_keyboard_and(device, |keyboard| {
         if let Some(keyboard) = keyboard {
             keyboard.pressed_keys.clone()

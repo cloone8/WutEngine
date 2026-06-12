@@ -146,6 +146,9 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 window::manager::notify_window_occluded(&id, occluded);
             }
+            WindowEvent::RedrawRequested => {
+                window::manager::request_redraw(id);
+            }
             _ => {}
         }
     }
@@ -241,7 +244,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             surface.present();
         }
 
-        input::next_frame();
+        input::end_frame();
 
         self.frame_pacer.frame_rendered();
         self.frame_pacer.wait_for_limit();

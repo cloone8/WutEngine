@@ -13,6 +13,7 @@ categories.workspace = true
 
 [dependencies]
 wutengine_util.workspace = true
+wutengine_util_macro.workspace = true
 wutengine_math.workspace = true
 wutengine_time.workspace = true
 

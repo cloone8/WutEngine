@@ -1,4 +1,5 @@
 use winit::platform::scancode::PhysicalKeyExtScancode;
+use wutengine_util_macro::VariantIndex;
 
 use super::winit_native_keycode_to_u32;
 
@@ -6,7 +7,8 @@ use super::winit_native_keycode_to_u32;
 ///
 /// Taken from [winit 0.30.13](https://github.com/rust-windowing/winit/tree/v0.30.13),
 /// and modified to suit WutEngine APIs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, VariantIndex)]
+#[index_repr(u32)]
 pub enum Key {
     /// <kbd>`</kbd>
     Backquote,
@@ -600,6 +602,31 @@ pub enum Key {
     /// An unknown key. Contains the OS native keycode/scancode
     Unknown(u32),
 }
+
+impl Key {
+    /// Get this [Key] as a u64
+    #[inline]
+    pub const fn as_u64(self) -> u64 {
+        let native_kc = if let Self::Unknown(native) = self {
+            native
+        } else {
+            0
+        };
+
+        let variant = self.variant_index();
+
+        ((variant as u64) << 32) | (native_kc as u64)
+    }
+}
+
+impl core::hash::Hash for Key {
+    #[inline(always)]
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        state.write_u64(self.as_u64());
+    }
+}
+
+impl nohash_hasher::IsEnabled for Key {}
 
 impl TryFrom<winit::keyboard::PhysicalKey> for Key {
     type Error = ();

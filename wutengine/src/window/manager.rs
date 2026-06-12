@@ -264,6 +264,14 @@ pub(crate) fn refresh_displays(event_loop: &winit::event_loop::ActiveEventLoop) 
     window_manager.displays = new_display_map;
 }
 
+pub(crate) fn request_redraw(window: Window) {
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    if let Some(window) = window_manager.windows.get(&window) {
+        window.native.request_redraw();
+    }
+}
+
 fn find_existing_display_id(
     window_manager: &WindowManager,
     monitor_handle: &winit::monitor::MonitorHandle,
@@ -340,6 +348,7 @@ pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Windo
     for window in windows {
         if let Some(window_info) = window_manager.windows.get(window) {
             window_info.native.pre_present_notify();
+            window_info.native.request_redraw();
         } else {
             log::warn!(
                 "Could not pre-present notify window {window} because it could not be found"

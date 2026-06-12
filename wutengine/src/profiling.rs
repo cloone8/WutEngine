@@ -15,6 +15,7 @@ mod internal {
     }
 }
 
+/// Sets the profiling scopes either on or off depending on whether something is listening
 pub(crate) fn change_scope_active_status() {
     #[cfg(feature = "profiling")]
     {
