@@ -60,6 +60,8 @@ fn determine_worker_thread_count() -> NonZero<usize> {
 
     // Next, try to get the amount of performance CPU cores on the system.
     if let Some(core_config) = detect::try_detect_core_config() {
+        log::debug!("Detected core configuration: {:#?}", core_config);
+
         if let Some(perf_cores) = core_config
             .threads_by_class
             .last()

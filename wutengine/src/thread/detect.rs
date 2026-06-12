@@ -8,6 +8,9 @@ pub(super) struct CoreConfig {
     pub(super) cores: NonZero<usize>,
 
     pub(super) threads: NonZero<usize>,
+
+    /// Number of threads per performance class. Higher indices have
+    /// more performance
     pub(super) threads_by_class: SmallVec<[usize; 2]>,
 }
 
@@ -137,18 +140,18 @@ mod win {
 
 #[cfg(target_os = "macos")]
 mod macos {
+    use alloc::ffi::CString;
     use core::ffi::CStr;
     use core::ffi::c_char;
     use core::num::NonZero;
     use core::ptr::null_mut;
-    use std::ffi::CString;
     use std::os::raw::c_void;
 
     use smallvec::SmallVec;
 
     use super::CoreConfig;
 
-    fn errno_string(errno: libc::errno_t) -> Option<String> {
+    fn errno_string(errno: libc::mach_error_t) -> Option<String> {
         let errno_cstr: *const c_char = unsafe { libc::strerror(errno) };
 
         unsafe { CStr::from_ptr(errno_cstr) }
@@ -217,6 +220,9 @@ mod macos {
             let at_level = sysctl_u32(&format!("hw.perflevel{}.logicalcpu", level))?;
             by_class[level as usize] = at_level as usize;
         }
+
+        // MacOS reports performance levels with smaller = better
+        by_class.reverse();
 
         Some(CoreConfig {
             cores,
