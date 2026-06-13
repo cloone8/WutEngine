@@ -107,8 +107,6 @@ impl Sampler {
         mip_filtering: FilterMode,
         wrapping: WrapModeType,
     ) -> Self {
-        profiling::function_scope!();
-
         let cache_key = SamplerCacheKey {
             tex_filtering,
             mip_filtering,
@@ -123,6 +121,8 @@ impl Sampler {
                 native: cached,
             };
         };
+
+        profiling::scope!("Create new sampler");
 
         log::debug!("Creating new sampler object");
 

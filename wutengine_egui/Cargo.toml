@@ -19,7 +19,7 @@ wutengine_util.workspace = true
 
 log.workspace = true
 bytemuck.workspace = true
-egui = { workspace = true, features = ["rayon", "bytemuck"] }
+egui = { workspace = true, features = ["bytemuck"] }
 serde_json.workspace = true
 
 [lints]

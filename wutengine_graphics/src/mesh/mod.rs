@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use nohash_hasher::IntMap;
 use wutengine_asset::assets::mesh::MeshIndices;
 use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_asset::assets::mesh::SerializedMesh;
@@ -22,7 +23,7 @@ pub use vertex::*;
 #[derive(Debug)]
 pub struct Mesh {
     /// The vertex buffers
-    pub vertex_buffers: HashMap<ShaderVertexAttributeType, VertexBuffer>,
+    pub vertex_buffers: IntMap<ShaderVertexAttributeType, VertexBuffer>,
 
     /// The index buffer
     pub index_buffer: IndexBuffer,
@@ -32,7 +33,7 @@ pub struct Mesh {
 impl Mesh {
     /// Returns the topology of this mesh
     pub fn topology(&self) -> MeshTopology {
-        self.index_buffer.topology
+        self.index_buffer.topology()
     }
 }
 
@@ -57,6 +58,7 @@ impl Mesh {
             ShaderVertexAttributeType::Position,
             device,
             data.keep_data,
+            false,
         )
         .expect("Failed to create position buffer");
 
@@ -96,6 +98,7 @@ impl Mesh {
                     ShaderVertexAttributeType::Color,
                     device,
                     data.keep_data,
+                    false,
                 )
                 .expect("Failed to create color buffer");
 
@@ -120,6 +123,7 @@ impl Mesh {
                 ShaderVertexAttributeType::Uv { channel },
                 device,
                 data.keep_data,
+                false,
             )
             .expect("Failed to create UV vertex buffer");
 
@@ -178,6 +182,7 @@ fn make_index_buffer(
         topology,
         device,
         keep_on_cpu,
+        false,
     )?))
 }
 

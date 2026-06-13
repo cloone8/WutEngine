@@ -37,8 +37,6 @@ pub fn get_pipeline(
     topology: MeshTopology,
     color_targets: &[Option<wgpu::ColorTargetState>],
 ) -> Result<Arc<wgpu::RenderPipeline>, GetPipelineErr> {
-    profiling::function_scope!();
-
     let pipeline_cache_key = PipelineCacheKey {
         shader: material.compiled_shader.id,
         color_targets: color_targets.into(),

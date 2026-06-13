@@ -3,11 +3,16 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
+use core::num::NonZero;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
+use nohash_hasher::IntMap;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::sync::Mutex;
+use wutengine_egui::egui::ClippedPrimitive;
+use wutengine_graphics::mesh::IndexDatatype;
+use wutengine_math::Vec4;
 
 use wutengine_asset::Asset;
 use wutengine_asset::AssetHandle;
@@ -70,6 +75,19 @@ pub(crate) struct DevOverlayManager {
     egui_context: wutengine_egui::egui::Context,
     textures: Mutex<HashMap<wutengine_egui::egui::TextureId, TextureMaterial>>,
     windows: Mutex<Vec<DevOverlayWindow>>,
+    buffers: Mutex<
+        Option<(
+            IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
+            wgpu::Buffer,
+        )>,
+    >,
+    to_draw: Mutex<Option<DevOverlayDrawable>>,
+}
+
+struct DevOverlayDrawable {
+    primitives: Vec<ClippedPrimitive>,
+    to_free: Vec<egui::TextureId>,
+    pixels_per_point: f32,
 }
 
 struct DevOverlayWindow {
@@ -85,6 +103,8 @@ impl DevOverlayManager {
             egui_context: wutengine_egui::egui::Context::default(),
             textures: Mutex::new(HashMap::new()),
             windows: Mutex::new(Vec::new()),
+            buffers: Mutex::new(None),
+            to_draw: Mutex::new(None),
         }
     }
 }
@@ -108,18 +128,115 @@ pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
     }
 }
 
-pub fn render_if_active(
+pub fn run_overlay_logic(
     input_window: wutengine_input::WindowIdentifier,
-    window_info: &wutengine_egui::EguiWindowInfo,
-    surface: &wgpu::SurfaceTexture,
+    window_info: wutengine_egui::EguiWindowInfo,
+    surface_size: (u32, u32),
     scale_factor: f32,
     real_secs_since_start: f64,
-) -> Option<wgpu::CommandBuffer> {
+) -> std::sync::mpsc::Receiver<()> {
     profiling::function_scope!();
 
+    let (is_done_send, is_done_recv) = std::sync::mpsc::sync_channel(1);
+
     if !is_enabled() {
-        return None;
+        is_done_send.send(()).unwrap();
+        return is_done_recv;
     }
+
+    rayon::spawn(move || {
+        let sfc_size = (surface_size.0, surface_size.1);
+        let sfc_points = (
+            sfc_size.0 as f32 / scale_factor,
+            sfc_size.1 as f32 / scale_factor,
+        );
+
+        let egui_input = wutengine_egui::gather_input(
+            input_window,
+            &window_info,
+            graphics::active_config().limits.max_texture_dimension_2d as usize,
+            real_secs_since_start,
+            scale_factor,
+            sfc_points,
+        );
+
+        let mut windows = DEV_OVERLAY.windows.lock().unwrap();
+
+        let egui_output = DEV_OVERLAY.egui_context.run_ui(egui_input.clone(), |ui| {
+            egui::Window::new("WutEngine Development Overlay")
+                .collapsible(false)
+                .order(egui::Order::Background)
+                .resizable(false)
+                .default_open(true)
+                .show(ui, |ui| {
+                    if windows.is_empty() {
+                        ui.label("No development windows registered");
+                        return;
+                    }
+
+                    for window in windows.iter_mut() {
+                        if ui.button(window.window.name()).clicked() {
+                            window.open = !window.open;
+                            window.window.window_state_changed(window.open);
+                        }
+
+                        let title_with_icon = window
+                            .window
+                            .icon()
+                            .map(|icon| format!("{} {}", icon, window.window.name()));
+
+                        let title_str = match &title_with_icon {
+                            Some(with_icon) => with_icon.as_str(),
+                            None => window.window.name(),
+                        };
+
+                        egui::Window::new(title_str)
+                            .id(egui::Id::new(window.id))
+                            .open(&mut window.open)
+                            .show(ui, |ui| {
+                                window.window.show(ui);
+                            });
+                    }
+                });
+        });
+
+        let clipped_output = DEV_OVERLAY
+            .egui_context
+            .tessellate(egui_output.shapes, egui_output.pixels_per_point);
+
+        log::trace!("egui returned {} primitives", clipped_output.len());
+        log::trace!(
+            "egui returned {} new textures and wants to free {} textures",
+            egui_output.textures_delta.set.len(),
+            egui_output.textures_delta.free.len()
+        );
+
+        let mut texture_map = DEV_OVERLAY.textures.lock().unwrap();
+
+        upload_new_textures(&mut texture_map, egui_output.textures_delta.set, sfc_points);
+
+        let mut buffers = DEV_OVERLAY.buffers.lock().unwrap();
+
+        gather_primitive_buffers(&clipped_output, &mut buffers);
+
+        if buffers.is_some() {
+            *DEV_OVERLAY.to_draw.lock().unwrap() = Some(DevOverlayDrawable {
+                primitives: clipped_output,
+                to_free: egui_output.textures_delta.free,
+                pixels_per_point: egui_output.pixels_per_point,
+            });
+        }
+
+        is_done_send.send(()).unwrap();
+    });
+
+    is_done_recv
+}
+
+pub fn render_overlay(surface: &wgpu::SurfaceTexture) -> Option<wgpu::CommandBuffer> {
+    let drawable = DEV_OVERLAY.to_draw.lock().unwrap().take()?;
+
+    profiling::function_scope!();
 
     let surface_format = surface.texture.format().remove_srgb_suffix();
     let surface_view = surface.texture.create_view(&wgpu::TextureViewDescriptor {
@@ -129,147 +246,85 @@ pub fn render_if_active(
 
     let sfc_size = (surface.texture.size().width, surface.texture.size().height);
     let sfc_points = (
-        sfc_size.0 as f32 / scale_factor,
-        sfc_size.1 as f32 / scale_factor,
-    );
-
-    let egui_input = wutengine_egui::gather_input(
-        input_window,
-        window_info,
-        graphics::active_config().limits.max_texture_dimension_2d as usize,
-        real_secs_since_start,
-        scale_factor,
-        sfc_points,
-    );
-
-    let mut windows = DEV_OVERLAY.windows.lock().unwrap();
-
-    let egui_output = DEV_OVERLAY.egui_context.run_ui(egui_input.clone(), |ui| {
-        egui::Window::new("WutEngine Development Overlay")
-            .collapsible(false)
-            .order(egui::Order::Background)
-            .resizable(false)
-            .default_open(true)
-            .show(ui, |ui| {
-                if windows.is_empty() {
-                    ui.label("No development windows registered");
-                    return;
-                }
-
-                for window in windows.iter_mut() {
-                    if ui.button(window.window.name()).clicked() {
-                        window.open = !window.open;
-                        window.window.window_state_changed(window.open);
-                    }
-
-                    let title_with_icon = window
-                        .window
-                        .icon()
-                        .map(|icon| format!("{} {}", icon, window.window.name()));
-
-                    let title_str = match &title_with_icon {
-                        Some(with_icon) => with_icon.as_str(),
-                        None => window.window.name(),
-                    };
-
-                    egui::Window::new(title_str)
-                        .id(egui::Id::new(window.id))
-                        .open(&mut window.open)
-                        .show(ui, |ui| {
-                            window.window.show(ui);
-                        });
-                }
-            });
-    });
-
-    let clipped_output = DEV_OVERLAY
-        .egui_context
-        .tessellate(egui_output.shapes, egui_output.pixels_per_point);
-
-    log::trace!("egui returned {} primitives", clipped_output.len());
-    log::trace!(
-        "egui returned {} new textures and wants to free {} textures",
-        egui_output.textures_delta.set.len(),
-        egui_output.textures_delta.free.len()
+        sfc_size.0 as f32 / drawable.pixels_per_point,
+        sfc_size.1 as f32 / drawable.pixels_per_point,
     );
 
     let mut texture_map = DEV_OVERLAY.textures.lock().unwrap();
+    let buffers = DEV_OVERLAY.buffers.lock().unwrap();
 
-    upload_new_textures(&mut texture_map, egui_output.textures_delta.set, sfc_points);
+    let Some((vertex_buffers, index_buffer)) = &*buffers else {
+        // Error. Just do do cleanup
+        free_removed_textures(&mut texture_map, drawable.to_free);
+        return None;
+    };
 
-    if let Some((vertex_buffers, index_buffer)) = gather_primitive_buffers(&clipped_output) {
-        let mut command_encoder =
-            graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Development overlay command encoder"),
-            });
-
-        command_encoder.push_debug_group("Render egui primitives");
-
-        let mut render_pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Development overlay render pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &surface_view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
+    let mut command_encoder =
+        graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Development overlay command encoder"),
         });
 
-        let mut cur_pipeline = None;
+    command_encoder.push_debug_group("Render egui primitives");
 
-        let mut base_vertex = 0;
-        let mut base_index = 0;
+    let mut render_pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("Development overlay render pass"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: &surface_view,
+            depth_slice: None,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Load,
+                store: wgpu::StoreOp::Store,
+            },
+        })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    });
 
-        render_pass.set_index_buffer(
-            index_buffer.raw().slice(..),
-            index_buffer.format().to_wgpu(),
+    let mut cur_pipeline = None;
+
+    let mut base_vertex = 0;
+    let mut base_index = 0;
+
+    render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+
+    for primitive in drawable.primitives {
+        render_pass.push_debug_group("Render single primitive");
+
+        render_primitive(
+            primitive,
+            vertex_buffers,
+            &mut base_vertex,
+            &mut base_index,
+            &mut render_pass,
+            &mut texture_map,
+            &mut cur_pipeline,
+            surface_format,
+            sfc_size,
+            sfc_points,
+            drawable.pixels_per_point,
         );
 
-        for primitive in clipped_output {
-            render_pass.push_debug_group("Render single primitive");
-
-            render_primitive(
-                primitive,
-                &vertex_buffers,
-                &mut base_vertex,
-                &mut base_index,
-                &mut render_pass,
-                &mut texture_map,
-                &mut cur_pipeline,
-                surface_format,
-                sfc_size,
-                sfc_points,
-                egui_output.pixels_per_point,
-            );
-
-            render_pass.pop_debug_group();
-        }
-
-        drop(render_pass);
-        command_encoder.pop_debug_group();
-
-        free_removed_textures(&mut texture_map, egui_output.textures_delta.free);
-
-        Some(command_encoder.finish())
-    } else {
-        free_removed_textures(&mut texture_map, egui_output.textures_delta.free);
-        None
+        render_pass.pop_debug_group();
     }
+
+    drop(render_pass);
+    command_encoder.pop_debug_group();
+
+    free_removed_textures(&mut texture_map, drawable.to_free);
+
+    Some(command_encoder.finish())
 }
 
 fn gather_primitive_buffers(
     primitives: &[egui::ClippedPrimitive],
-) -> Option<(
-    HashMap<ShaderVertexAttributeType, VertexBuffer>,
-    IndexBuffer,
-)> {
+    buffers: &mut Option<(
+        IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
+        wgpu::Buffer,
+    )>,
+) {
     profiling::function_scope!();
 
     let mut total_verts = 0;
@@ -284,53 +339,212 @@ fn gather_primitive_buffers(
         total_indices += mesh.indices.len();
     }
 
-    let mut vertices = Vec::with_capacity(total_verts);
-    let mut uvs = Vec::with_capacity(total_verts);
-    let mut colors = Vec::with_capacity(total_verts);
-    let mut indices = Vec::with_capacity(total_indices);
+    if total_verts == 0 || total_indices == 0 {
+        return;
+    }
+
+    let recreate_buffers = match buffers {
+        Some((vert_bufs, idx_buf)) => {
+            ((idx_buf.size() as usize) / size_of::<u32>()) < total_indices
+                || (vert_bufs[&ShaderVertexAttributeType::Position].size() as usize)
+                    / size_of::<GVec3<f32>>()
+                    < total_verts
+        }
+        None => true,
+    };
+
+    if recreate_buffers {
+        *buffers = None;
+    }
+
+    let device = graphics::device();
+    let queue = graphics::queue();
+
+    let pos_bytes =
+        (graphics::mesh::attr_bytes(ShaderVertexAttributeType::Position) * total_verts) as u64;
+    let color_bytes =
+        (graphics::mesh::attr_bytes(ShaderVertexAttributeType::Color) * total_verts) as u64;
+    let uv_bytes = (graphics::mesh::attr_bytes(ShaderVertexAttributeType::Uv { channel: 0 })
+        * total_verts) as u64;
+    let index_bytes = (size_of::<u32>() * total_indices) as u64;
+
+    match buffers {
+        Some((vertex_buffers, index_buffer)) => {
+            let pos_buf = &vertex_buffers[&ShaderVertexAttributeType::Position];
+            let color_buf = &vertex_buffers[&ShaderVertexAttributeType::Color];
+            let uv_buf = &vertex_buffers[&ShaderVertexAttributeType::Uv { channel: 0 }];
+
+            let mut pos_write_view = queue
+                .write_buffer_with(pos_buf, 0, NonZero::new(pos_bytes).unwrap())
+                .unwrap();
+            let mut color_write_view = queue
+                .write_buffer_with(color_buf, 0, NonZero::new(color_bytes).unwrap())
+                .unwrap();
+            let mut uv_write_view = queue
+                .write_buffer_with(uv_buf, 0, NonZero::new(uv_bytes).unwrap())
+                .unwrap();
+            let mut index_write_view = queue
+                .write_buffer_with(index_buffer, 0, NonZero::new(index_bytes).unwrap())
+                .unwrap();
+
+            let pos_view = pos_write_view.slice(..);
+            let col_view = color_write_view.slice(..);
+            let uv_view = uv_write_view.slice(..);
+            let index_view = index_write_view.slice(..);
+
+            write_primitives_into_views(pos_view, col_view, uv_view, index_view, primitives);
+        }
+        None => {
+            let pos_buf = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Development Overlay Position Buffer"),
+                size: pos_bytes,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: true,
+            });
+
+            let color_buf = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Development Overlay Color Buffer"),
+                size: color_bytes,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: true,
+            });
+
+            let uv_buf = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Development Overlay UV Buffer"),
+                size: uv_bytes,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: true,
+            });
+
+            let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Development Overlay Index Buffer"),
+                size: index_bytes,
+                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: true,
+            });
+
+            {
+                let mut pos_mapped = pos_buf.get_mapped_range_mut(..);
+                let mut col_mapped = color_buf.get_mapped_range_mut(..);
+                let mut uv_mapped = uv_buf.get_mapped_range_mut(..);
+                let mut index_mapped = index_buffer.get_mapped_range_mut(..);
+
+                let pos_view = pos_mapped.slice(..);
+                let col_view = col_mapped.slice(..);
+                let uv_view = uv_mapped.slice(..);
+                let index_view = index_mapped.slice(..);
+
+                write_primitives_into_views(pos_view, col_view, uv_view, index_view, primitives);
+            }
+
+            pos_buf.unmap();
+            color_buf.unmap();
+            uv_buf.unmap();
+            index_buffer.unmap();
+
+            let mut vertex_bufs = IntMap::default();
+
+            vertex_bufs.insert(ShaderVertexAttributeType::Position, pos_buf);
+            vertex_bufs.insert(ShaderVertexAttributeType::Color, color_buf);
+            vertex_bufs.insert(ShaderVertexAttributeType::Uv { channel: 0 }, uv_buf);
+
+            *buffers = Some((vertex_bufs, index_buffer));
+        }
+    }
+}
+
+fn write_primitives_into_views(
+    mut pos_view: wgpu::WriteOnly<'_, [u8]>,
+    mut color_view: wgpu::WriteOnly<'_, [u8]>,
+    mut uv_view: wgpu::WriteOnly<'_, [u8]>,
+    mut index_view: wgpu::WriteOnly<'_, [u8]>,
+    primitives: &[egui::ClippedPrimitive],
+) {
+    profiling::function_scope!();
+
+    let mut vtx_offset = 0;
+    let mut idx_offset = 0;
+
+    let mut pos_staging: Vec<GVec3<f32>> = Vec::new();
+    let mut col_staging: Vec<GVec4<f32>> = Vec::new();
+    let mut uv_staging: Vec<GVec2<f32>> = Vec::new();
 
     for primitive in primitives {
         let egui::epaint::Primitive::Mesh(mesh) = &primitive.primitive else {
             continue;
         };
 
-        vertices.extend(
-            mesh.vertices
-                .iter()
-                .map(|vtx| GVec3::<f32>::new(vtx.pos.x, vtx.pos.y, 0.0)),
-        );
-        uvs.extend(
-            mesh.vertices
-                .iter()
-                .map(|vtx| GVec2::<f32>::new(vtx.uv.x, vtx.uv.y)),
-        );
-        colors.extend(mesh.vertices.iter().map(|vtx| {
-            GVec4::<f32>::new(
-                vtx.color.r() as f32 / 255.0,
-                vtx.color.g() as f32 / 255.0,
-                vtx.color.b() as f32 / 255.0,
-                vtx.color.a() as f32 / 255.0,
-            )
-        }));
+        pos_staging.clear();
+        col_staging.clear();
+        uv_staging.clear();
 
-        indices.extend_from_slice(&mesh.indices);
+        pos_staging.reserve(mesh.vertices.len());
+        col_staging.reserve(mesh.vertices.len());
+        uv_staging.reserve(mesh.vertices.len());
+
+        // These asserts seem to help the compiler with optimizing
+        assert!(
+            pos_staging.capacity() - pos_staging.len() >= mesh.vertices.len(),
+            "Should have been reserved"
+        );
+        assert!(
+            col_staging.capacity() - col_staging.len() >= mesh.vertices.len(),
+            "Should have been reserved"
+        );
+        assert!(
+            uv_staging.capacity() - uv_staging.len() >= mesh.vertices.len(),
+            "Should have been reserved"
+        );
+
+        for vtx in &mesh.vertices {
+            pos_staging.push(GVec3::<f32>::new(vtx.pos.x, vtx.pos.y, 0.0));
+
+            let color_array = vtx.color.to_array();
+            const MAP_0_1: f32 = 1.0 / 255.0;
+            col_staging.push(GVec4::<f32>::from(
+                Vec4::new(
+                    color_array[0] as f32,
+                    color_array[1] as f32,
+                    color_array[2] as f32,
+                    color_array[3] as f32,
+                ) * MAP_0_1,
+            ));
+
+            uv_staging.push(GVec2::<f32>::new(vtx.uv.x, vtx.uv.y));
+        }
+
+        let pos_offset = vtx_offset * size_of::<GVec3<f32>>();
+        let pos_end = pos_offset + (size_of::<GVec3<f32>>() * mesh.vertices.len());
+
+        let col_offset = vtx_offset * size_of::<GVec4<f32>>();
+        let col_end = col_offset + (size_of::<GVec4<f32>>() * mesh.vertices.len());
+
+        let uv_offset = vtx_offset * size_of::<GVec2<f32>>();
+        let uv_end = uv_offset + (size_of::<GVec2<f32>>() * mesh.vertices.len());
+
+        pos_view
+            .slice(pos_offset..pos_end)
+            .copy_from_slice(bytemuck::must_cast_slice(pos_staging.as_slice()));
+        color_view
+            .slice(col_offset..col_end)
+            .copy_from_slice(bytemuck::must_cast_slice(col_staging.as_slice()));
+        uv_view
+            .slice(uv_offset..uv_end)
+            .copy_from_slice(bytemuck::must_cast_slice(uv_staging.as_slice()));
+
+        vtx_offset += mesh.vertices.len();
+
+        let index_bytes = <u32 as IndexDatatype>::as_bytes(&mesh.indices);
+        let mut index_slice = index_view.slice(idx_offset..(idx_offset + index_bytes.len()));
+        index_slice.copy_from_slice(index_bytes);
+
+        idx_offset += index_bytes.len();
     }
-
-    let device = graphics::device();
-
-    Some((
-        map![
-            ShaderVertexAttributeType::Position => VertexBuffer::new(&vertices, ShaderVertexAttributeType::Position, device, false).ok()?,
-            ShaderVertexAttributeType::Uv{channel: 0} => VertexBuffer::new(&uvs, ShaderVertexAttributeType::Uv{channel: 0}, device, false).ok()?,
-            ShaderVertexAttributeType::Color => VertexBuffer::new(&colors, ShaderVertexAttributeType::Color, device, false).ok()?
-        ],
-        IndexBuffer::new(&indices, MeshTopology::Triangle, device, false).ok()?,
-    ))
 }
 
 fn render_primitive(
     primitive: egui::ClippedPrimitive,
-    vertex_buffers: &HashMap<ShaderVertexAttributeType, VertexBuffer>,
+    vertex_buffers: &IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
     base_vertex: &mut u64,
     base_index: &mut u64,
     pass: &mut wgpu::RenderPass,
@@ -341,8 +555,6 @@ fn render_primitive(
     surface_points: (f32, f32),
     pixels_per_point: f32,
 ) {
-    profiling::function_scope!();
-
     match primitive.primitive {
         egui::epaint::Primitive::Mesh(egui_mesh) => {
             let tex_mat = texture_map.get_mut(&egui_mesh.texture_id).unwrap();
@@ -404,7 +616,7 @@ fn render_primitive(
 
                 pass.set_vertex_buffer(
                     attr_info.shader_location,
-                    vertex_buffer.raw().slice(start_bytes..end_bytes),
+                    vertex_buffer.slice(start_bytes..end_bytes),
                 );
             }
 

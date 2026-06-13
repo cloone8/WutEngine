@@ -860,7 +860,6 @@ dependencies = [
  "nohash-hasher",
  "parking_lot",
  "profiling",
- "rayon",
  "self_cell",
  "serde",
  "skrifa",
@@ -4714,6 +4713,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "wutengine_math",
+ "wutengine_util_macro",
 ]
 
 [[package]]
@@ -4745,9 +4745,11 @@ dependencies = [
 name = "wutengine_development_overlay"
 version = "0.6.0"
 dependencies = [
+ "bytemuck",
  "log",
  "nohash-hasher",
  "profiling",
+ "rayon",
  "wutengine_asset",
  "wutengine_egui",
  "wutengine_graphics",

@@ -58,7 +58,15 @@ pub fn initialize_graphics_context() -> bool {
     if log::log_enabled!(log::Level::Debug) {
         let mut features_string = String::new();
 
+        let mut features = Vec::new();
+
         for (feature, _) in adapter_requested_features.iter_names() {
+            features.push(feature);
+        }
+
+        features.sort();
+
+        for feature in features {
             features_string = format!("{features_string}\n\t{feature}");
         }
 

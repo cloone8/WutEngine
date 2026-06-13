@@ -165,7 +165,11 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
                 draw_command.mesh.index_buffer.format().to_wgpu(),
             );
 
-            render_pass.draw_indexed(0..draw_command.mesh.index_buffer.len() as u32, 0, 0..1);
+            render_pass.draw_indexed(
+                0..draw_command.mesh.index_buffer.len().get() as u32,
+                0,
+                0..1,
+            );
 
             render_pass.pop_debug_group();
         }

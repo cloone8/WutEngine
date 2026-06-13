@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 use serde::Serialize;
+use wutengine_util_macro::VariantIndex;
 
 use crate::SerializedAsset;
 
@@ -49,9 +50,12 @@ pub struct ShaderVertexAttribute {
 }
 
 /// The type of a shader vertex attribute
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, VariantIndex,
+)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
+#[index_repr(u8)]
 pub enum ShaderVertexAttributeType {
     /// Position data
     Position,
@@ -65,6 +69,30 @@ pub enum ShaderVertexAttributeType {
     /// Color data
     Color,
 }
+
+impl ShaderVertexAttributeType {
+    #[inline]
+    pub const fn as_u16(self) -> u16 {
+        let channel = if let Self::Uv { channel } = self {
+            channel
+        } else {
+            0
+        };
+
+        let variant = self.variant_index();
+
+        ((variant as u16) << 8) | (channel as u16)
+    }
+}
+
+impl core::hash::Hash for ShaderVertexAttributeType {
+    #[inline(always)]
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        state.write_u16(self.as_u16());
+    }
+}
+
+impl nohash_hasher::IsEnabled for ShaderVertexAttributeType {}
 
 impl core::fmt::Display for ShaderVertexAttributeType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

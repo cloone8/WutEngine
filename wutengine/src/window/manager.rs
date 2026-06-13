@@ -265,6 +265,9 @@ pub(crate) fn refresh_displays(event_loop: &winit::event_loop::ActiveEventLoop) 
 }
 
 pub(crate) fn request_redraw(window: Window) {
+    profiling::function_scope!();
+    assert_main_thread!();
+
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
     if let Some(window) = window_manager.windows.get(&window) {
@@ -342,6 +345,7 @@ pub(crate) fn get_surface_textures() -> SmallVec<[(Window, wgpu::SurfaceTexture)
 /// Notifies the given windows that content is about to be presented to them
 pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Window>) {
     profiling::function_scope!();
+    assert_main_thread!();
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
 

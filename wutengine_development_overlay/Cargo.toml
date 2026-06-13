@@ -23,6 +23,8 @@ wutengine_graphics.workspace = true
 log.workspace = true
 profiling.workspace = true
 nohash-hasher.workspace = true
+bytemuck = { workspace = true, features = ["must_cast"] }
+rayon.workspace = true
 
 [lints]
 workspace = true

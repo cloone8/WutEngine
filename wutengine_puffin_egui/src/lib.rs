@@ -174,7 +174,8 @@ impl Streams {
     ) -> Self {
         crate::profile_function!();
 
-        let mut streams = vec![];
+        let mut streams = Vec::with_capacity(frames.len());
+
         for frame in frames {
             if let Some(stream_info) = frame.thread_streams.get(thread_info) {
                 streams.push(stream_info.clone());

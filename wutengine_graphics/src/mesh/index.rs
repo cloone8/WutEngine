@@ -1,23 +1,27 @@
+use core::num::NonZero;
+
 use wutengine_asset::assets::mesh::MeshTopology;
 
 /// A raw Mesh index buffer
 #[derive(Debug)]
 pub struct IndexBuffer {
     /// The topology this buffer contains
-    pub(crate) topology: MeshTopology,
+    topology: MeshTopology,
 
     /// The format of each index
-    pub(crate) format: IndexFormat,
+    format: IndexFormat,
 
     /// The amount of indices
-    pub(crate) count: usize,
+    count: NonZero<u64>,
+
+    dynamic: bool,
 
     /// The raw GPU buffer
-    pub(crate) buffer: wgpu::Buffer,
+    buffer: wgpu::Buffer,
 
     /// The CPU-side stored data
     #[expect(unused, reason = "CPU side mesh modification will be added later")]
-    pub(crate) cpu_buffer: Option<Vec<u8>>,
+    cpu_buffer: Option<Vec<u8>>,
 }
 
 /// An error while creating an [IndexBuffer]
@@ -38,6 +42,29 @@ pub enum NewIndexBufferErr {
     },
 }
 
+/// An error while updating an [IndexBuffer]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum UpdateIndexBufferErr {
+    #[display("Cannot update a non-dynamic index buffer")]
+    /// Index buffer cannot be empty
+    NotDynamic,
+
+    /// Out of bounds
+    #[display(
+        "Update would go out of buffer bounds. Tried to write elements {write_start}..{write_end}, buffer length: {buf_len}"
+    )]
+    OutOfRange {
+        /// Start index of attempted write
+        write_start: u64,
+
+        /// Exclusive end index of attempted write
+        write_end: u64,
+
+        /// Length of buffer
+        buf_len: u64,
+    },
+}
+
 impl IndexBuffer {
     /// Creates a new index buffer with the given data and topology
     pub fn new<T: IndexDatatype>(
@@ -45,6 +72,7 @@ impl IndexBuffer {
         topology: MeshTopology,
         device: &wgpu::Device,
         keep_on_cpu: bool,
+        dynamic: bool,
     ) -> Result<Self, NewIndexBufferErr> {
         profiling::function_scope!();
 
@@ -53,28 +81,15 @@ impl IndexBuffer {
             data.len()
         );
 
-        if data.is_empty() {
+        let Some(count) = NonZero::new(data.len() as u64) else {
             return Err(NewIndexBufferErr::Zero);
-        }
+        };
 
-        if !data.len().is_multiple_of(topology.indices_per_primitive()) {
-            return Err(NewIndexBufferErr::NotEnoughIndices {
-                count: data.len(),
-                topology,
-            });
-        }
-
-        let data_format = T::FORMAT;
-        let data_bytes = <T as IndexDatatype>::as_bytes(data);
-
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Index buffer"),
-            size: data_bytes.len() as u64,
-            usage: wgpu::BufferUsages::INDEX,
-            mapped_at_creation: true,
-        });
+        let buffer = Self::alloc_buffer::<T>(topology, count, dynamic, device)?;
 
         let mut buffer_view = buffer.get_mapped_range_mut(..);
+
+        let data_bytes = T::as_bytes(data);
 
         buffer_view.copy_from_slice(data_bytes);
 
@@ -83,15 +98,181 @@ impl IndexBuffer {
 
         Ok(Self {
             topology,
-            format: data_format,
-            count: data.len(),
+            format: T::FORMAT,
+            count: NonZero::new(data.len() as u64).unwrap(),
             buffer,
+            dynamic,
             cpu_buffer: if keep_on_cpu {
                 Some(data_bytes.to_vec())
             } else {
                 None
             },
         })
+    }
+
+    /// Creates a new index buffer and write data directly into it
+    pub fn new_direct<T: IndexDatatype>(
+        count: NonZero<u64>,
+        topology: MeshTopology,
+        device: &wgpu::Device,
+        keep_on_cpu: bool,
+        dynamic: bool,
+        write_func: impl FnOnce(&mut wgpu::WriteOnly<'_, [u8]>),
+    ) -> Result<Self, NewIndexBufferErr> {
+        profiling::function_scope!();
+
+        let buffer = Self::alloc_buffer::<T>(topology, count, dynamic, device)?;
+
+        let mut buf_view = buffer.get_mapped_range_mut(..);
+        let mut buf_view_slice = buf_view.slice(..);
+
+        write_func(&mut buf_view_slice);
+
+        drop(buf_view);
+
+        let cpu_buffer = if keep_on_cpu {
+            Some(buffer.get_mapped_range(..).to_vec())
+        } else {
+            None
+        };
+
+        buffer.unmap();
+
+        Ok(Self {
+            topology,
+            format: T::FORMAT,
+            count,
+            buffer,
+            cpu_buffer,
+            dynamic,
+        })
+    }
+
+    fn alloc_buffer<T: IndexDatatype>(
+        topology: MeshTopology,
+        count: NonZero<u64>,
+        dynamic: bool,
+        device: &wgpu::Device,
+    ) -> Result<wgpu::Buffer, NewIndexBufferErr> {
+        profiling::function_scope!();
+
+        log::trace!(
+            "Creating new index buffer for topology {topology} with {} elements",
+            count
+        );
+
+        if !count
+            .get()
+            .is_multiple_of(topology.indices_per_primitive() as u64)
+        {
+            return Err(NewIndexBufferErr::NotEnoughIndices {
+                count: count.get() as usize,
+                topology,
+            });
+        }
+
+        let data_format = T::FORMAT;
+        let data_bytes = (data_format.stride() as u64) * count.get();
+
+        Ok(device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Index buffer"),
+            size: data_bytes,
+            usage: wgpu::BufferUsages::INDEX
+                | (if dynamic {
+                    wgpu::BufferUsages::COPY_DST
+                } else {
+                    wgpu::BufferUsages::empty()
+                }),
+            mapped_at_creation: true,
+        }))
+    }
+
+    /// Updates an existing buffer with new data. Buffer must have been created with `dynamic` set to `true`
+    pub fn update<T: IndexDatatype>(
+        &mut self,
+        offset: u64,
+        data: &[T],
+    ) -> Result<(), Box<UpdateIndexBufferErr>> {
+        profiling::function_scope!();
+
+        if !self.dynamic {
+            return Err(Box::new(UpdateIndexBufferErr::NotDynamic));
+        }
+
+        if data.is_empty() {
+            return Ok(());
+        }
+
+        if (offset + data.len() as u64) > self.count.get() {
+            return Err(Box::new(UpdateIndexBufferErr::OutOfRange {
+                write_start: offset,
+                write_end: offset + data.len() as u64,
+                buf_len: self.count.get(),
+            }));
+        }
+
+        let bytes = T::as_bytes(data);
+
+        {
+            profiling::scope!("Write buffer");
+            let mut buf_view = crate::queue()
+                .write_buffer_with(
+                    &self.buffer,
+                    offset,
+                    NonZero::new(bytes.len() as u64).unwrap(),
+                )
+                .expect("Should have returned a view");
+            buf_view.copy_from_slice(bytes);
+
+            drop(buf_view);
+        }
+
+        Ok(())
+    }
+
+    /// Updates an existing buffer with new data by writing directly into it. Buffer must have been created with `dynamic` set to `true`
+    pub fn update_direct<T: IndexDatatype>(
+        &mut self,
+        offset: u64,
+        count: u64,
+        update_func: impl FnOnce(&mut wgpu::WriteOnly<'_, [u8]>),
+    ) -> Result<(), Box<UpdateIndexBufferErr>> {
+        profiling::function_scope!();
+
+        if !self.dynamic {
+            return Err(Box::new(UpdateIndexBufferErr::NotDynamic));
+        }
+
+        if (offset + count) > self.count.get() {
+            return Err(Box::new(UpdateIndexBufferErr::OutOfRange {
+                write_start: offset,
+                write_end: offset + count,
+                buf_len: self.count.get(),
+            }));
+        }
+
+        if count == 0 {
+            return Ok(());
+        }
+
+        let mut buf_view = crate::queue()
+            .write_buffer_with(
+                &self.buffer,
+                offset,
+                NonZero::new(count * T::FORMAT.stride() as u64).unwrap(),
+            )
+            .expect("Should have returned a view");
+        let mut buf_view_slice = buf_view.slice(..);
+
+        update_func(&mut buf_view_slice);
+
+        Ok(())
+    }
+
+    /// Returns the configured [MeshTopology] for this buffer
+    #[inline(always)]
+    pub fn topology(&self) -> MeshTopology {
+        self.topology
     }
 
     /// Returns a reference to the raw [wgpu::Buffer]
@@ -109,7 +290,7 @@ impl IndexBuffer {
     /// Returns the amount of indices in this buffer
     #[inline(always)]
     #[allow(clippy::len_without_is_empty, reason = "Index buffer is never empty")]
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> NonZero<u64> {
         self.count
     }
 }
@@ -176,6 +357,14 @@ impl IndexFormat {
         match self {
             Self::U16 => wgpu::IndexFormat::Uint16,
             Self::U32 => wgpu::IndexFormat::Uint32,
+        }
+    }
+
+    /// The stride in bytes per element of this format
+    pub const fn stride(self) -> usize {
+        match self {
+            Self::U16 => size_of::<u16>(),
+            Self::U32 => size_of::<u32>(),
         }
     }
 }

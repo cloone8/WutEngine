@@ -361,6 +361,8 @@ fn ui_canvas(
     let threads = options.sorting.sort(threads);
 
     for thread_info in threads {
+        puffin::profile_scope!("thread", &thread_info.name);
+
         let thread_visualization = options
             .flamegraph_threads
             .entry(thread_info.name.clone())
@@ -396,6 +398,8 @@ fn ui_canvas(
         cursor_y += info.text_height;
 
         if !thread_visualization.flamegraph_collapse {
+            puffin::profile_scope!("flamegraph");
+
             let mut paint_streams = || -> Result<()> {
                 if options.merge_scopes {
                     for merge in &frames.threads[&thread_info].merged_scopes {
@@ -961,6 +965,8 @@ fn merge_scope_tooltip(
 }
 
 fn paint_thread_info(info: &Info<'_>, thread: &ThreadInfo, pos: Pos2, collapsed: &mut bool) {
+    puffin::profile_function!();
+
     let collapsed_symbol = if *collapsed { "⏵" } else { "⏷" };
 
     let galley = info.ctx.fonts_mut(|f| {

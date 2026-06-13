@@ -21,7 +21,14 @@ wutengine_config.workspace = true
 log.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
-derive_more = { workspace = true, features = ["display", "from", "error"] }
+derive_more = { workspace = true, features = [
+    "display",
+    "from",
+    "error",
+    "unwrap",
+    "try_unwrap",
+    "is_variant",
+] }
 wgpu = { workspace = true, features = [
     # Shader languages
     "naga-ir",

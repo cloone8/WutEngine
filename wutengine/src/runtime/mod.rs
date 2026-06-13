@@ -229,11 +229,17 @@ fn initialize_logger(queued_messages: Vec<(log::Level, String)>) {
     }
 }
 
-fn log_factory_fn(filter: log::LevelFilter, _target: Option<(&str, bool)>) -> Arc<dyn log::Log> {
+//TODO: Can remove option from target?
+fn log_factory_fn(filter: log::LevelFilter, target: Option<(&str, bool)>) -> Arc<dyn log::Log> {
+    let is_internal = target.is_some_and(|(_, internal)| internal);
     Arc::from(simplelog::TermLogger::new(
         filter,
         simplelog::ConfigBuilder::new()
-            .set_location_level(log::LevelFilter::Debug)
+            .set_location_level(if is_internal {
+                log::LevelFilter::Trace
+            } else {
+                log::LevelFilter::Debug
+            })
             .set_target_level(log::LevelFilter::Error)
             .build(),
         simplelog::TerminalMode::Stdout,
@@ -332,32 +338,6 @@ impl Runtime {
 
         buffers.push(blit_encoder.finish());
 
-        #[cfg(feature = "development_overlay")]
-        {
-            use wutengine_development_overlay::wutengine_egui;
-
-            let main_surface = surfaces.iter().find(|(win, _)| win.is_primary());
-
-            if let Some((window, surface_tex)) = main_surface {
-                let egui_window_info = wutengine_egui::EguiWindowInfo {
-                    focused: window.is_focused(),
-                    occluded: window.is_occluded(),
-                    minimized: window.is_minimized(),
-                    maximized: window.is_maximized(),
-                };
-
-                if let Some(overlay_buffer) = crate::development_overlay::render_if_active(
-                    input::WindowIdentifier::from(*window),
-                    &egui_window_info,
-                    surface_tex,
-                    window.get_scale_factor() as f32,
-                    time::unscaled_time64(),
-                ) {
-                    buffers.push(overlay_buffer);
-                }
-            }
-        }
-
         window::manager::pre_present_notify(surfaces.iter().map(|(win, _)| win));
 
         graphics::queue().submit(buffers);
@@ -405,6 +385,47 @@ impl Runtime {
         }
 
         Some(encoder)
+    }
+
+    fn prepare_development_overlay(
+        surfaces: &[(Window, wgpu::SurfaceTexture)],
+    ) -> Option<(Window, std::sync::mpsc::Receiver<()>)> {
+        #[cfg(feature = "development_overlay")]
+        {
+            use wutengine_development_overlay::wutengine_egui;
+
+            let main_surface = surfaces.iter().find(|(win, _)| win.is_primary());
+
+            if let Some((window, surface_tex)) = main_surface {
+                let egui_window_info = wutengine_egui::EguiWindowInfo {
+                    focused: window.is_focused(),
+                    occluded: window.is_occluded(),
+                    minimized: window.is_minimized(),
+                    maximized: window.is_maximized(),
+                };
+
+                let ready_channel = crate::development_overlay::run_overlay_logic(
+                    input::WindowIdentifier::from(*window),
+                    egui_window_info,
+                    (
+                        surface_tex.texture.size().width,
+                        surface_tex.texture.size().height,
+                    ),
+                    window.get_scale_factor() as f32,
+                    time::unscaled_time64(),
+                );
+
+                Some((*window, ready_channel))
+            } else {
+                None
+            }
+        }
+
+        #[cfg(not(feature = "development_overlay"))]
+        {
+            _ = surfaces;
+            None
+        }
     }
 }
 

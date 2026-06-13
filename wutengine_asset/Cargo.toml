@@ -17,11 +17,18 @@ importers = ["dep:image"]
 
 [dependencies]
 wutengine_math.workspace = true
+wutengine_util_macro.workspace = true
+
 log.workspace = true
 profiling.workspace = true
 serde.workspace = true
 serde_bytes.workspace = true
-derive_more = { workspace = true, features = ["display", "error", "from"] }
+derive_more = { workspace = true, features = [
+    "debug",
+    "display",
+    "error",
+    "from",
+] }
 nohash-hasher.workspace = true
 
 # Used by importers

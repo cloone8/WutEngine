@@ -38,8 +38,6 @@ pub(crate) fn compile(
     shader: &Shader,
     keywords: &HashMap<String, u64>,
 ) -> Result<Arc<CompiledShader>, Box<CompileErr>> {
-    profiling::function_scope!();
-
     let variant_id = crate::shader::calculate_variant_id(shader.id, keywords);
 
     if let Some(cached) = cache::shader::find(&variant_id) {
