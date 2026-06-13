@@ -6,7 +6,9 @@
 
 use proc_macro::Span;
 use quote::quote;
+use quote::quote_spanned;
 use syn::parse::Parse;
+use syn::spanned::Spanned;
 use syn::{Attribute, Ident, LitStr, Type, Visibility, parse_macro_input, parse_str};
 
 /// Input for the [unique_id_type32] and [unique_id_type64] macros
@@ -245,11 +247,14 @@ pub fn derive_variant_index(input: proc_macro::TokenStream) -> proc_macro::Token
     let mut repr_type = None;
 
     for attr in derive_input.attrs {
-        if let Some(ident) = attr.path().get_ident() {
-            if ident == "index_repr" {
-                repr_type = Some(attr.parse_args::<syn::Type>().unwrap());
-                break;
+        if let Some(ident) = attr.path().get_ident()
+            && ident == "index_repr"
+        {
+            if repr_type.is_some() {
+                return quote_spanned! {attr.span()=> { compile_error!("Duplicate `index_repr` attribute")}}.into();
             }
+
+            repr_type = Some(attr.parse_args::<syn::Type>().unwrap());
         }
     }
 

@@ -264,6 +264,7 @@ pub(crate) fn refresh_displays(event_loop: &winit::event_loop::ActiveEventLoop) 
     window_manager.displays = new_display_map;
 }
 
+/// Request a winit redraw for this window
 pub(crate) fn request_redraw(window: Window) {
     profiling::function_scope!();
     assert_main_thread!();
