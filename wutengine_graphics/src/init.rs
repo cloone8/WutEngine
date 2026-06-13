@@ -52,8 +52,9 @@ pub fn initialize_graphics_context() -> bool {
     );
 
     // We request all features supported by the device, excluding "unwanted" ones.
-    let adapter_requested_features =
-        adapter.features() & (!unwanted_features_mask(adapter_info.device_type));
+    let adapter_requested_features = adapter
+        .features()
+        .intersection(super::all_wanted_features(adapter_info.device_type));
 
     if log::log_enabled!(log::Level::Debug) {
         let mut features_string = String::new();
@@ -97,24 +98,13 @@ pub fn initialize_graphics_context() -> bool {
         &super::ACTIVE_CONFIG,
         GraphicsRuntimeConfig {
             backend: config.backend,
+            adapter: adapter_info,
             features: super::GFX_DEVICE.features(),
             limits: super::GFX_DEVICE.limits(),
         },
     );
 
     true
-}
-
-/// A mask of all unwanted API features. This includes experimental features,
-/// and mappable primary buffers on non-shared memory systems
-const fn unwanted_features_mask(device_type: wgpu::DeviceType) -> wgpu::Features {
-    let mut mask = wgpu::Features::all_experimental_mask();
-
-    if !matches!(device_type, wgpu::DeviceType::IntegratedGpu) {
-        mask = mask.union(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS);
-    }
-
-    mask
 }
 
 fn on_device_lost(reason: wgpu::DeviceLostReason, message: String) {

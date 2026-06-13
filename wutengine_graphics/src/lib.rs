@@ -86,3 +86,20 @@ pub const fn to_wgpu_color(color: wutengine_math::Color) -> wgpu::Color {
         a: color.a() as f64,
     }
 }
+
+/// All features we could possibly request
+pub const fn all_wanted_features(device_type: wgpu::DeviceType) -> wgpu::Features {
+    wgpu::Features::all().intersection(unwanted_features_mask(device_type).complement())
+}
+
+/// A mask of all unwanted API features. This includes experimental features,
+/// and mappable primary buffers on non-shared memory systems
+const fn unwanted_features_mask(device_type: wgpu::DeviceType) -> wgpu::Features {
+    let mut mask = wgpu::Features::all_experimental_mask();
+
+    if !matches!(device_type, wgpu::DeviceType::IntegratedGpu) {
+        mask = mask.union(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS);
+    }
+
+    mask
+}

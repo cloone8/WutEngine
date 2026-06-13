@@ -14,10 +14,9 @@ mod flamegraph;
 mod maybe_mut_ref;
 mod stats;
 
-pub use {egui, maybe_mut_ref::MaybeMutRef, puffin};
-
 use core::time::Duration;
 use egui::{scroll_area::ScrollSource, *};
+use maybe_mut_ref::MaybeMutRef;
 use puffin::*;
 use std::sync::Mutex;
 use std::time::Instant;

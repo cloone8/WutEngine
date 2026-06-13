@@ -101,6 +101,9 @@ pub struct GraphicsRuntimeConfig {
     /// The used backend
     pub backend: GraphicsBackend,
 
+    /// The adapter info
+    pub adapter: wgpu::AdapterInfo,
+
     /// The active GPU/API limits
     pub limits: wgpu::Limits,
 

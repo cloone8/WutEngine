@@ -56,6 +56,11 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             std::process::exit(808);
         }
 
+        #[cfg(feature = "development_overlay")]
+        {
+            graphics::dev_overlays::insert_all();
+        }
+
         // Initialize the time manager later here, right before the runtime starts running frames
         time::init();
         thread::init_thread_pool();

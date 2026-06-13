@@ -16,6 +16,9 @@ use wutengine_util::InitOnce;
 
 use crate::builtins::components::rendering::CameraId;
 
+#[cfg(feature = "development_overlay")]
+pub(crate) mod dev_overlays;
+
 /// A single draw command submitted to the WutEngine graphics backend.
 #[derive(Debug, Clone)]
 pub struct DrawCommand {
