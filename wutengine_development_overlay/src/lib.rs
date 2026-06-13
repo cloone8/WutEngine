@@ -635,6 +635,8 @@ fn render_primitive(
     }
 }
 
+/// Sets the `screen_size` parameter on the given texture material, if the screen size
+/// has changed
 fn set_surface_size_if_changed(
     texmat: &mut TextureMaterial,
     sfc_size: (f32, f32),
@@ -657,6 +659,7 @@ fn set_surface_size_if_changed(
     texmat.cur_screen_size = sfc_size;
 }
 
+/// Uploads new texture materials (or updates existing ones) depending on the parameters in `texture_map`
 fn upload_new_textures(
     texture_map: &mut HashMap<egui::TextureId, TextureMaterial>,
     to_set: Vec<(egui::TextureId, egui::epaint::ImageDelta)>,
@@ -756,6 +759,7 @@ fn upload_new_textures(
     }
 }
 
+/// Removes the [TextureMaterial] belonging to any texutre in `to_remove`
 fn free_removed_textures(
     texture_map: &mut HashMap<egui::TextureId, TextureMaterial>,
     to_remove: Vec<egui::TextureId>,

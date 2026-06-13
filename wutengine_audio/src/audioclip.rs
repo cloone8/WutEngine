@@ -1,12 +1,14 @@
+//! An audio clip
+
 use core::convert::Infallible;
 
 use wutengine_asset::Asset;
 use wutengine_asset::assets::audioclip::AudioClipFormat;
 use wutengine_asset::assets::audioclip::SerializedAudioClip;
 
+/// A clip of audio
 #[derive(Debug, Clone)]
 pub struct AudioClip {
-    looped: bool,
     format: AudioClipFormat,
     data: Vec<u8>,
 }
@@ -21,7 +23,6 @@ impl Asset for AudioClip {
         Self: Sized,
     {
         Ok(Self {
-            looped: serialized.looped,
             format: serialized.format,
             data: serialized.data.clone(),
         })

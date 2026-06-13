@@ -71,6 +71,7 @@ pub enum ShaderVertexAttributeType {
 }
 
 impl ShaderVertexAttributeType {
+    /// Returns this attribute as a [u16]
     #[inline]
     pub const fn as_u16(self) -> u16 {
         let channel = if let Self::Uv { channel } = self {
