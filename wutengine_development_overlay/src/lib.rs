@@ -145,6 +145,8 @@ pub fn run_overlay_logic(
     }
 
     rayon::spawn(move || {
+        profiling::scope!("Run overlay logic");
+
         let sfc_size = (surface_size.0, surface_size.1);
         let sfc_points = (
             sfc_size.0 as f32 / scale_factor,

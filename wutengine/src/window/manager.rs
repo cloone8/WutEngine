@@ -325,13 +325,14 @@ pub(crate) fn find_id(native_id: winit::window::WindowId) -> WindowState {
 /// Returns the surface textures for all current windows that have a valid one.
 /// If vsync is enabled, this is the point where the CPU is locked
 pub(crate) fn get_surface_textures() -> SmallVec<[(Window, wgpu::SurfaceTexture); 2]> {
-    profiling::function_scope!();
+    profiling::scope!("Wait on vsync");
 
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
     let mut surfaces: SmallVec<[_; 2]> = SmallVec::new_const();
 
     for (&id, window_info) in window_manager.windows.iter() {
+        profiling::scope!("Get surface texture", &id.to_string());
         log::trace!("Getting surface texture for window {id}");
 
         if let Some(surface_tex) = unwrap_surface_tex(&window_info.surface, id) {
