@@ -16,6 +16,7 @@ use wutengine_math::Vec2;
 use wutengine_util::map;
 
 mod key_mapping;
+pub mod serde_ui;
 
 pub use key_mapping::*;
 
