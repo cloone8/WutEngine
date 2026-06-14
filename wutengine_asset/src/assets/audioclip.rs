@@ -29,4 +29,7 @@ pub enum AudioClipFormat {
 
     /// FLAC (.flac)
     Flac,
+
+    /// MP3 (.mp3)
+    Mp3,
 }

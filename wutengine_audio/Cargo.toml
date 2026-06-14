@@ -22,8 +22,8 @@ rodio = { workspace = true, features = [
     "flac",
     "vorbis",
     "wav",
+    "mp3",
     "playback",
-    "recording",
     "tracing",
 ] }
 

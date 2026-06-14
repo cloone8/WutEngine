@@ -1,5 +1,8 @@
 //! An audio clip
 
+extern crate alloc;
+
+use alloc::sync::Arc;
 use core::convert::Infallible;
 
 use wutengine_asset::Asset;
@@ -10,7 +13,22 @@ use wutengine_asset::assets::audioclip::SerializedAudioClip;
 #[derive(Debug, Clone)]
 pub struct AudioClip {
     format: AudioClipFormat,
-    data: Vec<u8>,
+    data: Arc<[u8]>,
+}
+
+impl AudioClip {
+    pub fn new_decoder(
+        &self,
+    ) -> Result<rodio::Decoder<std::io::Cursor<Arc<[u8]>>>, rodio::decoder::DecoderError> {
+        let source = std::io::Cursor::new(self.data.clone());
+
+        match self.format {
+            AudioClipFormat::Wav => rodio::Decoder::new_wav(source),
+            AudioClipFormat::OggVorbis => rodio::Decoder::new_vorbis(source),
+            AudioClipFormat::Flac => rodio::Decoder::new_flac(source),
+            AudioClipFormat::Mp3 => rodio::Decoder::new_mp3(source),
+        }
+    }
 }
 
 impl Asset for AudioClip {
@@ -24,7 +42,7 @@ impl Asset for AudioClip {
     {
         Ok(Self {
             format: serialized.format,
-            data: serialized.data.clone(),
+            data: Arc::from(serialized.data.clone()),
         })
     }
 }

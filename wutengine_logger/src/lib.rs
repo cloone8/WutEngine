@@ -157,6 +157,7 @@ fn is_internally_used_external_crate(first_module: &str) -> bool {
         "wgpu_hal" => true,
         "gilrs" => true,
         "wgpu_core" => true,
+        "symphonia_core" => true,
         _ => false,
     }
 }

@@ -5,12 +5,16 @@ use wutengine_util::InitOnce;
 mod audioclip;
 pub use audioclip::*;
 
+#[doc(inline)]
+pub use rodio;
+
 /// The global [AudioManager]
 static AUDIO_MANAGER: InitOnce<AudioManager> = InitOnce::new();
 
 /// An audio manager. Manages global audio playback
 #[derive(Debug)]
 struct AudioManager {
+    /// The OS audio sink
     sink: Option<rodio::MixerDeviceSink>,
 }
 
@@ -57,4 +61,13 @@ pub fn init() {
     profiling::function_scope!();
 
     InitOnce::init(&AUDIO_MANAGER, AudioManager::default());
+}
+
+/// Returns a new audio player
+#[inline]
+pub fn new_player() -> Option<rodio::Player> {
+    AUDIO_MANAGER
+        .sink
+        .as_ref()
+        .map(|sink| rodio::Player::connect_new(sink.mixer()))
 }
