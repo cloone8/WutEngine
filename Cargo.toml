@@ -86,7 +86,6 @@ nohash-hasher = { version = "0.2" }
 twox-hash = { version = "2.1" }
 dashmap = { version = "6.1" }
 indexmap = { version = "2" }
-serde_core = { version = "1" }
 serde = { version = "1.0" }
 serde_json = { version = "1.0" }
 serde_bytes = { version = "0.11" }
