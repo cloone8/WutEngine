@@ -34,6 +34,7 @@ wutengine_physics2d.workspace = true
 wutengine_physics3d.workspace = true
 wutengine_audio.workspace = true
 wutengine_logger.workspace = true
+wutengine_event.workspace = true
 
 log.workspace = true
 simplelog.workspace = true

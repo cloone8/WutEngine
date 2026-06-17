@@ -155,6 +155,9 @@ pub enum Phase {
     /// Called once each tick
     Update,
 
+    /// Called once each tick, after the main [Self::Update]
+    LateUpdate,
+
     /// Called after all standard frame logic, right before rendering takes place
     PreRender,
 }
@@ -165,6 +168,7 @@ impl Phase {
         match self {
             Self::FixedUpdate => "Fixed Update",
             Self::Update => "Update",
+            Self::LateUpdate => "Late Update",
             Self::PreRender => "Pre-render",
         }
     }

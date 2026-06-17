@@ -1,4 +1,4 @@
-//! Runtime and loadtime configuration management
+#![doc = include_str!("../README.md")]
 
 use core::str::FromStr;
 use std::collections::HashMap;
@@ -22,6 +22,33 @@ static CONFIG_MANAGER: InitOnce<ConfigManager> = InitOnce::new();
 struct ConfigManager {
     /// All config keys
     config: DashMap<String, toml::Value>,
+}
+
+/// Event fired when a configuration value has changed
+#[derive(Debug, Clone)]
+pub struct ConfigValueChanged {
+    /// The config key that was changed
+    pub key: String,
+
+    /// The new value as a raw [toml value](toml::Value)
+    pub new_value: toml::Value,
+}
+
+impl ConfigValueChanged {
+    /// Tries to convert the new toml value into `T`. Returns [None] if `T` cannot
+    /// be deserialized from the new value.
+    pub fn new_value_into<'de, T: Deserialize<'de>>(&self) -> Option<T> {
+        match self.new_value.clone().try_into() {
+            Ok(val) => Some(val),
+            Err(e) => {
+                log::warn!(
+                    "Could not convert new value to type {}: {e}",
+                    core::any::type_name::<T>()
+                );
+                None
+            }
+        }
+    }
 }
 
 /// Initialize the config manager, and loads the configuration from the
@@ -261,7 +288,14 @@ pub fn set_raw(key: &str, value: toml::Value) -> Result<(), ConfigKeyErr> {
         .entry(main_category.to_owned())
         .or_insert_with(|| toml::Value::Table(toml::map::Map::default()));
 
-    set_key(rest, &mut subcategory_value, value);
+    set_key(rest, &mut subcategory_value, value.clone());
+
+    drop(subcategory_value);
+
+    wutengine_event::publish(ConfigValueChanged {
+        key: key.to_owned(),
+        new_value: value,
+    });
 
     Ok(())
 }

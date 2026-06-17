@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_development_overlay"
+description = "Development overlay functionality for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

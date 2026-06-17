@@ -1,6 +1,6 @@
 [package]
-name = "wutengine_config"
-description = "Runtime configuration management for WutEngine"
+name = "wutengine_event"
+description = "Event publishing and handling for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,15 +13,11 @@ categories.workspace = true
 
 [dependencies]
 wutengine_util.workspace = true
-wutengine_event.workspace = true
+wutengine_util_macro.workspace = true
 
 log.workspace = true
 profiling.workspace = true
-dashmap.workspace = true
-serde.workspace = true
-smallvec.workspace = true
-toml.workspace = true
-derive_more = { workspace = true, features = ["display", "error", "from"] }
+nohash-hasher.workspace = true
 
 [lints]
 workspace = true

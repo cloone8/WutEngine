@@ -139,6 +139,7 @@ trait RapierConversion<T> {
     fn to_rapier(self) -> T;
 
     /// Convert from rapier
+    #[expect(unused, reason = "Will be used once basic physics have been added")]
     fn from_rapier(val: T) -> Self;
 }
 

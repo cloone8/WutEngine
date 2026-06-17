@@ -82,8 +82,6 @@ impl Mouse {
         }
     }
 
-    pub(crate) fn preprocess_frame(&mut self) {}
-
     /// Clears the frame-specific data for this mouse, ensuring all new
     /// input gets registered to the next frame
     pub(crate) fn end_frame(&mut self) {

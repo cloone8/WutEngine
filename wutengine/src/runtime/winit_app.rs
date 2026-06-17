@@ -231,63 +231,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let _ = event_loop;
-
-        // Toggle profiling scopes
-        crate::profiling::change_scope_active_status();
-
-        // We wait for the rendering target to become available in the beginning of the frame,
-        // because then if we block on vsync or similar the simulation will not be out of date
-        let surfaces = window::manager::get_surface_textures();
-
-        input::gamepad::poll_for_events();
-
-        let dev_overlay_output = Self::prepare_development_overlay(&surfaces);
-
-        self.run_frame_logic();
-
-        self.render_all_windows(&surfaces);
-
-        if let Some((dev_overlay_window, dev_overlay_ready_chan)) = dev_overlay_output {
-            #[cfg(not(feature = "development_overlay"))]
-            {
-                _ = (dev_overlay_window, dev_overlay_ready_chan);
-
-                unsafe {
-                    wutengine_util::unreachable_dbg!();
-                }
-            }
-
-            #[cfg(feature = "development_overlay")]
-            {
-                {
-                    profiling::scope!("Wait for dev overlay");
-                    // Wait for the development overlay to be ready, and actually render it to the surface
-                    dev_overlay_ready_chan.recv().unwrap();
-                }
-
-                let (_, dev_overlay_surface) = surfaces
-                    .iter()
-                    .find(|(win, _)| *win == dev_overlay_window)
-                    .unwrap();
-
-                if let Some(dev_overlay_command_buf) =
-                    crate::development_overlay::render_overlay(dev_overlay_surface)
-                {
-                    graphics::queue().submit([dev_overlay_command_buf]);
-                }
-            }
-        }
-
-        for (_, surface) in surfaces {
-            surface.present();
-        }
-
-        input::end_frame();
-
-        self.frame_pacer.frame_rendered();
-        self.frame_pacer.wait_for_limit();
-
-        profiling::finish_frame!();
+        self.run_frame();
     }
 
     fn suspended(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {

@@ -4694,6 +4694,7 @@ dependencies = [
  "wutengine_audio",
  "wutengine_config",
  "wutengine_development_overlay",
+ "wutengine_event",
  "wutengine_graphics",
  "wutengine_input",
  "wutengine_logger",
@@ -4744,6 +4745,7 @@ dependencies = [
  "serde",
  "smallvec",
  "toml",
+ "wutengine_event",
  "wutengine_util",
 ]
 
@@ -4778,6 +4780,17 @@ dependencies = [
  "wutengine_input",
  "wutengine_math",
  "wutengine_util",
+]
+
+[[package]]
+name = "wutengine_event"
+version = "0.6.0"
+dependencies = [
+ "log",
+ "nohash-hasher",
+ "profiling",
+ "wutengine_util",
+ "wutengine_util_macro",
 ]
 
 [[package]]

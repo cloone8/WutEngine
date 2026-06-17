@@ -8,21 +8,41 @@ use std::sync::RwLock;
 
 use wutengine_util::map;
 
+/// A clonable [logger](log::Log)
+pub type LoggerImplementation = Arc<dyn log::Log>;
+
+/// Function that produces [LoggerImplementation]s
+pub type CreateLoggerFunction =
+    dyn Fn(log::LevelFilter, &str, bool) -> LoggerImplementation + Send + Sync;
+
+/// Struct that produces per-subsytem loggers, for use in the wutengine [ModuleLogger]
 #[derive(derive_more::Debug)]
 pub struct LoggerFactory {
+    /// Called by the [ModuleLogger] when either a new subsystem is encountered, or the configuration for
+    /// a subsystem has changed
     #[debug(skip)]
-    pub create_logger:
-        Box<dyn Fn(log::LevelFilter, Option<(&str, bool)>) -> Arc<dyn log::Log> + Send + Sync>,
+    pub create_logger: Box<CreateLoggerFunction>,
 }
 
+/// [log::Log] implementation that contains multiple loggers, one for each subsystem
+#[derive(derive_more::Debug)]
 pub struct ModuleLogger {
+    /// Factory that produces the actual logger implementations
     factory: LoggerFactory,
+
+    /// Map of loggers per subsystem
+    #[debug(skip)]
     per_subsystem: RwLock<HashMap<String, Arc<dyn log::Log>>>,
+
+    /// Default level for internal subsystems
     default_internal_level: log::LevelFilter,
+
+    /// Default level for external subsystems
     default_external_level: log::LevelFilter,
 }
 
 impl ModuleLogger {
+    /// Create a new [ModuleLogger]
     pub fn new(
         factory: LoggerFactory,
         default_internal_level: log::LevelFilter,
@@ -37,7 +57,7 @@ impl ModuleLogger {
 
         Self {
             per_subsystem: RwLock::new(map![
-                "config" => (factory.create_logger)(config_log_level, Some(("config", true)))
+                "config" => (factory.create_logger)(config_log_level, "config", true)
             ]),
             factory,
             default_internal_level,
@@ -125,7 +145,7 @@ impl ModuleLogger {
         }
 
         // Else, insert a new one
-        let logger = (self.factory.create_logger)(level, Some((subsystem, is_wutengine)));
+        let logger = (self.factory.create_logger)(level, subsystem, is_wutengine);
 
         subsystems.insert(subsystem.to_string(), logger);
     }

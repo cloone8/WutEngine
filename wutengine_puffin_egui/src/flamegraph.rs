@@ -1,4 +1,4 @@
-use std::vec;
+use alloc::vec;
 
 use super::{ERROR_COLOR, HOVER_COLOR, SelectedFrames};
 use crate::filter::Filter;

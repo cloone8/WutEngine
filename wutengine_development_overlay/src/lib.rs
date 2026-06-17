@@ -1,4 +1,4 @@
-//! Development overlay tools and API
+#![doc = include_str!("../README.md")]
 
 extern crate alloc;
 
@@ -30,8 +30,6 @@ use wutengine_util_macro::unique_id_type32;
 use wutengine_graphics as graphics;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::material::MaterialParameter;
-use wutengine_graphics::mesh::IndexBuffer;
-use wutengine_graphics::mesh::VertexBuffer;
 use wutengine_graphics::sampler::Sampler;
 use wutengine_graphics::shader::GVec2;
 use wutengine_graphics::shader::GVec3;
@@ -50,6 +48,7 @@ unique_id_type32! {
     DevOverlayWindowId
 }
 
+/// Global [DevOverlayManager]
 static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new();
 
 #[doc(hidden)]
@@ -57,46 +56,81 @@ pub fn init() {
     InitOnce::init(&DEV_OVERLAY, DevOverlayManager::new());
 }
 
+/// Shader for [egui]
 static EGUI_SHADER: LazyLock<Arc<Shader>> = LazyLock::new(|| {
     let serialized = wutengine_egui::EGUI_SHADER.clone();
 
     Arc::new(Shader::from_serialized(&serialized).unwrap())
 });
 
+/// A material for rendering one texture. All [egui] meshes use the same shader,
+/// so we can just create a different material per texture to reduce bindgroup updates
 struct TextureMaterial {
+    /// The texture this material is for
     texture: Texture,
+
+    /// The sampler used to sample [Self::texture]
     sampler: Sampler,
+
+    /// The actual material
     material: Material,
+
+    /// The last screen size set on [Self::material]
     cur_screen_size: (f32, f32),
 }
 
+/// Manages the calculating and rendering of the development overlay
 pub(crate) struct DevOverlayManager {
+    /// Whether the overlay should be active
     active: AtomicBool,
-    egui_context: wutengine_egui::egui::Context,
-    textures: Mutex<HashMap<wutengine_egui::egui::TextureId, TextureMaterial>>,
+
+    /// The [egui::Context]
+    egui_context: egui::Context,
+
+    /// The materials for each texture
+    textures: Mutex<HashMap<egui::TextureId, TextureMaterial>>,
+
+    /// All registered dev windows
     windows: Mutex<Vec<DevOverlayWindow>>,
+
+    /// The GPU buffers containing all mesh vertices and indices
     buffers: Mutex<
         Option<(
             IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
             wgpu::Buffer,
         )>,
     >,
+
+    /// The calculated drawing parameters
     to_draw: Mutex<Option<DevOverlayDrawable>>,
 }
 
+/// Drawing parameters for use by [render_overlay], calculated by [run_overlay_logic]
 struct DevOverlayDrawable {
+    /// The primitives to draw
     primitives: Vec<ClippedPrimitive>,
+
+    /// Textures to free after drawing
     to_free: Vec<egui::TextureId>,
+
+    /// The pixels per point to use
     pixels_per_point: f32,
 }
 
+/// A single development overlay window, injected through [add_development_overlay_window]
 struct DevOverlayWindow {
+    /// The unique ID of the window
     id: DevOverlayWindowId,
+
+    /// Whether the window should be open now
     open: bool,
+
+    /// The implementation of the window
     window: Box<dyn DevelopmentOverlayWindow>,
 }
 
 impl DevOverlayManager {
+    /// A new empty [DevOverlayManager]
     fn new() -> Self {
         Self {
             active: AtomicBool::new(false),
@@ -128,6 +162,12 @@ pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
     }
 }
 
+/// Runs the logic to draw the dev overlay, if it is active.
+///
+/// Returns a [std::sync::mpsc::Receiver] that will receive exactly one message when the overlay is done
+/// calculating, as that is done on a different thread. When the receiver has received its message, [render_overlay] should
+/// be called before another call to [run_overlay_logic] in order to render the calculated overlay
+/// onto a target
 pub fn run_overlay_logic(
     input_window: wutengine_input::WindowIdentifier,
     window_info: wutengine_egui::EguiWindowInfo,
@@ -235,21 +275,25 @@ pub fn run_overlay_logic(
     is_done_recv
 }
 
-pub fn render_overlay(surface: &wgpu::SurfaceTexture) -> Option<wgpu::CommandBuffer> {
-    let drawable = DEV_OVERLAY.to_draw.lock().unwrap().take()?;
+/// Renders the current development overlay. Should be preceded by a call to [run_overlay_logic], and the returned channel should
+/// have been waited on.
+pub fn render_overlay(target: &wgpu::Texture, command_encoder: &mut wgpu::CommandEncoder) -> bool {
+    let Some(drawable) = DEV_OVERLAY.to_draw.lock().unwrap().take() else {
+        return false;
+    };
 
     profiling::function_scope!();
 
-    let surface_format = surface.texture.format().remove_srgb_suffix();
-    let surface_view = surface.texture.create_view(&wgpu::TextureViewDescriptor {
-        format: Some(surface_format),
+    let target_format = target.format().remove_srgb_suffix();
+    let target_view = target.create_view(&wgpu::TextureViewDescriptor {
+        format: Some(target_format),
         ..Default::default()
     });
 
-    let sfc_size = (surface.texture.size().width, surface.texture.size().height);
-    let sfc_points = (
-        sfc_size.0 as f32 / drawable.pixels_per_point,
-        sfc_size.1 as f32 / drawable.pixels_per_point,
+    let tgt_size = (target.size().width, target.size().height);
+    let tgt_points = (
+        tgt_size.0 as f32 / drawable.pixels_per_point,
+        tgt_size.1 as f32 / drawable.pixels_per_point,
     );
 
     let mut texture_map = DEV_OVERLAY.textures.lock().unwrap();
@@ -258,20 +302,15 @@ pub fn render_overlay(surface: &wgpu::SurfaceTexture) -> Option<wgpu::CommandBuf
     let Some((vertex_buffers, index_buffer)) = &*buffers else {
         // Error. Just do do cleanup
         free_removed_textures(&mut texture_map, drawable.to_free);
-        return None;
+        return false;
     };
-
-    let mut command_encoder =
-        graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Development overlay command encoder"),
-        });
 
     command_encoder.push_debug_group("Render egui primitives");
 
     let mut render_pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("Development overlay render pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-            view: &surface_view,
+            view: &target_view,
             depth_slice: None,
             resolve_target: None,
             ops: wgpu::Operations {
@@ -285,29 +324,24 @@ pub fn render_overlay(surface: &wgpu::SurfaceTexture) -> Option<wgpu::CommandBuf
         multiview_mask: None,
     });
 
-    let mut cur_pipeline = None;
-
-    let mut base_vertex = 0;
-    let mut base_index = 0;
-
     render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+
+    let mut renderstate = PrimitiveRenderState {
+        surface_format: target_format,
+        vertex_buffers,
+        texture_map: &mut texture_map,
+        surface_size: tgt_size,
+        surface_points: tgt_points,
+        pixels_per_point: drawable.pixels_per_point,
+        cur_pipeline: None,
+        base_vertex: 0,
+        base_index: 0,
+    };
 
     for primitive in drawable.primitives {
         render_pass.push_debug_group("Render single primitive");
 
-        render_primitive(
-            primitive,
-            vertex_buffers,
-            &mut base_vertex,
-            &mut base_index,
-            &mut render_pass,
-            &mut texture_map,
-            &mut cur_pipeline,
-            surface_format,
-            sfc_size,
-            sfc_points,
-            drawable.pixels_per_point,
-        );
+        renderstate.render_primitive(primitive, &mut render_pass);
 
         render_pass.pop_debug_group();
     }
@@ -317,9 +351,131 @@ pub fn render_overlay(surface: &wgpu::SurfaceTexture) -> Option<wgpu::CommandBuf
 
     free_removed_textures(&mut texture_map, drawable.to_free);
 
-    Some(command_encoder.finish())
+    true
 }
 
+/// Rendering helper for the dev overlay.
+struct PrimitiveRenderState<'a> {
+    /// Surface format of the target
+    surface_format: wgpu::TextureFormat,
+
+    /// Vertex buffers to use
+    vertex_buffers: &'a IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
+
+    /// Map of materials per texture
+    texture_map: &'a mut HashMap<egui::TextureId, TextureMaterial>,
+
+    /// Surface size in pixels
+    surface_size: (u32, u32),
+
+    /// Surface size in points
+    surface_points: (f32, f32),
+
+    /// Pixels per point
+    pixels_per_point: f32,
+
+    /// Current render pipeline. Automatically set and updated to minimize pipeline switches
+    cur_pipeline: Option<Arc<wgpu::RenderPipeline>>,
+
+    /// Current base vertex
+    base_vertex: u64,
+
+    /// Current base index
+    base_index: u64,
+}
+
+impl<'a> PrimitiveRenderState<'a> {
+    /// Renders a single [egui::ClippedPrimitive]. Primitives should be ordered according to their data in [Self::vertex_buffers] and the currently set index buffer
+    fn render_primitive(&mut self, primitive: egui::ClippedPrimitive, pass: &mut wgpu::RenderPass) {
+        match primitive.primitive {
+            egui::epaint::Primitive::Mesh(egui_mesh) => {
+                let tex_mat = self.texture_map.get_mut(&egui_mesh.texture_id).unwrap();
+
+                set_surface_size_if_changed(
+                    tex_mat,
+                    self.surface_points,
+                    wutengine_graphics::queue(),
+                );
+
+                tex_mat
+                    .material
+                    .raw_bind_group_mut()
+                    .update_bind_group(wutengine_graphics::device());
+
+                let pipeline = graphics::pipeline::get_pipeline(
+                    &tex_mat.material,
+                    MeshTopology::Triangle,
+                    &[Some(wgpu::ColorTargetState {
+                        format: self.surface_format,
+                        blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                        write_mask: wgpu::ColorWrites::all(),
+                    })],
+                )
+                .unwrap();
+
+                if self.cur_pipeline.is_none() || self.cur_pipeline.as_ref().unwrap() != &pipeline {
+                    pass.set_pipeline(&pipeline);
+                    self.cur_pipeline = Some(pipeline);
+                }
+
+                let scissor_rect = ScissorRect::new(
+                    &primitive.clip_rect,
+                    self.pixels_per_point,
+                    self.surface_size,
+                );
+
+                pass.set_scissor_rect(
+                    scissor_rect.x,
+                    scissor_rect.y,
+                    scissor_rect.width,
+                    scissor_rect.height,
+                );
+                let num_vertices = egui_mesh.vertices.len() as u64;
+                let num_indices = egui_mesh.indices.len() as u64;
+
+                pass.set_bind_group(
+                    MATERIAL_PARAMS_BIND_GROUP_INDEX,
+                    tex_mat.material.raw_bind_group().get_bind_group().unwrap(),
+                    &[],
+                );
+
+                let attrs = &tex_mat.material.compiled_shader().vertex_attributes;
+
+                for (attr_type, attr_info) in attrs {
+                    //TODO: Set this once and use `draw_indexed` with base vertex instead
+                    let Some(vertex_buffer) = self.vertex_buffers.get(attr_type) else {
+                        log::error!(
+                            "Mesh is missing vertex buffer for requested attribute: {attr_type}"
+                        );
+                        return;
+                    };
+
+                    let bytes_per_vtx = graphics::mesh::attr_bytes(*attr_type);
+                    let start_bytes = (self.base_vertex) * bytes_per_vtx as u64;
+                    let end_bytes = (self.base_vertex + num_vertices) * bytes_per_vtx as u64;
+
+                    pass.set_vertex_buffer(
+                        attr_info.shader_location,
+                        vertex_buffer.slice(start_bytes..end_bytes),
+                    );
+                }
+
+                pass.draw_indexed(
+                    (self.base_index as u32)..((self.base_index + num_indices) as u32),
+                    0,
+                    0..1,
+                );
+
+                self.base_vertex += num_vertices;
+                self.base_index += num_indices;
+            }
+            egui::epaint::Primitive::Callback(_) => unreachable!("Not supported"),
+        }
+    }
+}
+
+/// Gathers the data for all given primitives into the buffers given in `buffers`. If the buffers
+/// do not yet exist or are not large enough, they will be replaced with appropriately sized buffers
 fn gather_primitive_buffers(
     primitives: &[egui::ClippedPrimitive],
     buffers: &mut Option<(
@@ -359,9 +515,6 @@ fn gather_primitive_buffers(
         *buffers = None;
     }
 
-    let device = graphics::device();
-    let queue = graphics::queue();
-
     let pos_bytes =
         (graphics::mesh::attr_bytes(ShaderVertexAttributeType::Position) * total_verts) as u64;
     let color_bytes =
@@ -372,89 +525,137 @@ fn gather_primitive_buffers(
 
     match buffers {
         Some((vertex_buffers, index_buffer)) => {
-            let pos_buf = &vertex_buffers[&ShaderVertexAttributeType::Position];
-            let color_buf = &vertex_buffers[&ShaderVertexAttributeType::Color];
-            let uv_buf = &vertex_buffers[&ShaderVertexAttributeType::Uv { channel: 0 }];
-
-            let mut pos_write_view = queue
-                .write_buffer_with(pos_buf, 0, NonZero::new(pos_bytes).unwrap())
-                .unwrap();
-            let mut color_write_view = queue
-                .write_buffer_with(color_buf, 0, NonZero::new(color_bytes).unwrap())
-                .unwrap();
-            let mut uv_write_view = queue
-                .write_buffer_with(uv_buf, 0, NonZero::new(uv_bytes).unwrap())
-                .unwrap();
-            let mut index_write_view = queue
-                .write_buffer_with(index_buffer, 0, NonZero::new(index_bytes).unwrap())
-                .unwrap();
-
-            let pos_view = pos_write_view.slice(..);
-            let col_view = color_write_view.slice(..);
-            let uv_view = uv_write_view.slice(..);
-            let index_view = index_write_view.slice(..);
-
-            write_primitives_into_views(pos_view, col_view, uv_view, index_view, primitives);
+            write_into_existing_buffers(
+                pos_bytes,
+                color_bytes,
+                uv_bytes,
+                index_bytes,
+                primitives,
+                vertex_buffers,
+                index_buffer,
+            );
         }
         None => {
-            let pos_buf = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Development Overlay Position Buffer"),
-                size: pos_bytes,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: true,
-            });
-
-            let color_buf = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Development Overlay Color Buffer"),
-                size: color_bytes,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: true,
-            });
-
-            let uv_buf = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Development Overlay UV Buffer"),
-                size: uv_bytes,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: true,
-            });
-
-            let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Development Overlay Index Buffer"),
-                size: index_bytes,
-                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: true,
-            });
-
-            {
-                let mut pos_mapped = pos_buf.get_mapped_range_mut(..);
-                let mut col_mapped = color_buf.get_mapped_range_mut(..);
-                let mut uv_mapped = uv_buf.get_mapped_range_mut(..);
-                let mut index_mapped = index_buffer.get_mapped_range_mut(..);
-
-                let pos_view = pos_mapped.slice(..);
-                let col_view = col_mapped.slice(..);
-                let uv_view = uv_mapped.slice(..);
-                let index_view = index_mapped.slice(..);
-
-                write_primitives_into_views(pos_view, col_view, uv_view, index_view, primitives);
-            }
-
-            pos_buf.unmap();
-            color_buf.unmap();
-            uv_buf.unmap();
-            index_buffer.unmap();
-
-            let mut vertex_bufs = IntMap::default();
-
-            vertex_bufs.insert(ShaderVertexAttributeType::Position, pos_buf);
-            vertex_bufs.insert(ShaderVertexAttributeType::Color, color_buf);
-            vertex_bufs.insert(ShaderVertexAttributeType::Uv { channel: 0 }, uv_buf);
-
-            *buffers = Some((vertex_bufs, index_buffer));
+            *buffers = Some(write_into_new_buffers(
+                pos_bytes,
+                color_bytes,
+                uv_bytes,
+                index_bytes,
+                primitives,
+            ));
         }
     }
 }
 
+/// Writes the given primitives into a new set of buffers, sized by the `_bytes` parameters.
+/// Returns the new buffers
+fn write_into_new_buffers(
+    pos_bytes: u64,
+    color_bytes: u64,
+    uv_bytes: u64,
+    index_bytes: u64,
+    primitives: &[egui::ClippedPrimitive],
+) -> (
+    IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
+    wgpu::Buffer,
+) {
+    let device = graphics::device();
+
+    let pos_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("Development Overlay Position Buffer"),
+        size: pos_bytes,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: true,
+    });
+
+    let color_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("Development Overlay Color Buffer"),
+        size: color_bytes,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: true,
+    });
+
+    let uv_buf = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("Development Overlay UV Buffer"),
+        size: uv_bytes,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: true,
+    });
+
+    let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("Development Overlay Index Buffer"),
+        size: index_bytes,
+        usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: true,
+    });
+
+    {
+        let mut pos_mapped = pos_buf.get_mapped_range_mut(..);
+        let mut col_mapped = color_buf.get_mapped_range_mut(..);
+        let mut uv_mapped = uv_buf.get_mapped_range_mut(..);
+        let mut index_mapped = index_buffer.get_mapped_range_mut(..);
+
+        let pos_view = pos_mapped.slice(..);
+        let col_view = col_mapped.slice(..);
+        let uv_view = uv_mapped.slice(..);
+        let index_view = index_mapped.slice(..);
+
+        write_primitives_into_views(pos_view, col_view, uv_view, index_view, primitives);
+    }
+
+    pos_buf.unmap();
+    color_buf.unmap();
+    uv_buf.unmap();
+    index_buffer.unmap();
+
+    let mut vertex_bufs = IntMap::default();
+
+    vertex_bufs.insert(ShaderVertexAttributeType::Position, pos_buf);
+    vertex_bufs.insert(ShaderVertexAttributeType::Color, color_buf);
+    vertex_bufs.insert(ShaderVertexAttributeType::Uv { channel: 0 }, uv_buf);
+
+    (vertex_bufs, index_buffer)
+}
+
+/// Writes the given primitives into existing buffers. The amount of bytes that will be written should
+/// be given in the `_bytes` parameters
+fn write_into_existing_buffers(
+    pos_bytes: u64,
+    color_bytes: u64,
+    uv_bytes: u64,
+    index_bytes: u64,
+    primitives: &[egui::ClippedPrimitive],
+    vertex_buffers: &IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
+    index_buffer: &wgpu::Buffer,
+) {
+    let queue = graphics::queue();
+
+    let pos_buf = &vertex_buffers[&ShaderVertexAttributeType::Position];
+    let color_buf = &vertex_buffers[&ShaderVertexAttributeType::Color];
+    let uv_buf = &vertex_buffers[&ShaderVertexAttributeType::Uv { channel: 0 }];
+
+    let mut pos_write_view = queue
+        .write_buffer_with(pos_buf, 0, NonZero::new(pos_bytes).unwrap())
+        .unwrap();
+    let mut color_write_view = queue
+        .write_buffer_with(color_buf, 0, NonZero::new(color_bytes).unwrap())
+        .unwrap();
+    let mut uv_write_view = queue
+        .write_buffer_with(uv_buf, 0, NonZero::new(uv_bytes).unwrap())
+        .unwrap();
+    let mut index_write_view = queue
+        .write_buffer_with(index_buffer, 0, NonZero::new(index_bytes).unwrap())
+        .unwrap();
+
+    let pos_view = pos_write_view.slice(..);
+    let col_view = color_write_view.slice(..);
+    let uv_view = uv_write_view.slice(..);
+    let index_view = index_write_view.slice(..);
+
+    write_primitives_into_views(pos_view, col_view, uv_view, index_view, primitives);
+}
+
+/// Writes the given primitives into each of the given buffer views
 fn write_primitives_into_views(
     mut pos_view: wgpu::WriteOnly<'_, [u8]>,
     mut color_view: wgpu::WriteOnly<'_, [u8]>,
@@ -523,7 +724,6 @@ fn write_primitives_into_views(
 
         let uv_offset = vtx_offset * size_of::<GVec2<f32>>();
         let uv_end = uv_offset + (size_of::<GVec2<f32>>() * mesh.vertices.len());
-
         pos_view
             .slice(pos_offset..pos_end)
             .copy_from_slice(bytemuck::must_cast_slice(pos_staging.as_slice()));
@@ -541,97 +741,6 @@ fn write_primitives_into_views(
         index_slice.copy_from_slice(index_bytes);
 
         idx_offset += index_bytes.len();
-    }
-}
-
-fn render_primitive(
-    primitive: egui::ClippedPrimitive,
-    vertex_buffers: &IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
-    base_vertex: &mut u64,
-    base_index: &mut u64,
-    pass: &mut wgpu::RenderPass,
-    texture_map: &mut HashMap<egui::TextureId, TextureMaterial>,
-    current_pipeline: &mut Option<Arc<wgpu::RenderPipeline>>,
-    surface_format: wgpu::TextureFormat,
-    surface_size: (u32, u32),
-    surface_points: (f32, f32),
-    pixels_per_point: f32,
-) {
-    match primitive.primitive {
-        egui::epaint::Primitive::Mesh(egui_mesh) => {
-            let tex_mat = texture_map.get_mut(&egui_mesh.texture_id).unwrap();
-
-            set_surface_size_if_changed(tex_mat, surface_points, wutengine_graphics::queue());
-
-            tex_mat
-                .material
-                .raw_bind_group_mut()
-                .update_bind_group(wutengine_graphics::device());
-
-            let pipeline = graphics::pipeline::get_pipeline(
-                &tex_mat.material,
-                MeshTopology::Triangle,
-                &[Some(wgpu::ColorTargetState {
-                    format: surface_format,
-                    blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::all(),
-                })],
-            )
-            .unwrap();
-
-            if current_pipeline.is_none() || current_pipeline.as_ref().unwrap() != &pipeline {
-                pass.set_pipeline(&pipeline);
-                *current_pipeline = Some(pipeline);
-            }
-
-            let scissor_rect =
-                ScissorRect::new(&primitive.clip_rect, pixels_per_point, surface_size);
-
-            pass.set_scissor_rect(
-                scissor_rect.x,
-                scissor_rect.y,
-                scissor_rect.width,
-                scissor_rect.height,
-            );
-            let num_vertices = egui_mesh.vertices.len() as u64;
-            let num_indices = egui_mesh.indices.len() as u64;
-
-            pass.set_bind_group(
-                MATERIAL_PARAMS_BIND_GROUP_INDEX,
-                tex_mat.material.raw_bind_group().get_bind_group().unwrap(),
-                &[],
-            );
-
-            let attrs = &tex_mat.material.compiled_shader().vertex_attributes;
-
-            for (attr_type, attr_info) in attrs {
-                let Some(vertex_buffer) = vertex_buffers.get(attr_type) else {
-                    log::error!(
-                        "Mesh is missing vertex buffer for requested attribute: {attr_type}"
-                    );
-                    return;
-                };
-
-                let bytes_per_vtx = graphics::mesh::attr_bytes(*attr_type);
-                let start_bytes = (*base_vertex) * bytes_per_vtx as u64;
-                let end_bytes = (*base_vertex + num_vertices) * bytes_per_vtx as u64;
-
-                pass.set_vertex_buffer(
-                    attr_info.shader_location,
-                    vertex_buffer.slice(start_bytes..end_bytes),
-                );
-            }
-
-            pass.draw_indexed(
-                (*base_index as u32)..((*base_index + num_indices) as u32),
-                0,
-                0..1,
-            );
-
-            *base_vertex += num_vertices;
-            *base_index += num_indices;
-        }
-        egui::epaint::Primitive::Callback(_) => unreachable!("Not supported"),
     }
 }
 

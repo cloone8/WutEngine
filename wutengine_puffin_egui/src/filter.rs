@@ -1,10 +1,10 @@
 #[derive(Clone, Debug, Default)]
-pub struct Filter {
+pub(crate) struct Filter {
     filter: String,
 }
 
 impl Filter {
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+    pub(crate) fn ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 4.0;
 
@@ -18,11 +18,11 @@ impl Filter {
     }
 
     /// if true, show everything
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.filter.is_empty()
     }
 
-    pub fn include(&self, id: &str) -> bool {
+    pub(crate) fn include(&self, id: &str) -> bool {
         if self.filter.is_empty() {
             true
         } else {
@@ -30,7 +30,7 @@ impl Filter {
         }
     }
 
-    pub fn set_filter(&mut self, filter: String) {
+    pub(crate) fn set_filter(&mut self, filter: String) {
         self.filter = filter;
     }
 }

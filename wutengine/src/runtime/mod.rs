@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
+use wutengine_util::assert_main_thread;
 
 use derive_more::{Display, Error, From};
 use winit::error::EventLoopError;
@@ -119,7 +120,9 @@ pub fn run(
 
     wutengine_util::set_cur_thread_as_main_thread();
 
-    // Initialize the config manager first, so all other managers and engine systems
+    crate::event::init();
+
+    // Initialize the config manager early, so all other managers and engine systems
     // can read from it to configure themselves
     let mut logs = crate::config::init_and_load(config.config_file.as_deref());
 
@@ -230,8 +233,9 @@ fn initialize_logger(queued_messages: Vec<(log::Level, String)>) {
 }
 
 //TODO: Can remove option from target?
-fn log_factory_fn(filter: log::LevelFilter, target: Option<(&str, bool)>) -> Arc<dyn log::Log> {
-    let is_internal = target.is_some_and(|(_, internal)| internal);
+fn log_factory_fn(filter: log::LevelFilter, target: &str, is_internal: bool) -> Arc<dyn log::Log> {
+    _ = target;
+
     Arc::from(simplelog::TermLogger::new(
         filter,
         simplelog::ConfigBuilder::new()
@@ -248,7 +252,85 @@ fn log_factory_fn(filter: log::LevelFilter, target: Option<(&str, bool)>) -> Arc
 }
 
 impl Runtime {
-    fn run_frame_logic(&self) {
+    fn run_frame(&mut self) {
+        // Open another scope so that we're not in the middle of a profiling scope when we call `finish_frame`
+        {
+            profiling::function_scope!();
+
+            assert_main_thread!();
+
+            // Toggle profiling scopes
+            crate::profiling::change_scope_active_status();
+
+            // Run any events sent after the previous frame ended
+            crate::event::handle_events();
+
+            // We wait for the rendering target to become available in the beginning of the frame,
+            // because then if we block on vsync or similar the simulation will not be out of date
+            let surfaces = window::manager::get_surface_textures();
+
+            input::gamepad::poll_for_events();
+
+            let dev_overlay_output = Self::prepare_development_overlay(&surfaces);
+
+            self.run_systems_and_logic();
+
+            self.render_all_windows(&surfaces);
+
+            if let Some((dev_overlay_window, dev_overlay_ready_chan)) = dev_overlay_output {
+                #[cfg(not(feature = "development_overlay"))]
+                {
+                    _ = (dev_overlay_window, dev_overlay_ready_chan);
+
+                    unsafe {
+                        wutengine_util::unreachable_dbg!();
+                    }
+                }
+
+                #[cfg(feature = "development_overlay")]
+                {
+                    use wutengine_graphics::wgpu;
+
+                    let mut overlay_encoder = graphics::device().create_command_encoder(
+                        &wgpu::CommandEncoderDescriptor {
+                            label: Some("Development overlay command encoder"),
+                        },
+                    );
+
+                    {
+                        profiling::scope!("Wait for dev overlay");
+                        // Wait for the development overlay to be ready, and actually render it to the surface
+                        dev_overlay_ready_chan.recv().unwrap();
+                    }
+
+                    let (_, dev_overlay_surface) = surfaces
+                        .iter()
+                        .find(|(win, _)| *win == dev_overlay_window)
+                        .unwrap();
+
+                    if crate::development_overlay::render_overlay(
+                        &dev_overlay_surface.texture,
+                        &mut overlay_encoder,
+                    ) {
+                        graphics::queue().submit([overlay_encoder.finish()]);
+                    }
+                }
+            }
+
+            for (_, surface) in surfaces {
+                surface.present();
+            }
+
+            input::end_frame();
+
+            self.frame_pacer.frame_rendered();
+            self.frame_pacer.wait_for_limit();
+        }
+
+        profiling::finish_frame!();
+    }
+
+    fn run_systems_and_logic(&self) {
         profiling::function_scope!();
 
         let num_fixed_updates = time::update_frame(Instant::now());
@@ -258,6 +340,7 @@ impl Runtime {
 
             {
                 profiling::scope!("Run physics");
+
                 rayon::join(
                     || {
                         physics2d::step(time::fixed_delta());
@@ -273,6 +356,8 @@ impl Runtime {
 
         self.run_phase_systems(Phase::Update);
 
+        self.run_phase_systems(Phase::LateUpdate);
+
         self.run_phase_systems(Phase::PreRender);
     }
 
@@ -283,6 +368,8 @@ impl Runtime {
             .run_systems_for_phase(phase, &world::get_world());
 
         entity::process_changes(&mut world::get_world_mut(), &self.entity_manager);
+
+        crate::event::handle_events();
     }
 
     fn render_all_windows(&self, surfaces: &[(Window, wgpu::SurfaceTexture)]) {

@@ -1,20 +1,23 @@
 use wutengine_asset::AssetHandle;
 use wutengine_audio::AudioClip;
-use wutengine_audio::rodio::Source;
 
 use crate::component::Component;
 
 /// A component that plays audio
-#[derive(Default)]
+#[derive(Default, derive_more::Debug)]
 pub struct AudioPlayer {
     clip: Option<AssetHandle<AudioClip>>,
+
+    #[debug(skip)]
     player: Option<wutengine_audio::rodio::Player>,
+
     player_init: bool,
     clip_init: bool,
 }
 
 /// Public API
 impl AudioPlayer {
+    /// Continues the audio player at the current position, or from the start if the player has not been started before
     pub fn play(&mut self) {
         self.ensure_init();
 
@@ -23,6 +26,7 @@ impl AudioPlayer {
         }
     }
 
+    /// Pauses the player at the current position. Will continue at this position of it is restarted again
     pub fn pause(&mut self) {
         self.ensure_init();
 
@@ -31,6 +35,7 @@ impl AudioPlayer {
         }
     }
 
+    /// Sets the clip used by this player. Will stop any current playback and reset the player back to the start
     pub fn set_clip(&mut self, clip: Option<AssetHandle<AudioClip>>) {
         self.clip = clip;
         self.clip_init = false;
@@ -42,6 +47,7 @@ impl AudioPlayer {
         player.stop();
     }
 
+    /// Stops the current playback and resets the stream back to the start
     pub fn reset(&mut self) {
         self.ensure_init();
 

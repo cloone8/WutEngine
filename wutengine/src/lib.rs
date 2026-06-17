@@ -45,3 +45,6 @@ pub use wutengine_physics3d as physics3d;
 
 #[doc(inline)]
 pub use wutengine_config as config;
+
+#[doc(inline)]
+pub use wutengine_event as event;

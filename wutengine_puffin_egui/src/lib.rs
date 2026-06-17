@@ -9,6 +9,8 @@
 //!
 //! Initially forked from [puffin](https://github.com/EmbarkStudios/puffin/commit/7e08a533f9debfb7d051547263d2ab84c666314f)
 
+extern crate alloc;
+
 mod filter;
 mod flamegraph;
 mod maybe_mut_ref;
