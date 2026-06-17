@@ -2,6 +2,7 @@
 
 mod audioplayer;
 mod name;
+pub mod physics;
 pub mod rendering;
 mod transform;
 

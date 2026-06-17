@@ -1,4 +1,5 @@
 #![doc = include_str!("../../README.md")]
+#![doc = document_features::document_features!()]
 
 extern crate alloc;
 

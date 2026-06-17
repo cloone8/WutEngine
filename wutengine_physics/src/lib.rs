@@ -2,14 +2,20 @@
 #![cfg_attr(phys3d, doc = include_str!("../../wutengine_physics3d/README.md"))]
 
 use std::sync::RwLock;
+use std::sync::mpsc::Receiver;
 
+use collider::ColliderId;
+use nohash_hasher::IntMap;
 use wutengine_util::InitOnce;
 
 #[cfg(all(phys2d, phys3d))]
 compile_error!("Cannot enable both 2D and 3D physics");
 
+pub mod collider;
+pub mod rigidbody;
+
 #[cfg(phys2d)]
-use rapier2d as rapier;
+pub use rapier2d as rapier;
 
 #[cfg(phys3d)]
 use rapier3d as rapier;
@@ -22,6 +28,8 @@ mod types {
     //! Dynamic type aliases. Used to abstract over 2D/3D physics
 
     pub(crate) type VecX = wutengine_math::Vec2;
+
+    pub(crate) type ColliderPose = (wutengine_math::Vec2, f32);
 }
 
 #[cfg(phys3d)]
@@ -30,6 +38,8 @@ mod types {
     //! Dynamic type aliases. Used to abstract over 2D/3D physics
 
     pub(crate) type VecX = wutengine_math::Vec3;
+
+    pub(crate) type ColliderPose = (wutengine_math::Vec3, wutengine_math::Quat);
 }
 
 use types::*;
@@ -43,11 +53,77 @@ pub fn init() {
     InitOnce::init(&PHYSICS_MANAGER, RwLock::new(PhysicsManager::new()));
 }
 
+#[derive(derive_more::Debug)]
+pub struct PhysicsWorldUpdater<'a> {
+    #[debug(skip)]
+    manager: &'a mut PhysicsManager,
+}
+
+impl<'a> PhysicsWorldUpdater<'a> {
+    pub fn add_collider(&mut self, mut builder: ColliderBuilder) -> crate::collider::Collider {
+        let id = ColliderId::new();
+        builder = builder.active_events(ActiveEvents::all());
+        builder = builder.active_collision_types(ActiveCollisionTypes::all());
+
+        let collider = builder.build();
+
+        log::info!(
+            "Adding new collider {id} of type {:?}",
+            collider.shape().shape_type()
+        );
+
+        let handle = self.manager.collider_set.insert(collider);
+
+        self.manager.collider_map.insert(id, handle);
+
+        crate::collider::Collider(id)
+    }
+
+    pub fn delete_collider(&mut self, collider: crate::collider::Collider) {
+        let Some(handle) = self.manager.collider_map.remove(&collider.0) else {
+            log::error!("Tried to delete unknown collider: {}", collider.0);
+            return;
+        };
+
+        log::info!("Deleting collider {}", collider.0);
+
+        let old = self.manager.collider_set.remove(
+            handle,
+            &mut self.manager.island_manager,
+            &mut self.manager.rigidbody_set,
+            true,
+        );
+
+        assert!(old.is_some(), "Removed collider unknown in rapier");
+    }
+
+    pub fn move_collider(&mut self, collider: &crate::collider::Collider, pose: ColliderPose) {
+        log::debug!("Moving collider {} to {} {}", collider.0, pose.0, pose.1);
+
+        let handle = self.manager.collider_map.get(&collider.0).unwrap();
+        let collider = self.manager.collider_set.get_mut(*handle).unwrap();
+
+        if collider.parent().is_some() {
+            collider.set_position_wrt_parent(collider::make_pose(pose));
+        } else {
+            collider.set_position(collider::make_pose(pose));
+        }
+    }
+}
+
+pub fn update_physics_world(cb: impl FnOnce(&mut PhysicsWorldUpdater)) {
+    let mut manager_lock = PHYSICS_MANAGER.write().unwrap();
+
+    let mut updater = PhysicsWorldUpdater {
+        manager: &mut manager_lock,
+    };
+
+    cb(&mut updater);
+}
+
 /// Runs the physics simulation for one frame
 pub fn step(dt: f32) {
     profiling::function_scope!();
-
-    log::debug!("Stepping simulation with dt: {dt}");
 
     PHYSICS_MANAGER.write().unwrap().step(dt);
 }
@@ -59,6 +135,9 @@ pub(crate) struct PhysicsManager {
 
     /// All rigidbodies
     rigidbody_set: RigidBodySet,
+
+    /// Map from public collider IDs to rapier IDs
+    collider_map: IntMap<ColliderId, ColliderHandle>,
 
     /// All colliders
     collider_set: ColliderSet,
@@ -94,6 +173,7 @@ impl PhysicsManager {
         PhysicsManager {
             gravity: VecX::ZERO.with_y(-9.81),
             rigidbody_set: RigidBodySet::new(),
+            collider_map: IntMap::default(),
             collider_set: ColliderSet::new(),
             integration_parameters: IntegrationParameters::default(),
             physics_pipeline: PhysicsPipeline::new(),
@@ -110,10 +190,12 @@ impl PhysicsManager {
     fn step(&mut self, dt: f32) {
         profiling::function_scope!();
 
+        log::trace!("Stepping simulation with dt: {dt}");
+
         self.integration_parameters.dt = dt;
 
-        let (collision_send, _collision_recv) = std::sync::mpsc::channel();
-        let (contact_force_send, _contact_force_recv) = std::sync::mpsc::channel();
+        let (collision_send, collision_recv) = std::sync::mpsc::channel();
+        let (contact_force_send, contact_force_recv) = std::sync::mpsc::channel();
         let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
 
         self.physics_pipeline.step(
@@ -130,6 +212,53 @@ impl PhysicsManager {
             &(),
             &event_handler,
         );
+
+        let mut result_handler = PhysicsResultHandler {
+            collisions: collision_recv,
+            contact_force: contact_force_recv,
+        };
+
+        result_handler.handle();
+    }
+}
+
+#[derive(Debug)]
+struct PhysicsResultHandler {
+    collisions: Receiver<rapier::geometry::CollisionEvent>,
+    contact_force: Receiver<rapier::geometry::ContactForceEvent>,
+}
+
+impl PhysicsResultHandler {
+    fn handle(&mut self) {
+        profiling::function_scope!();
+
+        {
+            profiling::scope!("Collisions");
+
+            for collision in self.collisions.try_iter() {
+                Self::handle_collision_event(collision);
+            }
+        }
+
+        {
+            profiling::scope!("Contact Forces");
+
+            for contact_force in self.contact_force.try_iter() {
+                Self::handle_contact_force_event(contact_force);
+            }
+        }
+    }
+
+    fn handle_collision_event(collision: rapier::geometry::CollisionEvent) {
+        profiling::function_scope!();
+
+        log::trace!("Handling collision event {:?}", collision);
+    }
+
+    fn handle_contact_force_event(contact_force: rapier::geometry::ContactForceEvent) {
+        profiling::function_scope!();
+
+        log::trace!("Handling contact force event {:#?}", contact_force);
     }
 }
 

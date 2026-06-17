@@ -16,10 +16,13 @@ path = "../wutengine_physics/src/lib.rs"
 
 [dependencies]
 wutengine_util.workspace = true
+wutengine_util_macro.workspace = true
 wutengine_math.workspace = true
 
 log.workspace = true
 profiling.workspace = true
+nohash-hasher.workspace = true
+derive_more = { workspace = true, features = ["debug"] }
 
 rapier2d = { workspace = true, features = ["parallel", "simd-stable"] }
 

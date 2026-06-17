@@ -18,11 +18,11 @@ impl Transform {
     /// Create a new identity transform
     #[inline]
     pub fn new() -> Self {
-        Self::new_at(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
+        Self::new_at_local(Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
     }
 
     /// Create a new transform with the given local parameters
-    pub fn new_at(position: Vec3, rotation: Quat, scale: Vec3) -> Self {
+    pub fn new_at_local(position: Vec3, rotation: Quat, scale: Vec3) -> Self {
         let mut new = Self {
             translation: position,
             rotation,
@@ -59,6 +59,18 @@ impl Transform {
         self.scale
     }
 
+    /// Returns the current world position
+    #[inline(always)]
+    pub const fn world_position(&self) -> Vec3 {
+        self.translation
+    }
+
+    /// Returns the current world rotation
+    #[inline(always)]
+    pub const fn world_rotation(&self) -> Quat {
+        self.rotation
+    }
+
     /// Set the local position
     #[inline(always)]
     pub fn set_local_position(&mut self, local_position: Vec3) {
@@ -79,6 +91,22 @@ impl Transform {
     #[inline(always)]
     pub fn set_local_scale(&mut self, local_scale: Vec3) {
         self.scale = local_scale;
+
+        self.recalculate_local_to_world();
+    }
+
+    /// Set the world position
+    #[inline(always)]
+    pub fn set_world_position(&mut self, world_position: Vec3) {
+        self.translation = world_position;
+
+        self.recalculate_local_to_world();
+    }
+
+    /// Set the world rotation
+    #[inline(always)]
+    pub fn set_world_rotation(&mut self, world_position: Quat) {
+        self.rotation = world_position;
 
         self.recalculate_local_to_world();
     }
