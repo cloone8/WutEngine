@@ -173,13 +173,19 @@ impl AvailableFrames {
 /// Multiple streams for one thread.
 #[derive(Clone, derive_more::Debug)]
 pub struct Streams {
+    /// Scope streams
     #[debug(skip)]
     streams: Vec<Arc<StreamInfo>>,
+
+    /// Merged scopes
     merged_scopes: Vec<MergeScope<'static>>,
+
+    /// Max depth
     max_depth: usize,
 }
 
 impl Streams {
+    /// New streams based on the given frames
     fn new(
         scope_collection: &ScopeCollection,
         frames: &[Arc<UnpackedFrameData>],
@@ -218,15 +224,22 @@ impl Streams {
 /// Never empty.
 #[derive(Clone, derive_more::Debug)]
 pub struct SelectedFrames {
-    /// ordered, but not necessarily in sequence
+    /// Ordered, but not necessarily in sequence
     #[debug(skip)]
     pub frames: Vec<Arc<UnpackedFrameData>>,
+
+    /// Raw range in nanoseconds
     pub raw_range_ns: (NanoSecond, NanoSecond),
+
+    /// Merged range in nanoseconds
     pub merged_range_ns: (NanoSecond, NanoSecond),
+
+    /// Threads and their streams
     pub threads: BTreeMap<ThreadInfo, Streams>,
 }
 
 impl SelectedFrames {
+    /// Try to select frames
     fn try_from_iter(
         scope_collection: &ScopeCollection,
         frames: impl Iterator<Item = Arc<UnpackedFrameData>>,
@@ -239,13 +252,14 @@ impl SelectedFrames {
         Some(Self::from_vec(scope_collection, frames))
     }
 
+    /// Select frames from a vector. Must contain at least one frame
     fn from_vec(
         scope_collection: &ScopeCollection,
         mut frames: Vec<Arc<UnpackedFrameData>>,
     ) -> Self {
         puffin::profile_function!();
 
-        assert!(frames.len() >= 1, "Need at least one frame");
+        assert!(!frames.is_empty(), "Need at least one frame");
 
         frames.sort_by_key(|f| f.frame_index());
         frames.dedup_by_key(|f| f.frame_index());
@@ -286,44 +300,45 @@ impl SelectedFrames {
         }
     }
 
+    /// Check whether the selection contains the given frame
     pub fn contains(&self, frame_index: u64) -> bool {
         self.frames.iter().any(|f| f.frame_index() == frame_index)
     }
 }
 
+/// Paused view
 #[derive(Clone, Debug)]
 pub struct Paused {
     /// What we are viewing
     selected: SelectedFrames,
+
+    /// The available frames
     frames: AvailableFrames,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Default)]
+/// The available views
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
 pub enum View {
+    /// Flamegraph view
     #[default]
     Flamegraph,
+
+    /// Stats/table view
     Stats,
 }
 
 /// Contains settings for the profiler.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(default))]
 pub struct ProfilerUi {
     /// Options for configuring how the flamegraph is displayed.
-    #[cfg_attr(feature = "serde", serde(alias = "options"))]
     pub flamegraph_options: flamegraph::Options,
     /// Options for configuring how the stats page is displayed.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub stats_options: stats::Options,
 
     /// What view is active.
     pub view: View,
 
     /// If `None`, we show the latest frames.
-    #[cfg_attr(feature = "serde", serde(skip))]
     paused: Option<Paused>,
 
     /// How many frames should be used for latest view
@@ -333,7 +348,6 @@ pub struct ProfilerUi {
     slowest_frame: f32,
 
     /// When did we last run a pass to pack all the frames?
-    #[cfg_attr(feature = "serde", serde(skip))]
     last_pack_pass: Option<Instant>,
 
     /// Order to sort scopes in table view
@@ -359,6 +373,7 @@ impl Default for ProfilerUi {
 }
 
 impl ProfilerUi {
+    /// Reset the UI
     pub fn reset(&mut self) {
         self.paused = None;
     }
@@ -406,6 +421,7 @@ impl ProfilerUi {
         }
     }
 
+    /// Check whether the given frame is selected in the given view
     fn is_selected(&self, frame_view: &FrameView, frame_index: u64) -> bool {
         if let Some(paused) = &self.paused {
             paused.selected.contains(frame_index)
@@ -416,6 +432,7 @@ impl ProfilerUi {
         }
     }
 
+    /// All known frames
     fn all_known_frames<'a>(
         &'a self,
         frame_view: &'a FrameView,
@@ -426,6 +443,7 @@ impl ProfilerUi {
         }
     }
 
+    /// Runs the pack pass if needed. Slow
     fn run_pack_pass_if_needed(&mut self, frame_view: &FrameView) {
         if !frame_view.pack_frames() {
             return;
@@ -467,6 +485,7 @@ impl ProfilerUi {
         });
     }
 
+    /// UI implementation, called from [Self::ui]
     fn ui_impl(&mut self, ui: &mut egui::Ui, frame_view: &mut FrameView) {
         let mut hovered_frame = None;
 
@@ -505,46 +524,7 @@ impl ProfilerUi {
             return;
         };
 
-        ui.horizontal(|ui| {
-            let play_pause_button_size = Vec2::splat(24.0);
-            let space_pressed = ui.input(|i| i.key_pressed(egui::Key::Space))
-                && ui.memory(|m| m.focused().is_none());
-
-            if self.paused.is_some() {
-                if ui
-                    .add_sized(play_pause_button_size, egui::Button::new("▶"))
-                    .on_hover_text("Show latest data. Toggle with space.")
-                    .clicked()
-                    || space_pressed
-                {
-                    self.paused = None;
-                }
-            } else {
-                ui.horizontal(|ui| {
-                    if ui
-                        .add_sized(play_pause_button_size, egui::Button::new("⏸"))
-                        .on_hover_text("Pause on this frame. Toggle with space.")
-                        .clicked()
-                        || space_pressed
-                    {
-                        let latest = frame_view.latest_frame();
-                        if let Some(latest) = latest
-                            && let Ok(latest) = latest.unpacked()
-                        {
-                            self.pause_and_select(
-                                frame_view,
-                                SelectedFrames::from_vec(
-                                    frame_view.scope_collection(),
-                                    vec![latest],
-                                ),
-                            );
-                        }
-                    }
-                });
-            }
-
-            frames_info_ui(ui, &frames);
-        });
+        self.play_pause_ui(&frames, frame_view, ui);
 
         if frames.frames.len() == 1 {
             let frame = frames.frames.first().unwrap();
@@ -593,6 +573,55 @@ impl ProfilerUi {
                 &mut self.sort_order,
             ),
         }
+    }
+
+    /// Play/pause buttons
+    fn play_pause_ui(
+        &mut self,
+        frames: &SelectedFrames,
+        frame_view: &FrameView,
+        ui: &mut egui::Ui,
+    ) {
+        ui.horizontal(|ui| {
+            let play_pause_button_size = Vec2::splat(24.0);
+            let space_pressed = ui.input(|i| i.key_pressed(egui::Key::Space))
+                && ui.memory(|m| m.focused().is_none());
+
+            if self.paused.is_some() {
+                if ui
+                    .add_sized(play_pause_button_size, egui::Button::new("▶"))
+                    .on_hover_text("Show latest data. Toggle with space.")
+                    .clicked()
+                    || space_pressed
+                {
+                    self.paused = None;
+                }
+            } else {
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_sized(play_pause_button_size, egui::Button::new("⏸"))
+                        .on_hover_text("Pause on this frame. Toggle with space.")
+                        .clicked()
+                        || space_pressed
+                    {
+                        let latest = frame_view.latest_frame();
+                        if let Some(latest) = latest
+                            && let Ok(latest) = latest.unpacked()
+                        {
+                            self.pause_and_select(
+                                frame_view,
+                                SelectedFrames::from_vec(
+                                    frame_view.scope_collection(),
+                                    vec![latest],
+                                ),
+                            );
+                        }
+                    }
+                });
+            }
+
+            frames_info_ui(ui, frames);
+        });
     }
 
     /// Returns hovered, if any
@@ -815,6 +844,7 @@ impl ProfilerUi {
     }
 }
 
+/// Frame info UI
 fn frames_info_ui(ui: &mut egui::Ui, selection: &SelectedFrames) {
     let mut sum_ns = 0;
     let mut sum_scopes = 0;
@@ -854,9 +884,10 @@ fn frames_info_ui(ui: &mut egui::Ui, selection: &SelectedFrames) {
     ui.label(info);
 }
 
+/// Format a nanosecond time
 fn format_time(nanos: NanoSecond) -> Option<String> {
     let years_since_epoch = nanos / 1_000_000_000 / 60 / 60 / 24 / 365;
-    if 50 <= years_since_epoch && years_since_epoch <= 150 {
+    if (50..=150).contains(&years_since_epoch) {
         let datetime = jiff::Timestamp::from_nanosecond(nanos as i128)
             .ok()?
             .to_zoned(jiff::tz::TimeZone::system());
@@ -869,6 +900,7 @@ fn format_time(nanos: NanoSecond) -> Option<String> {
     }
 }
 
+/// Max frames UI
 fn max_frames_ui(ui: &mut egui::Ui, frame_view: &mut FrameView, uniq: &[Arc<FrameData>]) {
     let stats = frame_view.stats();
     let bytes = stats.bytes_of_ram_used();
@@ -897,6 +929,7 @@ fn max_frames_ui(ui: &mut egui::Ui, frame_view: &mut FrameView, uniq: &[Arc<Fram
     });
 }
 
+/// Max number of latest frames UI
 fn max_num_latest_ui(ui: &mut egui::Ui, max_num_latest: &mut usize) {
     ui.horizontal(|ui| {
         ui.label("Max latest frames to show:");
