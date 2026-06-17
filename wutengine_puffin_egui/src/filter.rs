@@ -1,9 +1,13 @@
+//! A filter string
+
+/// A filter string used to filter scopes
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Filter {
     filter: String,
 }
 
 impl Filter {
+    /// Show this filter
     pub(crate) fn ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 4.0;
@@ -22,6 +26,7 @@ impl Filter {
         self.filter.is_empty()
     }
 
+    /// Whether to include the given ID
     pub(crate) fn include(&self, id: &str) -> bool {
         if self.filter.is_empty() {
             true
@@ -30,6 +35,7 @@ impl Filter {
         }
     }
 
+    /// Update this filter
     pub(crate) fn set_filter(&mut self, filter: String) {
         self.filter = filter;
     }

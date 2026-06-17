@@ -1,30 +1,47 @@
+//! The main table stats view
+
 use egui::TextBuffer;
 use puffin::*;
 
 use crate::filter::Filter;
 
+/// Scope stats options
 #[derive(Clone, Debug, Default)]
 pub struct Options {
     filter: Filter,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub enum SortKey {
+/// Sorting parameter
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum SortKey {
+    /// By source location
     Location,
+
+    /// By function name
     FunctionName,
+
+    /// By scope name
     ScopeName,
+
+    /// By sample count
     Count,
+
+    /// By size
     Size,
+
+    /// By total self time
     TotalSelfTime,
+
+    /// By mean self time
     MeanSelfTime,
+
+    /// By max self time
     MaxSelfTime,
 }
 
 /// Determines the order of scopes in table view.
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct SortOrder {
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct SortOrder {
     /// Which column to sort scopes by
     pub key: SortKey,
 
@@ -115,11 +132,12 @@ fn header_label(ui: &mut egui::Ui, name: &str, sort_key: SortKey, sort_order: &m
     }
 }
 
-pub fn ui(
+/// Show the scope table UI
+pub(crate) fn ui(
     ui: &mut egui::Ui,
     options: &mut Options,
     scope_infos: &ScopeCollection,
-    frames: &[std::sync::Arc<UnpackedFrameData>],
+    frames: &[alloc::sync::Arc<UnpackedFrameData>],
     sort_order: &mut SortOrder,
 ) {
     let mut threads = std::collections::HashSet::<&ThreadInfo>::new();
@@ -160,6 +178,16 @@ pub fn ui(
     scopes.sort_by_key(|(key, _)| *key);
     sort_order.sort_scopes(&mut scopes, scope_infos);
 
+    show_scopes(sort_order, &scopes, scope_infos, options, ui);
+}
+
+fn show_scopes(
+    sort_order: &mut SortOrder,
+    scopes: &[(&Key, ScopeStats)],
+    scope_infos: &ScopeCollection,
+    options: &Options,
+    ui: &mut egui::Ui,
+) {
     egui::ScrollArea::horizontal().show(ui, |ui| {
         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
         ui.spacing_mut().item_spacing.x = 16.0;
@@ -198,7 +226,7 @@ pub fn ui(
                 });
             })
             .body(|mut body| {
-                for (key, stats) in &scopes {
+                for (key, stats) in scopes {
                     let Some(scope_details) = scope_infos.fetch_by_id(&key.id) else {
                         continue;
                     };

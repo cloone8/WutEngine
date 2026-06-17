@@ -13,23 +13,24 @@ extern crate alloc;
 
 mod filter;
 mod flamegraph;
-mod maybe_mut_ref;
 mod stats;
 
+use alloc::collections::BTreeMap;
+use alloc::collections::BTreeSet;
+use alloc::sync::Arc;
+use core::fmt::Write;
+use core::iter;
 use core::time::Duration;
-use egui::{scroll_area::ScrollSource, *};
-use maybe_mut_ref::MaybeMutRef;
+use egui::scroll_area::ScrollSource;
+use egui::*;
 use puffin::*;
 use std::sync::Mutex;
 use std::time::Instant;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fmt::Write as _,
-    iter,
-    sync::Arc,
-};
 
+/// Error color
 const ERROR_COLOR: Color32 = Color32::RED;
+
+/// On-hover color
 const HOVER_COLOR: Rgba = Rgba::from_rgb(0.8, 0.8, 0.8);
 
 // ----------------------------------------------------------------------------
@@ -85,6 +86,7 @@ pub fn profiler_window(ctx: &egui::Context) -> bool {
     open
 }
 
+/// Global profiler UI
 static PROFILE_UI: std::sync::LazyLock<Mutex<GlobalProfilerUi>> =
     std::sync::LazyLock::new(Default::default);
 
@@ -100,13 +102,13 @@ pub fn profiler_ui(ui: &mut egui::Ui) {
 // ----------------------------------------------------------------------------
 
 /// Show [`puffin::GlobalProfiler`], i.e. profile the app we are running in.
-#[derive(Default)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(default))]
+#[derive(derive_more::Debug, Default)]
 pub struct GlobalProfilerUi {
-    #[cfg_attr(feature = "serde", serde(skip))]
+    /// Global frame view
+    #[debug(skip)]
     global_frame_view: GlobalFrameView,
 
+    /// UI options and state
     pub profiler_ui: ProfilerUi,
 }
 
@@ -118,8 +120,7 @@ impl GlobalProfilerUi {
     /// Returns `false` if the user closed the profile window.
     pub fn window(&mut self, ctx: &egui::Context) -> bool {
         let mut frame_view = self.global_frame_view.lock();
-        self.profiler_ui
-            .window(ctx, &mut MaybeMutRef::MutRef(&mut frame_view))
+        self.profiler_ui.window(ctx, &mut frame_view)
     }
 
     /// Show the profiler.
@@ -127,8 +128,7 @@ impl GlobalProfilerUi {
     /// Call this from within an [`egui::Window`], or use [`Self::window`] instead.
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         let mut frame_view = self.global_frame_view.lock();
-        self.profiler_ui
-            .ui(ui, &mut MaybeMutRef::MutRef(&mut frame_view));
+        self.profiler_ui.ui(ui, &mut frame_view);
     }
 
     /// The frames we are looking at.
@@ -140,15 +140,26 @@ impl GlobalProfilerUi {
 // ----------------------------------------------------------------------------
 
 /// The frames we can chose between when selecting what frame(s) to view.
-#[derive(Clone)]
+#[derive(Clone, derive_more::Debug)]
 pub struct AvailableFrames {
+    /// Most recent frames
+    #[debug(skip)]
     pub recent: Vec<Arc<FrameData>>,
+
+    /// Slowest frames
+    #[debug(skip)]
     pub slowest: Vec<Arc<FrameData>>,
+
+    /// Unique frames
+    #[debug(skip)]
     pub uniq: Vec<Arc<FrameData>>,
+
+    /// Frame stats
     pub stats: FrameStats,
 }
 
 impl AvailableFrames {
+    /// Returns the latest available frames
     fn latest(frame_view: &FrameView) -> Self {
         Self {
             recent: frame_view.recent_frames().cloned().collect(),
@@ -160,8 +171,9 @@ impl AvailableFrames {
 }
 
 /// Multiple streams for one thread.
-#[derive(Clone)]
+#[derive(Clone, derive_more::Debug)]
 pub struct Streams {
+    #[debug(skip)]
     streams: Vec<Arc<StreamInfo>>,
     merged_scopes: Vec<MergeScope<'static>>,
     max_depth: usize,
@@ -204,9 +216,10 @@ impl Streams {
 
 /// Selected frames ready to be viewed.
 /// Never empty.
-#[derive(Clone)]
+#[derive(Clone, derive_more::Debug)]
 pub struct SelectedFrames {
     /// ordered, but not necessarily in sequence
+    #[debug(skip)]
     pub frames: Vec<Arc<UnpackedFrameData>>,
     pub raw_range_ns: (NanoSecond, NanoSecond),
     pub merged_range_ns: (NanoSecond, NanoSecond),
@@ -278,7 +291,7 @@ impl SelectedFrames {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Paused {
     /// What we are viewing
     selected: SelectedFrames,
@@ -295,7 +308,7 @@ pub enum View {
 }
 
 /// Contains settings for the profiler.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(default))]
 pub struct ProfilerUi {
@@ -355,11 +368,7 @@ impl ProfilerUi {
     /// If you want to control the window yourself, use [`Self::ui`] instead.
     ///
     /// Returns `false` if the user closed the profile window.
-    pub fn window(
-        &mut self,
-        ctx: &egui::Context,
-        frame_view: &mut MaybeMutRef<'_, FrameView>,
-    ) -> bool {
+    pub fn window(&mut self, ctx: &egui::Context, frame_view: &mut FrameView) -> bool {
         puffin::profile_function!();
         let mut open = true;
         egui::Window::new("Profiler")
@@ -437,7 +446,7 @@ impl ProfilerUi {
     /// Show the profiler.
     ///
     /// Call this from within an [`egui::Window`], or use [`Self::window`] instead.
-    pub fn ui(&mut self, ui: &mut egui::Ui, frame_view: &mut MaybeMutRef<'_, FrameView>) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, frame_view: &mut FrameView) {
         puffin::profile_function!();
 
         self.run_pack_pass_if_needed(frame_view);
@@ -458,7 +467,7 @@ impl ProfilerUi {
         });
     }
 
-    fn ui_impl(&mut self, ui: &mut egui::Ui, frame_view: &mut MaybeMutRef<'_, FrameView>) {
+    fn ui_impl(&mut self, ui: &mut egui::Ui, frame_view: &mut FrameView) {
         let mut hovered_frame = None;
 
         egui::CollapsingHeader::new("Frame history")
@@ -590,7 +599,7 @@ impl ProfilerUi {
     fn show_frames(
         &mut self,
         ui: &mut egui::Ui,
-        frame_view: &mut MaybeMutRef<'_, FrameView>,
+        frame_view: &mut FrameView,
     ) -> Option<Arc<FrameData>> {
         puffin::profile_function!();
 
@@ -614,11 +623,9 @@ impl ProfilerUi {
                         stats.bytes_of_ram_used() as f64 * 1e-6
                     ));
 
-                    if let Some(frame_view) = frame_view.as_mut() {
-                        max_frames_ui(ui, frame_view, uniq);
-                        if self.paused.is_none() {
-                            max_num_latest_ui(ui, &mut self.max_num_latest);
-                        }
+                    max_frames_ui(ui, frame_view, uniq);
+                    if self.paused.is_none() {
+                        max_num_latest_ui(ui, &mut self.max_num_latest);
                     }
                 });
             });
@@ -650,9 +657,7 @@ impl ProfilerUi {
                 ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                 ui.add_space(16.0); // make it a bit more centered
                 ui.label("Slowest:");
-                if let Some(frame_view) = frame_view.as_mut()
-                    && ui.button("Clear").clicked()
-                {
+                if ui.button("Clear").clicked() {
                     frame_view.clear_slowest();
                 }
             });

@@ -1,3 +1,5 @@
+//! The main flamegraph view
+
 use alloc::vec;
 
 use super::{ERROR_COLOR, HOVER_COLOR, SelectedFrames};
@@ -6,17 +8,23 @@ use egui::{emath::GuiRounding, *};
 use indexmap::IndexMap;
 use puffin::*;
 
+/// Sorting parameter
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum SortBy {
+    /// By time
     Time,
+
+    /// By name
     Name,
 }
 
+/// Sorting mode
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Sorting {
+    /// The parameter
     pub sort_by: SortBy,
+
+    /// Reversed y/n
     pub reversed: bool,
 }
 
@@ -73,8 +81,8 @@ impl Sorting {
     }
 }
 
+/// Current thread visualization settings
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ThreadVisualizationSettings {
     flamegraph_collapse: bool,
     flamegraph_show: bool,
@@ -89,9 +97,8 @@ impl Default for ThreadVisualizationSettings {
     }
 }
 
+/// Flamegraph UI options
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(default))]
 pub struct Options {
     // --------------------
     // View:
@@ -108,17 +115,25 @@ pub struct Options {
     /// Draw each item with at least this width (only makes sense if [`Self::cull_width`] is 0)
     pub min_width: f32,
 
+    /// Height of each rectangle
     pub rect_height: f32,
+
+    /// Spacing between rectangles
     pub spacing: f32,
+
+    /// Rounding of each rectangle
     pub rounding: f32,
 
+    /// Height of the frame list
     pub frame_list_height: f32,
+
     /// Distance between subsequent frames in the frame view.
     pub frame_width: f32,
 
     /// Aggregate child scopes with the same id?
     pub merge_scopes: bool,
 
+    /// Current sorting mode
     pub sorting: Sorting,
 
     /// Visual settings for threads.
@@ -127,12 +142,10 @@ pub struct Options {
     /// Interval of vertical timeline indicators.
     grid_spacing_micros: f64,
 
-    #[cfg_attr(feature = "serde", serde(skip))]
     scope_name_filter: Filter,
 
     /// Set when user clicks a scope.
     /// First part is `now()`, second is range.
-    #[cfg_attr(feature = "serde", serde(skip))]
     zoom_to_relative_ns_range: Option<(f64, (NanoSecond, NanoSecond))>,
 }
 
@@ -205,7 +218,7 @@ impl Info<'_> {
 }
 
 /// Show the flamegraph.
-pub fn ui(
+pub(crate) fn ui(
     ui: &mut egui::Ui,
     options: &mut Options,
     scope_collection: &ScopeCollection,

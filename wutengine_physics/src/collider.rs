@@ -1,7 +1,5 @@
 //! Collider types and API
 
-use crate::rapier;
-use crate::rapier::prelude::*;
 use wutengine_util_macro::unique_id_type64;
 
 #[cfg(phys2d)]
@@ -15,6 +13,7 @@ unique_id_type64! {
     pub(crate) ColliderId
 }
 
+/// Handle to a raw collider in the physics world
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Collider(pub(crate) ColliderId);
 
@@ -27,60 +26,75 @@ mod phys2d {
     use rapier::prelude::*;
     use wutengine_math::*;
 
-    #[derive(Debug)]
-    pub enum ColliderData2D {
+    /// Data to a 2D collider
+    #[derive(Debug, Clone)]
+    pub struct ColliderData2D {
+        /// Offset of the collider in local space, with regards to its containing entity
+        pub offset: Vec2,
+
+        /// Rotation (in degrees) of the collider in local space in the X axis, with regards to its containing entity
+        pub rotation: f32,
+
+        /// Whether this collider is a trigger
+        pub trigger: bool,
+
+        /// The type-specific data
+        pub type_data: ColliderType2D,
+    }
+
+    /// Collider-type specific data
+    #[derive(Debug, Clone)]
+    pub enum ColliderType2D {
+        /// Cube collider
         Cube {
-            offset: Vec2,
-            rotation: f32,
-            trigger: bool,
+            /// Width
             x: f32,
+
+            /// Height
             y: f32,
         },
     }
 
+    impl Default for ColliderType2D {
+        fn default() -> Self {
+            Self::Cube { x: 1.0, y: 1.0 }
+        }
+    }
+
     impl Default for ColliderData2D {
         fn default() -> Self {
-            Self::Cube {
+            Self {
                 offset: Vec2::ZERO,
                 rotation: 0.0,
                 trigger: false,
-                x: 1.0,
-                y: 1.0,
+                type_data: ColliderType2D::default(),
             }
         }
     }
 
     impl ColliderData2D {
+        /// Create a [ColliderBuilder] from this data
         pub fn create(
             &self,
             local_to_world_offset: Vec2,
             local_to_world_rot: f32,
         ) -> ColliderBuilder {
-            match self {
-                Self::Cube {
-                    offset,
-                    rotation,
-                    trigger,
-                    x,
-                    y,
-                } => ColliderBuilder::cuboid(x * 0.5, y * 0.5)
-                    .position(Pose2::new(
-                        (offset + local_to_world_offset).to_rapier(),
-                        (rotation + local_to_world_rot).to_radians(),
-                    ))
-                    .sensor(*trigger),
-            }
-        }
+            let mut builder = match self.type_data {
+                ColliderType2D::Cube { x, y } => ColliderBuilder::cuboid(x * 0.5, y * 0.5),
+            };
 
-        pub const fn offset_rot(&self) -> (Vec2, f32) {
-            match self {
-                Self::Cube {
-                    offset, rotation, ..
-                } => (*offset, *rotation),
-            }
+            builder = builder
+                .position(Pose2::new(
+                    (self.offset + local_to_world_offset).to_rapier(),
+                    (self.rotation + local_to_world_rot).to_radians(),
+                ))
+                .sensor(self.trigger);
+
+            builder
         }
     }
 
+    /// Create a pose from the given pose data
     pub(crate) fn make_pose(pose: ColliderPose) -> Pose2 {
         Pose2::new(pose.0.to_rapier(), pose.1.to_radians())
     }
@@ -95,6 +109,7 @@ mod phys3d {
     use rapier::prelude::*;
     use wutengine_math::*;
 
+    /// Create a pose from the given pose data
     pub(crate) fn make_pose(pose: ColliderPose) -> Pose3 {
         todo!()
         // Pose3::new(pose.0.to_rapier(), pose.1.to_rapier())

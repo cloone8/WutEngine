@@ -1,17 +1,18 @@
 use crate::builtins::components::Transform;
 use crate::component::Component;
-use crate::system::Phase;
 
 use crate::math::*;
 use wutengine_physics2d::PhysicsWorldUpdater;
 use wutengine_physics2d::collider::ColliderData2D;
 
+/// A set of colliders
 #[derive(Debug, Default)]
 pub struct ColliderSet2D {
     colliders: Vec<Collider2D>,
 }
 
 impl ColliderSet2D {
+    /// Adds a new collider to this set
     pub fn add_collider(&mut self, collider: ColliderData2D) {
         self.colliders.push(Collider2D::new(collider));
     }
@@ -79,15 +80,14 @@ impl Collider2D {
             return;
         }
 
-        let (collider_offset, collider_rot) = self.data.offset_rot();
-
-        physics_updater.move_collider(handle, (pos + collider_offset, rot + collider_rot));
+        physics_updater.move_collider(handle, (pos + self.data.offset, rot + self.data.rotation));
 
         self.last_pos_rot = (pos, rot);
     }
 }
 
 impl ColliderSet2D {
+    /// Syncs all colliders in this set to the physics world using the given [PhysicsWorldUpdater]
     pub(crate) fn sync_to_physics_world(
         &mut self,
         transform: Option<&Transform>,

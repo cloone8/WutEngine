@@ -53,13 +53,16 @@ pub fn init() {
     InitOnce::init(&PHYSICS_MANAGER, RwLock::new(PhysicsManager::new()));
 }
 
+/// API entrypoint in order to update the physics world synchronously
 #[derive(derive_more::Debug)]
 pub struct PhysicsWorldUpdater<'a> {
+    /// A reference to the manager
     #[debug(skip)]
     manager: &'a mut PhysicsManager,
 }
 
 impl<'a> PhysicsWorldUpdater<'a> {
+    /// Adds a new collider to the world, returning a handle to it
     pub fn add_collider(&mut self, mut builder: ColliderBuilder) -> crate::collider::Collider {
         let id = ColliderId::new();
         builder = builder.active_events(ActiveEvents::all());
@@ -79,6 +82,7 @@ impl<'a> PhysicsWorldUpdater<'a> {
         crate::collider::Collider(id)
     }
 
+    /// Deletes an existing collider from the physics world
     pub fn delete_collider(&mut self, collider: crate::collider::Collider) {
         let Some(handle) = self.manager.collider_map.remove(&collider.0) else {
             log::error!("Tried to delete unknown collider: {}", collider.0);
@@ -97,6 +101,7 @@ impl<'a> PhysicsWorldUpdater<'a> {
         assert!(old.is_some(), "Removed collider unknown in rapier");
     }
 
+    /// Moves an existing collider to a new position in world space
     pub fn move_collider(&mut self, collider: &crate::collider::Collider, pose: ColliderPose) {
         log::debug!("Moving collider {} to {} {}", collider.0, pose.0, pose.1);
 
@@ -111,6 +116,8 @@ impl<'a> PhysicsWorldUpdater<'a> {
     }
 }
 
+/// Locks the physics world and calls the given callback, which will receive a handle
+/// to a [PhysicsWorldUpdater].
 pub fn update_physics_world(cb: impl FnOnce(&mut PhysicsWorldUpdater)) {
     let mut manager_lock = PHYSICS_MANAGER.write().unwrap();
 
@@ -213,7 +220,7 @@ impl PhysicsManager {
             &event_handler,
         );
 
-        let mut result_handler = PhysicsResultHandler {
+        let result_handler = PhysicsResultHandler {
             collisions: collision_recv,
             contact_force: contact_force_recv,
         };
@@ -222,14 +229,19 @@ impl PhysicsManager {
     }
 }
 
+/// Handles the results of a physics step
 #[derive(Debug)]
 struct PhysicsResultHandler {
+    /// Collision event receiver
     collisions: Receiver<rapier::geometry::CollisionEvent>,
+
+    /// Contact force event receiver
     contact_force: Receiver<rapier::geometry::ContactForceEvent>,
 }
 
 impl PhysicsResultHandler {
-    fn handle(&mut self) {
+    /// Handles all pending events
+    fn handle(&self) {
         profiling::function_scope!();
 
         {
@@ -249,12 +261,14 @@ impl PhysicsResultHandler {
         }
     }
 
+    /// Handles a single collision event
     fn handle_collision_event(collision: rapier::geometry::CollisionEvent) {
         profiling::function_scope!();
 
         log::trace!("Handling collision event {:?}", collision);
     }
 
+    /// Handles a single contact force event
     fn handle_contact_force_event(contact_force: rapier::geometry::ContactForceEvent) {
         profiling::function_scope!();
 

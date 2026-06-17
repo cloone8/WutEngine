@@ -15,12 +15,12 @@ license = "MIT OR Apache-2.0"
 keywords.workspace = true
 
 [dependencies]
+derive_more = { workspace = true, features = ["debug"] }
 egui.workspace = true
 egui_extras = { workspace = true, features = ["serde"] }
 indexmap.workspace = true
 log.workspace = true
 puffin = { workspace = true, features = ["packing"] }
-serde = { workspace = true, optional = true }
 jiff.workspace = true
 
 [lints]

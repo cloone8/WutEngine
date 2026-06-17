@@ -1,7 +1,7 @@
+use alloc::sync::Arc;
 use core::sync::atomic::Ordering;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use winit::error::EventLoopError;
 use wutengine_util::InitOnce;

@@ -4885,13 +4885,13 @@ dependencies = [
 name = "wutengine_puffin_egui"
 version = "0.6.0"
 dependencies = [
+ "derive_more",
  "egui",
  "egui_extras",
  "indexmap",
  "jiff",
  "log",
  "puffin",
- "serde",
 ]
 
 [[package]]

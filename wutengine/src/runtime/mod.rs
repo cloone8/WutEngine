@@ -1,31 +1,26 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
-use alloc::sync::Arc;
-use core::sync::atomic::{AtomicBool, Ordering};
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::mpsc::Receiver;
-use std::time::Instant;
-use wutengine_util::assert_main_thread;
-
-use derive_more::{Display, Error, From};
-use winit::error::EventLoopError;
-use wutengine_graphics::wgpu;
-
-use crate::audio;
 use crate::builtins::components::rendering::Camera;
 use crate::builtins::components::rendering::CameraRenderPass;
 use crate::builtins::components::rendering::GlobalRenderPass;
-use crate::entity::{self, EntityManager};
+use crate::entity;
+use crate::entity::EntityManager;
 use crate::graphics::DrawCommand;
 use crate::graphics::RenderPassInfo;
 use crate::input;
 use crate::physics2d;
 use crate::physics3d;
-use crate::system::{self, Phase, SystemManager};
-use crate::window::{self, Window};
+use crate::system::{Phase, SystemManager};
+use crate::window;
+use crate::window::Window;
 use crate::{graphics, time, world};
-use wutengine_util::{self, InitOnce};
+use core::sync::atomic::AtomicBool;
+use core::sync::atomic::Ordering;
+use std::sync::mpsc::Receiver;
+use std::time::Instant;
+use wutengine_graphics::wgpu;
+use wutengine_util::InitOnce;
+use wutengine_util::assert_main_thread;
 
 use rayon::prelude::*;
 
@@ -172,7 +167,7 @@ impl Runtime {
 
         self.run_phase_systems(Phase::FixedUpdate);
 
-        self.write_physics_state();
+        Self::write_physics_state();
 
         {
             profiling::scope!("Run physics step");
@@ -187,12 +182,12 @@ impl Runtime {
             );
         }
 
-        self.read_physics_state();
+        Self::read_physics_state();
 
         time::update_fixed();
     }
 
-    fn write_physics_state(&self) {
+    fn write_physics_state() {
         use crate::builtins::components::Transform;
         use crate::builtins::components::physics::*;
 
@@ -227,7 +222,7 @@ impl Runtime {
             },
         );
     }
-    fn read_physics_state(&self) {
+    fn read_physics_state() {
         use crate::builtins::components::Transform;
         use crate::builtins::components::physics::*;
 
@@ -241,7 +236,7 @@ impl Runtime {
                 .ecs
                 .query_mut::<(&mut ColliderSet2D, Option<&mut Transform>)>();
 
-            for val in query {}
+            for _val in query {}
         }
 
         {
@@ -250,7 +245,7 @@ impl Runtime {
                 .ecs
                 .query_mut::<(&mut ColliderSet3D, Option<&mut Transform>)>();
 
-            for val in query {}
+            for _val in query {}
         }
     }
 
