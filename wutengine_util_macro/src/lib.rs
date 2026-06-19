@@ -198,7 +198,7 @@ pub fn derive_variant_name(input: proc_macro::TokenStream) -> proc_macro::TokenS
                 variant_names.push(quote! { Self::#ident {..} => #name, });
             }
             syn::Fields::Unnamed(_) => {
-                variant_names.push(quote! { Self::#ident(_) => #name, });
+                variant_names.push(quote! { Self::#ident(..) => #name, });
             }
             syn::Fields::Unit => {
                 variant_names.push(quote! { Self::#ident => #name, });
