@@ -14,8 +14,10 @@ use crate::graphics;
 use crate::graphics::DrawCommand;
 
 /// The main pass for color rendering
-#[derive(Debug, Clone)]
-pub struct ColorPass;
+#[derive(Debug)]
+pub struct ColorPass {
+    query_set: graphics::queries::QueryResolver,
+}
 
 impl ColorPass {
     /// The position relative to other renderpasses. Higher is later
@@ -38,7 +40,9 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
     where
         Self: Sized,
     {
-        Box::new(ColorPass)
+        Box::new(ColorPass {
+            query_set: graphics::queries::QueryResolver::new("ColorPass", graphics::device()),
+        })
     }
 
     fn execute(
@@ -76,7 +80,7 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
                 },
             })],
             depth_stencil_attachment: None,
-            timestamp_writes: None,
+            timestamp_writes: self.query_set.renderpass_timestamp_writes(),
             occlusion_query_set: None,
             multiview_mask: None,
         });
@@ -85,6 +89,8 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
             log::error!("Failed to set camera bind group: {e}");
             return;
         }
+
+        self.query_set.pipeline_statistics_start(&mut render_pass);
 
         let mut render_state = RenderState::default();
 
@@ -99,6 +105,12 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
             render_state.draw_single(&mut render_pass, draw_command, camera, &color_targets);
             render_pass.pop_debug_group();
         }
+
+        self.query_set.pipeline_statistics_end(&mut render_pass);
+
+        drop(render_pass);
+
+        self.query_set.resolve(cmd);
     }
 }
 

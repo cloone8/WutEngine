@@ -14,7 +14,8 @@ struct VSOutput {
     //# endif
 }
 
-@vertex fn vs(
+@vertex
+fn vs(
     input: VSInput
 ) -> VSOutput {
     var vs_output: VSOutput;
@@ -39,7 +40,8 @@ struct UserParams {
 @group(WUTENGINE_MATERIAL_GROUP) @binding(2) var color_map_texture: texture_2d<f32>;
 //# endif
 
-@fragment fn fs(fs_input: VSOutput) -> @location(0) vec4f {
+@fragment
+fn fs(fs_input: VSOutput) -> @location(0) vec4f {
     //# if HAS_COLOR_MAP != 0
     return textureSample(color_map_texture, color_map_sampler, fs_input.uv) * params.base_color;
     //# else

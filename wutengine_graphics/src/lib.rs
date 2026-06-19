@@ -10,6 +10,7 @@ pub mod internal_bind_groups;
 pub mod material;
 pub mod mesh;
 pub mod pipeline;
+pub mod queries;
 pub mod renderpass;
 pub mod sampler;
 pub mod shader;
