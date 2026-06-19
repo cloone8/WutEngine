@@ -4,6 +4,7 @@
 use core::time::Duration;
 
 use alloc::sync::Arc;
+use wutengine_util_macro::VariantName;
 
 use crate::config;
 use crate::input;
@@ -16,7 +17,7 @@ use super::Runtime;
 /// An event sent to the main WutEngine [Runtime], to be handled by [winit::application::ApplicationHandler::user_event].
 ///
 /// This is meant for events that should be handled on the main thread
-#[derive(Debug)]
+#[derive(Debug, VariantName)]
 pub(crate) enum WinitEvent {
     /// The creation of a new window with the given ID and config was requested
     NewWindowRequested(Window, WindowConfig),
@@ -86,7 +87,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
     ) {
         use winit::event::WindowEvent;
 
-        profiling::function_scope!();
+        _ = event_loop;
 
         let id = match window::manager::find_id(native_id) {
             window::manager::WindowState::Alive(id) => id,
@@ -113,6 +114,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             input::insert_raw_window_event(input::WindowIdentifier::from(id), &event);
 
         if was_handled_window_input_event {
+            window::manager::request_redraws();
             return;
         }
 
@@ -126,13 +128,6 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
                 profiling::scope!("Resized");
 
                 window::manager::refresh_window(&id, false);
-
-                if cfg!(windows) {
-                    // Workaround for https://github.com/rust-windowing/winit/issues/3272
-                    // The frame still freezes, but at least the whole window is redrawn once
-                    // to make sure it's filled
-                    self.about_to_wait(event_loop);
-                }
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 profiling::scope!("Scale factor changed");
@@ -152,7 +147,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
                 window::manager::notify_window_occluded(&id, occluded);
             }
             WindowEvent::RedrawRequested => {
-                window::manager::request_redraw(id);
+                self.run_frame();
             }
             _ => {}
         }
@@ -163,6 +158,10 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         event_loop: &winit::event_loop::ActiveEventLoop,
         cause: winit::event::StartCause,
     ) {
+        if let winit::event::StartCause::ResumeTimeReached { .. } = cause {
+            window::manager::request_redraws();
+        };
+
         let _ = (event_loop, cause);
     }
 
@@ -231,7 +230,10 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let _ = event_loop;
-        self.run_frame();
+
+        if self.always_redraw {
+            window::manager::request_redraws();
+        }
     }
 
     fn suspended(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {

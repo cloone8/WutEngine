@@ -264,18 +264,6 @@ pub(crate) fn refresh_displays(event_loop: &winit::event_loop::ActiveEventLoop) 
     window_manager.displays = new_display_map;
 }
 
-/// Request a winit redraw for this window
-pub(crate) fn request_redraw(window: Window) {
-    profiling::function_scope!();
-    assert_main_thread!();
-
-    let window_manager = WINDOW_MANAGER.read().unwrap();
-
-    if let Some(window) = window_manager.windows.get(&window) {
-        window.native.request_redraw();
-    }
-}
-
 fn find_existing_display_id(
     window_manager: &WindowManager,
     monitor_handle: &winit::monitor::MonitorHandle,
@@ -344,6 +332,18 @@ pub(crate) fn get_surface_textures() -> SmallVec<[(Window, wgpu::SurfaceTexture)
     surfaces
 }
 
+/// Request redraws for all available windows
+pub(crate) fn request_redraws() {
+    profiling::function_scope!();
+    assert_main_thread!();
+
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    for window in window_manager.windows.values() {
+        window.native.request_redraw();
+    }
+}
+
 /// Notifies the given windows that content is about to be presented to them
 pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Window>) {
     profiling::function_scope!();
@@ -354,7 +354,6 @@ pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Windo
     for window in windows {
         if let Some(window_info) = window_manager.windows.get(window) {
             window_info.native.pre_present_notify();
-            window_info.native.request_redraw();
         } else {
             log::warn!(
                 "Could not pre-present notify window {window} because it could not be found"

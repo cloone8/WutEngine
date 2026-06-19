@@ -38,6 +38,11 @@ pub struct InitRuntimeConfig {
     /// Hard-coded config overrides. Applied after reading the config file from [Self::config_file], and
     /// thus overrides its values
     pub config_overrides: HashMap<String, crate::config::toml::Value>,
+
+    /// If `true`, will not continuously run the main frame and render loop. The loop is only run
+    /// when new input reaches the window, or when explictely requested by either the OS (resizes, etc.)
+    /// or the user.
+    pub only_tick_on_request: bool,
 }
 
 impl Default for InitRuntimeConfig {
@@ -45,6 +50,7 @@ impl Default for InitRuntimeConfig {
         Self {
             config_file: Some(PathBuf::from("wutengine.toml")),
             config_overrides: Default::default(),
+            only_tick_on_request: false,
         }
     }
 }
@@ -107,6 +113,7 @@ pub fn run(
         entity_manager: entity::initialize(),
         systems: system::SystemManager::new(),
         draw_commands: graphics::initialize_command_queue(),
+        always_redraw: !config.only_tick_on_request,
     };
 
     runtime.systems.build_schedule(initial_systems);
@@ -128,7 +135,13 @@ pub fn run(
 
     InitOnce::init(&EVENT_LOOP_PROXY, event_loop_proxy);
 
-    event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+    let control_flow = if config.only_tick_on_request {
+        winit::event_loop::ControlFlow::Wait
+    } else {
+        winit::event_loop::ControlFlow::Poll
+    };
+
+    event_loop.set_control_flow(control_flow);
 
     event_loop
         .run_app(&mut runtime)

@@ -66,7 +66,7 @@ pub enum FullscreenMode {
 }
 
 /// Target display for [FullscreenMode::Borderless]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum BorderlessTarget {
     /// The display the window is currently (or initially) on
     Current,

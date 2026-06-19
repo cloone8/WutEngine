@@ -65,6 +65,9 @@ pub(crate) struct Runtime {
 
     /// The receiving end of the graphics command queue
     draw_commands: Receiver<crate::graphics::DrawCommand>,
+
+    /// Whether to always request a redraw when the event loop is going to sleep
+    always_redraw: bool,
 }
 
 impl Runtime {
