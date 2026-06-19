@@ -5,6 +5,7 @@ use core::hash::Hash;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use crate::builtins::components::Name;
+use crate::builtins::components::Transform;
 use crate::component::Component;
 use crate::world::World;
 use wutengine_util::InitOnce;
@@ -108,16 +109,41 @@ impl Hash for Entity {
 impl nohash_hasher::IsEnabled for Entity {}
 
 impl Entity {
-    /// Spawns a new entity in the game world
+    /// Spawns a new entity in the game world with an identity rotation and position, and position 0
+    #[inline(always)]
     pub fn spawn(name: impl Into<String>) -> Self {
+        Self::spawn_impl(name.into(), Some(Transform::new()))
+    }
+
+    /// Spawns a new entity in the game world without a transform component, meaning
+    /// it has no physical place in the world
+    #[inline(always)]
+    pub fn spawn_transformless(name: impl Into<String>) -> Self {
+        Self::spawn_impl(name.into(), None)
+    }
+
+    /// Spawns a new entity in the game world
+    #[inline(always)]
+    pub fn spawn_at(name: impl Into<String>, transform: Transform) -> Self {
+        Self::spawn_impl(name.into(), Some(transform))
+    }
+
+    #[inline]
+    fn spawn_impl(name: String, transform: Option<Transform>) -> Self {
         let id = crate::world::get_world().ecs.reserve_entity();
 
-        let name = Name::new(name.into());
+        let name = Name::new(name);
         let new_entity = Entity(id);
 
         log::debug!("Spawning new entity {name} ({new_entity})");
 
-        new_entity.add_component(name)
+        let mut new_entity = new_entity.add_component(name);
+
+        if let Some(transform) = transform {
+            new_entity = new_entity.add_component(transform);
+        }
+
+        new_entity
     }
 
     /// Destroys an entity and removes its components
@@ -134,7 +160,7 @@ impl Entity {
     /// Adds a new component to the given entity.
     /// The component is not actually inserted into the world immediately, and is instead processed
     /// right before the next frame-phase callback.
-    pub fn add_component(self, component: impl Component) -> Self {
+    pub fn add_component<C: Component>(self, component: C) -> Self {
         let mut builder = hecs::EntityBuilder::new();
 
         builder.add(component);
