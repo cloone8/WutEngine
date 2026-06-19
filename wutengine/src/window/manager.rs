@@ -28,6 +28,21 @@ pub(crate) fn init() {
             development_overlay::WindowManagerOverlay::default(),
         );
     }
+
+    wutengine_event::subscribe::<config::ConfigValueChanged>(|changed| {
+        match changed.key.as_str() {
+            "wutengine.window.vsync" | "wutengine.window.triple_buffering" => {
+                get_windows_and(|window_map| {
+                    for window in window_map.keys() {
+                        crate::runtime::notify_event_loop(
+                            crate::runtime::WinitEvent::ForceSurfaceReconfigure(*window),
+                        );
+                    }
+                });
+            }
+            _ => {}
+        }
+    });
 }
 
 /// Registers a newly created window
