@@ -419,6 +419,7 @@ pub static EGUI_SHADER: LazyLock<SerializedShader> = LazyLock::new(|| {
 
     let mut shader =
         serde_json::from_str::<SerializedShader>(descriptor).expect("Could not get egui shader");
+
     shader.source = ShaderSource::Inline {
         content: source.to_owned(),
     };

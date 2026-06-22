@@ -1,6 +1,14 @@
 {
     "name": "egui",
-    "keywords": {},
+    "keywords": {
+        "DITHERING": {
+            "default": 0,
+            "allowed": {
+                "start": 0,
+                "end": 1
+            }
+        }
+    },
     "vertex_attributes": [
         {
             "type": "position",

@@ -823,7 +823,7 @@ fn upload_new_textures(
                 let texture = Texture::new(&tex_config_from_egui_data(&delta.image), 1);
                 texture.set_data(egui_image_bytes(&delta.image));
 
-                let mut material = Material::new(EGUI_SHADER.clone(), map![]);
+                let mut material = Material::new(EGUI_SHADER.clone(), map!["DITHERING" => 0u64]);
 
                 material
                     .raw_bind_group_mut()
