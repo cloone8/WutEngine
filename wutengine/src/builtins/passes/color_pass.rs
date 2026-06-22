@@ -109,8 +109,6 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
         self.query_set.pipeline_statistics_end(&mut render_pass);
 
         drop(render_pass);
-
-        self.query_set.resolve(cmd);
     }
 }
 

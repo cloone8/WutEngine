@@ -1,24 +1,22 @@
-use core::num;
+//! GPU pipeline queries
 
-use smallvec::SmallVec;
-
+/// Helper struct for resolving various GPU queries
 #[derive(Debug)]
 pub struct QueryResolver {
+    /// Buffers for timestamp queries
     timestamp_bufs: Option<(wgpu::QuerySet, wgpu::Buffer)>,
+
+    /// Buffers for statistics queries
     statistics_bufs: Option<(wgpu::QuerySet, wgpu::Buffer)>,
-    read_buffer: Option<wgpu::Buffer>,
 }
 
 impl QueryResolver {
+    /// A new queryresolver on the given device, with the given debug name
     pub fn new(name: &str, device: &wgpu::Device) -> Self {
-        let mut slots: u32 = 0;
         let mut resolver = Self {
             timestamp_bufs: None,
             statistics_bufs: None,
-            read_buffer: None,
         };
-
-        return resolver;
 
         let supported_features = crate::active_config().features;
 
@@ -37,8 +35,6 @@ impl QueryResolver {
             });
 
             resolver.timestamp_bufs = Some((query_set, query_buffer));
-
-            slots += 2;
         }
 
         if supported_features.contains(wgpu::Features::PIPELINE_STATISTICS_QUERY) {
@@ -58,23 +54,13 @@ impl QueryResolver {
             });
 
             resolver.statistics_bufs = Some((query_set, query_buffer));
-
-            slots += num_statistics as u32;
-        }
-
-        if slots != 0 {
-            resolver.read_buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some(format!("QueryResolver {name} read buffer").as_str()),
-                size: (wgpu::QUERY_SIZE * slots) as u64,
-                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            }));
         }
 
         resolver
     }
 
-    pub fn renderpass_timestamp_writes(&mut self) -> Option<wgpu::RenderPassTimestampWrites> {
+    /// Returns the timestamp writes config for this query set
+    pub fn renderpass_timestamp_writes(&mut self) -> Option<wgpu::RenderPassTimestampWrites<'_>> {
         let (query_set, _) = self.timestamp_bufs.as_ref()?;
 
         Some(wgpu::RenderPassTimestampWrites {
@@ -84,105 +70,80 @@ impl QueryResolver {
         })
     }
 
+    /// Starts recording pipeline statistics on the given pass
     pub fn pipeline_statistics_start(&mut self, pass: &mut wgpu::RenderPass) {
         if let Some((statistics_set, _)) = self.statistics_bufs.as_ref() {
             pass.begin_pipeline_statistics_query(statistics_set, 0);
         }
     }
 
+    /// Stops recording pipeline statistics on the given pass
     pub fn pipeline_statistics_end(&mut self, pass: &mut wgpu::RenderPass) {
         if self.statistics_bufs.as_ref().is_some() {
             pass.end_pipeline_statistics_query();
         }
     }
 
-    pub fn resolve(&self, cmd: &mut wgpu::CommandEncoder) {
-        let Some(read_buffer) = self.read_buffer.as_ref() else {
+    /// Resolves the timestamp queries into a buffer, and copies the buffer's contents into the
+    /// given target buffer at `offset_queries * wgpu::QUERY_SIZE` bytes from the start of the target buffer.
+    /// Increments `offset_queries` by the amount of timestamp query indices written.
+    pub fn resolve_timestamps(
+        &self,
+        cmd: &mut wgpu::CommandEncoder,
+        target_buffer: &wgpu::Buffer,
+        offset_queries: &mut u64,
+    ) {
+        let Some((timestamp_query_set, timestamp_query_buf)) = self.timestamp_bufs.as_ref() else {
             return;
         };
 
-        let mut num_slots = 0;
+        debug_assert!(
+            target_buffer.usage().contains(wgpu::BufferUsages::COPY_DST),
+            "Cannot write timestamps to target buffer"
+        );
 
-        let mut timestamps_resolved = false;
-        if let Some((timestamp_query_set, timestamp_query_buf)) = self.timestamp_bufs.as_ref() {
-            cmd.resolve_query_set(timestamp_query_set, 0..2, timestamp_query_buf, 0);
-            cmd.copy_buffer_to_buffer(
-                timestamp_query_buf,
-                0,
-                read_buffer,
-                (num_slots * wgpu::QUERY_SIZE) as u64,
-                (wgpu::QUERY_SIZE * 2) as u64,
-            );
+        cmd.resolve_query_set(timestamp_query_set, 0..2, timestamp_query_buf, 0);
+        cmd.copy_buffer_to_buffer(
+            timestamp_query_buf,
+            0,
+            target_buffer,
+            *offset_queries * (wgpu::QUERY_SIZE as u64),
+            (wgpu::QUERY_SIZE * 2) as u64,
+        );
 
-            timestamps_resolved = true;
-            num_slots += 2;
-        }
+        *offset_queries += 2;
+    }
 
-        let mut statistics_resolved = false;
-        if let Some((statistics_query_set, statistics_query_buf)) = self.statistics_bufs.as_ref() {
-            let num_statistics = wgpu::PipelineStatisticsTypes::all().into_iter().count();
-
-            cmd.resolve_query_set(statistics_query_set, 0..1, statistics_query_buf, 0);
-            cmd.copy_buffer_to_buffer(
-                statistics_query_buf,
-                0,
-                read_buffer,
-                (num_slots * wgpu::QUERY_SIZE) as u64,
-                (wgpu::QUERY_SIZE * num_statistics as u32) as u64,
-            );
-
-            statistics_resolved = true;
-            num_slots += num_statistics as u32;
-        }
-
-        if num_slots == 0 {
+    /// Resolves the pipeline queries into a buffer, and copies the buffer's contents into the
+    /// given target buffer at `offset_queries * wgpu::QUERY_SIZE` bytes from the start of the target buffer.
+    /// Increments `offset_queries` by the amount of pipeline statistics query indices written.
+    pub fn resolve_pipeline_statistics(
+        &self,
+        cmd: &mut wgpu::CommandEncoder,
+        target_buffer: &wgpu::Buffer,
+        offset_queries: &mut u64,
+    ) {
+        let Some((statistics_query_set, statistics_query_buf)) = self.statistics_bufs.as_ref()
+        else {
             return;
-        }
+        };
 
-        let read_buf_cpy = read_buffer.clone();
+        debug_assert!(
+            target_buffer.usage().contains(wgpu::BufferUsages::COPY_DST),
+            "Cannot write statistics to target buffer"
+        );
 
-        cmd.map_buffer_on_submit(read_buffer, wgpu::MapMode::Read, .., move |result| {
-            log::info!("In on-submit");
-            if result.is_err() {
-                read_buf_cpy.unmap();
-                return;
-            }
+        let num_statistics = wgpu::PipelineStatisticsTypes::all().into_iter().count();
 
-            let view = read_buf_cpy.get_mapped_range(..);
+        cmd.resolve_query_set(statistics_query_set, 0..1, statistics_query_buf, 0);
+        cmd.copy_buffer_to_buffer(
+            statistics_query_buf,
+            0,
+            target_buffer,
+            *offset_queries * (wgpu::QUERY_SIZE as u64),
+            (wgpu::QUERY_SIZE * (num_statistics as u32)) as u64,
+        );
 
-            let (view_slice, rest) = view.as_chunks::<{ wgpu::QUERY_SIZE as usize }>();
-
-            assert_eq!(0, rest.len(), "Should not be left with rest");
-
-            let mut data_offset = 0;
-            if timestamps_resolved {
-                let start = u64::from_ne_bytes(view_slice[data_offset]);
-                let end = u64::from_ne_bytes(view_slice[data_offset + 1]);
-                let duration = end.saturating_sub(start) as f32; // Timestamp may overflow in GPU
-                let duration_nanos = duration * crate::queue().get_timestamp_period();
-
-                log::info!("Duration nanos: {duration_nanos}");
-
-                data_offset += 2;
-            }
-
-            if statistics_resolved {
-                let num_statistics = wgpu::PipelineStatisticsTypes::all().into_iter().count();
-
-                for (i, (statistic, _)) in wgpu::PipelineStatisticsTypes::all()
-                    .iter_names()
-                    .enumerate()
-                {
-                    let data = u64::from_ne_bytes(view_slice[data_offset + i]);
-
-                    log::info!("{}: {}", statistic, data);
-                }
-
-                data_offset += num_statistics;
-            }
-
-            drop(view);
-            read_buf_cpy.unmap();
-        });
+        *offset_queries += num_statistics as u64;
     }
 }
