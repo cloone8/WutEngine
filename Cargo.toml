@@ -21,6 +21,10 @@ lto = true
 codegen-units = 1
 panic = "abort"
 
+[workspace.dependencies]
+wutengine = { git = "https://github.com/cloone8/WutEngine.git", rev = "6ae69dd39ea88c82b8d5949bdf357be73bcb8b94" }
+log = { version = "0.4" }
+
 [workspace.lints.rust]
 # Groups
 future_incompatible = { level = "warn", priority = -1 }
