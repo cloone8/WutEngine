@@ -82,7 +82,7 @@ impl ModuleLogger {
             return (true, first_module);
         }
 
-        (false, Self::first_module(target))
+        (false, first_module)
     }
 
     /// Returns the first module in the given module string like `mod_a::mod_b::mod_c` or `mod_a`
