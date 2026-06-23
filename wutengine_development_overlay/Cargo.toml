@@ -15,16 +15,12 @@ categories.workspace = true
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_egui.workspace = true
-wutengine_shadercompiler.workspace = true
-wutengine_asset.workspace = true
-wutengine_math.workspace = true
 wutengine_input.workspace = true
 wutengine_graphics.workspace = true
 
 log.workspace = true
 profiling.workspace = true
 nohash-hasher.workspace = true
-bytemuck = { workspace = true, features = ["must_cast"] }
 rayon.workspace = true
 
 [lints]

@@ -6,6 +6,8 @@ use std::sync::LazyLock;
 use wutengine_asset::assets::shader::ShaderBufferParameterType;
 use wutengine_asset::assets::shader::ShaderParameter;
 
+use crate::label;
+
 use super::{BindGroup, GFX_DEVICE};
 
 fn get_camera_params() -> &'static [ShaderParameter] {
@@ -38,7 +40,7 @@ pub fn get_camera_bind_group_layout() -> &'static wgpu::BindGroupLayout {
         let params = get_camera_params();
 
         GFX_DEVICE.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Camera layout"),
+            label: label!("Camera layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -94,7 +96,7 @@ pub fn get_instance_bind_group_layout() -> &'static wgpu::BindGroupLayout {
         let params = get_instance_params();
 
         GFX_DEVICE.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Instance layout"),
+            label: label!("Instance layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,

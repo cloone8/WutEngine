@@ -4591,17 +4591,13 @@ dependencies = [
 name = "wutengine_development_overlay"
 version = "0.6.0"
 dependencies = [
- "bytemuck",
  "log",
  "nohash-hasher",
  "profiling",
  "rayon",
- "wutengine_asset",
  "wutengine_egui",
  "wutengine_graphics",
  "wutengine_input",
- "wutengine_math",
- "wutengine_shadercompiler",
  "wutengine_util",
  "wutengine_util_macro",
 ]
@@ -4611,12 +4607,18 @@ name = "wutengine_egui"
 version = "0.6.0"
 dependencies = [
  "bytemuck",
+ "derive_more",
  "egui",
  "log",
+ "nohash-hasher",
+ "profiling",
  "serde_json",
  "wutengine_asset",
+ "wutengine_graphics",
  "wutengine_input",
  "wutengine_math",
+ "wutengine_shadercompiler",
+ "wutengine_time",
  "wutengine_util",
 ]
 
@@ -4624,6 +4626,7 @@ dependencies = [
 name = "wutengine_event"
 version = "0.6.0"
 dependencies = [
+ "derive_more",
  "log",
  "nohash-hasher",
  "profiling",

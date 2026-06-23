@@ -11,6 +11,7 @@ use wutengine_asset::assets::sampler::WrapModeType;
 
 use crate::GFX_DEVICE;
 use crate::cache::sampler::SamplerCacheKey;
+use crate::label;
 use wutengine_asset::Asset;
 
 use super::cache;
@@ -130,7 +131,7 @@ impl Sampler {
         let mip_filter = asset_filter_mode_to_wgpu_mipmap_filter_mode(mip_filtering);
 
         let desc = wgpu::wgt::SamplerDescriptor {
-            label: None,
+            label: label!(),
             address_mode_u: asset_wrap_mode_to_wgpu(wrapping.get_u()),
             address_mode_v: asset_wrap_mode_to_wgpu(wrapping.get_v()),
             address_mode_w: asset_wrap_mode_to_wgpu(wrapping.get_w()),

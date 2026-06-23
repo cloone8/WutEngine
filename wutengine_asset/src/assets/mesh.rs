@@ -35,6 +35,7 @@ impl SerializedAsset for SerializedMesh {}
 
 /// Mesh indices
 #[derive(Debug, Clone, derive_more::From, Serialize, Deserialize)]
+#[serde(tag = "size")]
 pub enum MeshIndices {
     /// 16-bit indices
     U16(Vec<u16>),

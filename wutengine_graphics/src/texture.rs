@@ -8,6 +8,8 @@ use wutengine_asset::assets::texture::TextureFormat;
 
 use wutengine_asset::Asset;
 
+use crate::label;
+
 /// The default texture. Used for missing texture parameters
 pub(crate) static DEFAULT_TEXTURE: LazyLock<Texture> = LazyLock::new(|| {
     log::debug!("Loading default texture");
@@ -84,7 +86,7 @@ impl Texture {
         let format_wgpu = convert_texture_format(config.format);
 
         let tex = super::device().create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: label!(),
             size: wgpu::Extent3d {
                 width: config.width,
                 height: config.height,

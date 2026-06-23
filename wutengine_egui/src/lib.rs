@@ -1,343 +1,39 @@
 #![doc = include_str!("../README.md")]
 
-use std::sync::LazyLock;
+extern crate alloc;
 
-use wutengine_asset::assets::sampler::FilterMode;
-use wutengine_asset::assets::sampler::SerializedSampler;
-use wutengine_asset::assets::sampler::WrapMode;
-use wutengine_asset::assets::sampler::WrapModeType;
+use alloc::sync::Arc;
+use render::PrimitiveRenderState;
+use std::collections::HashMap;
+use std::sync::LazyLock;
+use std::sync::Mutex;
+use wutengine_graphics::label;
+
+use nohash_hasher::IntMap;
+use wutengine_asset::Asset;
+use wutengine_asset::AssetHandle;
 use wutengine_asset::assets::shader::SerializedShader;
 use wutengine_asset::assets::shader::ShaderSource;
-use wutengine_asset::assets::texture::TextureConfig;
-use wutengine_asset::assets::texture::TextureFormat;
+use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_graphics::material::Material;
+use wutengine_graphics::material::MaterialParameter;
+use wutengine_graphics::sampler::Sampler;
+use wutengine_graphics::shader::GVec3;
+use wutengine_graphics::shader::Shader;
+use wutengine_graphics::texture::Texture;
+use wutengine_graphics::wgpu;
 use wutengine_input::WindowIdentifier;
-use wutengine_input::keyboard;
-use wutengine_math::Vec2;
+use wutengine_math::vec2;
 use wutengine_util::map;
 
+mod input;
 mod key_mapping;
+mod render;
+pub mod utils;
 
 pub use key_mapping::*;
 
 pub use egui;
-
-/// Converts a WutEngine [Vec2](wutengine_math::Vec2) to an [egui::Vec2]
-#[inline]
-pub const fn to_egui_vec2(v: wutengine_math::Vec2) -> egui::Vec2 {
-    egui::Vec2 { x: v.x, y: v.y }
-}
-
-/// Converts a WutEngine [Vec2](wutengine_math::Vec2) to an [egui::Pos2]
-#[inline]
-pub const fn to_egui_pos2(v: wutengine_math::Vec2, scale_factor: f32) -> egui::Pos2 {
-    egui::Pos2 {
-        x: v.x / scale_factor,
-        y: v.y / scale_factor,
-    }
-}
-
-/// Obtains the texture configuration required for a given [egui ImageData](egui::epaint::ImageData)
-#[inline]
-pub fn tex_config_from_egui_data(delta: &egui::epaint::ImageData) -> TextureConfig {
-    match delta {
-        egui::ImageData::Color(_) => TextureConfig {
-            width: delta.width() as u32,
-            height: delta.height() as u32,
-            format: TextureFormat::Rgba8,
-        },
-    }
-}
-
-/// Returns the raw image bytes for a given [egui Image](egui::epaint::ImageData)
-#[inline]
-pub fn egui_image_bytes(image: &egui::epaint::ImageData) -> &[u8] {
-    match image {
-        egui::ImageData::Color(color_image) => bytemuck::cast_slice(&color_image.pixels),
-    }
-}
-
-/// Returns the sampler config for the [egui TextureOptions](egui::TextureOptions)
-#[inline]
-pub fn sampler_from_egui(options: &egui::TextureOptions) -> SerializedSampler {
-    let filtering = filter_mode_from_egui(options.magnification);
-
-    if options.magnification != options.minification {
-        log::warn!(
-            "Different min/mag filters ({:?}/{:?}) for egui texture. This is not yet supported",
-            options.minification,
-            options.magnification
-        );
-    }
-
-    let wrapping = wrap_mode_from_egui(options.wrap_mode);
-
-    SerializedSampler {
-        texture_filtering: filtering,
-        mipmap_filtering: options
-            .mipmap_mode
-            .map(filter_mode_from_egui)
-            .unwrap_or_default(),
-        wrapping,
-    }
-}
-
-/// Converts an [egui::TextureFilter] to a WutEngine [FilterMode]
-#[inline]
-pub fn filter_mode_from_egui(egui_mode: egui::TextureFilter) -> FilterMode {
-    match egui_mode {
-        egui::TextureFilter::Nearest => FilterMode::Nearest,
-        egui::TextureFilter::Linear => FilterMode::Linear,
-    }
-}
-
-/// Converts an [egui::TextureWrapMode] to a WutEngine [WrapModeType]
-#[inline]
-pub fn wrap_mode_from_egui(egui_mode: egui::TextureWrapMode) -> WrapModeType {
-    match egui_mode {
-        egui::TextureWrapMode::ClampToEdge => WrapModeType::Single(WrapMode::Clamp),
-        egui::TextureWrapMode::Repeat => WrapModeType::Single(WrapMode::Repeat),
-        egui::TextureWrapMode::MirroredRepeat => WrapModeType::Single(WrapMode::MirrorRepeat),
-    }
-}
-
-/// A Rect in physical pixel space, used for setting clipping rectangles.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ScissorRect {
-    /// Scissor X
-    pub x: u32,
-
-    /// Scissor Y
-    pub y: u32,
-
-    /// Scissor width
-    pub width: u32,
-
-    /// Scissor height
-    pub height: u32,
-}
-
-impl ScissorRect {
-    /// Creates a new scissor rect from an egui rect, and a surface configuration
-    /// The resulting rect can be used directly in graphics APIs
-    pub fn new(
-        clip_rect: &egui::epaint::Rect,
-        pixels_per_point: f32,
-        target_size: (u32, u32),
-    ) -> Self {
-        // Transform clip rect to physical pixels:
-        let clip_min_x = pixels_per_point * clip_rect.min.x;
-        let clip_min_y = pixels_per_point * clip_rect.min.y;
-        let clip_max_x = pixels_per_point * clip_rect.max.x;
-        let clip_max_y = pixels_per_point * clip_rect.max.y;
-
-        // Round to integer:
-        let clip_min_x = clip_min_x.round() as u32;
-        let clip_min_y = clip_min_y.round() as u32;
-        let clip_max_x = clip_max_x.round() as u32;
-        let clip_max_y = clip_max_y.round() as u32;
-
-        // Clamp:
-        let clip_min_x = clip_min_x.clamp(0, target_size.0);
-        let clip_min_y = clip_min_y.clamp(0, target_size.1);
-        let clip_max_x = clip_max_x.clamp(clip_min_x, target_size.0);
-        let clip_max_y = clip_max_y.clamp(clip_min_y, target_size.0);
-
-        Self {
-            x: clip_min_x,
-            y: clip_min_y,
-            width: clip_max_x - clip_min_x,
-            height: clip_max_y - clip_min_y,
-        }
-    }
-}
-
-/// Checks a given mouse button for pressed/released events, and adds
-/// them to the events list if applicable
-fn add_mouse_button(
-    button: u32,
-    egui_button: egui::PointerButton,
-    pos: egui::Pos2,
-    modifiers: egui::Modifiers,
-    events: &mut Vec<egui::Event>,
-) {
-    if wutengine_input::mouse::button_pressed(None, button) {
-        events.push(egui::Event::PointerButton {
-            pos,
-            button: egui_button,
-            pressed: true,
-            modifiers,
-        });
-    } else if wutengine_input::mouse::button_released(None, button) {
-        events.push(egui::Event::PointerButton {
-            pos,
-            button: egui_button,
-            pressed: false,
-            modifiers,
-        });
-    }
-}
-
-/// Checks for mouse events for the given window
-fn add_mouse_events(
-    window: WindowIdentifier,
-    modifiers: egui::Modifiers,
-    scale_factor: f32,
-    events: &mut Vec<egui::Event>,
-) {
-    let mouse_raw = wutengine_input::mouse::pos_delta(None);
-
-    if mouse_raw != Vec2::ZERO {
-        events.push(egui::Event::MouseMoved(to_egui_vec2(mouse_raw)));
-    }
-
-    if let Some((pointer_window, pointer_pos)) = wutengine_input::mouse::screen_pos(None)
-        && pointer_window == window
-    {
-        let pointer_pos = to_egui_pos2(pointer_pos, scale_factor);
-
-        if mouse_raw != Vec2::ZERO {
-            events.push(egui::Event::PointerMoved(pointer_pos));
-        }
-
-        add_mouse_button(
-            wutengine_input::mouse::BUTTON_LEFT,
-            egui::PointerButton::Primary,
-            pointer_pos,
-            modifiers,
-            events,
-        );
-        add_mouse_button(
-            wutengine_input::mouse::BUTTON_RIGHT,
-            egui::PointerButton::Secondary,
-            pointer_pos,
-            modifiers,
-            events,
-        );
-        add_mouse_button(
-            wutengine_input::mouse::BUTTON_MIDDLE,
-            egui::PointerButton::Middle,
-            pointer_pos,
-            modifiers,
-            events,
-        );
-        add_mouse_button(
-            wutengine_input::mouse::BUTTON_BACK,
-            egui::PointerButton::Extra1,
-            pointer_pos,
-            modifiers,
-            events,
-        );
-        add_mouse_button(
-            wutengine_input::mouse::BUTTON_FORWARD,
-            egui::PointerButton::Extra2,
-            pointer_pos,
-            modifiers,
-            events,
-        );
-    }
-
-    let scroll_raw = wutengine_input::mouse::scroll_delta(None);
-
-    if scroll_raw != Vec2::ZERO {
-        events.push(egui::Event::MouseWheel {
-            unit: egui::MouseWheelUnit::Line,
-            delta: to_egui_vec2(scroll_raw),
-            phase: egui::TouchPhase::Move,
-            modifiers,
-        });
-    }
-}
-
-/// Gathers the currently held modifier keys
-fn gather_modifiers() -> egui::Modifiers {
-    use wutengine_input::keyboard::key_held;
-
-    const IS_MACOS: bool = cfg!(any(target_os = "macos", target_os = "ios"));
-
-    let alt = key_held(None, keyboard::Key::AltLeft) || key_held(None, keyboard::Key::AltRight);
-
-    let ctrl =
-        key_held(None, keyboard::Key::ControlLeft) || key_held(None, keyboard::Key::ControlRight);
-
-    let shift =
-        key_held(None, keyboard::Key::ShiftLeft) || key_held(None, keyboard::Key::ShiftRight);
-
-    let mac_cmd = IS_MACOS
-        && (key_held(None, keyboard::Key::SuperLeft) || key_held(None, keyboard::Key::SuperRight));
-
-    let command = if IS_MACOS { mac_cmd } else { ctrl };
-
-    egui::Modifiers {
-        alt,
-        ctrl,
-        shift,
-        mac_cmd,
-        command,
-    }
-}
-
-/// Winit also sends control characters as text, so we ignore those
-/// Ignore those.
-/// We also ignore '\r', '\n', '\t'.
-/// Newlines are handled by the `Key::Enter` event.
-fn is_printable_char(chr: char) -> bool {
-    let is_in_private_use_area = ('\u{e000}'..='\u{f8ff}').contains(&chr)
-        || ('\u{f0000}'..='\u{ffffd}').contains(&chr)
-        || ('\u{100000}'..='\u{10fffd}').contains(&chr);
-
-    !is_in_private_use_area && !chr.is_ascii_control()
-}
-
-/// Adds keyboard events to the given events list. Returns the currently held modifier keys
-fn add_keyboard_events(events: &mut Vec<egui::Event>) -> egui::Modifiers {
-    let modifiers = gather_modifiers();
-
-    let logical_inputs = wutengine_input::keyboard::logical_inputs(None);
-
-    for logical_input in logical_inputs {
-        let event = match logical_input {
-            keyboard::LogicalInput::Pressed(logical_key) => {
-                let Some(key) = wutengine_to_egui_key(logical_key) else {
-                    continue;
-                };
-
-                egui::Event::Key {
-                    key,
-                    physical_key: None,
-                    pressed: true,
-                    repeat: false,
-                    modifiers,
-                }
-            }
-            keyboard::LogicalInput::Text(txt) => {
-                let is_cmd = modifiers.ctrl || modifiers.command || modifiers.mac_cmd;
-
-                if is_cmd || txt.chars().any(|c| !is_printable_char(c)) {
-                    continue;
-                }
-
-                egui::Event::Text(txt)
-            }
-            keyboard::LogicalInput::Released(logical_key) => {
-                let Some(key) = wutengine_to_egui_key(logical_key) else {
-                    continue;
-                };
-
-                egui::Event::Key {
-                    key,
-                    physical_key: None,
-                    pressed: false,
-                    repeat: false,
-                    modifiers,
-                }
-            }
-        };
-
-        events.push(event);
-    }
-
-    modifiers
-}
 
 /// Information for the window we're rendering [egui] on
 #[derive(Debug, Clone, Copy)]
@@ -355,65 +51,19 @@ pub struct EguiWindowInfo {
     pub maximized: bool,
 }
 
-/// Returns the input required to run [egui] for a frame
-pub fn gather_input(
-    window: WindowIdentifier,
-    window_info: &EguiWindowInfo,
-    tex2d_size_limit: usize,
-    real_time_secs: f64,
-    scale_factor: f32,
-    surface_points: (f32, f32),
-) -> egui::RawInput {
-    let sfc_rect = egui::Rect {
-        min: egui::Pos2::ZERO,
-        max: egui::Pos2::new(surface_points.0, surface_points.1),
-    };
-
-    let mut egui_events = Vec::new();
-    //TODO: Emit egui window focus event if focus changed
-
-    let modifiers = add_keyboard_events(&mut egui_events);
-
-    add_mouse_events(window, modifiers, scale_factor, &mut egui_events);
-
-    if !egui_events.is_empty() {
-        log::trace!("Sending events: {:#?}", egui_events);
-    }
-
-    egui::RawInput {
-        viewport_id: egui::ViewportId::ROOT,
-        viewports: map![
-            egui::ViewportId::ROOT => egui::ViewportInfo {
-                parent: None,
-                title: Some("Development Overlay".to_string()),
-                events: vec![],
-                native_pixels_per_point: Some(scale_factor),
-                monitor_size: None,
-                inner_rect: Some(sfc_rect),
-                outer_rect: None,
-                minimized: Some(window_info.minimized),
-                maximized: Some(window_info.maximized),
-                fullscreen: None,
-                focused: Some(window_info.focused),
-                occluded: Some(window_info.occluded)
-            }
-        ],
-        safe_area_insets: None,
-        screen_rect: Some(sfc_rect),
-        max_texture_side: Some(tex2d_size_limit),
-        time: Some(real_time_secs),
-        predicted_dt: 1.0 / 60.0,
-        modifiers,
-        events: egui_events,
-        hovered_files: vec![],
-        dropped_files: vec![],
-        focused: window_info.focused,
-        system_theme: None,
+impl Default for EguiWindowInfo {
+    fn default() -> Self {
+        Self {
+            focused: true,
+            occluded: false,
+            minimized: false,
+            maximized: false,
+        }
     }
 }
 
-/// A shader that can be used for rendering the egui UI
-pub static EGUI_SHADER: LazyLock<SerializedShader> = LazyLock::new(|| {
+/// Shader for [egui]
+pub static EGUI_SHADER: LazyLock<Arc<Shader>> = LazyLock::new(|| {
     let descriptor = include_str!("egui.json");
     let source = include_str!("egui.wgsl");
 
@@ -424,5 +74,496 @@ pub static EGUI_SHADER: LazyLock<SerializedShader> = LazyLock::new(|| {
         content: source.to_owned(),
     };
 
-    shader
+    Arc::new(Shader::from_serialized(&shader).unwrap())
 });
+
+/// Information on a single egui viewport
+#[derive(derive_more::Debug)]
+pub struct EguiWindow {
+    /// The title
+    pub title: String,
+
+    /// The window identifier (for input)
+    pub input_window_identifier: WindowIdentifier,
+
+    /// General window info
+    pub window_info: EguiWindowInfo,
+
+    /// Texture size limit
+    pub tex2d_size_limit: usize,
+
+    /// Surface size in logical points
+    pub surface_size_points: (f32, f32),
+
+    /// Surface scale factor
+    pub scale_factor: f32,
+
+    /// GPU buffers containing vertex and index data for this window
+    gpu_buffers: Mutex<
+        Option<(
+            IntMap<ShaderVertexAttributeType, wgpu::Buffer>,
+            wgpu::Buffer,
+        )>,
+    >,
+
+    /// Last calculated output by [Self::run_logic]
+    last_output: Mutex<Option<WindowDrawable>>,
+
+    /// [egui] UI callback
+    #[debug(skip)]
+    ui_callback: Box<dyn Fn(&mut egui::Ui) + Send + Sync>,
+}
+
+/// Drawing parameters
+#[derive(Debug)]
+struct WindowDrawable {
+    /// The primitives to draw
+    primitives: Vec<egui::ClippedPrimitive>,
+
+    /// Textures to free after drawing
+    to_free: Vec<egui::TextureId>,
+
+    /// The pixels per point to use
+    pixels_per_point: f32,
+}
+
+impl EguiWindow {
+    /// Creates a new egui window taking input from the given [WindowIdentifier] and displaying the provided UI callback, with the given
+    /// initial size.
+    pub fn new(
+        input_window_identifier: WindowIdentifier,
+        surface_size_points: (f32, f32),
+        ui_callback: Box<dyn Fn(&mut egui::Ui) + Send + Sync>,
+    ) -> Box<Self> {
+        Box::new(Self {
+            title: "WutEngine".to_string(),
+            input_window_identifier,
+            window_info: EguiWindowInfo::default(),
+            tex2d_size_limit: wutengine_graphics::active_config()
+                .limits
+                .max_texture_dimension_2d as usize,
+            surface_size_points,
+            scale_factor: 1.0,
+            gpu_buffers: Mutex::new(None),
+            last_output: Mutex::new(None),
+            ui_callback,
+        })
+    }
+
+    /// Returns the input required to run [egui] for a frame
+    fn gather_input(&self, real_time_secs: f64) -> egui::RawInput {
+        profiling::function_scope!();
+
+        let sfc_rect = egui::Rect {
+            min: egui::Pos2::ZERO,
+            max: egui::Pos2::new(self.surface_size_points.0, self.surface_size_points.1),
+        };
+
+        let mut egui_events = Vec::new();
+        //TODO: Emit egui window focus event if focus changed
+
+        let modifiers = input::add_keyboard_events(&mut egui_events);
+
+        input::add_mouse_events(
+            self.input_window_identifier,
+            modifiers,
+            self.scale_factor,
+            &mut egui_events,
+        );
+
+        if !egui_events.is_empty() {
+            log::trace!("Sending events: {:#?}", egui_events);
+        }
+
+        egui::RawInput {
+            viewport_id: egui::ViewportId::ROOT,
+            viewports: map![
+                egui::ViewportId::ROOT => egui::ViewportInfo {
+                    parent: None,
+                    title: Some(self.title.clone()),
+                    events: vec![],
+                    native_pixels_per_point: Some(self.scale_factor),
+                    monitor_size: None,
+                    inner_rect: Some(sfc_rect),
+                    outer_rect: None,
+                    minimized: Some(self.window_info.minimized),
+                    maximized: Some(self.window_info.maximized),
+                    fullscreen: None,
+                    focused: Some(self.window_info.focused),
+                    occluded: Some(self.window_info.occluded)
+                }
+            ],
+            safe_area_insets: None,
+            screen_rect: Some(sfc_rect),
+            max_texture_side: Some(self.tex2d_size_limit),
+            time: Some(real_time_secs),
+            predicted_dt: 1.0 / 60.0,
+            modifiers,
+            events: egui_events,
+            hovered_files: vec![],
+            dropped_files: vec![],
+            focused: self.window_info.focused,
+            system_theme: None,
+        }
+    }
+
+    /// Runs the egui UI logic on the provided context, with the provided texture map.
+    ///
+    /// Should be run exactly once before calling [Self::render_window]
+    ///
+    /// TODO: Combine `context` and `texture_map` into one struct
+    pub fn run_logic(&self, context: &egui::Context, texture_map: &TextureMaterialMap) {
+        profiling::function_scope!();
+
+        let real_time = wutengine_time::unscaled_time64();
+        let egui_input = self.gather_input(real_time);
+
+        let egui_output = context.run_ui(egui_input, |ui| (self.ui_callback)(ui));
+
+        let clipped_output = context.tessellate(egui_output.shapes, egui_output.pixels_per_point);
+
+        log::trace!("egui returned {} primitives", clipped_output.len());
+        log::trace!(
+            "egui returned {} new textures and wants to free {} textures",
+            egui_output.textures_delta.set.len(),
+            egui_output.textures_delta.free.len()
+        );
+
+        // Pick any arbitrary initial window size, because it'll be update automatically at render time anyway
+        texture_map.upload_new(&egui_output.textures_delta.set, (100.0, 100.0));
+
+        self.gather_primitive_buffers(&clipped_output);
+
+        *self.last_output.lock().unwrap() = Some(WindowDrawable {
+            primitives: clipped_output,
+            to_free: egui_output.textures_delta.free, //TODO: If `last_output` is not None, we leak textures
+            pixels_per_point: egui_output.pixels_per_point,
+        });
+    }
+
+    /// Renders the calculated UI onto the provided target texture.
+    /// Writes the textures that should be freed into `to_free`
+    ///
+    /// Should be run after [Self::run_logic]
+    pub fn render_window(
+        &self,
+        target: &wgpu::Texture,
+        texture_map: &TextureMaterialMap,
+        command_encoder: &mut wgpu::CommandEncoder,
+        to_free: &mut Vec<egui::TextureId>,
+    ) {
+        profiling::function_scope!();
+
+        debug_assert!(
+            target
+                .usage()
+                .contains(wgpu::TextureUsages::RENDER_ATTACHMENT),
+            "Cannot render to given texture"
+        );
+
+        let Some(drawable) = self.last_output.lock().unwrap().take() else {
+            return;
+        };
+
+        let target_format = target.format().remove_srgb_suffix();
+        let target_view = target.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(target_format),
+            ..Default::default()
+        });
+
+        let tgt_size = (target.size().width, target.size().height);
+        let tgt_points = (
+            tgt_size.0 as f32 / drawable.pixels_per_point,
+            tgt_size.1 as f32 / drawable.pixels_per_point,
+        );
+
+        let buffers = self.gpu_buffers.lock().unwrap();
+
+        let Some((vertex_buffers, index_buffer)) = &*buffers else {
+            // Error. Just do do cleanup
+            to_free.extend(drawable.to_free);
+            return;
+        };
+
+        // Create new materials
+
+        command_encoder.push_debug_group("Render egui primitives");
+
+        let mut render_pass = command_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: label!("EguiWindow \"{}\" render pass", self.title),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &target_view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+
+        render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+
+        let mut locked_texmap = texture_map.0.lock().unwrap();
+        let mut renderstate = PrimitiveRenderState {
+            surface_format: target_format,
+            vertex_buffers,
+            texture_map: &mut locked_texmap,
+            surface_size: tgt_size,
+            surface_points: tgt_points,
+            pixels_per_point: drawable.pixels_per_point,
+            cur_pipeline: None,
+            base_vertex: 0,
+            base_index: 0,
+        };
+
+        for primitive in drawable.primitives {
+            render_pass.push_debug_group("Render single primitive");
+
+            renderstate.render_primitive(primitive, &mut render_pass);
+
+            render_pass.pop_debug_group();
+        }
+
+        drop(render_pass);
+        command_encoder.pop_debug_group();
+
+        drop(locked_texmap);
+
+        to_free.extend(drawable.to_free);
+    }
+
+    /// Gathers the data for all given primitives into the buffers given in `buffers`. If the buffers
+    /// do not yet exist or are not large enough, they will be replaced with appropriately sized buffers
+    fn gather_primitive_buffers(&self, primitives: &[egui::ClippedPrimitive]) {
+        profiling::function_scope!();
+
+        let mut total_verts = 0;
+        let mut total_indices = 0;
+
+        for primitive in primitives {
+            let egui::epaint::Primitive::Mesh(mesh) = &primitive.primitive else {
+                continue;
+            };
+
+            total_verts += mesh.vertices.len();
+            total_indices += mesh.indices.len();
+        }
+
+        if total_verts == 0 || total_indices == 0 {
+            return;
+        }
+
+        let mut buffers_lock = self.gpu_buffers.lock().unwrap();
+        let buffers: &mut Option<_> = &mut buffers_lock;
+
+        let recreate_buffers = match buffers {
+            Some((vert_bufs, idx_buf)) => {
+                ((idx_buf.size() as usize) / size_of::<u32>()) < total_indices
+                    || (vert_bufs[&ShaderVertexAttributeType::Position].size() as usize)
+                        / size_of::<GVec3<f32>>()
+                        < total_verts
+            }
+            None => true,
+        };
+
+        if recreate_buffers {
+            *buffers = None;
+        }
+
+        let pos_bytes = (wutengine_graphics::mesh::attr_bytes(ShaderVertexAttributeType::Position)
+            * total_verts) as u64;
+        let color_bytes = (wutengine_graphics::mesh::attr_bytes(ShaderVertexAttributeType::Color)
+            * total_verts) as u64;
+        let uv_bytes =
+            (wutengine_graphics::mesh::attr_bytes(ShaderVertexAttributeType::Uv { channel: 0 })
+                * total_verts) as u64;
+        let index_bytes = (size_of::<u32>() * total_indices) as u64;
+
+        match buffers {
+            Some((vertex_buffers, index_buffer)) => {
+                render::write_into_existing_buffers(
+                    pos_bytes,
+                    color_bytes,
+                    uv_bytes,
+                    index_bytes,
+                    primitives,
+                    vertex_buffers,
+                    index_buffer,
+                );
+            }
+            None => {
+                *buffers = Some(render::write_into_new_buffers(
+                    &self.title,
+                    pos_bytes,
+                    color_bytes,
+                    uv_bytes,
+                    index_bytes,
+                    primitives,
+                ));
+            }
+        }
+    }
+}
+
+/// A map of egui textures to WutEngine materials. Used by [EguiWindow]
+#[derive(Debug, Default)]
+pub struct TextureMaterialMap(Mutex<HashMap<egui::TextureId, TextureMaterial>>);
+
+impl TextureMaterialMap {
+    /// Uploads new textures (and updates existing ones) into the map, with the given initial surface size in points
+    fn upload_new(
+        &self,
+        set: &[(egui::TextureId, egui::epaint::image::ImageDelta)],
+        surface_points: (f32, f32),
+    ) {
+        profiling::function_scope!();
+
+        let queue = wutengine_graphics::queue();
+        let device = wutengine_graphics::device();
+        let mut texture_map = self.0.lock().unwrap();
+
+        for (tex_id, delta) in set {
+            let sampler =
+                Sampler::from_serialized(&utils::sampler_from_egui(&delta.options)).unwrap();
+
+            match delta.pos {
+                Some(pos) => {
+                    let texmat = texture_map.get_mut(tex_id).unwrap();
+
+                    texmat.sampler = sampler;
+
+                    texmat
+                        .material
+                        .raw_bind_group_mut()
+                        .set_parameter(
+                            "ui_texture_sampler",
+                            MaterialParameter::Sampler(AssetHandle::new(texmat.sampler.clone())),
+                            queue,
+                        )
+                        .unwrap();
+
+                    texmat.set_surface_size_if_changed(surface_points, queue);
+
+                    texmat
+                        .material
+                        .raw_bind_group_mut()
+                        .update_bind_group(device);
+
+                    texmat.texture.set_partial_data(
+                        utils::egui_image_bytes(&delta.image),
+                        wgpu::Origin3d {
+                            x: pos[0] as u32,
+                            y: pos[1] as u32,
+                            z: 0,
+                        },
+                        wgpu::Extent3d {
+                            width: delta.image.width() as u32,
+                            height: delta.image.height() as u32,
+                            depth_or_array_layers: 1,
+                        },
+                    );
+                }
+                None => {
+                    let texture = Texture::new(&utils::tex_config_from_egui_data(&delta.image), 1);
+                    texture.set_data(utils::egui_image_bytes(&delta.image));
+
+                    let mut material =
+                        Material::new(EGUI_SHADER.clone(), map!["DITHERING" => 0u64]);
+
+                    material
+                        .raw_bind_group_mut()
+                        .set_parameter(
+                            "ui_texture_sampler",
+                            MaterialParameter::Sampler(AssetHandle::new(sampler.clone())),
+                            queue,
+                        )
+                        .unwrap();
+
+                    material
+                        .raw_bind_group_mut()
+                        .set_parameter(
+                            "ui_texture",
+                            MaterialParameter::Texture2D(AssetHandle::new(texture.clone())),
+                            queue,
+                        )
+                        .unwrap();
+
+                    material
+                        .raw_bind_group_mut()
+                        .set_parameter(
+                            "screen_size",
+                            MaterialParameter::Vec2(vec2(surface_points.0, surface_points.1)),
+                            queue,
+                        )
+                        .unwrap();
+
+                    material.raw_bind_group_mut().update_bind_group(device);
+
+                    texture_map.insert(
+                        *tex_id,
+                        TextureMaterial {
+                            texture,
+                            sampler,
+                            material,
+                            cur_screen_size: surface_points,
+                        },
+                    );
+                }
+            }
+        }
+    }
+
+    /// Removes the provided textures from the map
+    pub fn free_removed(&self, to_free: impl IntoIterator<Item = egui::TextureId>) {
+        profiling::function_scope!();
+
+        let mut texture_map = self.0.lock().unwrap();
+
+        for item in to_free {
+            texture_map.remove(&item);
+        }
+    }
+}
+
+/// A material for rendering one texture. All [egui] meshes use the same shader,
+/// so we can just create a different material per texture to reduce bindgroup updates
+#[derive(Debug)]
+struct TextureMaterial {
+    /// The texture this material is for
+    texture: Texture,
+
+    /// The sampler used to sample [Self::texture]
+    sampler: Sampler,
+
+    /// The actual material
+    material: Material,
+
+    /// The last screen size set on [Self::material]
+    cur_screen_size: (f32, f32),
+}
+
+impl TextureMaterial {
+    /// Sets the `screen_size` parameter on the given texture material, if the screen size
+    /// has changed
+    fn set_surface_size_if_changed(&mut self, sfc_size: (f32, f32), queue: &wgpu::Queue) {
+        if self.cur_screen_size == sfc_size {
+            return;
+        }
+
+        self.material
+            .raw_bind_group_mut()
+            .set_parameter(
+                "screen_size",
+                MaterialParameter::Vec2(vec2(sfc_size.0, sfc_size.1)),
+                queue,
+            )
+            .unwrap();
+
+        self.cur_screen_size = sfc_size;
+    }
+}

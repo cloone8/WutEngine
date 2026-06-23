@@ -104,3 +104,33 @@ const fn unwanted_features_mask(device_type: wgpu::DeviceType) -> wgpu::Features
 
     mask
 }
+
+/// Creates a generic label for the [wgpu] API
+#[macro_export]
+#[cfg(feature = "labels")]
+macro_rules! label {
+    () => {
+        None
+    };
+
+    ($arg:literal) => {
+        Some($arg)
+    };
+
+    ($arg:expr) => {
+        Some($arg)
+    };
+
+    ($($arg:tt)+) => {
+        Some(format!($($arg)*).as_str())
+    };
+}
+
+/// Creates a generic label for the [wgpu] API
+#[macro_export]
+#[cfg(not(feature = "labels"))]
+macro_rules! label {
+    ($($arg:tt)+) => {
+        None
+    };
+}

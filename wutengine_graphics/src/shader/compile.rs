@@ -17,6 +17,7 @@ use wutengine_shadercompiler::{
 };
 
 use crate::internal_bind_groups::{get_camera_bind_group_layout, get_instance_bind_group_layout};
+use crate::label;
 use crate::shader::shader_attr_wgpu_vertex_format;
 use crate::shader::shader_opaque_param_wgpu_binding_type;
 use crate::shader::{CompiledShaderId, WutEngineShaderHasher};
@@ -61,7 +62,7 @@ pub(crate) fn compile(
         profiling::scope!("Compile native shader module", variant_id_string.as_str());
 
         let module = GFX_DEVICE.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some(&variant_id_string),
+            label: label!(&variant_id_string),
             source: wgpu::ShaderSource::Naga(Cow::Owned(*output.module)),
         });
 
@@ -71,7 +72,7 @@ pub(crate) fn compile(
     };
 
     let user_bind_group_layout: wgpu::BindGroupLayout = create_user_params_bind_group_layout(
-        format!("{variant_id_string} material bind group layout").as_str(),
+        label!("{} material bind group layout", variant_id_string),
         &shader.parameters,
         &output.remaining_params,
     );
@@ -80,7 +81,7 @@ pub(crate) fn compile(
         profiling::scope!("Create native pipeline layout", variant_id_string.as_str());
 
         GFX_DEVICE.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some(format!("{variant_id_string} pipeline layout").as_str()),
+            label: label!("{} pipeline layout", variant_id_string),
             bind_group_layouts: &sort_layouts(
                 shader
                     .default_parameters
@@ -187,7 +188,7 @@ fn sort_layouts<'a>(
 }
 
 fn create_user_params_bind_group_layout(
-    name: &str,
+    label: Option<&str>,
     params: &[ShaderParameter],
     after_compile_filter: &IntSet<usize>,
 ) -> wgpu::BindGroupLayout {
@@ -240,7 +241,7 @@ fn create_user_params_bind_group_layout(
     }
 
     GFX_DEVICE.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some(name),
+        label,
         entries: &all_entries,
     })
 }

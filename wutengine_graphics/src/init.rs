@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 
 use crate::GraphicsRuntimeConfig;
 use crate::config::GraphicsConfig;
+use crate::label;
 use wutengine_util::InitOnce;
 
 /// Initializes the global graphics context for WutEngine. Acquires a graphics
@@ -76,7 +77,7 @@ pub fn initialize_graphics_context() -> bool {
 
     let (device, queue) =
         match pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("WutEngine Main GPU"),
+            label: label!("WutEngine Main GPU"),
             required_features: adapter_requested_features,
             ..Default::default()
         })) {
@@ -151,16 +152,18 @@ fn default_backend_options() -> wgpu::BackendOptions {
 fn gather_instance_flags(config: &GraphicsConfig) -> wgpu::InstanceFlags {
     let mut flags = wgpu::InstanceFlags::VALIDATION_INDIRECT_CALL;
 
-    if config.debug {
-        flags |= wgpu::InstanceFlags::DEBUG;
-    }
+    flags.set(wgpu::InstanceFlags::DEBUG, config.debug);
+    flags.set(wgpu::InstanceFlags::VALIDATION, config.validation);
+    flags.set(
+        wgpu::InstanceFlags::GPU_BASED_VALIDATION,
+        config.gpu_based_validation,
+    );
+    flags.set(
+        wgpu::InstanceFlags::DISCARD_HAL_LABELS,
+        cfg!(not(feature = "labels")),
+    );
 
-    if config.validation {
-        flags |= wgpu::InstanceFlags::VALIDATION;
-    }
-
-    if config.gpu_based_validation {
-        flags |= wgpu::InstanceFlags::GPU_BASED_VALIDATION;
+    if flags.contains(wgpu::InstanceFlags::GPU_BASED_VALIDATION) {
         log::warn!(
             "Using GPU based graphics validation. This can have a very significant performance impact"
         );

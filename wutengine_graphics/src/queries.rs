@@ -1,5 +1,7 @@
 //! GPU pipeline queries
 
+use crate::label;
+
 /// Helper struct for resolving various GPU queries
 #[derive(Debug)]
 pub struct QueryResolver {
@@ -22,13 +24,13 @@ impl QueryResolver {
 
         if supported_features.contains(wgpu::Features::TIMESTAMP_QUERY) {
             let query_set = device.create_query_set(&wgpu::QuerySetDescriptor {
-                label: Some(format!("QueryResolver {name} timestamp set").as_str()),
+                label: label!("QueryResolver {} timestamp set", name),
                 ty: wgpu::QueryType::Timestamp,
                 count: 2,
             });
 
             let query_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some(format!("QueryResolver {name} timestamp resolve buffer").as_str()),
+                label: label!("QueryResolver {} timestamp resolve buffer", name),
                 size: (wgpu::QUERY_SIZE * 2) as u64,
                 usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
                 mapped_at_creation: false,
@@ -41,13 +43,13 @@ impl QueryResolver {
             let num_statistics = wgpu::PipelineStatisticsTypes::all().into_iter().count();
 
             let query_set = device.create_query_set(&wgpu::QuerySetDescriptor {
-                label: Some(format!("QueryResolver {name} statistics set").as_str()),
+                label: label!("QueryResolver {} statistics set", name),
                 ty: wgpu::QueryType::PipelineStatistics(wgpu::PipelineStatisticsTypes::all()),
                 count: num_statistics as u32,
             });
 
             let query_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some(format!("QueryResolver {name} statistics resolve buffer").as_str()),
+                label: label!("QueryResolver {} statistics resolve buffer", name),
                 size: (wgpu::QUERY_SIZE * num_statistics as u32) as u64,
                 usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
                 mapped_at_creation: false,

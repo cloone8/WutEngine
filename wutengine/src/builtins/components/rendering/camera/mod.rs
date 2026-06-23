@@ -6,6 +6,7 @@ use wutengine_asset::assets::sampler::WrapMode;
 use wutengine_asset::assets::sampler::WrapModeType;
 use wutengine_graphics::BindGroup;
 use wutengine_graphics::internal_bind_groups::create_camera_bind_group;
+use wutengine_graphics::label;
 use wutengine_graphics::wgpu;
 use wutengine_math::Color;
 use wutengine_math::Mat4;
@@ -225,7 +226,7 @@ impl Camera {
         );
 
         let render_target_texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
-            label: Some("Camera render target texture"),
+            label: label!("Camera render target texture"),
             size: wgpu::Extent3d {
                 width: target_size.0,
                 height: target_size.1,
@@ -360,7 +361,7 @@ impl Camera {
             .update_bind_group(graphics::device());
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Camera Blit Pass"),
+            label: label!("Camera Blit Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &blit_target_view,
                 depth_slice: None,

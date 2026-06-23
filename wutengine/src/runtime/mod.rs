@@ -18,6 +18,7 @@ use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
+use wutengine_graphics::label;
 use wutengine_graphics::wgpu;
 use wutengine_util::InitOnce;
 use wutengine_util::assert_main_thread;
@@ -112,7 +113,7 @@ impl Runtime {
 
                     let mut overlay_encoder = graphics::device().create_command_encoder(
                         &wgpu::CommandEncoderDescriptor {
-                            label: Some("Development overlay command encoder"),
+                            label: label!("Development overlay command encoder"),
                         },
                     );
 
@@ -303,7 +304,7 @@ impl Runtime {
         // rendered contents onto their main target surface
         let mut blit_encoder =
             graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Camera Blit Command Encoder"),
+                label: label!("Camera Blit Command Encoder"),
             });
 
         blit_encoder.push_debug_group("Blitting cameras to main surfaces");
@@ -340,7 +341,7 @@ impl Runtime {
 
         let mut encoder =
             graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some(&format!("Camera {} command encoder", camera.get_id())),
+                label: label!("Camera {} command encoder", camera.get_id()),
             });
 
         {
@@ -390,7 +391,6 @@ impl Runtime {
                         surface_tex.texture.size().height,
                     ),
                     window.get_scale_factor() as f32,
-                    time::unscaled_time64(),
                 );
 
                 Some((*window, ready_channel))

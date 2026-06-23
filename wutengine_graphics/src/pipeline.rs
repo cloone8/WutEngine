@@ -7,6 +7,7 @@ use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_util_macro::unique_id_type64;
 
 use crate::GFX_DEVICE;
+use crate::label;
 use crate::mesh::asset_topology_to_wgpu;
 use crate::shader;
 
@@ -92,12 +93,10 @@ pub fn get_pipeline(
 
     // Combine all info into a pipeline descriptor, and create it
     let pipeline = GFX_DEVICE.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some(
-            format!(
-                "Shader variant {} pipeline {}",
-                compiled_shader, pipeline_id
-            )
-            .as_str(),
+        label: label!(
+            "Shader variant {} pipeline {}",
+            compiled_shader,
+            pipeline_id
         ),
         layout: Some(pipeline_layout),
 

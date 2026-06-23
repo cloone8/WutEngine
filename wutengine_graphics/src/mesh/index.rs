@@ -2,6 +2,8 @@ use core::num::NonZero;
 
 use wutengine_asset::assets::mesh::MeshTopology;
 
+use crate::label;
+
 /// A raw Mesh index buffer
 #[derive(Debug)]
 pub struct IndexBuffer {
@@ -175,7 +177,7 @@ impl IndexBuffer {
         let data_bytes = (data_format.stride() as u64) * count.get();
 
         Ok(device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Index buffer"),
+            label: label!("Index buffer"),
             size: data_bytes,
             usage: wgpu::BufferUsages::INDEX
                 | (if dynamic {

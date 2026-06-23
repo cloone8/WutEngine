@@ -3,6 +3,7 @@ use core::num::NonZero;
 
 use wutengine_asset::assets::shader::ShaderVertexAttributeType;
 
+use crate::label;
 use crate::shader::GVec4;
 use crate::shader::{GVec2, GVec3};
 
@@ -197,7 +198,7 @@ impl VertexBuffer {
         let buffer_size = (vertex_stride as u64) * count.get();
 
         Ok(device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(&format!("Vertex buffer {}", attribute)),
+            label: label!("Vertex buffer {}", attribute),
             size: buffer_size,
             usage: wgpu::BufferUsages::VERTEX
                 | (if dynamic {

@@ -10,7 +10,8 @@ use smallvec::SmallVec;
 
 use crate::config;
 use crate::graphics;
-use wutengine_util::{InitOnce, assert_main_thread};
+use wutengine_util::InitOnce;
+use wutengine_util::assert_main_thread;
 
 use super::Display;
 use super::Window;
@@ -653,10 +654,10 @@ fn get_best_present_mode(
             wgpu::PresentMode::Fifo
         }
     } else {
-        if capabilities.contains(&wgpu::PresentMode::Immediate) {
-            wgpu::PresentMode::Immediate
-        } else if capabilities.contains(&wgpu::PresentMode::Mailbox) {
+        if capabilities.contains(&wgpu::PresentMode::Mailbox) {
             wgpu::PresentMode::Mailbox
+        } else if capabilities.contains(&wgpu::PresentMode::Immediate) {
+            wgpu::PresentMode::Immediate
         } else {
             wgpu::PresentMode::Fifo
         }

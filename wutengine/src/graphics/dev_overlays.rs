@@ -39,31 +39,33 @@ impl FeatureOverlay {
         all_wanted_features.sort_by_key(|v| v.0);
 
         let text_style_height = ui.text_style_height(&egui::TextStyle::Body);
-        egui::ScrollArea::vertical().show_rows(
-            ui,
-            text_style_height,
-            all_wanted_features.len(),
-            |ui, range| {
-                for (feature_name, feature) in all_wanted_features
-                    .into_iter()
-                    .skip(range.start)
-                    .take(range.end - range.start)
-                {
-                    let is_supported = features.contains(feature);
-                    let color = if is_supported {
-                        egui::ecolor::Color32::GREEN
-                    } else {
-                        egui::ecolor::Color32::RED
-                    };
+        egui::ScrollArea::vertical()
+            .max_height(text_style_height * 20.0)
+            .show_rows(
+                ui,
+                text_style_height,
+                all_wanted_features.len(),
+                |ui, range| {
+                    for (feature_name, feature) in all_wanted_features
+                        .into_iter()
+                        .skip(range.start)
+                        .take(range.end - range.start)
+                    {
+                        let is_supported = features.contains(feature);
+                        let color = if is_supported {
+                            egui::ecolor::Color32::GREEN
+                        } else {
+                            egui::ecolor::Color32::RED
+                        };
 
-                    let icon = if is_supported { "✅" } else { "❌" };
+                        let icon = if is_supported { "✅" } else { "❌" };
 
-                    ui.horizontal(|ui| {
-                        ui.colored_label(color, format!("{} {}", feature_name, icon));
-                    });
-                }
-            },
-        );
+                        ui.horizontal(|ui| {
+                            ui.colored_label(color, format!("{} {}", feature_name, icon));
+                        });
+                    }
+                },
+            );
     }
     fn show_limits(&mut self, limits: &wgpu::Limits, ui: &mut egui::Ui) {
         ui.label(format!("{limits:#?}"));

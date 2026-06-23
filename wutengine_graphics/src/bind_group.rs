@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use wutengine_asset::assets::shader::ShaderBufferParameterType;
 use wutengine_asset::assets::shader::ShaderParameter;
 
+use crate::label;
 use crate::shader::shader_buffer_param_default_value;
 use crate::shader::shader_opaque_param_default_value;
 
@@ -231,7 +232,7 @@ impl BindGroup {
                 total_buf_size.next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT as usize);
 
             let buffer = device.create_buffer(&wgpu::wgt::BufferDescriptor {
-                label: Some(format!("{} buffer", self.bind_group_name).as_str()),
+                label: label!("{} buffer", self.bind_group_name),
                 size: total_buf_size as wgpu::BufferAddress,
                 usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
                 mapped_at_creation: true,
@@ -280,7 +281,7 @@ impl BindGroup {
         }
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some(&self.bind_group_name),
+            label: label!(&self.bind_group_name),
             layout: &self.layout,
             entries: &entries,
         });

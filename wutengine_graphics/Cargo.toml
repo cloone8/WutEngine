@@ -11,6 +11,10 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+default = ["labels"]
+labels = []
+
 [dependencies]
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true

@@ -1,6 +1,7 @@
 use alloc::sync::Arc;
 
 use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_graphics::label;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::material::MaterialId;
 use wutengine_graphics::mesh::Mesh;
@@ -69,7 +70,7 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
         })];
 
         let mut render_pass = cmd.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Color"),
+            label: label!("Color"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &target_view,
                 depth_slice: None,
