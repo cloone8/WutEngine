@@ -83,7 +83,7 @@ impl EventManager {
 }
 
 /// Generic type-erased event data
-#[derive(Debug)]
+#[derive(derive_more::Debug)]
 struct EventData {
     /// [TypeId] of the event
     ty: TypeId,
@@ -92,15 +92,16 @@ struct EventData {
     ty_name: &'static str,
 
     /// Type-erased event
-    event: Box<dyn Any + Send + Sync>,
+    #[debug(skip)]
+    event: Box<dyn Event>,
 }
 
 impl EventData {
     /// Casts the inner event data to a concrete type and returns a reference. Must be valid
-    fn get_as_type<T: Any>(&self) -> &T {
+    fn get_as_type<T: Event>(&self) -> &T {
         assert_eq!(self.ty, TypeId::of::<T>(), "Invalid cast");
 
-        let as_ref = self.event.as_ref();
+        let as_ref = self.event.as_ref() as &dyn Any;
 
         as_ref
             .downcast_ref::<T>()
@@ -108,11 +109,10 @@ impl EventData {
     }
 
     /// Casts the inner event data to a concrete type. Must be valid
-    fn take_as_type<T: Any>(self) -> T {
+    fn take_as_type<T: Event>(self) -> T {
         assert_eq!(self.ty, TypeId::of::<T>(), "Invalid cast");
 
-        *self
-            .event
+        *(self.event as Box<dyn Any>)
             .downcast()
             .expect("Invalid event data. Downcast should have succeeded")
     }
@@ -143,6 +143,11 @@ struct AddSubscriber {
 /// Remove subscriber event. We should remove the subscription
 struct RemoveSubscriber(SubscriptionId, TypeId);
 
+/// A type that can be used as a WutEngine event
+pub trait Event: Any + Send + Sync {}
+
+impl<T: Any + Send + Sync> Event for T {}
+
 /// Initializes the global event manager
 #[doc(hidden)]
 pub fn init() {
@@ -155,7 +160,7 @@ pub fn init() {
 /// Publishes a new event. If any listeners are active, it will be
 /// forwarded to their handler
 #[inline]
-pub fn publish<T: Any + Send + Sync>(event: T) {
+pub fn publish<T: Event>(event: T) {
     let data = EventData {
         ty: TypeId::of::<T>(),
         ty_name: core::any::type_name::<T>(),
@@ -170,7 +175,7 @@ pub fn publish<T: Any + Send + Sync>(event: T) {
 /// Subscribes to an event with the given handler. Returns a [Subscription] which can
 /// be used to [unsubscribe] later.
 #[inline]
-pub fn subscribe<T: Any>(handler: impl Fn(&T) + Send + Sync + 'static) -> Subscription {
+pub fn subscribe<T: Event>(handler: impl Fn(&T) + Send + Sync + 'static) -> Subscription {
     let id = SubscriptionId::new();
     let ty = TypeId::of::<T>();
 
