@@ -1,8 +1,9 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
+use crate::builtins::components::rendering::ActiveCameraRenderPass;
 use crate::builtins::components::rendering::Camera;
 use crate::builtins::components::rendering::CameraRenderPass;
-use crate::builtins::components::rendering::GlobalRenderPass;
+use crate::builtins::components::rendering::OverlayRenderPass;
 use crate::entity;
 use crate::entity::EntityManager;
 use crate::graphics::DrawCommand;
@@ -14,11 +15,13 @@ use crate::system::{Phase, SystemManager};
 use crate::window;
 use crate::window::Window;
 use crate::{graphics, time, world};
+use core::any::TypeId;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
 use wutengine_graphics::label;
+use wutengine_graphics::renderpass::RenderPass;
 use wutengine_graphics::wgpu;
 use wutengine_util::InitOnce;
 use wutengine_util::assert_main_thread;
@@ -67,8 +70,27 @@ pub(crate) struct Runtime {
     /// The receiving end of the graphics command queue
     draw_commands: Receiver<crate::graphics::DrawCommand>,
 
+    overlay_passes: Vec<ActiveOverlayRenderPass>,
+
     /// Whether to always request a redraw when the event loop is going to sleep
     always_redraw: bool,
+}
+
+///TODO: Combine with [ActiveCameraRenderPass] with a generic?
+#[derive(derive_more::Debug)]
+struct ActiveOverlayRenderPass {
+    /// The type of the pass
+    pub(crate) type_id: TypeId,
+
+    /// The name of the pass
+    pub(crate) name: &'static str,
+
+    /// The order of the pass relative to other passes
+    pub(crate) order: u64,
+
+    /// The pass itself
+    #[debug(skip)]
+    pub(crate) pass: Box<dyn for<'a> RenderPass<(Window, wgpu::Texture), ()>>,
 }
 
 impl Runtime {
@@ -91,51 +113,11 @@ impl Runtime {
 
             input::gamepad::poll_for_events();
 
-            let dev_overlay_output = Self::prepare_development_overlay(&surfaces);
+            Self::prepare_development_overlay(&surfaces);
 
             self.run_systems_and_logic();
 
             self.render_all_windows(&surfaces);
-
-            if let Some((dev_overlay_window, dev_overlay_ready_chan)) = dev_overlay_output {
-                #[cfg(not(feature = "development_overlay"))]
-                {
-                    _ = (dev_overlay_window, dev_overlay_ready_chan);
-
-                    unsafe {
-                        wutengine_util::unreachable_dbg!();
-                    }
-                }
-
-                #[cfg(feature = "development_overlay")]
-                {
-                    use wutengine_graphics::wgpu;
-
-                    let mut overlay_encoder = graphics::device().create_command_encoder(
-                        &wgpu::CommandEncoderDescriptor {
-                            label: label!("Development overlay command encoder"),
-                        },
-                    );
-
-                    {
-                        profiling::scope!("Wait for dev overlay");
-                        // Wait for the development overlay to be ready, and actually render it to the surface
-                        dev_overlay_ready_chan.recv().unwrap();
-                    }
-
-                    let (_, dev_overlay_surface) = surfaces
-                        .iter()
-                        .find(|(win, _)| *win == dev_overlay_window)
-                        .unwrap();
-
-                    if crate::development_overlay::render_overlay(
-                        &dev_overlay_surface.texture,
-                        &mut overlay_encoder,
-                    ) {
-                        graphics::queue().submit([overlay_encoder.finish()]);
-                    }
-                }
-            }
 
             for (_, surface) in surfaces {
                 surface.present();
@@ -264,7 +246,7 @@ impl Runtime {
         crate::event::handle_events();
     }
 
-    fn render_all_windows(&self, surfaces: &[(Window, wgpu::SurfaceTexture)]) {
+    fn render_all_windows(&mut self, surfaces: &[(Window, wgpu::SurfaceTexture)]) {
         profiling::function_scope!();
 
         // Gather all submitted draw commands
@@ -279,10 +261,10 @@ impl Runtime {
         let mut world = world::get_world_mut();
 
         // Collect all global passes first
-        let passes = world
+        let camera_passes = world
             .ecs
-            .query::<&GlobalRenderPass>()
-            .iter()
+            .query_mut::<&CameraRenderPass>()
+            .into_iter()
             .filter_map(|global_pass| global_pass.pass.clone())
             .collect::<Vec<_>>();
 
@@ -296,7 +278,8 @@ impl Runtime {
             .filter_map(|camera| {
                 profiling::scope!("Collect camera command buffer");
 
-                Self::render_camera(camera, &passes, &draw_commands).map(|encoder| encoder.finish())
+                Self::render_camera(camera, &camera_passes, &draw_commands)
+                    .map(|encoder| encoder.finish())
             })
             .collect();
 
@@ -317,9 +300,46 @@ impl Runtime {
 
         buffers.push(blit_encoder.finish());
 
-        window::manager::pre_present_notify(surfaces.iter().map(|(win, _)| win));
-
         graphics::queue().submit(buffers);
+
+        // Render all the overlays now
+        let overlay_passes = world
+            .ecs
+            .query_mut::<&OverlayRenderPass>()
+            .into_iter()
+            .filter_map(|overlay_pass| overlay_pass.pass.clone())
+            .collect::<Vec<_>>();
+
+        sync_overlay_passes(&mut self.overlay_passes, &overlay_passes);
+
+        let mut overlay_command_encoder =
+            graphics::device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: label!("Overlay Command Encoder"),
+            });
+
+        overlay_command_encoder.push_debug_group("Render overlay passes");
+
+        for overlay_pass in self.overlay_passes.iter_mut() {
+            for (window, surface_texture) in surfaces {
+                overlay_command_encoder.push_debug_group(
+                    format!("Overlay {} window {}", overlay_pass.name, *window).as_str(),
+                );
+
+                overlay_pass.pass.execute(
+                    &mut overlay_command_encoder,
+                    &(*window, surface_texture.texture.clone()),
+                    &(),
+                );
+
+                overlay_command_encoder.pop_debug_group();
+            }
+        }
+
+        overlay_command_encoder.pop_debug_group();
+
+        graphics::queue().submit([overlay_command_encoder.finish()]);
+
+        window::manager::pre_present_notify(surfaces.iter().map(|(win, _)| win));
     }
 
     fn render_camera(
@@ -366,9 +386,7 @@ impl Runtime {
         Some(encoder)
     }
 
-    fn prepare_development_overlay(
-        surfaces: &[(Window, wgpu::SurfaceTexture)],
-    ) -> Option<(Window, std::sync::mpsc::Receiver<()>)> {
+    fn prepare_development_overlay(surfaces: &[(Window, wgpu::SurfaceTexture)]) {
         #[cfg(feature = "development_overlay")]
         {
             use wutengine_development_overlay::wutengine_egui;
@@ -383,7 +401,7 @@ impl Runtime {
                     maximized: window.is_maximized(),
                 };
 
-                let ready_channel = crate::development_overlay::run_overlay_logic(
+                crate::development_overlay::run_overlay_logic(
                     input::WindowIdentifier::from(*window),
                     egui_window_info,
                     (
@@ -392,17 +410,12 @@ impl Runtime {
                     ),
                     window.get_scale_factor() as f32,
                 );
-
-                Some((*window, ready_channel))
-            } else {
-                None
             }
         }
 
         #[cfg(not(feature = "development_overlay"))]
         {
             _ = surfaces;
-            None
         }
     }
 }
@@ -410,7 +423,7 @@ impl Runtime {
 /// Synchronize the passes on the camera with the passes in `passes`, deleting
 /// any passes not in `passes`, and adding missing onces
 fn sync_camera_passes(camera: &mut Camera, passes: &[RenderPassInfo<Camera, [DrawCommand]>]) {
-    profiling::scope!("Synchronize passes");
+    profiling::function_scope!();
 
     let cam_id = camera.get_id();
 
@@ -438,7 +451,7 @@ fn sync_camera_passes(camera: &mut Camera, passes: &[RenderPassInfo<Camera, [Dra
         {
             log::debug!("Adding pass {} to camera {}", pass.name, cam_id);
 
-            camera.render_passes.push(CameraRenderPass {
+            camera.render_passes.push(ActiveCameraRenderPass {
                 type_id: pass.type_id,
                 name: pass.name,
                 order: pass.order,
@@ -451,6 +464,51 @@ fn sync_camera_passes(camera: &mut Camera, passes: &[RenderPassInfo<Camera, [Dra
 
     if passes_added {
         camera.render_passes.sort_by_key(|p| p.order);
+    }
+}
+
+fn sync_overlay_passes(
+    active_passes: &mut Vec<ActiveOverlayRenderPass>,
+    passes: &[RenderPassInfo<(Window, wgpu::Texture), ()>],
+) {
+    profiling::function_scope!();
+
+    // Remove all passes not present in the global runtime
+    active_passes.retain(|active_pass| {
+        let should_keep = passes
+            .iter()
+            .any(|runtime_pass| runtime_pass.type_id == active_pass.type_id);
+
+        if !should_keep {
+            log::debug!("Removing overlay pass {}", active_pass.name);
+        }
+
+        should_keep
+    });
+
+    // Add passes present in the runtime, but missing in the camera
+    let mut passes_added = false;
+
+    for pass in passes {
+        if !active_passes
+            .iter()
+            .any(|active_pass| active_pass.type_id == pass.type_id)
+        {
+            log::debug!("Adding overlay pass {}", pass.name);
+
+            active_passes.push(ActiveOverlayRenderPass {
+                type_id: pass.type_id,
+                name: pass.name,
+                order: pass.order,
+                pass: (pass.constructor)(),
+            });
+
+            passes_added = true;
+        }
+    }
+
+    if passes_added {
+        active_passes.sort_by_key(|p| p.order);
     }
 }
 

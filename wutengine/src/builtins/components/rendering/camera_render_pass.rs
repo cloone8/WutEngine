@@ -5,14 +5,14 @@ use crate::graphics::renderpass::RenderPass;
 
 use super::Camera;
 
-/// A global render pass. Once inserted into the world, becomes active on all cameras
+/// A render pass that executes draw commands for a camera.
 #[derive(Debug, Default)]
-pub struct GlobalRenderPass {
+pub struct CameraRenderPass {
     /// The pass. See [RenderPassInfo] or [Self::new]
     pub pass: Option<RenderPassInfo<Camera, [DrawCommand]>>,
 }
 
-impl GlobalRenderPass {
+impl CameraRenderPass {
     /// Construct a new [GlobalRenderPass] component from the given [RenderPass]
     pub fn new<T: RenderPass<Camera, [DrawCommand]>>() -> Self {
         Self {
@@ -21,4 +21,4 @@ impl GlobalRenderPass {
     }
 }
 
-impl Component for GlobalRenderPass {}
+impl Component for CameraRenderPass {}

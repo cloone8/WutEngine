@@ -1,9 +1,11 @@
 //! Rendering-specific components
 
 mod camera;
-mod global_render_pass;
+mod camera_render_pass;
+mod overlay_render_pass;
 mod static_mesh_renderer;
 
 pub use camera::*;
-pub use global_render_pass::*;
+pub use camera_render_pass::*;
+pub use overlay_render_pass::*;
 pub use static_mesh_renderer::*;

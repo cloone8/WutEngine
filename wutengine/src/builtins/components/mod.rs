@@ -18,5 +18,5 @@ pub fn register_builtin_component_systems(manifest: &mut SystemManifest) {
     manifest.add_default_component_systems::<Transform>();
     manifest.add_default_component_systems::<rendering::Camera>();
     manifest.add_default_component_systems::<rendering::StaticMeshRenderer>();
-    manifest.add_default_component_systems::<rendering::GlobalRenderPass>();
+    manifest.add_default_component_systems::<rendering::CameraRenderPass>();
 }

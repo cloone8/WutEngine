@@ -2,11 +2,13 @@
 
 extern crate alloc;
 
+use alloc::sync::Arc;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::sync::Mutex;
 use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
+use wutengine_input::WindowIdentifier;
 use wutengine_util_macro::unique_id_type32;
 
 use wutengine_graphics::wgpu;
@@ -32,6 +34,9 @@ pub fn init() {
 pub(crate) struct DevOverlayManager {
     /// Whether the overlay should be active
     active: AtomicBool,
+
+    /// The last target window for the dev overlay
+    last_target_window: Mutex<WindowIdentifier>,
 
     /// The egui window
     egui_window: Mutex<Option<Box<wutengine_egui::EguiWindow>>>,
@@ -63,6 +68,7 @@ impl DevOverlayManager {
     fn new() -> Self {
         Self {
             active: AtomicBool::new(false),
+            last_target_window: Mutex::new(WindowIdentifier::new(0)),
             egui_window: Mutex::new(None),
             egui_context: wutengine_egui::egui::Context::default(),
             textures: TextureMaterialMap::default(),
@@ -101,16 +107,16 @@ pub fn run_overlay_logic(
     window_info: wutengine_egui::EguiWindowInfo,
     surface_size: (u32, u32),
     scale_factor: f32,
-) -> std::sync::mpsc::Receiver<()> {
+) {
     profiling::function_scope!();
 
-    let (is_done_send, is_done_recv) = std::sync::mpsc::sync_channel(1);
-
     if !is_enabled() {
-        is_done_send.send(()).unwrap();
-        return is_done_recv;
+        return;
     }
 
+    let start_barrier = Arc::new(std::sync::Barrier::new(2));
+
+    let start_barrier_clone = start_barrier.clone();
     rayon::spawn(move || {
         profiling::scope!("Run overlay logic");
 
@@ -121,6 +127,9 @@ pub fn run_overlay_logic(
         );
 
         let mut egui_window_lock = DEV_OVERLAY.egui_window.lock().unwrap();
+
+        start_barrier_clone.wait(); // We know we locked the window, so when we unlock it, the overlay logic is done
+
         let egui_window: &mut Option<_> = &mut egui_window_lock;
 
         match egui_window {
@@ -149,11 +158,14 @@ pub fn run_overlay_logic(
         let egui_window = egui_window.as_ref().unwrap();
 
         egui_window.run_logic(&DEV_OVERLAY.egui_context, &DEV_OVERLAY.textures);
+        *DEV_OVERLAY.last_target_window.lock().unwrap() = input_window;
 
-        is_done_send.send(()).unwrap();
+        drop(egui_window_lock);
     });
 
-    is_done_recv
+    // We have to at least wait until the overlay window is locked so that we do not proceed with the overlay renderpass
+    // while we haven't even started with the overlay logic yet
+    start_barrier.wait();
 }
 
 /// Dev overlay UI callback
@@ -199,7 +211,11 @@ fn dev_overlay_ui(ui: &mut egui::Ui) {
 
 /// Renders the current development overlay. Should be preceded by a call to [run_overlay_logic], and the returned channel should
 /// have been waited on.
-pub fn render_overlay(target: &wgpu::Texture, command_encoder: &mut wgpu::CommandEncoder) -> bool {
+pub fn render_overlay_if_window_eq(
+    window: &WindowIdentifier,
+    target: &wgpu::Texture,
+    command_encoder: &mut wgpu::CommandEncoder,
+) -> bool {
     profiling::function_scope!();
 
     let egui_window_lock = DEV_OVERLAY.egui_window.lock().unwrap();
@@ -207,6 +223,10 @@ pub fn render_overlay(target: &wgpu::Texture, command_encoder: &mut wgpu::Comman
     let Some(egui_window) = egui_window_lock.as_ref() else {
         return false;
     };
+
+    if *DEV_OVERLAY.last_target_window.lock().unwrap() != *window {
+        return false;
+    }
 
     let mut to_free = Vec::new();
 

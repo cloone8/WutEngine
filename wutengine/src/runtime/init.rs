@@ -113,6 +113,7 @@ pub fn run(
         entity_manager: entity::initialize(),
         systems: system::SystemManager::new(),
         draw_commands: graphics::initialize_command_queue(),
+        overlay_passes: Vec::new(),
         always_redraw: !config.only_tick_on_request,
     };
 

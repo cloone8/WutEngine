@@ -78,12 +78,12 @@ pub struct Camera {
     blit_material: Option<Material>,
 
     /// Render passes active on this camera. Updated before each frame by the main runtime
-    pub(crate) render_passes: Vec<CameraRenderPass>,
+    pub(crate) render_passes: Vec<ActiveCameraRenderPass>,
 }
 
 /// Container for an enabled [RenderPass]
 #[derive(derive_more::Debug)]
-pub(crate) struct CameraRenderPass {
+pub(crate) struct ActiveCameraRenderPass {
     /// The type of the pass
     pub(crate) type_id: TypeId,
 
