@@ -17,7 +17,7 @@ use winit::event::DeviceId;
 use winit::event::ElementState;
 use wutengine_math::Vec2;
 
-use wutengine_util::{InitOnce, warn_once};
+use wutengine_util::InitOnce;
 
 pub mod gamepad;
 pub mod keyboard;
@@ -422,9 +422,13 @@ pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEven
                     INPUT_MANAGER.mouse_scroll(MouseId::from_winit(device), Vec2::new(hor, ver));
                 }
                 winit::event::MouseScrollDelta::PixelDelta(phys_pos) => {
-                    warn_once!(
-                        "Pixel delta mouse scrolls are not yet supported. Device: {device:#?}. Pixel delta: {phys_pos:#?}"
-                    );
+                    const PIXELS_PER_LINE: f32 = 50.0;
+                    const LINES_PER_PIXEL: f32 = 1.0 / PIXELS_PER_LINE;
+
+                    let hor = (phys_pos.x as f32) * LINES_PER_PIXEL;
+                    let ver = (phys_pos.y as f32) * LINES_PER_PIXEL;
+
+                    INPUT_MANAGER.mouse_scroll(MouseId::from_winit(device), Vec2::new(hor, ver));
                 }
             }
         }

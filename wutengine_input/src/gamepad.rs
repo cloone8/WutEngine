@@ -497,6 +497,7 @@ pub fn axis_value(device: Option<super::GamepadId>, axis: Axis) -> Vec2 {
     })
 }
 
+/// TODO: I don't think the gamepad delta API makes sense
 /// Returns the raw delta for an axis on the specified gamepad.
 ///
 /// If `device` is [None], returns the value
