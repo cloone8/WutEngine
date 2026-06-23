@@ -25,7 +25,7 @@ impl ColorPass {
     pub const ORDER: u64 = u64::MAX / 2;
 }
 
-impl RenderPass<Camera, DrawCommand> for ColorPass {
+impl RenderPass<Camera, [DrawCommand]> for ColorPass {
     fn name() -> &'static str
     where
         Self: Sized,
@@ -37,7 +37,7 @@ impl RenderPass<Camera, DrawCommand> for ColorPass {
         Self::ORDER
     }
 
-    fn construct() -> Box<dyn RenderPass<Camera, DrawCommand>>
+    fn construct() -> Box<dyn RenderPass<Camera, [DrawCommand]>>
     where
         Self: Sized,
     {

@@ -95,7 +95,7 @@ pub(crate) struct CameraRenderPass {
 
     /// The pass itself
     #[debug(skip)]
-    pub(crate) pass: Box<dyn RenderPass<Camera, DrawCommand>>,
+    pub(crate) pass: Box<dyn for<'a> RenderPass<Camera, [DrawCommand]>>,
 }
 
 impl Default for Camera {

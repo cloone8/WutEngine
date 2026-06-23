@@ -324,7 +324,7 @@ impl Runtime {
 
     fn render_camera(
         camera: &mut Camera,
-        passes: &[RenderPassInfo<Camera, DrawCommand>],
+        passes: &[RenderPassInfo<Camera, [DrawCommand]>],
         draw_commands: &[DrawCommand],
     ) -> Option<wgpu::CommandEncoder> {
         profiling::function_scope!();
@@ -409,7 +409,7 @@ impl Runtime {
 
 /// Synchronize the passes on the camera with the passes in `passes`, deleting
 /// any passes not in `passes`, and adding missing onces
-fn sync_camera_passes(camera: &mut Camera, passes: &[RenderPassInfo<Camera, DrawCommand>]) {
+fn sync_camera_passes(camera: &mut Camera, passes: &[RenderPassInfo<Camera, [DrawCommand]>]) {
     profiling::scope!("Synchronize passes");
 
     let cam_id = camera.get_id();

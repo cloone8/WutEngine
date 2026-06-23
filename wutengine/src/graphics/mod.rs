@@ -67,7 +67,10 @@ pub fn render_mesh(mesh: Arc<Mesh>, material: Arc<Material>, transform: Mat4) {
 /// Metadata and info on a [RenderPass].
 /// Construct with [Self::from_pass]
 #[derive(derive_more::Debug)]
-pub struct RenderPassInfo<T, D> {
+pub struct RenderPassInfo<T, D>
+where
+    D: ?Sized,
+{
     /// The type of the pass
     pub type_id: TypeId,
 
@@ -82,7 +85,10 @@ pub struct RenderPassInfo<T, D> {
     pub constructor: Arc<dyn Fn() -> Box<dyn RenderPass<T, D>> + Send + Sync>,
 }
 
-impl<T, D> Clone for RenderPassInfo<T, D> {
+impl<T, D> Clone for RenderPassInfo<T, D>
+where
+    D: ?Sized,
+{
     fn clone(&self) -> Self {
         Self {
             type_id: self.type_id,
@@ -93,7 +99,10 @@ impl<T, D> Clone for RenderPassInfo<T, D> {
     }
 }
 
-impl<T, D> RenderPassInfo<T, D> {
+impl<T, D> RenderPassInfo<T, D>
+where
+    D: ?Sized,
+{
     /// Create a [RenderPassInfo] from an implementation of [RenderPass]
     pub(crate) fn from_pass<P: RenderPass<T, D>>() -> Self {
         Self {

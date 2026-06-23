@@ -3,7 +3,10 @@
 use core::any::Any;
 
 /// A render pass implementation
-pub trait RenderPass<T, D>: Send + Sync + Any {
+pub trait RenderPass<T, D>: Send + Sync + Any
+where
+    D: ?Sized,
+{
     /// The name of the pass
     fn name() -> &'static str
     where
@@ -22,5 +25,5 @@ pub trait RenderPass<T, D>: Send + Sync + Any {
         Self: Sized;
 
     /// Run the pass for the given target. Commands should be placed in `cmd`
-    fn execute(&mut self, cmd: &mut wgpu::CommandEncoder, target: &T, drawables: &[D]);
+    fn execute(&mut self, cmd: &mut wgpu::CommandEncoder, target: &T, drawable: &D);
 }

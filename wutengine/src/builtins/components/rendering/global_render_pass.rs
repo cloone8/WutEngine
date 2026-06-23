@@ -9,12 +9,12 @@ use super::Camera;
 #[derive(Debug, Default)]
 pub struct GlobalRenderPass {
     /// The pass. See [RenderPassInfo] or [Self::new]
-    pub pass: Option<RenderPassInfo<Camera, DrawCommand>>,
+    pub pass: Option<RenderPassInfo<Camera, [DrawCommand]>>,
 }
 
 impl GlobalRenderPass {
     /// Construct a new [GlobalRenderPass] component from the given [RenderPass]
-    pub fn new<T: RenderPass<Camera, DrawCommand>>() -> Self {
+    pub fn new<T: RenderPass<Camera, [DrawCommand]>>() -> Self {
         Self {
             pass: Some(RenderPassInfo::from_pass::<T>()),
         }
