@@ -377,6 +377,18 @@ pub fn set_target_delta(target_delta_nanos: u64) {
     TIME_MANAGER.internal.lock().unwrap().target_delta_time = target_delta_nanos;
 }
 
+/// Updates the maximum frame time before clamping to the new value, starting next frame
+///
+/// Value is in nanoseconds (see [NANOS_PER_SECOND])
+pub fn set_max_frame_time(max_frame_time_nanos: u64) {
+    if max_frame_time_nanos == 0 {
+        log::error!("Cannot set max frame time to invalid time span {max_frame_time_nanos}");
+        return;
+    }
+
+    TIME_MANAGER.internal.lock().unwrap().maximum_frame_time = max_frame_time_nanos;
+}
+
 /// Updates time configuration to the last requested values.
 ///
 /// Returns a tuple of `(new_time_scale_factor, new_fixed_delta_nanos)`
@@ -421,9 +433,10 @@ pub fn update_frame(now: Instant) -> u64 {
         > (time_manager_internal.maximum_frame_time as u128)
     {
         log::warn!(
-            "Clamping frame delta time to target frame time ({}) because it was longer than one second ({}).",
+            "Clamping frame delta time ({}) to target frame time ({}) because it was longer than the maximum frame time ({}).",
+            unclamped_time_delta_nanos,
             time_manager_internal.target_delta_time,
-            unclamped_time_delta_nanos
+            time_manager_internal.maximum_frame_time
         );
 
         time_manager_internal.target_delta_time
