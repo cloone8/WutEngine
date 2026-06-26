@@ -2,7 +2,7 @@ use wutengine_util_macro::unique_id_type32;
 
 use crate::graphics;
 
-use super::manager::DisplayExclusiveFullscreenMode;
+use super::manager::display_info::DisplayExclusiveFullscreenMode;
 
 unique_id_type32! {
     /// The handle to a display

@@ -94,7 +94,7 @@ struct ActiveOverlayRenderPass {
 
     /// The pass itself
     #[debug(skip)]
-    pub(crate) pass: Box<dyn for<'a> RenderPass<(Window, wgpu::Texture), ()>>,
+    pub(crate) pass: Box<dyn for<'a> RenderPass<(Window, wgpu::Texture), hecs::World>>,
 }
 
 impl Runtime {
@@ -334,7 +334,7 @@ impl Runtime {
                 overlay_pass.pass.execute(
                     &mut overlay_command_encoder,
                     &(*window, surface_texture.texture.clone()),
-                    &(),
+                    &world.ecs,
                 );
 
                 overlay_command_encoder.pop_debug_group();
@@ -475,7 +475,7 @@ fn sync_camera_passes(camera: &mut Camera, passes: &[RenderPassInfo<Camera, [Dra
 
 fn sync_overlay_passes(
     active_passes: &mut Vec<ActiveOverlayRenderPass>,
-    passes: &[RenderPassInfo<(Window, wgpu::Texture), ()>],
+    passes: &[RenderPassInfo<(Window, wgpu::Texture), hecs::World>],
 ) {
     profiling::function_scope!();
 

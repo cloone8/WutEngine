@@ -9,6 +9,7 @@ use wutengine_util_macro::VariantName;
 use crate::config;
 use crate::input;
 use crate::runtime::send_to_main_thread;
+use crate::window::WindowUpdateEvent;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
 
@@ -26,8 +27,8 @@ pub(crate) enum MainThreadEvent {
     /// A window was requested to be closed
     CloseWindow(Window),
 
-    /// Update the icon of a window
-    UpdateIcon(Window, winit::window::Icon),
+    /// Update a parameter of a window
+    UpdateWindow(Window, WindowUpdateEvent),
 
     /// Surface should be reconfigured
     ForceSurfaceReconfigure(Window),
@@ -206,12 +207,10 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                     event_loop.exit();
                 }
             }
-            MainThreadEvent::UpdateIcon(window_id, icon) => {
-                profiling::scope!("Update Icon");
 
-                log::debug!("Handling icon update request for window {window_id}");
-
-                window::manager::set_icon(window_id, icon);
+            MainThreadEvent::UpdateWindow(window_id, update_event) => {
+                window::manager::handle_update(window_id, update_event);
+                window::manager::refresh_window(&window_id, false);
             }
             MainThreadEvent::RuntimeExitRequested => {
                 log::debug!("Runtime exit was requested. Stopping");

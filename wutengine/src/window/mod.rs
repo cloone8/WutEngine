@@ -2,8 +2,9 @@
 
 use core::num::NonZeroU32;
 
-use manager::DisplayExclusiveFullscreenMode;
+use manager::display_info::DisplayExclusiveFullscreenMode;
 use winit::window::WindowAttributes;
+use wutengine_util_macro::VariantName;
 use wutengine_util_macro::unique_id_type32;
 
 use crate::graphics;
@@ -91,6 +92,16 @@ impl Default for WindowConfig {
             fullscreen: Some(FullscreenMode::Borderless(BorderlessTarget::Primary)),
         }
     }
+}
+
+/// An event sent to the main thread that updates a window
+#[derive(Debug, VariantName)]
+pub(crate) enum WindowUpdateEvent {
+    /// Update the icon
+    UpdateIcon(winit::window::Icon),
+
+    /// Update the title string
+    UpdateTitle(String),
 }
 
 fn clamp_min_size(min_size: (u32, u32)) -> (u32, u32) {
@@ -349,7 +360,10 @@ impl Window {
         log::trace!("Updating icon for window {window}");
 
         if let Some(native_icon) = icon.into_native_icon() {
-            runtime::send_to_main_thread(runtime::MainThreadEvent::UpdateIcon(window, native_icon));
+            runtime::send_to_main_thread(runtime::MainThreadEvent::UpdateWindow(
+                window,
+                WindowUpdateEvent::UpdateIcon(native_icon),
+            ));
         }
     }
 
@@ -438,6 +452,22 @@ impl Window {
 
         crate::runtime::send_to_main_thread(runtime::MainThreadEvent::ForceSurfaceReconfigure(
             self,
+        ));
+    }
+
+    /// Returns the current title of this window
+    #[inline]
+    pub fn title(self) -> String {
+        crate::window::manager::get_window_and(self, |win| {
+            win.map(|win| win.title.clone()).unwrap_or(String::new())
+        })
+    }
+
+    /// Updates the title of the window
+    pub fn set_title(self, title: impl Into<String>) {
+        crate::runtime::send_to_main_thread(runtime::MainThreadEvent::UpdateWindow(
+            self,
+            WindowUpdateEvent::UpdateTitle(title.into()),
         ));
     }
 }

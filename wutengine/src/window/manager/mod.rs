@@ -1,20 +1,28 @@
 //! Module housing the window manager
 
 use alloc::sync::Arc;
+use display_info::DisplayInfo;
 use nohash_hasher::IntSet;
 use std::sync::RwLock;
+use window_info::WindowInfo;
 use wutengine_graphics::wgpu;
 
 use nohash_hasher::IntMap;
 use smallvec::SmallVec;
 
 use crate::config;
-use crate::graphics;
 use wutengine_util::InitOnce;
 use wutengine_util::assert_main_thread;
 
 use super::Display;
 use super::Window;
+use super::WindowUpdateEvent;
+
+#[cfg(feature = "development_overlay")]
+mod development_overlay;
+
+pub(super) mod display_info;
+pub(super) mod window_info;
 
 /// The global [WindowManager]
 static WINDOW_MANAGER: InitOnce<RwLock<WindowManager>> = InitOnce::new();
@@ -145,33 +153,6 @@ pub(crate) fn winit_window_destroyed(id: winit::window::WindowId) {
     if !removed {
         log::error!("Destroyed winit window was not tracked as being destroyed. Internal error");
     }
-}
-
-/// Updates the icon of the given window to the new one.
-///
-/// If the window does not exist, does nothing.
-///
-/// Must be called from the main thread
-pub(crate) fn set_icon(id: crate::window::Window, icon: winit::window::Icon) {
-    profiling::function_scope!();
-
-    assert_main_thread!();
-
-    let window_manager = WINDOW_MANAGER.read().unwrap();
-
-    let Some(window) = window_manager.windows.get(&id) else {
-        log::error!("Could not update icon for window {id} because it could not be found");
-        return;
-    };
-
-    #[cfg(windows)]
-    {
-        use winit::platform::windows::WindowExtWindows;
-
-        window.native.set_taskbar_icon(Some(icon.clone()));
-    }
-
-    window.native.set_window_icon(Some(icon));
 }
 
 /// Marks window `id` as the new primary window
@@ -378,6 +359,41 @@ pub(crate) fn pre_present_notify<'a>(windows: impl IntoIterator<Item = &'a Windo
     }
 }
 
+/// Updates the window according to the given event. If the window does not exist, does nothing.
+/// Must be called from the main thread
+pub(crate) fn handle_update(target: Window, event: WindowUpdateEvent) {
+    assert_main_thread!();
+
+    let window_manager = WINDOW_MANAGER.read().unwrap();
+
+    let Some(window) = window_manager.windows.get(&target) else {
+        log::error!("Could not update icon for window {target} because it could not be found");
+        return;
+    };
+
+    match event {
+        WindowUpdateEvent::UpdateIcon(icon) => {
+            profiling::scope!("Update Icon");
+
+            log::debug!("Handling icon update request for window {target}");
+
+            #[cfg(windows)]
+            {
+                use winit::platform::windows::WindowExtWindows;
+
+                window.native.set_taskbar_icon(Some(icon.clone()));
+            }
+
+            window.native.set_window_icon(Some(icon));
+        }
+        WindowUpdateEvent::UpdateTitle(title) => {
+            profiling::scope!("Update Title");
+
+            window.native.set_title(title.as_str());
+        }
+    }
+}
+
 /// Locks the window manager, and calls `map_func` with a reference to the display info for `id`, if it exists.
 ///
 /// The window manager is locked for the duration of the callback
@@ -428,9 +444,9 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::S
         wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
         wgpu::CurrentSurfaceTexture::Suboptimal(sfctex) => {
             log::warn!("Suboptimal surface for window {window}, should recreate");
-            crate::runtime::send_to_main_thread(crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(
-                window,
-            ));
+            crate::runtime::send_to_main_thread(
+                crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(window),
+            );
             Some(sfctex)
         }
         wgpu::CurrentSurfaceTexture::Timeout => {
@@ -442,9 +458,9 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::S
         }
         wgpu::CurrentSurfaceTexture::Outdated => {
             log::warn!("Surface texture for window {window} is outdated");
-            crate::runtime::send_to_main_thread(crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(
-                window,
-            ));
+            crate::runtime::send_to_main_thread(
+                crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(window),
+            );
             None
         }
         wgpu::CurrentSurfaceTexture::Lost => {
@@ -475,195 +491,6 @@ struct WindowManager {
     displays: IntMap<crate::window::Display, DisplayInfo>,
 }
 
-#[derive(Debug)]
-pub(super) struct WindowInfo {
-    /// The engine-internal ID
-    pub(super) id: Window,
-
-    pub(super) title: String,
-
-    /// Whether this is the primary window
-    pub(super) is_primary: bool,
-
-    /// The actual native window handle
-    pub(super) native: Arc<winit::window::Window>,
-
-    /// The rendering surface for the window
-    pub(super) surface: wgpu::Surface<'static>,
-
-    /// The physical window size, in pixels `W x H`
-    pub(super) inner_size: (u32, u32),
-
-    /// The OS-provided scale factor for the window
-    pub(super) os_scale_factor: f64,
-
-    /// Whether the window is currently focused
-    pub(super) focused: bool,
-
-    /// Whether the window is known to be occluded. Not supported
-    /// by every OS, in which case this will always be `false`
-    pub(super) occluded: bool,
-
-    /// Whether the window is currently minimized
-    pub(super) minimized: bool,
-
-    /// Whether the window is currently maximized
-    pub(super) maximized: bool,
-}
-
-impl WindowInfo {
-    /// Creates a new [WindowInfo] struct, containing cached
-    /// window information to prevent problems with querying information
-    /// on non-main threads
-    pub(crate) fn new(
-        id: Window,
-        title: String,
-        is_primary: bool,
-        native: Arc<winit::window::Window>,
-        surface: wgpu::Surface<'static>,
-    ) -> Self {
-        let mut new = Self {
-            id,
-            title,
-            is_primary,
-            native,
-            surface,
-            inner_size: (0, 0),
-            os_scale_factor: 1.0,
-            focused: true,
-            occluded: false,
-            minimized: false,
-            maximized: false,
-        };
-
-        let can_configure = new.refresh();
-
-        if can_configure {
-            new.reconfigure_surface();
-        }
-
-        new
-    }
-
-    /// Refresh all cached window information.
-    ///
-    /// Returns whether the surface should also be reconfigured
-    fn refresh(&mut self) -> bool {
-        assert_main_thread!();
-
-        log::trace!("Refreshing cached information for window {}", self.id);
-
-        self.title = self.native.title();
-
-        let prev_inner_size = self.inner_size;
-
-        self.inner_size = self.native.inner_size().into();
-        self.os_scale_factor = self.native.scale_factor();
-
-        let prev_focused = self.focused;
-        self.focused = self.native.has_focus();
-
-        if self.focused != prev_focused {
-            log::debug!(
-                "Window {} changed focus state to: {}",
-                self.id,
-                self.focused
-            );
-        }
-
-        if let Some(minimized) = self.native.is_minimized() {
-            self.minimized = minimized;
-        }
-
-        self.maximized = self.native.is_maximized();
-
-        // We can't configure a 0-sized surface, so do not reconfigure if so
-        self.inner_size != (0, 0) && prev_inner_size != self.inner_size
-    }
-
-    fn reconfigure_surface(&self) {
-        log::debug!("Reconfiguring surface for window {}", self.id);
-
-        let size = self.inner_size;
-
-        if size == (0, 0) {
-            log::error!("Cannot configure a size 0 surface. Internal error");
-            return;
-        }
-
-        let surface = &self.surface;
-        let surface_caps = surface.get_capabilities(graphics::adapter());
-
-        let surface_format = surface_caps
-            .formats
-            .iter()
-            .find(|f| f.is_srgb())
-            .copied()
-            .unwrap_or(surface_caps.formats[0]);
-
-        let present_mode = get_best_present_mode(
-            self.id,
-            config::try_get("wutengine.window.vsync").unwrap_or(true),
-            &surface_caps.present_modes,
-        );
-
-        log::debug!("Chose present mode {present_mode:?} for window {}", self.id);
-
-        let desired_maximum_frame_latency =
-            if config::try_get("wutengine.window.triple_buffering").unwrap_or(false) {
-                2
-            } else {
-                1
-            };
-
-        log::debug!("Requested maximum frame latency: {desired_maximum_frame_latency}");
-
-        surface.configure(
-            graphics::device(),
-            &wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format: surface_format,
-                width: size.0,
-                height: size.1,
-                present_mode,
-                desired_maximum_frame_latency,
-                alpha_mode: wgpu::CompositeAlphaMode::Auto,
-                view_formats: vec![
-                    surface_format.remove_srgb_suffix(),
-                    surface_format.add_srgb_suffix(),
-                ],
-            },
-        );
-    }
-}
-
-fn get_best_present_mode(
-    window: Window,
-    wants_vsync: bool,
-    capabilities: &[wgpu::PresentMode],
-) -> wgpu::PresentMode {
-    log::trace!(
-        "Window {} supports present modes: {capabilities:?}. Vsync requested: {wants_vsync}",
-        window
-    );
-
-    if wants_vsync {
-        if capabilities.contains(&wgpu::PresentMode::FifoRelaxed) {
-            wgpu::PresentMode::FifoRelaxed
-        } else {
-            wgpu::PresentMode::Fifo
-        }
-    } else {
-        if capabilities.contains(&wgpu::PresentMode::Mailbox) {
-            wgpu::PresentMode::Mailbox
-        } else if capabilities.contains(&wgpu::PresentMode::Immediate) {
-            wgpu::PresentMode::Immediate
-        } else {
-            wgpu::PresentMode::Fifo
-        }
-    }
-}
-
 impl WindowManager {
     /// Creates a new default [WindowManager]
     pub(crate) fn new() -> Self {
@@ -673,187 +500,6 @@ impl WindowManager {
             windows: IntMap::default(),
             primary_display: None,
             displays: IntMap::default(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub(super) struct DisplayInfo {
-    pub(super) handle: winit::monitor::MonitorHandle,
-    pub(super) name: Option<String>,
-    pub(super) size: (u32, u32),
-    pub(super) refresh_rate_millihertz: u32,
-    pub(super) scaling_factor: f64,
-    pub(super) video_modes: Vec<DisplayExclusiveFullscreenMode>,
-    pub(super) is_primary: bool,
-}
-
-/// A video mode for [super::FullscreenMode::Exclusive]. Combines
-/// a target display, a resolution, refresh rate, and an amount of bits-per-color
-#[derive(Debug, Clone)]
-pub struct DisplayExclusiveFullscreenMode(
-    pub(super) Display,
-    pub(super) winit::monitor::VideoModeHandle,
-);
-
-impl DisplayExclusiveFullscreenMode {
-    /// The target display for this fullscreen mode
-    #[inline]
-    pub const fn display(&self) -> Display {
-        self.0
-    }
-
-    /// The resolution of this mode
-    #[inline]
-    pub fn resolution(&self) -> (u32, u32) {
-        let phys_size = self.1.size();
-
-        (phys_size.width, phys_size.height)
-    }
-
-    /// The refresh rate in millihertz for this mode
-    #[inline]
-    pub fn refresh_rate_millihertz(&self) -> u32 {
-        self.1.refresh_rate_millihertz()
-    }
-
-    /// The available bits per color for this mode
-    #[inline]
-    pub fn bits_per_color(&self) -> u16 {
-        self.1.bit_depth()
-    }
-}
-
-impl DisplayInfo {
-    fn from_monitor_handle(
-        id: Display,
-        handle: winit::monitor::MonitorHandle,
-        is_primary: bool,
-    ) -> Self {
-        profiling::function_scope!();
-        assert_main_thread!();
-
-        Self {
-            name: handle.name(),
-            size: (handle.size().width, handle.size().height),
-            refresh_rate_millihertz: handle
-                .refresh_rate_millihertz()
-                .expect("Display dissapeared during configuration"),
-            scaling_factor: handle.scale_factor(),
-            video_modes: handle
-                .video_modes()
-                .map(|videomode| DisplayExclusiveFullscreenMode(id, videomode))
-                .collect(),
-            is_primary,
-            handle,
-        }
-    }
-}
-
-#[cfg(feature = "development_overlay")]
-mod development_overlay {
-
-    use wutengine_development_overlay::wutengine_egui::egui;
-    use wutengine_graphics::wgpu;
-
-    use crate::development_overlay::DevelopmentOverlayWindow;
-
-    use super::WINDOW_MANAGER;
-
-    #[derive(Default)]
-    pub(super) struct WindowManagerOverlay {}
-
-    impl DevelopmentOverlayWindow for WindowManagerOverlay {
-        fn name(&self) -> &str {
-            "Windows"
-        }
-
-        fn icon(&self) -> Option<&str> {
-            Some("🪟")
-        }
-
-        fn show(&mut self, ui: &mut egui::Ui) {
-            let win_man = WINDOW_MANAGER.read().unwrap();
-            let mut windows = Vec::new();
-            for (id, info) in win_man.windows.iter() {
-                windows.push(*id);
-
-                let title = if info.is_primary {
-                    format!("{} [Primary Window]", info.title)
-                } else {
-                    info.title.clone()
-                };
-
-                egui::CollapsingHeader::new(title)
-                    .id_salt(*id)
-                    .default_open(true)
-                    .show(ui, |ui| {
-                        ui.label(format!("ID: {id}"));
-                        ui.label(format!("Size: {}x{}", info.inner_size.0, info.inner_size.1));
-                        ui.label(format!("OS scale factor: {}", info.os_scale_factor));
-
-                        ui.label(format!("Focused: {}", info.focused));
-                        ui.label(format!("Occluded: {}", info.occluded));
-                        ui.label(format!("Minimized: {}", info.minimized));
-                        ui.label(format!("Maximized: {}", info.maximized));
-
-                        let Some(surface_config) = info.surface.get_configuration() else {
-                            return;
-                        };
-
-                        let wgpu::SurfaceConfiguration {
-                            usage,
-                            format,
-                            width: _,
-                            height: _,
-                            present_mode,
-                            desired_maximum_frame_latency,
-                            alpha_mode,
-                            view_formats,
-                        } = surface_config;
-
-                        ui.label(format!("Format: {format:?}"));
-
-                        ui.label(format!("View formats:"));
-                        ui.indent(id, |ui| {
-                            for tex_format in view_formats {
-                                ui.label(format!("{tex_format:?}"));
-                            }
-                        });
-
-                        ui.label(format!("Usages:"));
-                        ui.indent(id, |ui| {
-                            for (usage, _) in usage.iter_names() {
-                                ui.label(usage);
-                            }
-                        });
-
-                        ui.label(format!("Present mode: {present_mode:?}"));
-                        ui.label(format!(
-                            "Desired frame latency: {desired_maximum_frame_latency}"
-                        ));
-
-                        ui.label(format!("Alpha mode: {alpha_mode:?}"));
-
-                        if ui.button("Reconfigure").clicked() {
-                            crate::runtime::send_to_main_thread(
-                                crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(*id),
-                            );
-                        }
-                    });
-            }
-
-            drop(win_man);
-
-            ui.separator();
-
-            if ui.button("Reconfigure all").clicked() {
-                for window in windows {
-                    crate::runtime::send_to_main_thread(
-                        crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(window),
-                    );
-                }
-            }
         }
     }
 }

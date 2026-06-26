@@ -13,7 +13,7 @@ impl DevOverlayPass {
     pub const ORDER: u64 = u64::MAX;
 }
 
-impl RenderPass<(Window, wgpu::Texture), ()> for DevOverlayPass {
+impl RenderPass<(Window, wgpu::Texture), hecs::World> for DevOverlayPass {
     fn name() -> &'static str
     where
         Self: Sized,
@@ -25,7 +25,7 @@ impl RenderPass<(Window, wgpu::Texture), ()> for DevOverlayPass {
         Self::ORDER
     }
 
-    fn construct() -> Box<dyn RenderPass<(Window, wgpu::Texture), ()>>
+    fn construct() -> Box<dyn RenderPass<(Window, wgpu::Texture), hecs::World>>
     where
         Self: Sized,
     {
@@ -36,7 +36,7 @@ impl RenderPass<(Window, wgpu::Texture), ()> for DevOverlayPass {
         &mut self,
         cmd: &mut wgpu::CommandEncoder,
         target: &(Window, wgpu::Texture),
-        _drawable: &(),
+        _drawable: &hecs::World,
     ) {
         profiling::function_scope!();
 
