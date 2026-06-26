@@ -6,7 +6,10 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use crate::builtins::components::Name;
 use crate::builtins::components::Transform;
+use crate::component;
 use crate::component::Component;
+use crate::runtime::MainThreadEvent;
+use crate::runtime::SystemManifest;
 use crate::world::World;
 use wutengine_util::InitOnce;
 
@@ -164,6 +167,19 @@ impl Entity {
         let mut builder = hecs::EntityBuilder::new();
 
         builder.add(component);
+
+        if component::should_insert_default_component_systems::<C>() {
+            log::debug!(
+                "Adding default component systems for {}",
+                core::any::type_name::<C>()
+            );
+
+            let mut manifest = SystemManifest::empty();
+
+            C::insert_default_component_systems(&mut manifest);
+
+            crate::runtime::send_to_main_thread(MainThreadEvent::AddSystem(manifest));
+        }
 
         ENTITY_QUEUES
             .new_component_queue

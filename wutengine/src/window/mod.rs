@@ -328,7 +328,7 @@ impl Window {
             config.title.as_ref().unwrap()
         );
 
-        runtime::notify_event_loop(runtime::WinitEvent::NewWindowRequested(id, config));
+        runtime::send_to_main_thread(runtime::MainThreadEvent::NewWindowRequested(id, config));
 
         id
     }
@@ -339,7 +339,7 @@ impl Window {
         let window = self;
         log::info!("Closing window with ID {window}");
 
-        runtime::notify_event_loop(runtime::WinitEvent::CloseWindow(window));
+        runtime::send_to_main_thread(runtime::MainThreadEvent::CloseWindow(window));
     }
 
     /// Updates the icon of the given window to the provided one
@@ -349,7 +349,7 @@ impl Window {
         log::trace!("Updating icon for window {window}");
 
         if let Some(native_icon) = icon.into_native_icon() {
-            runtime::notify_event_loop(runtime::WinitEvent::UpdateIcon(window, native_icon));
+            runtime::send_to_main_thread(runtime::MainThreadEvent::UpdateIcon(window, native_icon));
         }
     }
 
@@ -436,6 +436,8 @@ impl Window {
     pub fn force_reconfigure(self) {
         log::debug!("Forcing window {self} reconfiguration");
 
-        crate::runtime::notify_event_loop(runtime::WinitEvent::ForceSurfaceReconfigure(self));
+        crate::runtime::send_to_main_thread(runtime::MainThreadEvent::ForceSurfaceReconfigure(
+            self,
+        ));
     }
 }

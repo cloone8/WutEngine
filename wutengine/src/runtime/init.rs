@@ -9,9 +9,9 @@ use wutengine_util::InitOnce;
 use crate::entity;
 use crate::graphics;
 use crate::runtime::EVENT_LOOP_PROXY;
+use crate::runtime::MainThreadEvent;
 use crate::runtime::Runtime;
 use crate::runtime::WUTENGINE_RUNNING;
-use crate::runtime::WinitEvent;
 use crate::system;
 use crate::window;
 
@@ -128,7 +128,7 @@ pub fn run(
     crate::audio::init();
     crate::world::init();
 
-    let event_loop = winit::event_loop::EventLoop::<WinitEvent>::with_user_event()
+    let event_loop = winit::event_loop::EventLoop::<MainThreadEvent>::with_user_event()
         .build()
         .map_err(|e| Box::new(e.into()))?;
 

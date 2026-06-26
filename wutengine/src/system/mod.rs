@@ -3,7 +3,8 @@
 use alloc::sync::Arc;
 use core::any::TypeId;
 use core::fmt::Display;
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::AtomicU32;
+use core::sync::atomic::Ordering;
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -62,6 +63,7 @@ impl Ord for SystemId {
 /// The system manager. Contains the full schedule of all systems, ordered by phase
 #[derive(Debug)]
 pub(crate) struct SystemManager {
+    pending_systems: Option<SystemManifest>,
     current_manifest: SystemManifest,
     by_phase: Vec<(Phase, Vec<SystemSet>)>,
 }
@@ -70,9 +72,47 @@ impl SystemManager {
     /// Creates a new [SystemManager] without any systems
     pub(crate) fn new() -> Self {
         Self {
+            pending_systems: None,
             current_manifest: SystemManifest::empty(),
             by_phase: Vec::new(),
         }
+    }
+
+    /// Adds the systems in `manifest` to `self` and updates the schedule
+    pub(crate) fn queue_system(&mut self, manifest: SystemManifest) {
+        // TODO: Check if the systems are valid? Are they always valid?
+        match self.pending_systems.as_mut() {
+            Some(pending) => {
+                pending.merge(manifest);
+            }
+            None => {
+                self.pending_systems = Some(manifest);
+            }
+        }
+    }
+
+    /// Updates the schedule if any systems were queued with [Self::queue_system]
+    pub(crate) fn update_schedule(&mut self) {
+        let Some(pending) = self.pending_systems.take() else {
+            return;
+        };
+
+        if pending.systems.is_empty() {
+            return;
+        }
+
+        profiling::function_scope!();
+
+        log::info!(
+            "Updating system schedule and inserting {} new systems",
+            pending.systems.len()
+        );
+
+        let mut new_manifest = core::mem::take(&mut self.current_manifest);
+
+        new_manifest.merge(pending);
+
+        self.build_schedule(new_manifest);
     }
 
     /// Dumps the schedule of the system manager to a string
@@ -179,4 +219,12 @@ impl Display for Phase {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.str().fmt(f)
     }
+}
+
+/// Adds the systems in `manifest` to the main schedule.
+///
+/// Note that the systems are not inserted immediately, but rather before the next frame phase
+#[inline]
+pub fn insert_systems(manifest: SystemManifest) {
+    crate::runtime::send_to_main_thread(crate::runtime::MainThreadEvent::AddSystem(manifest));
 }

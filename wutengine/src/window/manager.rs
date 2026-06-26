@@ -35,8 +35,8 @@ pub(crate) fn init() {
             "wutengine.window.vsync" | "wutengine.window.triple_buffering" => {
                 get_windows_and(|window_map| {
                     for window in window_map.keys() {
-                        crate::runtime::notify_event_loop(
-                            crate::runtime::WinitEvent::ForceSurfaceReconfigure(*window),
+                        crate::runtime::send_to_main_thread(
+                            crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(*window),
                         );
                     }
                 });
@@ -428,7 +428,7 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::S
         wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
         wgpu::CurrentSurfaceTexture::Suboptimal(sfctex) => {
             log::warn!("Suboptimal surface for window {window}, should recreate");
-            crate::runtime::notify_event_loop(crate::runtime::WinitEvent::ForceSurfaceReconfigure(
+            crate::runtime::send_to_main_thread(crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(
                 window,
             ));
             Some(sfctex)
@@ -442,7 +442,7 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::S
         }
         wgpu::CurrentSurfaceTexture::Outdated => {
             log::warn!("Surface texture for window {window} is outdated");
-            crate::runtime::notify_event_loop(crate::runtime::WinitEvent::ForceSurfaceReconfigure(
+            crate::runtime::send_to_main_thread(crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(
                 window,
             ));
             None
@@ -836,8 +836,8 @@ mod development_overlay {
                         ui.label(format!("Alpha mode: {alpha_mode:?}"));
 
                         if ui.button("Reconfigure").clicked() {
-                            crate::runtime::notify_event_loop(
-                                crate::runtime::WinitEvent::ForceSurfaceReconfigure(*id),
+                            crate::runtime::send_to_main_thread(
+                                crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(*id),
                             );
                         }
                     });
@@ -849,8 +849,8 @@ mod development_overlay {
 
             if ui.button("Reconfigure all").clicked() {
                 for window in windows {
-                    crate::runtime::notify_event_loop(
-                        crate::runtime::WinitEvent::ForceSurfaceReconfigure(window),
+                    crate::runtime::send_to_main_thread(
+                        crate::runtime::MainThreadEvent::ForceSurfaceReconfigure(window),
                     );
                 }
             }

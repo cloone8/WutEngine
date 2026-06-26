@@ -14,6 +14,7 @@ impl SystemManager {
         );
 
         self.current_manifest = manifest.clone();
+        self.by_phase.clear();
 
         while !manifest.systems.is_empty() {
             let phase = manifest.systems[0].phase;

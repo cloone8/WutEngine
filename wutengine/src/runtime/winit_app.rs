@@ -8,17 +8,18 @@ use wutengine_util_macro::VariantName;
 
 use crate::config;
 use crate::input;
-use crate::runtime::notify_event_loop;
+use crate::runtime::send_to_main_thread;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
 
 use super::Runtime;
+use super::SystemManifest;
 
 /// An event sent to the main WutEngine [Runtime], to be handled by [winit::application::ApplicationHandler::user_event].
 ///
 /// This is meant for events that should be handled on the main thread
 #[derive(Debug, VariantName)]
-pub(crate) enum WinitEvent {
+pub(crate) enum MainThreadEvent {
     /// The creation of a new window with the given ID and config was requested
     NewWindowRequested(Window, WindowConfig),
 
@@ -31,11 +32,14 @@ pub(crate) enum WinitEvent {
     /// Surface should be reconfigured
     ForceSurfaceReconfigure(Window),
 
+    /// Request to add one or more systems to the main system schedule
+    AddSystem(SystemManifest),
+
     /// Someone requested the exit of the runtime through [crate::runtime::exit]
     RuntimeExitRequested,
 }
 
-impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
+impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         _ = event_loop;
 
@@ -122,7 +126,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
             WindowEvent::CloseRequested => {
                 profiling::scope!("Close Requested");
 
-                notify_event_loop(WinitEvent::CloseWindow(id));
+                send_to_main_thread(MainThreadEvent::CloseWindow(id));
             }
             WindowEvent::Resized(_) => {
                 profiling::scope!("Resized");
@@ -165,9 +169,13 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
         let _ = (event_loop, cause);
     }
 
-    fn user_event(&mut self, event_loop: &winit::event_loop::ActiveEventLoop, event: WinitEvent) {
+    fn user_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        event: MainThreadEvent,
+    ) {
         match event {
-            WinitEvent::NewWindowRequested(window_id, window_config) => {
+            MainThreadEvent::NewWindowRequested(window_id, window_config) => {
                 profiling::scope!("New Window Requested");
 
                 log::debug!("Handling window creation request for window {window_id}");
@@ -184,7 +192,7 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
 
                 window::manager::new_window(window_id, native, surface);
             }
-            WinitEvent::CloseWindow(window_id) => {
+            MainThreadEvent::CloseWindow(window_id) => {
                 profiling::scope!("Close Window");
 
                 log::debug!("Handling close window request for window {window_id}");
@@ -198,19 +206,22 @@ impl winit::application::ApplicationHandler<WinitEvent> for Runtime {
                     event_loop.exit();
                 }
             }
-            WinitEvent::UpdateIcon(window_id, icon) => {
+            MainThreadEvent::UpdateIcon(window_id, icon) => {
                 profiling::scope!("Update Icon");
 
                 log::debug!("Handling icon update request for window {window_id}");
 
                 window::manager::set_icon(window_id, icon);
             }
-            WinitEvent::RuntimeExitRequested => {
+            MainThreadEvent::RuntimeExitRequested => {
                 log::debug!("Runtime exit was requested. Stopping");
                 event_loop.exit();
             }
-            WinitEvent::ForceSurfaceReconfigure(window_id) => {
+            MainThreadEvent::ForceSurfaceReconfigure(window_id) => {
                 window::manager::refresh_window(&window_id, true);
+            }
+            MainThreadEvent::AddSystem(manifest) => {
+                self.systems.queue_system(manifest);
             }
         }
     }

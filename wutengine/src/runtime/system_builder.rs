@@ -138,15 +138,16 @@ impl SystemManifest {
 
         system_id
     }
+
+    /// Merge the two manifests
+    pub(crate) fn merge(&mut self, mut other: Self) {
+        self.systems.append(&mut other.systems);
+    }
 }
 
 impl Default for SystemManifest {
     fn default() -> Self {
-        let mut manifest = Self::empty();
-
-        crate::builtins::components::register_builtin_component_systems(&mut manifest);
-
-        manifest
+        Self::empty()
     }
 }
 

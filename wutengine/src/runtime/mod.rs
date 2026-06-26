@@ -36,15 +36,16 @@ pub use init::*;
 
 pub use system_builder::*;
 
-pub(crate) use winit_app::WinitEvent;
+pub(crate) use winit_app::MainThreadEvent;
 
-static EVENT_LOOP_PROXY: InitOnce<winit::event_loop::EventLoopProxy<WinitEvent>> = InitOnce::new();
+static EVENT_LOOP_PROXY: InitOnce<winit::event_loop::EventLoopProxy<MainThreadEvent>> =
+    InitOnce::new();
 static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
 
 /// Notifies the main [winit] event loop of a given event.
 ///
 /// If the loop was already closed, does nothing and logs an error
-pub(crate) fn notify_event_loop(event: WinitEvent) {
+pub(crate) fn send_to_main_thread(event: MainThreadEvent) {
     if let Err(e) = EVENT_LOOP_PROXY.send_event(event) {
         log::error!(
             "Failed to notify event loop of event {:#?} because it was already closed",
@@ -132,7 +133,7 @@ impl Runtime {
         profiling::finish_frame!();
     }
 
-    fn run_systems_and_logic(&self) {
+    fn run_systems_and_logic(&mut self) {
         profiling::function_scope!();
 
         let num_fixed_updates = time::update_frame(Instant::now());
@@ -148,7 +149,7 @@ impl Runtime {
         self.run_phase_systems(Phase::PreRender);
     }
 
-    fn run_physics_pipeline(&self) {
+    fn run_physics_pipeline(&mut self) {
         profiling::function_scope!();
 
         self.run_phase_systems(Phase::FixedUpdate);
@@ -235,8 +236,10 @@ impl Runtime {
         }
     }
 
-    fn run_phase_systems(&self, phase: Phase) {
+    fn run_phase_systems(&mut self, phase: Phase) {
         profiling::function_scope!(phase.str());
+
+        self.systems.update_schedule();
 
         self.systems
             .run_systems_for_phase(phase, &world::get_world());
@@ -523,7 +526,7 @@ pub fn exit() {
     log::info!("Runtime exit requested.");
 
     if EVENT_LOOP_PROXY
-        .send_event(WinitEvent::RuntimeExitRequested)
+        .send_event(MainThreadEvent::RuntimeExitRequested)
         .is_err()
     {
         log::error!("Failed to send runtime exit event because the event loop was already closed");
