@@ -22,7 +22,10 @@ codegen-units = 1
 panic = "abort"
 
 [workspace.dependencies]
-wutengine = { git = "https://github.com/cloone8/WutEngine.git", rev = "6ae69dd39ea88c82b8d5949bdf357be73bcb8b94" }
+wutengine = { path = "../Void/WutEngine/wutengine" }
+wutengine_egui = { path = "../Void/WutEngine/wutengine_egui" }
+wutengine_util = { path = "../Void/WutEngine/wutengine_util" }
+
 log = { version = "0.4" }
 
 [workspace.lints.rust]

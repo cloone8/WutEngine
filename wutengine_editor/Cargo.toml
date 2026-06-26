@@ -9,6 +9,8 @@ publish.workspace = true
 
 [dependencies]
 wutengine.workspace = true
+wutengine_egui.workspace = true
+wutengine_util.workspace = true
 
 log.workspace = true
 
