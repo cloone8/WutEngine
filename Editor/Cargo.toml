@@ -22,9 +22,9 @@ codegen-units = 1
 panic = "abort"
 
 [workspace.dependencies]
-wutengine = { path = "../Void/WutEngine/wutengine" }
-wutengine_egui = { path = "../Void/WutEngine/wutengine_egui" }
-wutengine_util = { path = "../Void/WutEngine/wutengine_util" }
+wutengine = { path = "../WutEngine/wutengine" }
+wutengine_egui = { path = "../WutEngine/wutengine_egui" }
+wutengine_util = { path = "../WutEngine/wutengine_util" }
 
 log = { version = "0.4" }
 

@@ -1,4 +1,4 @@
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!("../../../README.md")]
 
 use core::num::NonZeroU32;
 
@@ -18,8 +18,8 @@ use wutengine::time;
 use wutengine::time::NANOS_PER_SECOND;
 use wutengine::window::Window;
 use wutengine::window::WindowConfig;
-use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
+use wutengine_egui::TextureMaterialMap;
 use wutengine_util::InitOnce;
 
 /// Global egui context
