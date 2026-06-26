@@ -464,7 +464,7 @@ impl Component for Camera {
     {
         manifest.add_system::<(&mut Camera, Option<&Transform>)>(
             Phase::PreRender,
-            Some("Camera pre-render preparation"),
+            "Camera pre-render preparation",
             |_, (camera, transform)| {
                 profiling::scope!("Camera pre-render preparation");
 

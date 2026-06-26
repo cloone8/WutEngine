@@ -29,9 +29,7 @@ pub struct SystemConfig<'a> {
 
 impl SystemManifest {
     /// Returns an empty [SystemManifest].
-    /// This does not include the default engine systems, which
-    /// makes WutEngine do nothing by default.
-    /// You probably want [SystemManifest::default] instead
+    #[inline(always)]
     pub const fn empty() -> Self {
         Self {
             systems: Vec::new(),
@@ -39,31 +37,33 @@ impl SystemManifest {
     }
 
     /// Adds the default systems for the given component, using [crate::component::Component::insert_default_component_systems]
+    #[inline]
     pub fn add_default_component_systems<C: crate::component::Component>(&mut self) {
         C::insert_default_component_systems(self);
     }
 
     /// Adds a system to the manifest
+    #[inline]
     pub fn add_system<Q>(
         &mut self,
         phase: Phase,
-        name: Option<&'static str>,
+        name: &'static str,
         sys: impl for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
     ) -> SystemId
     where
         Q: crate::hecs::Query + Queryable,
         for<'a> Q::Item<'a>: Send,
     {
-        self.add_system_with_config(phase, name, sys, &SystemConfig::default())
+        self.add_system_with_config(phase, name, &SystemConfig::default(), sys)
     }
 
     /// Adds a system to the manifest that is dependent on one or more previously inserted systems
     pub fn add_system_with_config<Q>(
         &mut self,
         phase: Phase,
-        name: Option<&'static str>,
-        sys: impl for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
+        name: &'static str,
         config: &SystemConfig,
+        sys: impl for<'a> Fn(crate::entity::Entity, Q::Item<'a>) + Send + Sync + 'static,
     ) -> SystemId
     where
         Q: crate::hecs::Query + Queryable,
@@ -93,9 +93,7 @@ impl SystemManifest {
         let batch_size = config.parallel_batch_size;
 
         let callback: Arc<GenericSystem> = Arc::new(move |world: &crate::world::World| {
-            let _name_str = name.unwrap_or("<unnamed system>");
-
-            profiling::scope!("System callback", _name_str);
+            profiling::scope!("System callback", name);
 
             let mut query_borrowed = world.ecs.query::<(hecs::Entity, Q)>();
 
@@ -156,7 +154,7 @@ impl Default for SystemManifest {
 #[derive(derive_more::Debug, Clone)]
 pub(crate) struct PendingSystem {
     /// The system name, if any
-    pub(crate) name: Option<&'static str>,
+    pub(crate) name: &'static str,
 
     /// The system ID
     pub(crate) system_id: SystemId,

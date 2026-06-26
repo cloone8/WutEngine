@@ -40,7 +40,7 @@ impl Component for StaticMeshRenderer {
     {
         manifest.add_system::<(&Self, Option<&Transform>)>(
             Phase::PreRender,
-            Some("StaticMeshRenderer submit draw call"),
+            "StaticMeshRenderer submit draw call",
             |_, (this, transform)| {
                 this.submit_draw_call(
                     transform

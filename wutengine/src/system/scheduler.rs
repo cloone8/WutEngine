@@ -97,8 +97,7 @@ impl SystemManager {
 
 fn insert_system_into_set(set: &mut SystemSet, new_system: PendingSystem) {
     set.system_ids.push(new_system.system_id);
-    set.system_names
-        .push(new_system.name.unwrap_or("<unnamed system>"));
+    set.system_names.push(new_system.name);
     set.systems.push(new_system.callback);
     set.shared_borrows.extend(new_system.shared_borrows);
     set.exclusive_borrows.extend(new_system.exclusive_borrows);
