@@ -64,7 +64,6 @@ pub(super) struct InitializationData {
 ///
 /// Can only be called once per process
 pub fn run(
-    initial_systems: SystemManifest,
     config: InitRuntimeConfig,
     post_start: Option<Box<dyn FnOnce()>>,
 ) -> Result<(), Box<RuntimeStartErr>> {
@@ -117,7 +116,7 @@ pub fn run(
         always_redraw: !config.only_tick_on_request,
     };
 
-    runtime.systems.build_schedule(initial_systems);
+    runtime.systems.build_schedule(SystemManifest::empty());
 
     log::debug!("Final schedule:\n{}", runtime.systems.dump());
 

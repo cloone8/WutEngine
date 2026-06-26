@@ -6,15 +6,18 @@ use crate::builtins::components::rendering::CameraRenderPass;
 use crate::builtins::components::rendering::OverlayRenderPass;
 use crate::entity;
 use crate::entity::EntityManager;
+use crate::graphics;
 use crate::graphics::DrawCommand;
 use crate::graphics::RenderPassInfo;
 use crate::input;
 use crate::physics2d;
 use crate::physics3d;
-use crate::system::{Phase, SystemManager};
+use crate::system::Phase;
+use crate::system::SystemManager;
+use crate::time;
 use crate::window;
 use crate::window::Window;
-use crate::{graphics, time, world};
+use crate::world;
 use core::any::TypeId;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
@@ -59,7 +62,7 @@ pub(crate) struct Runtime {
     /// Used for frame pacing and FPS limiting
     frame_pacer: window::pacer::FramePacer,
 
-    /// Set to `true` if the `resumed` event was sent by [winit]
+    /// Set to [None] if the `resumed` event was sent by [winit]
     initialization_data: Option<Box<InitializationData>>,
 
     /// The entity manager. Spawns entities and components
