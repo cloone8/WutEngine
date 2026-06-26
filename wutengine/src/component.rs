@@ -33,7 +33,7 @@ pub(crate) fn should_insert_default_component_systems<T: Component>() -> bool {
 
 /// Trait that should be implemented by types that can be
 /// used as components in the WutEngine ECS
-pub trait Component: Send + Sync + Default + 'static {
+pub trait Component: Send + Sync + 'static {
     /// Adds the systems that are always used by this component into the given manifest.
     ///
     /// Optional usability helper
