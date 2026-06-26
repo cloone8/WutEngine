@@ -126,7 +126,7 @@ impl ScissorRect {
         let clip_min_x = clip_min_x.clamp(0, target_size.0);
         let clip_min_y = clip_min_y.clamp(0, target_size.1);
         let clip_max_x = clip_max_x.clamp(clip_min_x, target_size.0);
-        let clip_max_y = clip_max_y.clamp(clip_min_y, target_size.0);
+        let clip_max_y = clip_max_y.clamp(clip_min_y, target_size.1);
 
         Self {
             x: clip_min_x,
