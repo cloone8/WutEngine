@@ -170,7 +170,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
     ) {
         match cause {
             winit::event::StartCause::ResumeTimeReached { .. } => {
-                log::info!("Reached resume time");
+                log::debug!("Reached resume time");
                 window::manager::request_redraws();
             }
             winit::event::StartCause::WaitCancelled {
