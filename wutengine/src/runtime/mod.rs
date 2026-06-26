@@ -76,8 +76,8 @@ pub(crate) struct Runtime {
 
     overlay_passes: Vec<ActiveOverlayRenderPass>,
 
-    /// Whether to always request a redraw when the event loop is going to sleep
-    always_redraw: bool,
+    /// How often we should render frames. Influences when we request redraws
+    frame_frequency: FrameFrequency,
 }
 
 ///TODO: Combine with [ActiveCameraRenderPass] with a generic?

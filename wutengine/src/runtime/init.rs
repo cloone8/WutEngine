@@ -29,6 +29,20 @@ pub enum RuntimeStartErr {
     EventLoop(EventLoopError),
 }
 
+/// How often the frame loop runs
+#[derive(Debug, Clone, Copy, Default)]
+pub enum FrameFrequency {
+    /// Render frames as fast as possible. Default for games
+    #[default]
+    Fast,
+
+    /// Render frames at least once per `X` seconds, or when the OS requests an update
+    WaitAtMost(f32),
+
+    /// Render frames only when the OS requests an update
+    WaitIndefinitely,
+}
+
 /// The configuration used to start the WutEngine runtime
 #[derive(Debug, Clone)]
 pub struct InitRuntimeConfig {
@@ -39,10 +53,8 @@ pub struct InitRuntimeConfig {
     /// thus overrides its values
     pub config_overrides: HashMap<String, crate::config::toml::Value>,
 
-    /// If `true`, will not continuously run the main frame and render loop. The loop is only run
-    /// when new input reaches the window, or when explictely requested by either the OS (resizes, etc.)
-    /// or the user.
-    pub only_tick_on_request: bool,
+    /// How the engine handles frame updates
+    pub frame_frequency: FrameFrequency,
 }
 
 impl Default for InitRuntimeConfig {
@@ -50,7 +62,7 @@ impl Default for InitRuntimeConfig {
         Self {
             config_file: Some(PathBuf::from("wutengine.toml")),
             config_overrides: Default::default(),
-            only_tick_on_request: false,
+            frame_frequency: Default::default(),
         }
     }
 }
@@ -113,7 +125,7 @@ pub fn run(
         systems: system::SystemManager::new(),
         draw_commands: graphics::initialize_command_queue(),
         overlay_passes: Vec::new(),
-        always_redraw: !config.only_tick_on_request,
+        frame_frequency: config.frame_frequency,
     };
 
     runtime.systems.build_schedule(SystemManifest::empty());
@@ -135,10 +147,10 @@ pub fn run(
 
     InitOnce::init(&EVENT_LOOP_PROXY, event_loop_proxy);
 
-    let control_flow = if config.only_tick_on_request {
-        winit::event_loop::ControlFlow::Wait
-    } else {
-        winit::event_loop::ControlFlow::Poll
+    let control_flow = match runtime.frame_frequency {
+        FrameFrequency::Fast => winit::event_loop::ControlFlow::Poll,
+        FrameFrequency::WaitAtMost(_) => winit::event_loop::ControlFlow::Wait,
+        FrameFrequency::WaitIndefinitely => winit::event_loop::ControlFlow::Wait,
     };
 
     event_loop.set_control_flow(control_flow);

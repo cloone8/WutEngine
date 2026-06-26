@@ -13,6 +13,7 @@ use crate::window::WindowUpdateEvent;
 use crate::window::{Window, WindowConfig};
 use crate::{graphics, thread, time, window};
 
+use super::FrameFrequency;
 use super::Runtime;
 use super::SystemManifest;
 
@@ -92,8 +93,6 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
     ) {
         use winit::event::WindowEvent;
 
-        _ = event_loop;
-
         let id = match window::manager::find_id(native_id) {
             window::manager::WindowState::Alive(id) => id,
             window::manager::WindowState::BeingDestroyed => {
@@ -153,6 +152,12 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
             }
             WindowEvent::RedrawRequested => {
                 self.run_frame();
+
+                if let FrameFrequency::WaitAtMost(secs) = self.frame_frequency {
+                    event_loop.set_control_flow(winit::event_loop::ControlFlow::wait_duration(
+                        Duration::from_secs_f32(secs),
+                    ));
+                }
             }
             _ => {}
         }
@@ -163,11 +168,20 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
         event_loop: &winit::event_loop::ActiveEventLoop,
         cause: winit::event::StartCause,
     ) {
-        if let winit::event::StartCause::ResumeTimeReached { .. } = cause {
-            window::manager::request_redraws();
-        };
-
-        let _ = (event_loop, cause);
+        match cause {
+            winit::event::StartCause::ResumeTimeReached { .. } => {
+                log::info!("Reached resume time");
+                window::manager::request_redraws();
+            }
+            winit::event::StartCause::WaitCancelled {
+                requested_resume: Some(requested_resume),
+                ..
+            } => {
+                event_loop
+                    .set_control_flow(winit::event_loop::ControlFlow::WaitUntil(requested_resume));
+            }
+            _ => {}
+        }
     }
 
     fn user_event(
@@ -241,7 +255,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let _ = event_loop;
 
-        if self.always_redraw {
+        if matches!(self.frame_frequency, FrameFrequency::Fast) {
             window::manager::request_redraws();
         }
     }
