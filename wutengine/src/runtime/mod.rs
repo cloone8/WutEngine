@@ -535,3 +535,9 @@ pub fn exit() {
         log::error!("Failed to send runtime exit event because the event loop was already closed");
     }
 }
+
+/// Useful when a frequency setting other than [FrameFrequency::Fast] was selected
+#[inline]
+pub fn request_frame() {
+    crate::runtime::send_to_main_thread(MainThreadEvent::Redraw);
+}

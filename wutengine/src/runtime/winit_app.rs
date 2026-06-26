@@ -37,6 +37,9 @@ pub(crate) enum MainThreadEvent {
     /// Request to add one or more systems to the main system schedule
     AddSystem(SystemManifest),
 
+    /// User requested a redraw
+    Redraw,
+
     /// Someone requested the exit of the runtime through [crate::runtime::exit]
     RuntimeExitRequested,
 }
@@ -235,6 +238,9 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
             }
             MainThreadEvent::AddSystem(manifest) => {
                 self.systems.queue_system(manifest);
+            }
+            MainThreadEvent::Redraw => {
+                window::manager::request_redraws();
             }
         }
     }

@@ -109,7 +109,10 @@ pub fn run(
     {
         use crate::development_overlay::ConfigOverlay;
 
-        crate::development_overlay::init();
+        crate::development_overlay::init(Some(|_| {
+            crate::runtime::request_frame();
+        }));
+
         crate::development_overlay::add_development_overlay_window(ConfigOverlay::default());
         crate::development_overlay::add_development_overlay_window(
             crate::profiling::development_overlay::ProfilingOverlay::default(),

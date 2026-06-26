@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 use wutengine_graphics::label;
+use wutengine_util::error_once;
+use wutengine_util::warn_once;
 
 use nohash_hasher::IntMap;
 use wutengine_asset::Asset;
@@ -207,6 +209,29 @@ impl EguiWindow {
         }
     }
 
+    /// Handle platform output from egui
+    fn handle_platform_output(output: egui::PlatformOutput) {
+        profiling::function_scope!();
+
+        for command in &output.commands {
+            match command {
+                egui::OutputCommand::CopyText(_) => {
+                    warn_once!("Copy text output not yet supported");
+                }
+                egui::OutputCommand::CopyImage(_) => {
+                    warn_once!("Copy image output not yet supported");
+                }
+                egui::OutputCommand::OpenUrl(_) => {
+                    error_once!("Open URL output not yet supported");
+                }
+            }
+        }
+
+        if output.requested_discard() {
+            warn_once!("Discards not yet requested");
+        }
+    }
+
     /// Runs the egui UI logic on the provided context, with the provided texture map.
     ///
     /// Should be run exactly once before calling [Self::render_window]
@@ -219,6 +244,8 @@ impl EguiWindow {
         let egui_input = self.gather_input(real_time);
 
         let egui_output = context.run_ui(egui_input, |ui| (self.ui_callback)(ui));
+
+        Self::handle_platform_output(egui_output.platform_output);
 
         let clipped_output = context.tessellate(egui_output.shapes, egui_output.pixels_per_point);
 

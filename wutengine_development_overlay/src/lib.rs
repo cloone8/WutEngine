@@ -26,8 +26,8 @@ unique_id_type32! {
 static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new();
 
 #[doc(hidden)]
-pub fn init() {
-    InitOnce::init(&DEV_OVERLAY, DevOverlayManager::new());
+pub fn init(repaint_callback: Option<impl Fn(egui::RequestRepaintInfo) + Send + Sync + 'static>) {
+    InitOnce::init(&DEV_OVERLAY, DevOverlayManager::new(repaint_callback));
 }
 
 /// Manages the calculating and rendering of the development overlay
@@ -65,12 +65,20 @@ struct DevOverlayWindow {
 
 impl DevOverlayManager {
     /// A new empty [DevOverlayManager]
-    fn new() -> Self {
+    fn new(
+        repaint_callback: Option<impl Fn(egui::RequestRepaintInfo) + Send + Sync + 'static>,
+    ) -> Self {
+        let egui_context = wutengine_egui::egui::Context::default();
+
+        if let Some(repaint_callback) = repaint_callback {
+            egui_context.set_request_repaint_callback(repaint_callback);
+        }
+
         Self {
             active: AtomicBool::new(false),
             last_target_window: Mutex::new(WindowIdentifier::new(0)),
             egui_window: Mutex::new(None),
-            egui_context: wutengine_egui::egui::Context::default(),
+            egui_context,
             textures: TextureMaterialMap::default(),
             windows: Mutex::new(Vec::new()),
         }
