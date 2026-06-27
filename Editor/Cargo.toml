@@ -27,6 +27,7 @@ wutengine_egui = { path = "../WutEngine/wutengine_egui" }
 wutengine_util = { path = "../WutEngine/wutengine_util" }
 
 log = { version = "0.4" }
+windows = { version = "0.62" }
 
 [workspace.lints.rust]
 # Groups

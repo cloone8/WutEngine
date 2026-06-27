@@ -4369,6 +4369,7 @@ name = "wutengine_editor"
 version = "0.1.0"
 dependencies = [
  "log",
+ "windows",
  "wutengine",
  "wutengine_egui",
  "wutengine_util",

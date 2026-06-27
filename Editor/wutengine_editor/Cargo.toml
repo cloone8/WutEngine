@@ -14,5 +14,8 @@ wutengine_util.workspace = true
 
 log.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = ["Win32_System_Console"] }
+
 [lints]
 workspace = true
