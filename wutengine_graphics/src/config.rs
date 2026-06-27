@@ -1,6 +1,7 @@
 //! Graphics config options
 
 use serde::Deserialize;
+use serde::Serialize;
 
 /// Graphics context initialization config
 #[derive(Debug, Clone, Deserialize)]
@@ -32,7 +33,7 @@ impl Default for GraphicsConfig {
 }
 
 /// Configurable graphics backend
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, derive_more::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, derive_more::Display)]
 #[serde(rename_all = "lowercase")]
 pub enum GraphicsBackend {
     /// Vulkan

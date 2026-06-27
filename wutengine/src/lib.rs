@@ -20,8 +20,15 @@ pub mod development_overlay;
 #[doc(inline)]
 pub use hecs;
 
-#[doc(inline)]
-pub use log;
+pub mod log {
+    //! Logging
+
+    #[doc(inline)]
+    pub use log::*;
+
+    #[doc(inline)]
+    pub use wutengine_logger::*;
+}
 
 #[doc(inline)]
 pub use wutengine_asset as asset;

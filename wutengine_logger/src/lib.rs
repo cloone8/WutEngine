@@ -65,41 +65,12 @@ impl ModuleLogger {
         }
     }
 
-    /// Given a target from a [log::Metadata], returns the subsystem string and a
-    /// boolean denoting whether the target is internal or external
-    fn subsystem_from_target(target: &str) -> (bool, &str) {
-        if let Some(no_wutengine_prefix) = target.strip_prefix("wutengine::") {
-            return (true, Self::first_module(no_wutengine_prefix));
-        }
-
-        if let Some(no_wutengine_crate_prefix) = target.strip_prefix("wutengine_") {
-            return (true, Self::first_module(no_wutengine_crate_prefix));
-        }
-
-        let first_module = Self::first_module(target);
-
-        if is_internally_used_external_crate(first_module) {
-            return (true, first_module);
-        }
-
-        (false, first_module)
-    }
-
-    /// Returns the first module in the given module string like `mod_a::mod_b::mod_c` or `mod_a`
-    fn first_module(full: &str) -> &str {
-        if let Some((module, _)) = full.split_once("::") {
-            module
-        } else {
-            full
-        }
-    }
-
     /// Retrieves the specific subsystem logger for the given target. If it does not yet exist,
     /// creates it.
     ///
     /// NOTE: [Self::per_subsystem] must be unlocked to avoid a deadlock
     fn with_subsys_logger<T>(&self, target: &str, cb: impl FnOnce(Arc<dyn log::Log>) -> T) -> T {
-        let (is_wutengine, subsystem) = Self::subsystem_from_target(target);
+        let (is_wutengine, subsystem) = subsystem_from_target(target);
 
         let subsystems = self.per_subsystem.read().unwrap();
 
@@ -167,6 +138,35 @@ impl log::Log for ModuleLogger {
             .iter()
             .for_each(|(_, logger)| logger.flush());
     }
+}
+
+/// Returns the first module in the given module string like `mod_a::mod_b::mod_c` or `mod_a`
+fn first_module(full: &str) -> &str {
+    if let Some((module, _)) = full.split_once("::") {
+        module
+    } else {
+        full
+    }
+}
+
+/// Given a target from a [log::Metadata], returns the subsystem string and a
+/// boolean denoting whether the target is internal (`true`) or external (`false`)
+pub fn subsystem_from_target(target: &str) -> (bool, &str) {
+    if let Some(no_wutengine_prefix) = target.strip_prefix("wutengine::") {
+        return (true, first_module(no_wutengine_prefix));
+    }
+
+    if let Some(no_wutengine_crate_prefix) = target.strip_prefix("wutengine_") {
+        return (true, first_module(no_wutengine_crate_prefix));
+    }
+
+    let first_module = first_module(target);
+
+    if is_internally_used_external_crate(first_module) {
+        return (true, first_module);
+    }
+
+    (false, first_module)
 }
 
 /// Returns true for crates that are used internally by WutEngine but do not start with `wutengine`
