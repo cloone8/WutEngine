@@ -4,14 +4,17 @@
 extern crate alloc;
 
 use core::num::NonZeroU32;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
-use logger::EditorLogger;
+use clap::Parser;
+use cli_args::CliArgs;
+use editorwindow_renderpass::EditorWindowRenderPass;
+use project::ProjectFile;
 use wutengine::builtins::components::rendering::OverlayRenderPass;
 use wutengine::component::Component;
 use wutengine::entity::Entity;
-use wutengine::graphics::renderpass::RenderPass;
-use wutengine::graphics::wgpu;
-use wutengine::hecs;
+use wutengine::graphics;
 use wutengine::input::WindowIdentifier;
 use wutengine::runtime;
 use wutengine::runtime::FrameFrequency;
@@ -24,9 +27,14 @@ use wutengine::window::Window;
 use wutengine::window::WindowConfig;
 use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
+use wutengine_egui::egui::Widget;
 use wutengine_util::InitOnce;
 
+mod cli_args;
+mod editorwindow_renderpass;
 mod logger;
+mod project;
+mod select_project;
 
 /// Global egui context
 static EGUI_CONTEXT: InitOnce<egui::Context> = InitOnce::new();
@@ -49,25 +57,39 @@ fn try_attach_to_console() {
 }
 
 fn main() {
-    let logger = EditorLogger::new();
-
-    log::set_boxed_logger(Box::new(logger.clone())).unwrap();
-
     #[cfg(windows)]
     try_attach_to_console();
+
+    let args = CliArgs::parse();
+
+    logger::init();
+
+    let mut config_overrides = HashMap::default();
+
+    config_overrides.insert("wutengine.window.triple_buffering".to_string(), true.into());
+
+    if let Some(renderer) = args.renderer {
+        let as_backend = graphics::GraphicsBackend::from(renderer);
+
+        config_overrides.insert(
+            "wutengine.graphics.backend".to_string(),
+            wutengine::config::toml::Value::try_from(as_backend).unwrap(),
+        );
+    }
 
     wutengine::runtime::run(
         InitRuntimeConfig {
             frame_frequency: FrameFrequency::WaitAtMost(EDITOR_BASE_TICK_INTERVAL_SECS),
+            config_overrides,
             ..Default::default()
         },
-        Some(Box::new(|| post_start(logger))),
+        Some(Box::new(|| post_start(args.project))),
     )
     .expect("Failure while executing WutEngine runtime");
 }
 
 /// Main startup function after the engine runtime was started
-fn post_start(logger: EditorLogger) {
+fn post_start(project: Option<PathBuf>) {
     log::info!("Starting WutEngine Editor");
 
     InitOnce::init(&EGUI_CONTEXT, egui::Context::default());
@@ -82,7 +104,30 @@ fn post_start(logger: EditorLogger) {
     time::set_max_frame_time((EDITOR_BASE_TICK_INTERVAL_SECS as u64 + 1) * NANOS_PER_SECOND);
     time::set_target_delta((EDITOR_BASE_TICK_INTERVAL_SECS as u64) * NANOS_PER_SECOND);
 
-    let initial_window_title = "WutEngine Editor".to_string();
+    let editor_window_renderpass_entity = Entity::spawn_transformless("Editor Window Renderpass");
+    let editor_window_renderpass = OverlayRenderPass::new::<EditorWindowRenderPass>();
+    editor_window_renderpass_entity.add_component(editor_window_renderpass);
+
+    if let Some(project) = project {
+        start_editor(project);
+    } else {
+        select_project::select_project();
+    }
+}
+
+/// Starts the editor and loads the project file at the given path
+fn start_editor(project: PathBuf) {
+    let mut project_file = ProjectFile::from_disk(&project).expect("Failed to open project file"); //TODO: Handle properly
+    project_file.project_name = project
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().to_string());
+
+    let initial_window_title = if let Some(proj_name) = project_file.project_name {
+        format!("{proj_name} - WutEngine Editor")
+    } else {
+        "<unknown project> - WutEngine Editor".to_string()
+    };
+
     let initial_window_size = (1920, 1080);
 
     let initial_window = Window::create(WindowConfig {
@@ -94,7 +139,6 @@ fn post_start(logger: EditorLogger) {
     });
 
     let main_editor_window_entity = Entity::spawn_transformless("Main Editor Window");
-
     let main_editor_window_container = EguiWindowContainer::new(Some(initial_window));
 
     main_editor_window_entity.add_component(main_editor_window_container);
@@ -102,10 +146,6 @@ fn post_start(logger: EditorLogger) {
     let main_editor_window = EditorWindowContainer::new(MainEditorWindow {});
 
     main_editor_window_entity.add_component(main_editor_window);
-
-    let editor_window_renderpass_entity = Entity::spawn_transformless("Editor Window Renderpass");
-    let editor_window_renderpass = OverlayRenderPass::new::<EditorWindowRenderPass>();
-    editor_window_renderpass_entity.add_component(editor_window_renderpass);
 }
 
 #[derive(Debug)]
@@ -305,78 +345,35 @@ impl MainEditorWindow {
             .default_size(250.0)
             .show_inside(ui, |ui| {
                 ui.take_available_space();
-                ui.label("Bottom Panel");
-                // self.logger.show(ui);
+                let editor_logger = logger::get_editor_logger();
+
+                egui::MenuBar::new().ui(ui, |ui| {
+                    ui.menu_button("Level", |ui| {
+                        if let Some(new_level) =
+                            logger::show_log_level_picker(editor_logger.get_external_level(), ui)
+                        {
+                            editor_logger.set_external_level(new_level);
+                            editor_logger.refilter_logs();
+                        }
+                    });
+
+                    ui.menu_button("WutEngine Level", |ui| {
+                        if let Some(new_level) =
+                            logger::show_log_level_picker(editor_logger.get_internal_level(), ui)
+                        {
+                            editor_logger.set_internal_level(new_level);
+                            editor_logger.refilter_logs();
+                        }
+                    });
+                });
+
+                ui.separator();
+
+                editor_logger.show(ui);
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.label("Hello from WutEngine Editor");
         });
-    }
-}
-
-#[derive(Debug)]
-struct EditorWindowRenderPass {
-    last_free: usize,
-    to_free: Vec<egui::TextureId>,
-}
-
-impl EditorWindowRenderPass {
-    const ORDER: u64 = u64::MAX / 2;
-}
-
-impl RenderPass<(Window, wgpu::Texture), hecs::World> for EditorWindowRenderPass {
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "Editor Window Renderpass"
-    }
-
-    fn order() -> u64
-    where
-        Self: Sized,
-    {
-        Self::ORDER
-    }
-
-    fn construct() -> Box<dyn RenderPass<(Window, wgpu::Texture), hecs::World>>
-    where
-        Self: Sized,
-    {
-        Box::new(Self {
-            last_free: 0,
-            to_free: Vec::new(),
-        })
-    }
-
-    fn execute(
-        &mut self,
-        cmd: &mut wgpu::CommandEncoder,
-        target: &(Window, wgpu::Texture),
-        drawable: &hecs::World,
-    ) {
-        if self.last_free < time::frame_num() {
-            self.last_free = time::frame_num();
-            EGUI_RESOURCES.free_removed(self.to_free.drain(..));
-        }
-
-        let mut target_window: Option<&mut wutengine_egui::EguiWindow> = None;
-        let mut query = drawable.query::<&mut EguiWindowContainer>();
-
-        for window_container in query.iter() {
-            if let Some(window_handle) = window_container.window_handle
-                && window_handle == target.0
-            {
-                target_window = Some(window_container.egui_window.as_mut());
-                break;
-            }
-        }
-
-        let Some(target_window) = target_window else {
-            return;
-        };
-
-        target_window.render_window(&target.1, &EGUI_RESOURCES, cmd, &mut self.to_free);
     }
 }

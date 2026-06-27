@@ -27,7 +27,13 @@ wutengine_egui = { path = "../WutEngine/wutengine_egui" }
 wutengine_util = { path = "../WutEngine/wutengine_util" }
 
 log = { version = "0.4" }
+clap = { version = "4" }
 windows = { version = "0.62" }
+rfd = { version = "0.17" }
+serde = { version = "1" }
+serde_json = { version = "1" }
+winresource = { version = "0.1" }
+derive_more = { version = "2" }
 
 [workspace.lints.rust]
 # Groups

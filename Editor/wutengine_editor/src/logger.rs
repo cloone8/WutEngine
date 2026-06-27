@@ -1,57 +1,266 @@
 //! Editor logger
 
-use alloc::sync::Arc;
+use alloc::collections::VecDeque;
+use core::sync::atomic::AtomicU8;
+use core::sync::atomic::Ordering;
 use std::sync::Mutex;
+use wutengine_egui::egui::Widget;
+use wutengine_util::InitOnce;
 
 use wutengine_egui::egui;
 
-#[derive(Debug, Clone)]
+static EDITOR_LOGGER: InitOnce<EditorLogger, false> = InitOnce::new();
+
+/// Initializes and sets the editor logger
+pub(crate) fn init() {
+    InitOnce::init(&EDITOR_LOGGER, EditorLogger::new());
+
+    let logger_ref: &EditorLogger = &EDITOR_LOGGER;
+    let dyn_logger: &dyn log::Log = logger_ref;
+
+    log::set_logger(dyn_logger).unwrap();
+    log::set_max_level(log::LevelFilter::Trace);
+}
+
+/// Returns the editor logger
+#[inline(always)]
+pub(crate) fn get_editor_logger() -> &'static EditorLogger {
+    &EDITOR_LOGGER
+}
+
+/// Logger that gathers log messages and displays them in an editor window
+#[derive(Debug)]
 pub(crate) struct EditorLogger {
-    logs: Arc<Mutex<Vec<LogEntry>>>,
+    internal_level: AtomicU8,
+    external_level: AtomicU8,
+    max_logs: usize,
+    logs: Mutex<VecDeque<LogEntry>>,
 }
 
 impl EditorLogger {
-    pub(crate) fn new() -> Self {
+    fn new() -> Self {
         Self {
-            logs: Arc::new(Mutex::new(Vec::new())),
+            internal_level: AtomicU8::new(Self::levelfilter_to_int(log::LevelFilter::Warn)),
+            external_level: AtomicU8::new(Self::levelfilter_to_int(log::LevelFilter::Info)),
+            max_logs: 1_000,
+            logs: Mutex::new(VecDeque::new()),
         }
     }
 
+    /// Shows the log UI
     pub(crate) fn show(&self, ui: &mut egui::Ui) {
         let logs = self.logs.lock().unwrap();
-
         let text_style_height = ui.text_style_height(&egui::TextStyle::Body);
+
         egui::ScrollArea::vertical()
-            .max_height(text_style_height * 20.0)
+            .max_height(ui.available_height())
+            .stick_to_bottom(true)
             .show_rows(ui, text_style_height, logs.len(), |ui, range| {
+                ui.take_available_space();
+
                 for log in logs.iter().skip(range.start).take(range.end - range.start) {
+                    ui.separator();
                     log.show(ui);
                 }
             });
+    }
+
+    /// Returns the current level filter for internal logs
+    pub(crate) fn get_internal_level(&self) -> log::LevelFilter {
+        Self::int_to_levelfilter(self.internal_level.load(Ordering::Acquire))
+            .expect("Stored invalid levelfilter")
+    }
+
+    /// Sets the level filter for internal logs
+    pub(crate) fn set_internal_level(&self, level_filter: log::LevelFilter) {
+        self.internal_level
+            .store(Self::levelfilter_to_int(level_filter), Ordering::Release);
+    }
+
+    /// Returns the current level filter for external logs
+    pub(crate) fn get_external_level(&self) -> log::LevelFilter {
+        Self::int_to_levelfilter(self.external_level.load(Ordering::Acquire))
+            .expect("Stored invalid levelfilter")
+    }
+
+    /// Sets the level filter for external logs
+    pub(crate) fn set_external_level(&self, level_filter: log::LevelFilter) {
+        self.external_level
+            .store(Self::levelfilter_to_int(level_filter), Ordering::Release);
+    }
+
+    /// Filters the currently stored logs according to the configured filters
+    pub(crate) fn refilter_logs(&self) {
+        let internal_level = self.get_internal_level();
+        let external_level = self.get_external_level();
+
+        let mut logs = self.logs.lock().unwrap();
+
+        logs.retain(|log| {
+            let filter = if log.is_internal {
+                internal_level
+            } else {
+                external_level
+            };
+
+            log.level <= filter
+        });
+    }
+
+    const fn levelfilter_to_int(filter: log::LevelFilter) -> u8 {
+        match filter {
+            log::LevelFilter::Off => 0,
+            log::LevelFilter::Error => 1,
+            log::LevelFilter::Warn => 2,
+            log::LevelFilter::Info => 3,
+            log::LevelFilter::Debug => 4,
+            log::LevelFilter::Trace => 5,
+        }
+    }
+
+    const fn int_to_levelfilter(int: u8) -> Option<log::LevelFilter> {
+        match int {
+            0 => Some(log::LevelFilter::Off),
+            1 => Some(log::LevelFilter::Error),
+            2 => Some(log::LevelFilter::Warn),
+            3 => Some(log::LevelFilter::Info),
+            4 => Some(log::LevelFilter::Debug),
+            5 => Some(log::LevelFilter::Trace),
+            _ => None,
+        }
     }
 }
 
 #[derive(Debug)]
 struct LogEntry {
+    level: log::Level,
     message: String,
+    file: Option<String>,
+    line: Option<u32>,
+    is_internal: bool,
 }
 
 impl LogEntry {
+    fn new(record: &log::Record) -> Self {
+        Self {
+            level: record.level(),
+            message: format!("{}", record.args()),
+            file: record.file().map(ToString::to_string),
+            line: record.line(),
+            is_internal: wutengine::log::subsystem_from_target(record.target()).0,
+        }
+    }
+
+    fn level_to_color(level: log::Level) -> egui::Color32 {
+        match level {
+            log::Level::Error => egui::Color32::RED,
+            log::Level::Warn => egui::Color32::YELLOW,
+            log::Level::Info => egui::Color32::BLUE,
+            log::Level::Debug => egui::Color32::LIGHT_BLUE,
+            log::Level::Trace => egui::Color32::GRAY,
+        }
+    }
+
     fn show(&self, ui: &mut egui::Ui) {
-        ui.label(format!("Message: {}", self.message));
+        let on_hover = |ui: &mut egui::Ui| {
+            if let Some(file) = self.file.as_deref() {
+                ui.label(file);
+            }
+
+            if let Some(line) = self.line {
+                ui.label(format!("line: {line}"));
+            }
+        };
+
+        ui.horizontal(|ui| {
+            ui.colored_label(Self::level_to_color(self.level), self.level.to_string())
+                .on_hover_ui(on_hover);
+            ui.label(self.message.as_str()).on_hover_ui(on_hover);
+        });
     }
 }
 
 impl log::Log for EditorLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        todo!()
+        let (is_internal, _subsys) = wutengine::log::subsystem_from_target(metadata.target());
+
+        let filter = if is_internal {
+            self.get_internal_level()
+        } else {
+            self.get_external_level()
+        };
+
+        metadata.level() <= filter
     }
 
     fn log(&self, record: &log::Record) {
-        todo!()
+        if !self.enabled(record.metadata()) {
+            return;
+        }
+
+        let mut logs = self.logs.lock().unwrap();
+
+        if logs.len() >= self.max_logs {
+            logs.drain(..self.max_logs);
+        }
+
+        if self.max_logs == 0 {
+            return;
+        }
+
+        logs.push_back(LogEntry::new(record));
     }
 
     fn flush(&self) {
         //no-op
     }
+}
+
+/// Shows a series of buttons to pick a log level. The current level is highlighted.
+/// If a new level was selected, returns [Some] with that level. Otherwise, returns [None]
+pub(crate) fn show_log_level_picker(
+    cur_level: log::LevelFilter,
+    ui: &mut egui::Ui,
+) -> Option<log::LevelFilter> {
+    if egui::Button::new("Trace")
+        .selected(matches!(cur_level, log::LevelFilter::Trace))
+        .ui(ui)
+        .clicked()
+    {
+        return Some(log::LevelFilter::Trace);
+    }
+
+    if egui::Button::new("Debug")
+        .selected(matches!(cur_level, log::LevelFilter::Debug))
+        .ui(ui)
+        .clicked()
+    {
+        return Some(log::LevelFilter::Debug);
+    }
+
+    if egui::Button::new("Info")
+        .selected(matches!(cur_level, log::LevelFilter::Info))
+        .ui(ui)
+        .clicked()
+    {
+        return Some(log::LevelFilter::Info);
+    }
+
+    if egui::Button::new("Warning")
+        .selected(matches!(cur_level, log::LevelFilter::Warn))
+        .ui(ui)
+        .clicked()
+    {
+        return Some(log::LevelFilter::Warn);
+    }
+
+    if egui::Button::new("Error")
+        .selected(matches!(cur_level, log::LevelFilter::Error))
+        .ui(ui)
+        .clicked()
+    {
+        return Some(log::LevelFilter::Error);
+    }
+
+    None
 }
