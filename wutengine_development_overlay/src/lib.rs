@@ -148,11 +148,7 @@ pub fn run_overlay_logic(
                 window.scale_factor = scale_factor;
             }
             None => {
-                let mut new_egui_window = wutengine_egui::EguiWindow::new(
-                    input_window,
-                    sfc_points,
-                    Box::new(dev_overlay_ui),
-                );
+                let mut new_egui_window = wutengine_egui::EguiWindow::new(input_window, sfc_points);
 
                 new_egui_window.title = "WutEngine Development Overlay".to_string();
                 new_egui_window.window_info = window_info;
@@ -165,7 +161,11 @@ pub fn run_overlay_logic(
 
         let egui_window = egui_window.as_ref().unwrap();
 
-        egui_window.run_logic(&DEV_OVERLAY.egui_context, &DEV_OVERLAY.textures);
+        egui_window.run_logic(
+            &DEV_OVERLAY.egui_context,
+            &DEV_OVERLAY.textures,
+            dev_overlay_ui,
+        );
         *DEV_OVERLAY.last_target_window.lock().unwrap() = input_window;
 
         drop(egui_window_lock);

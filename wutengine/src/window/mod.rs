@@ -381,6 +381,13 @@ impl Window {
         crate::window::manager::appoint_primary_window(self);
     }
 
+    /// Checks whether this window has been opened by the native windowing system, and
+    /// has also not yet been destroyed
+    #[inline]
+    pub fn is_ready(self) -> bool {
+        crate::window::manager::get_window_and(self, |win| win.is_some())
+    }
+
     /// Returns the size of this window in pixels.
     /// If the window is not yet created or is already destroyed, returns (0,0)
     #[inline]

@@ -110,10 +110,6 @@ pub struct EguiWindow {
 
     /// Last calculated output by [Self::run_logic]
     last_output: Mutex<Option<WindowDrawable>>,
-
-    /// [egui] UI callback
-    #[debug(skip)]
-    ui_callback: Box<dyn Fn(&mut egui::Ui) + Send + Sync>,
 }
 
 /// Drawing parameters
@@ -135,7 +131,6 @@ impl EguiWindow {
     pub fn new(
         input_window_identifier: WindowIdentifier,
         surface_size_points: (f32, f32),
-        ui_callback: Box<dyn Fn(&mut egui::Ui) + Send + Sync>,
     ) -> Box<Self> {
         Box::new(Self {
             title: "WutEngine".to_string(),
@@ -148,7 +143,6 @@ impl EguiWindow {
             scale_factor: 1.0,
             gpu_buffers: Mutex::new(None),
             last_output: Mutex::new(None),
-            ui_callback,
         })
     }
 
@@ -237,13 +231,18 @@ impl EguiWindow {
     /// Should be run exactly once before calling [Self::render_window]
     ///
     /// TODO: Combine `context` and `texture_map` into one struct
-    pub fn run_logic(&self, context: &egui::Context, texture_map: &TextureMaterialMap) {
+    pub fn run_logic(
+        &self,
+        context: &egui::Context,
+        texture_map: &TextureMaterialMap,
+        ui_callback: impl FnMut(&mut egui::Ui),
+    ) {
         profiling::function_scope!();
 
         let real_time = wutengine_time::unscaled_time64();
         let egui_input = self.gather_input(real_time);
 
-        let egui_output = context.run_ui(egui_input, |ui| (self.ui_callback)(ui));
+        let egui_output = context.run_ui(egui_input, ui_callback);
 
         Self::handle_platform_output(egui_output.platform_output);
 
