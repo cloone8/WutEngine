@@ -97,13 +97,13 @@ impl EditorLogger {
         let mut logs = self.logs.lock().unwrap();
 
         logs.retain(|log| {
-            let filter = if log.is_internal {
+            let filter = if log.is_internal() {
                 internal_level
             } else {
                 external_level
             };
 
-            log.level <= filter
+            log.level() <= filter
         });
     }
 
@@ -131,23 +131,52 @@ impl EditorLogger {
     }
 }
 
-#[derive(Debug)]
-struct LogEntry {
-    level: log::Level,
-    message: String,
-    file: Option<String>,
-    line: Option<u32>,
-    is_internal: bool,
+#[derive(Debug, derive_more::IsVariant)]
+enum LogEntry {
+    Internal {
+        level: log::Level,
+        message: String,
+        subsys: String,
+    },
+
+    External {
+        level: log::Level,
+        message: String,
+        file: Option<String>,
+        line: Option<u32>,
+    },
 }
 
 impl LogEntry {
     fn new(record: &log::Record) -> Self {
-        Self {
-            level: record.level(),
-            message: format!("{}", record.args()),
-            file: record.file().map(ToString::to_string),
-            line: record.line(),
-            is_internal: wutengine::log::subsystem_from_target(record.target()).0,
+        let (is_internal, subsys) = wutengine::log::subsystem_from_target(record.target());
+
+        match is_internal {
+            true => Self::Internal {
+                level: record.level(),
+                message: format!("{}", record.args()),
+                subsys: subsys.to_string(),
+            },
+            false => Self::External {
+                level: record.level(),
+                message: format!("{}", record.args()),
+                file: record.file().map(ToString::to_string),
+                line: record.line(),
+            },
+        }
+    }
+
+    const fn level(&self) -> log::Level {
+        match self {
+            Self::Internal { level, .. } => *level,
+            Self::External { level, .. } => *level,
+        }
+    }
+
+    const fn message(&self) -> &str {
+        match self {
+            Self::Internal { message, .. } => message.as_str(),
+            Self::External { message, .. } => message.as_str(),
         }
     }
 
@@ -157,25 +186,30 @@ impl LogEntry {
             log::Level::Warn => egui::Color32::YELLOW,
             log::Level::Info => egui::Color32::BLUE,
             log::Level::Debug => egui::Color32::LIGHT_BLUE,
-            log::Level::Trace => egui::Color32::GRAY,
+            log::Level::Trace => egui::Color32::LIGHT_GRAY,
         }
     }
 
     fn show(&self, ui: &mut egui::Ui) {
-        let on_hover = |ui: &mut egui::Ui| {
-            if let Some(file) = self.file.as_deref() {
-                ui.label(file);
+        let on_hover = |ui: &mut egui::Ui| match self {
+            Self::Internal { subsys, .. } => {
+                ui.label(format!("{} (internal)", subsys.as_str()));
             }
+            Self::External { file, line, .. } => {
+                if let Some(file) = file.as_deref() {
+                    ui.label(file);
+                }
 
-            if let Some(line) = self.line {
-                ui.label(format!("line: {line}"));
+                if let Some(line) = line {
+                    ui.label(format!("line: {line}"));
+                }
             }
         };
 
         ui.horizontal(|ui| {
-            ui.colored_label(Self::level_to_color(self.level), self.level.to_string())
+            ui.colored_label(Self::level_to_color(self.level()), self.level().to_string())
                 .on_hover_ui(on_hover);
-            ui.label(self.message.as_str()).on_hover_ui(on_hover);
+            ui.label(self.message()).on_hover_ui(on_hover);
         });
     }
 }

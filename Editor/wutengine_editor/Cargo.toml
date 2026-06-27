@@ -17,7 +17,7 @@ clap = { workspace = true, features = ["derive"] }
 rfd.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-derive_more = { workspace = true, features = ["error", "from"] }
+derive_more = { workspace = true, features = ["error", "from", "is_variant"] }
 
 [build-dependencies]
 winresource.workspace = true

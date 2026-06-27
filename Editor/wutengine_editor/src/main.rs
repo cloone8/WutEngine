@@ -27,7 +27,6 @@ use wutengine::window::Window;
 use wutengine::window::WindowConfig;
 use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
-use wutengine_egui::egui::Widget;
 use wutengine_util::InitOnce;
 
 mod cli_args;
@@ -250,7 +249,7 @@ impl<T: EditorWindow> EditorWindowContainer<T> {
         Self { editor_window }
     }
 
-    fn run_egui(&mut self, egui_container: &mut EguiWindowContainer) {
+    fn run_egui(&mut self, egui_container: &EguiWindowContainer) {
         let Some(window_handle) = egui_container.window_handle else {
             return;
         };
@@ -277,7 +276,7 @@ impl<T: EditorWindow> Component for EditorWindowContainer<T> {
             parallel_batch_size: Some(NonZeroU32::new(1).unwrap()),
         };
 
-        manifest.add_system_with_config::<(&mut Self, &mut EguiWindowContainer)>(
+        manifest.add_system_with_config::<(&mut Self, &EguiWindowContainer)>(
             Phase::LateUpdate, // TODO: Move to Update once we can better configure inter-component system dependencies
             "Render Egui for EditorWindowContainer",
             &run_sys_config,
@@ -293,12 +292,12 @@ struct MainEditorWindow {}
 
 impl EditorWindow for MainEditorWindow {
     fn show(&mut self, ui: &mut egui::Ui) {
-        self.show_ui(ui);
+        Self::show_ui(ui);
     }
 }
 
 impl MainEditorWindow {
-    fn show_ui(&mut self, ui: &mut egui::Ui) {
+    fn show_ui(ui: &mut egui::Ui) {
         egui::Panel::top("Top panel")
             .resizable(false)
             .show_inside(ui, |ui| {
