@@ -10,7 +10,6 @@ pub mod graphics;
 pub mod profiling;
 pub mod runtime;
 pub mod system;
-pub mod thread;
 pub mod window;
 pub mod world;
 
@@ -56,3 +55,6 @@ pub use wutengine_config as config;
 
 #[doc(inline)]
 pub use wutengine_event as event;
+
+#[doc(inline)]
+pub use wutengine_thread as thread;

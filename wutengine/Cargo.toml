@@ -40,6 +40,7 @@ wutengine_physics3d.workspace = true
 wutengine_audio.workspace = true
 wutengine_logger.workspace = true
 wutengine_event.workspace = true
+wutengine_thread.workspace = true
 
 log.workspace = true
 simplelog.workspace = true
@@ -60,7 +61,6 @@ image.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
 rayon.workspace = true
-serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 spin_sleep = { workspace = true }
 uuid = { workspace = true }
@@ -68,9 +68,3 @@ uuid = { workspace = true }
 # Optional dependencies
 wutengine_development_overlay = { workspace = true, optional = true } # Feature - development_overlay
 wutengine_puffin_egui = { workspace = true, optional = true }         # Feature - profiling
-
-[target.'cfg(windows)'.dependencies]
-windows = { workspace = true, features = ["Win32_System_SystemInformation"] }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-libc = { workspace = true }

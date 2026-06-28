@@ -16,6 +16,7 @@ members = [
     "wutengine_physics3d",
     "wutengine_puffin_egui",
     "wutengine_shadercompiler",
+    "wutengine_thread",
     "wutengine_time",
     "wutengine_util",
     "wutengine_util_macro",
@@ -49,6 +50,7 @@ wutengine_physics2d = { path = "wutengine_physics2d", version = "0.6.0" }
 wutengine_physics3d = { path = "wutengine_physics3d", version = "0.6.0" }
 wutengine_puffin_egui = { path = "wutengine_puffin_egui", version = "0.6.0" }
 wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
+wutengine_thread = { path = "wutengine_thread", version = "0.6.0" }
 wutengine_time = { path = "wutengine_time", version = "0.6.0" }
 wutengine_util = { path = "wutengine_util", version = "0.6.0" }
 wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
@@ -61,6 +63,7 @@ derive_more = { version = "2.1" }
 document-features = { version = "0.2" }
 egui = { version = "0.35" }
 egui_extras = { version = "0.35" }
+futures = { version = "0.3", default-features = false }
 gilrs = { version = "0.11" }
 glam = { version = "0.33", features = ["std", "debug-glam-assert"] }
 hecs = { version = "0.11" }

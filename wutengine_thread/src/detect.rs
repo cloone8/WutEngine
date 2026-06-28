@@ -1,12 +1,17 @@
+//! Thread configuration detection
+
 use core::num::NonZero;
 
 use smallvec::SmallVec;
 
+/// The CPU core configuration of the current machine
 #[derive(Debug, Clone)]
 pub(super) struct CoreConfig {
+    /// Number of physical cores
     #[expect(unused, reason = "Might be useful later")]
     pub(super) cores: NonZero<usize>,
 
+    /// Number of logical cores
     pub(super) threads: NonZero<usize>,
 
     /// Number of threads per performance class. Higher indices have
@@ -14,6 +19,7 @@ pub(super) struct CoreConfig {
     pub(super) threads_by_class: SmallVec<[usize; 2]>,
 }
 
+/// Tries to find the CPU configuration of the machine we're running on
 pub(super) fn try_detect_core_config() -> Option<CoreConfig> {
     profiling::function_scope!();
 

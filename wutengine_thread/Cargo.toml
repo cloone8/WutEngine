@@ -1,0 +1,31 @@
+[package]
+name = "wutengine_thread"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+wutengine_util.workspace = true
+wutengine_config.workspace = true
+
+serde = { workspace = true, features = ["derive"] }
+log.workspace = true
+rayon.workspace = true
+profiling.workspace = true
+smallvec.workspace = true
+futures = { workspace = true, features = ["std", "async-await", "thread-pool"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = ["Win32_System_SystemInformation"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = { workspace = true }
+
+[lints]
+workspace = true
