@@ -29,14 +29,39 @@ impl PanelContainer {
         self.clamp_selected();
 
         egui::MenuBar::new().ui(ui, |ui| {
+            let mut should_move_panel = None;
+
             for (i, panel) in self.panels.iter_mut().enumerate() {
-                let select_panel = egui::Button::new(panel.name)
-                    .selected(self.selected == i)
-                    .ui(ui)
-                    .clicked();
+                let is_selected = self.selected == i;
+
+                let button_response = egui::Button::new(panel.name).selected(is_selected).ui(ui);
+
+                button_response.context_menu(|ui| {
+                    if ui.button("Move left").clicked() {
+                        should_move_panel = Some((i, i.saturating_sub(1)));
+                    }
+
+                    if ui.button("Move right").clicked() {
+                        should_move_panel = Some((i, i + 1));
+                    }
+                });
+
+                let select_panel = button_response.clicked();
 
                 if select_panel {
                     self.selected = i;
+                }
+            }
+
+            if let Some((from, to)) = should_move_panel {
+                let to = to.min(self.panels.len() - 1);
+
+                self.panels.swap(from, to);
+
+                if self.selected == from {
+                    self.selected = to;
+                } else if self.selected == to {
+                    self.selected = from;
                 }
             }
         });
