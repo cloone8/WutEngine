@@ -46,6 +46,12 @@ impl<T, const MAIN_THREAD_ONLY: bool> InitOnce<T, MAIN_THREAD_ONLY> {
         }
     }
 
+    /// Checks whether this [InitOnce] is initialized
+    #[inline(always)]
+    pub fn is_initialized(target: &Self) -> bool {
+        target.initialized.load(Ordering::Acquire) == InitOnceState::Initialized as u8
+    }
+
     /// In debug builds, asserts that the value was initialized
     #[inline(always)]
     fn assert_initialized(&self) {
