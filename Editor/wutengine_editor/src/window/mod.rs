@@ -49,6 +49,10 @@ impl<T: EditorWindow> EditorWindowContainer<T> {
 }
 
 impl<T: EditorWindow> Component for EditorWindowContainer<T> {
+    ///TODO: This is incorrect due to the generic parameter. Should base the UUID on that instead
+    const ID: wutengine::component::uuid::Uuid =
+        wutengine::component::uuid::uuid!("1c991c9a-3bcf-4a92-a622-2884838d2033");
+
     fn insert_default_component_systems(manifest: &mut wutengine::runtime::SystemManifest)
     where
         Self: Sized,
@@ -153,6 +157,9 @@ impl EguiWindowContainer {
 }
 
 impl Component for EguiWindowContainer {
+    const ID: wutengine::component::uuid::Uuid =
+        wutengine::component::uuid::uuid!("9b8f16bc-3041-4529-9d47-0af53bad8345");
+
     fn insert_default_component_systems(manifest: &mut wutengine::runtime::SystemManifest)
     where
         Self: Sized,

@@ -1,11 +1,20 @@
 //! Per-user preferences, persistent between different projects
 
-use std::collections::HashMap;
+use alloc::collections::BTreeMap;
 use std::path::PathBuf;
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use wutengine::profiling;
+
+/// Event fired when an editor preference was changed [set]
+pub(crate) struct EditorPrefChanged {
+    /// The key that was changed
+    pub key: String,
+
+    /// The new value. [None] means the key was deleted
+    pub value: Option<serde_json::Value>,
+}
 
 /// Sets a global editor preference to the given value
 pub(crate) fn set<T: Serialize>(key: &str, value: T) {
@@ -26,11 +35,17 @@ pub(crate) fn set<T: Serialize>(key: &str, value: T) {
 
     let mut cur_prefs = get_stored_preferences();
 
-    cur_prefs.insert(key.to_string(), new_pref_value);
+    cur_prefs.insert(key.to_string(), new_pref_value.clone());
 
     if let Err(e) = store_preferences(&cur_prefs) {
         log::error!("Failed to save preference {key} to file: {e}");
+        return;
     }
+
+    wutengine::event::publish(EditorPrefChanged {
+        key: key.to_string(),
+        value: Some(new_pref_value),
+    });
 }
 
 /// Returns the stored setting for the given editor preference, or returns the [Default::default].
@@ -73,7 +88,14 @@ pub(crate) fn delete(key: &str) {
 
     let mut stored = get_stored_preferences();
 
-    stored.remove(key);
+    let prev = stored.remove(key);
+
+    if prev.is_some() {
+        wutengine::event::publish(EditorPrefChanged {
+            key: key.to_string(),
+            value: None,
+        });
+    }
 }
 
 /// Returns the path to the preferences file, or an error if the path could not be determined
@@ -102,7 +124,7 @@ fn create_prefs_file() -> Result<(), std::io::Error> {
     std::fs::write(prefs_file_path, "{}")
 }
 
-fn store_preferences(prefs: &HashMap<String, serde_json::Value>) -> Result<(), std::io::Error> {
+fn store_preferences(prefs: &BTreeMap<String, serde_json::Value>) -> Result<(), std::io::Error> {
     profiling::function_scope!();
 
     create_prefs_file()?;
@@ -114,12 +136,12 @@ fn store_preferences(prefs: &HashMap<String, serde_json::Value>) -> Result<(), s
     std::fs::write(prefs_file_path, as_string)
 }
 
-fn get_stored_preferences() -> HashMap<String, serde_json::Value> {
+fn get_stored_preferences() -> BTreeMap<String, serde_json::Value> {
     profiling::function_scope!();
 
     if let Err(e) = create_prefs_file() {
         log::error!("Failed to create editor preferences file, defaults will be returned: {e}");
-        return HashMap::default();
+        return BTreeMap::default();
     }
 
     let prefs_file_path = match prefs_file_path() {
@@ -128,7 +150,7 @@ fn get_stored_preferences() -> HashMap<String, serde_json::Value> {
             log::error!(
                 "Failed to get editor preferences file path, defaults will be returned: {e}"
             );
-            return HashMap::default();
+            return BTreeMap::default();
         }
     };
 
@@ -136,17 +158,17 @@ fn get_stored_preferences() -> HashMap<String, serde_json::Value> {
         Ok(prefs) => prefs,
         Err(e) => {
             log::error!("Failed to read editor preferences file, defaults will be returned: {e}");
-            return HashMap::default();
+            return BTreeMap::default();
         }
     };
 
-    let prefs_map: HashMap<String, serde_json::Value> = match serde_json::from_str(&prefs_string) {
+    let prefs_map: BTreeMap<String, serde_json::Value> = match serde_json::from_str(&prefs_string) {
         Ok(prefs) => prefs,
         Err(e) => {
             log::error!(
                 "Failed to deserialize editor preferences file. It might be corrupt. Defaults will be returned: {e}"
             );
-            return HashMap::default();
+            return BTreeMap::default();
         }
     };
 

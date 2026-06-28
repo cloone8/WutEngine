@@ -1,6 +1,5 @@
 //! Project selection flow
 
-use std::io::prelude::Write;
 use std::path::PathBuf;
 
 use wutengine::entity::Entity;
@@ -12,6 +11,7 @@ use wutengine_egui::egui;
 use crate::EditorWindowContainer;
 use crate::EguiWindowContainer;
 use crate::project::ProjectFile;
+use crate::project::create::create_empty_project;
 use crate::window::EditorWindow;
 
 /// Spawns the entities that handle the "select project" flow, in which the user
@@ -67,29 +67,20 @@ impl EditorWindow for SelectProjectWindow {
                     .show(ui);
 
                 if ui.button("Create...").clicked()
-                    && let Some(project_file) = create_project_file(&self.new_project_name)
+                    && let Some(project_dir) = rfd::FileDialog::new().pick_folder()
                 {
-                    let project_file_content =
-                        serde_json::to_string_pretty(&ProjectFile::new()).unwrap();
-                    let mut file = std::fs::File::create_new(&project_file).unwrap();
-
-                    file.write_all(&project_file_content.into_bytes()).unwrap();
-
-                    open_project(project_file);
+                    match create_empty_project(&self.new_project_name, &project_dir) {
+                        Ok(pf) => {
+                            open_project(pf);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to create new project: {e}");
+                        }
+                    };
                 }
             });
         });
     }
-}
-
-fn create_project_file(project_name: &str) -> Option<PathBuf> {
-    let parent_folder = rfd::FileDialog::new().pick_folder()?;
-
-    let project_folder = parent_folder.join(project_name);
-
-    std::fs::create_dir(&project_folder).unwrap();
-
-    Some(project_folder.join(format!("{project_name}.we-project")))
 }
 
 fn pick_project_file() -> Option<PathBuf> {

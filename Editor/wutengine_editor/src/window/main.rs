@@ -1,15 +1,13 @@
-use wutengine::runtime;
 use wutengine_egui::egui;
 
-use crate::panel::EditorPanel;
-use crate::panel::EditorPanelId;
 use crate::panel::LogPanel;
 use crate::panel::TestPanel;
-use crate::panel::TestPanelTwo;
+use crate::panel::TreePanel;
 
 use super::EditorWindow;
 use super::panel_container::PanelContainer;
 
+/// The main editor window
 #[derive(derive_more::Debug)]
 pub(crate) struct MainEditorWindow {
     left_panels: PanelContainer,
@@ -25,17 +23,24 @@ impl EditorWindow for MainEditorWindow {
 }
 
 impl MainEditorWindow {
+    /// Creates a new main editor window with the default layout
     pub(crate) fn new() -> Self {
         let mut left_panels = PanelContainer::new();
 
-        left_panels.add::<TestPanel>().add::<TestPanelTwo>();
+        left_panels.add::<TreePanel>();
+
+        let mut right_panels = PanelContainer::new();
+
+        right_panels.add::<TestPanel>();
+        right_panels.add::<TestPanel>();
+        right_panels.add::<TestPanel>();
 
         let mut bottom_panels = PanelContainer::new();
         bottom_panels.add::<LogPanel>();
 
         Self {
             left_panels,
-            right_panels: PanelContainer::new(),
+            right_panels,
             bottom_panels,
             center_panels: PanelContainer::new(),
         }
@@ -45,28 +50,7 @@ impl MainEditorWindow {
         egui::Panel::top("Top panel")
             .resizable(false)
             .show(ui, |ui| {
-                egui::MenuBar::new().ui(ui, |ui| {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("New Project").clicked() {
-                            log::info!("New project");
-                        }
-
-                        ui.separator();
-
-                        if ui.button("Exit").clicked() {
-                            runtime::exit();
-                        }
-                    });
-                    ui.menu_button("Edit", |ui| {
-                        if ui.button("Undo").clicked() {
-                            log::info!("Undo");
-                        }
-
-                        if ui.button("Redo").clicked() {
-                            log::info!("Redo");
-                        }
-                    });
-                });
+                crate::menu::show(ui);
             });
 
         egui::Panel::left("Left panel")

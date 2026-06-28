@@ -10,7 +10,6 @@ use std::path::PathBuf;
 use clap::Parser;
 use cli_args::CliArgs;
 use editorwindow_renderpass::EditorWindowRenderPass;
-use project::ProjectFile;
 use window::EditorWindowContainer;
 use window::EguiWindowContainer;
 use window::MainEditorWindow;
@@ -27,10 +26,12 @@ use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
+mod assetmanager;
 mod cli_args;
 mod editor_preferences;
 mod editorwindow_renderpass;
 mod logger;
+mod menu;
 mod panel;
 mod project;
 mod select_project;
@@ -143,4 +144,6 @@ fn start_editor(project_file_path: &Path) {
     let main_editor_window = EditorWindowContainer::new(MainEditorWindow::new());
 
     main_editor_window_entity.add_component(main_editor_window);
+
+    menu::add_default_menu_entries();
 }

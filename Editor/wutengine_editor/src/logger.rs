@@ -131,18 +131,33 @@ impl EditorLogger {
     }
 }
 
+/// A log entry, logged through the [log] macros
 #[derive(Debug, derive_more::IsVariant)]
 pub(crate) enum LogEntry {
+    /// An internal (originating from WutEngine) entry
     Internal {
+        /// The level
         level: log::Level,
+
+        /// The message
         message: String,
+
+        /// The source subsystem
         subsys: String,
     },
 
+    /// An external (originating from the user) entry
     External {
+        /// The level
         level: log::Level,
+
+        /// The message
         message: String,
+
+        /// The source file, if available
         file: Option<String>,
+
+        /// The source line, if available
         line: Option<u32>,
     },
 }
@@ -190,6 +205,7 @@ impl LogEntry {
         }
     }
 
+    /// Shows the UI for this entry
     pub(crate) fn show(&self, ui: &mut egui::Ui) {
         let on_hover = |ui: &mut egui::Ui| match self {
             Self::Internal { subsys, .. } => {

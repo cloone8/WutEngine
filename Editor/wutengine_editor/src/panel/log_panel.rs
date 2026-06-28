@@ -6,9 +6,8 @@ use crate::logger::get_editor_logger;
 use super::EditorPanel;
 use super::EditorPanelId;
 
-pub struct LogPanel {
-    id: EditorPanelId,
-}
+/// Panel that shows the logs sent through the [log] crate
+pub(crate) struct LogPanel;
 
 impl EditorPanel for LogPanel {
     fn name() -> &'static str
@@ -18,11 +17,11 @@ impl EditorPanel for LogPanel {
         "Logs"
     }
 
-    fn construct(id: EditorPanelId) -> Box<dyn EditorPanel>
+    fn construct(_id: EditorPanelId) -> Box<dyn EditorPanel>
     where
         Self: Sized,
     {
-        Box::new(Self { id })
+        Box::new(Self)
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
@@ -46,6 +45,10 @@ impl EditorPanel for LogPanel {
                     logger.refilter_logs();
                 }
             });
+
+            if ui.button("Clear").clicked() {
+                logger.logs.lock().unwrap().clear();
+            }
         });
 
         ui.separator();
