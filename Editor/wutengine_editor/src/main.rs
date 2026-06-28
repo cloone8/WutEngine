@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use std::collections::HashMap;
+use std::path::Path;
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -108,20 +109,17 @@ fn post_start(project: Option<PathBuf>) {
     editor_window_renderpass_entity.add_component(editor_window_renderpass);
 
     if let Some(project) = project {
-        start_editor(project);
+        start_editor(&project);
     } else {
         select_project::select_project();
     }
 }
 
 /// Starts the editor and loads the project file at the given path
-fn start_editor(project: PathBuf) {
-    let mut project_file = ProjectFile::from_disk(&project).expect("Failed to open project file"); //TODO: Handle properly
-    project_file.project_name = project
-        .file_stem()
-        .map(|stem| stem.to_string_lossy().to_string());
+fn start_editor(project_file_path: &Path) {
+    project::load(project_file_path).expect("Failed to load project"); //TODO: Handle properly
 
-    let initial_window_title = if let Some(proj_name) = project_file.project_name {
+    let initial_window_title = if let Some(proj_name) = project::name() {
         format!("{proj_name} - WutEngine Editor")
     } else {
         "<unknown project> - WutEngine Editor".to_string()

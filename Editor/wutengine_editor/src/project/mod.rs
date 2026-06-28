@@ -1,48 +1,57 @@
 //! Project definition
 
 use std::path::Path;
+use std::path::PathBuf;
 
-use serde::Deserialize;
-use serde::Serialize;
+use wutengine_util::InitOnce;
 
-/// A serialized project file, containing metadata about a WutEngine Editor project
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct ProjectFile {
-    /// Non-serialized project name. Can be used to attach a name to a file
-    #[serde(skip)]
-    pub(crate) project_name: Option<String>,
+mod serialized;
+pub(crate) use serialized::*;
 
-    /// The editor version that was used when saving this project
-    pub(crate) editor_version: String,
-}
+static PROJECT: InitOnce<Project> = InitOnce::new();
 
-/// An error while reading a project file from disk
 #[derive(Debug, derive_more::Error, derive_more::From, derive_more::Display)]
-pub(crate) enum ProjectFileFromDiskErr {
-    /// I/O Error
-    #[display("I/O error: {}", _0)]
-    IO(std::io::Error),
-
-    /// File was corrupt
-    #[display("Could not deserialize project file: {}", _0)]
-    Deserialize(serde_json::Error),
+pub(crate) enum LoadProjectError {
+    #[display("Failed to load the main project file: {}", _0)]
+    ProjectFile(ProjectFileFromDiskErr),
 }
 
-impl ProjectFile {
-    /// A new empty project file
-    pub(crate) fn new() -> Self {
-        Self {
-            project_name: None,
-            editor_version: env!("CARGO_PKG_VERSION").to_string(),
-        }
-    }
+pub(crate) fn load(project_file_path: &Path) -> Result<(), LoadProjectError> {
+    assert!(
+        !InitOnce::is_initialized(&PROJECT),
+        "Project already loaded"
+    );
 
-    /// Reads a project file from disk
-    pub(crate) fn from_disk(path: impl AsRef<Path>) -> Result<Self, ProjectFileFromDiskErr> {
-        let path = path.as_ref();
+    let project_file = ProjectFile::from_disk(project_file_path)?;
 
-        let project_file = std::fs::read_to_string(path)?;
+    let mut project = Project {
+        name: None,
+        root: project_file_path
+            .parent()
+            .expect("Project file should be in a directory")
+            .to_owned(),
 
-        Ok(serde_json::from_str(&project_file)?)
-    }
+        project_file,
+    };
+
+    project.name = project_file_path
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().to_string());
+
+    InitOnce::init(&PROJECT, project);
+
+    Ok(())
+}
+
+/// Returns the name of the loaded project
+pub(crate) fn name() -> Option<&'static str> {
+    PROJECT.name.as_deref()
+}
+
+/// The loaded project
+pub(crate) struct Project {
+    name: Option<String>,
+    root: PathBuf,
+
+    project_file: ProjectFile,
 }
