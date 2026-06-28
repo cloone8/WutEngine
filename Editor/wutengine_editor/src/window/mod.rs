@@ -16,6 +16,8 @@ use crate::EGUI_RESOURCES;
 mod main;
 pub(crate) use main::*;
 
+mod panel_container;
+
 pub(crate) trait EditorWindow: Send + Sync + 'static {
     fn show(&mut self, ui: &mut egui::Ui);
 }

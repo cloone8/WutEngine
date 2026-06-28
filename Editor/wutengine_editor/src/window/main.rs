@@ -4,13 +4,18 @@ use wutengine_egui::egui;
 use crate::panel::EditorPanel;
 use crate::panel::EditorPanelId;
 use crate::panel::LogPanel;
+use crate::panel::TestPanel;
+use crate::panel::TestPanelTwo;
 
 use super::EditorWindow;
+use super::panel_container::PanelContainer;
 
 #[derive(derive_more::Debug)]
 pub(crate) struct MainEditorWindow {
-    #[debug(skip)]
-    log_panel: Box<dyn EditorPanel>,
+    left_panels: PanelContainer,
+    right_panels: PanelContainer,
+    bottom_panels: PanelContainer,
+    center_panels: PanelContainer,
 }
 
 impl EditorWindow for MainEditorWindow {
@@ -21,8 +26,18 @@ impl EditorWindow for MainEditorWindow {
 
 impl MainEditorWindow {
     pub(crate) fn new() -> Self {
+        let mut left_panels = PanelContainer::new();
+
+        left_panels.add::<TestPanel>().add::<TestPanelTwo>();
+
+        let mut bottom_panels = PanelContainer::new();
+        bottom_panels.add::<LogPanel>();
+
         Self {
-            log_panel: LogPanel::construct(EditorPanelId::new()),
+            left_panels,
+            right_panels: PanelContainer::new(),
+            bottom_panels,
+            center_panels: PanelContainer::new(),
         }
     }
 
@@ -58,14 +73,16 @@ impl MainEditorWindow {
             .resizable(true)
             .show(ui, |ui| {
                 ui.take_available_space();
-                ui.label("Hello from WutEngine Editor Left");
+
+                self.left_panels.show(ui);
             });
 
         egui::Panel::right("Right panel")
             .resizable(true)
             .show(ui, |ui| {
                 ui.take_available_space();
-                ui.label("Hello from WutEngine Editor Right");
+
+                self.right_panels.show(ui);
             });
 
         egui::Panel::bottom("Bottom panel")
@@ -74,11 +91,13 @@ impl MainEditorWindow {
             .show(ui, |ui| {
                 ui.take_available_space();
 
-                self.log_panel.show(ui);
+                self.bottom_panels.show(ui);
             });
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.label("Hello from WutEngine Editor");
+            ui.take_available_space();
+
+            self.center_panels.show(ui);
         });
     }
 }

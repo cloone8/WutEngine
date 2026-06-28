@@ -6,6 +6,9 @@ use wutengine_util_macro::unique_id_type32;
 mod log_panel;
 pub(crate) use log_panel::*;
 
+mod test_panel;
+pub(crate) use test_panel::*;
+
 unique_id_type32! {
     /// Unique identifier for an active [EditorPanel]
     pub(crate) EditorPanelId
