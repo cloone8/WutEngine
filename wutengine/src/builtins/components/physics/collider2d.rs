@@ -103,4 +103,6 @@ impl ColliderSet2D {
     }
 }
 
-impl Component for ColliderSet2D {}
+impl Component for ColliderSet2D {
+    const ID: uuid::Uuid = uuid::uuid!("f716d2f8-024e-43df-bcc7-a06e0f984f14");
+}

@@ -30,6 +30,7 @@ derive_more = { workspace = true, features = [
     "from",
 ] }
 nohash-hasher.workspace = true
+uuid = { workspace = true, features = ["serde"] }
 
 # Used by importers
 image = { workspace = true, optional = true }

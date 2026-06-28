@@ -21,4 +21,6 @@ impl OverlayRenderPass {
     }
 }
 
-impl Component for OverlayRenderPass {}
+impl Component for OverlayRenderPass {
+    const ID: uuid::Uuid = uuid::uuid!("993f53f6-ea80-4b48-9194-508a9d32f7a0");
+}

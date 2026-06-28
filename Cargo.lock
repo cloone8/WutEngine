@@ -4628,6 +4628,7 @@ dependencies = [
  "simplelog",
  "smallvec",
  "spin_sleep",
+ "uuid",
  "windows",
  "winit",
  "wutengine_asset",
@@ -4659,6 +4660,7 @@ dependencies = [
  "profiling",
  "serde",
  "serde_bytes",
+ "uuid",
  "wutengine_math",
  "wutengine_util_macro",
 ]

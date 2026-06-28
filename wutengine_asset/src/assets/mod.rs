@@ -2,6 +2,7 @@
 
 pub mod audioclip;
 pub mod bundle;
+pub mod component;
 pub mod entity;
 pub mod level;
 pub mod material;

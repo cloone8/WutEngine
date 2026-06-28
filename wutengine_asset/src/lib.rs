@@ -6,6 +6,7 @@ use alloc::sync::Arc;
 use core::any::Any;
 use core::any::TypeId;
 use core::error::Error;
+use core::fmt::Debug;
 use core::fmt::Display;
 use std::path::Path;
 use std::sync::LazyLock;
@@ -22,7 +23,7 @@ pub mod importers;
 
 /// An error while to import and convert a serialized asset
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-pub enum FromSerializedAnyErr<E: core::error::Error> {
+pub enum FromSerializedAnyErr<E: Error> {
     /// Importer returned an unexpected type. Most likely an error in the importer
     #[display(
         "Importer returned invalid asset type. Should have returned {target}, but returned something else"
@@ -43,7 +44,7 @@ pub trait Asset: Send + Sync + Any {
     type Serialized: SerializedAsset;
 
     /// The error that can be returned while loading the deserialized asset
-    type FromSerializedErr: core::error::Error;
+    type FromSerializedErr: Error;
 
     /// Loads this asset from its serialized form
     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
@@ -73,6 +74,10 @@ pub trait SerializedAsset: Serialize + DeserializeOwned + Any {}
 /// Handle to an asset
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AssetHandle<T> {
+    /// The asset identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    asset_id: Option<uuid::Uuid>,
+
     /// The loaded asset
     #[serde(skip, default = "default_none")]
     asset: Option<Arc<T>>,
@@ -85,7 +90,10 @@ const fn default_none<T>() -> Option<Arc<T>> {
 
 impl<T> Default for AssetHandle<T> {
     fn default() -> Self {
-        Self { asset: None }
+        Self {
+            asset_id: None,
+            asset: None,
+        }
     }
 }
 
@@ -117,6 +125,7 @@ impl<T> From<T> for AssetHandle<T> {
     #[inline]
     fn from(value: T) -> Self {
         Self {
+            asset_id: None,
             asset: Some(Arc::new(value)),
         }
     }
@@ -127,7 +136,10 @@ impl<T> From<Option<T>> for AssetHandle<T> {
     fn from(value: Option<T>) -> Self {
         match value {
             Some(v) => Self::from(v),
-            None => Self { asset: None },
+            None => Self {
+                asset_id: None,
+                asset: None,
+            },
         }
     }
 }
@@ -328,4 +340,64 @@ pub fn import_from_bytes<A: Asset>(
     let loaded_asset = A::from_serialized_any(imported_asset.as_ref())?;
 
     Ok(AssetHandle::new(loaded_asset))
+}
+
+/// Something that can load serialized assets from disk, and provide them to the caller
+/// upon request
+pub trait AssetLoader {
+    /// An error while loading the initial asset index with
+    /// [Self::load_index]
+    type LoadIndexErr: Debug + Error;
+
+    /// An error while loading an asset with [Self::load]
+    type LoadAssetErr: Debug + Error;
+
+    /// Load the index in the given root directory. Will be called at least once before any calls
+    /// to [Self::load]. Might be called again later, at which point the manager should
+    /// discard its entire index and reload it from the given path
+    fn load_index(&mut self, root_directory: &Path) -> Result<(), Self::LoadIndexErr>;
+
+    /// Load the asset with the given ID. Reads should not be cached, and calls with
+    /// the same
+    fn load<T: Asset>(
+        &mut self,
+        id: uuid::Uuid,
+    ) -> Result<T, LoadErr<T::FromSerializedErr, Self::LoadAssetErr>>;
+}
+
+/// An error while loading an asset with [AssetLoader::load]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum LoadErr<A, M> {
+    /// Asset was not found
+    #[display("Asset {} was not found", _0)]
+    NotFound(#[error(not(source))] uuid::Uuid),
+
+    /// Loader returned an error while loading from storage
+    #[display("Asset loader failed to load asset from storage: {}", _0)]
+    Storage(M),
+
+    /// Asset was loaded from storage, but could not be deserialized into a runtime
+    /// asset
+    #[display("Loaded asset could not be deserialized into runtime asset: {}", _0)]
+    Asset(A),
+}
+
+impl<A, M> LoadErr<A, M> {
+    /// Constructor for [Self::NotFound]
+    #[inline(always)]
+    pub const fn not_found(id: uuid::Uuid) -> Self {
+        Self::NotFound(id)
+    }
+
+    /// Constructor for [Self::Manager]
+    #[inline(always)]
+    pub const fn manager(inner: M) -> Self {
+        Self::Storage(inner)
+    }
+
+    /// Constructor for [Self::Asset]
+    #[inline(always)]
+    pub const fn asset(inner: A) -> Self {
+        Self::Asset(inner)
+    }
 }

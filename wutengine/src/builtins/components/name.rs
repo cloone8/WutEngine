@@ -16,7 +16,9 @@ impl Name {
     }
 }
 
-impl Component for Name {}
+impl Component for Name {
+    const ID: uuid::Uuid = uuid::uuid!("aeed35e7-4dbb-4ec4-9d19-5478fe9ca4e2");
+}
 
 impl Deref for Name {
     type Target = str;

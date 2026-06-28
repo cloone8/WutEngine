@@ -63,6 +63,7 @@ rayon.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 spin_sleep = { workspace = true }
+uuid = { workspace = true }
 
 # Optional dependencies
 wutengine_development_overlay = { workspace = true, optional = true } # Feature - development_overlay

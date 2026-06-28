@@ -1,9 +1,13 @@
 //! WutEngine components and component helpers
 
+use core::any::Any;
 use core::any::TypeId;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::sync::RwLock;
+
+#[doc(inline)]
+pub use uuid;
 
 static ADDED_DEFAULT_COMPONENT_SYSTEMS: LazyLock<RwLock<HashSet<TypeId>>> =
     LazyLock::new(|| RwLock::new(HashSet::default()));
@@ -33,7 +37,14 @@ pub(crate) fn should_insert_default_component_systems<T: Component>() -> bool {
 
 /// Trait that should be implemented by types that can be
 /// used as components in the WutEngine ECS
-pub trait Component: Send + Sync + 'static {
+pub trait Component: Any + Send + Sync {
+    /// The identifier for this component type. Most be globally unique to all
+    /// other UUIDs.
+    ///
+    /// Hint: To obtain one, you can generate a random V4 UUID from many websites,
+    /// and then use the [uuid macro](uuid::uuid) to embed it at compile time
+    const ID: uuid::Uuid;
+
     /// Adds the systems that are always used by this component into the given manifest.
     ///
     /// Optional usability helper

@@ -108,6 +108,8 @@ impl AudioPlayer {
 }
 
 impl Component for AudioPlayer {
+    const ID: uuid::Uuid = uuid::uuid!("ebc4ba7f-52e9-41b0-87cb-e7a7e9d19107");
+
     fn insert_default_component_systems(_manifest: &mut crate::runtime::SystemManifest)
     where
         Self: Sized,
