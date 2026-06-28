@@ -9,6 +9,8 @@ use wutengine_util::InitOnce;
 
 use wutengine_egui::egui;
 
+use crate::editor_preferences;
+
 static EDITOR_LOGGER: InitOnce<EditorLogger, false> = InitOnce::new();
 
 /// Initializes and sets the editor logger
@@ -38,10 +40,21 @@ pub(crate) struct EditorLogger {
 }
 
 impl EditorLogger {
+    const INTERNAL_LOG_LEVEL_PREF: &str = "editor.internal_log_level";
+    const EXTERNAL_LOG_LEVEL_PREF: &str = "editor.external_log_level";
+
     fn new() -> Self {
+        let stored_internal_level =
+            editor_preferences::get_or(Self::INTERNAL_LOG_LEVEL_PREF, log::LevelFilter::Warn);
+        let stored_external_level =
+            editor_preferences::get_or(Self::EXTERNAL_LOG_LEVEL_PREF, log::LevelFilter::Debug);
+
+        // Clamp to `info` if an invalid level was stored
+        let stored_internal_level = stored_internal_level.min(log::LevelFilter::Info);
+
         Self {
-            internal_level: AtomicU8::new(Self::levelfilter_to_int(log::LevelFilter::Warn)),
-            external_level: AtomicU8::new(Self::levelfilter_to_int(log::LevelFilter::Info)),
+            internal_level: AtomicU8::new(Self::levelfilter_to_int(stored_internal_level)),
+            external_level: AtomicU8::new(Self::levelfilter_to_int(stored_external_level)),
             max_logs: 1_000,
             logs: Mutex::new(VecDeque::new()),
         }
@@ -74,6 +87,8 @@ impl EditorLogger {
     pub(crate) fn set_internal_level(&self, level_filter: log::LevelFilter) {
         self.internal_level
             .store(Self::levelfilter_to_int(level_filter), Ordering::Release);
+
+        editor_preferences::set(Self::INTERNAL_LOG_LEVEL_PREF, level_filter);
     }
 
     /// Returns the current level filter for external logs
@@ -86,6 +101,8 @@ impl EditorLogger {
     pub(crate) fn set_external_level(&self, level_filter: log::LevelFilter) {
         self.external_level
             .store(Self::levelfilter_to_int(level_filter), Ordering::Release);
+
+        editor_preferences::set(Self::EXTERNAL_LOG_LEVEL_PREF, level_filter);
     }
 
     /// Filters the currently stored logs according to the configured filters

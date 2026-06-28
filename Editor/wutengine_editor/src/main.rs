@@ -30,6 +30,7 @@ use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
 mod cli_args;
+mod editor_preferences;
 mod editorwindow_renderpass;
 mod logger;
 mod project;

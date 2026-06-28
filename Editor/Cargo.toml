@@ -34,6 +34,7 @@ serde = { version = "1" }
 serde_json = { version = "1" }
 winresource = { version = "0.1" }
 derive_more = { version = "2" }
+dirs = { version = "6" }
 
 [workspace.lints.rust]
 # Groups
