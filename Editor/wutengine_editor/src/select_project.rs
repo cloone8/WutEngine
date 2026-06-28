@@ -50,7 +50,7 @@ struct SelectProjectWindow {
 
 impl EditorWindow for SelectProjectWindow {
     fn show(&mut self, ui: &mut wutengine_egui::egui::Ui) {
-        egui::CentralPanel::default_margins().show_inside(ui, |ui| {
+        egui::CentralPanel::default_margins().show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.heading("Select a project");
 

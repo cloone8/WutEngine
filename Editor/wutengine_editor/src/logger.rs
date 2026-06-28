@@ -59,7 +59,6 @@ impl EditorLogger {
                 ui.take_available_space();
 
                 for log in logs.iter().skip(range.start).take(range.end - range.start) {
-                    ui.separator();
                     log.show(ui);
                 }
             });
@@ -206,11 +205,24 @@ impl LogEntry {
             }
         };
 
-        ui.horizontal(|ui| {
-            ui.colored_label(Self::level_to_color(self.level()), self.level().to_string())
-                .on_hover_ui(on_hover);
-            ui.label(self.message()).on_hover_ui(on_hover);
-        });
+        egui::Frame::NONE
+            .inner_margin(egui::Margin {
+                left: 10,
+                right: 10,
+                top: 5,
+                bottom: 5,
+            })
+            .stroke(egui::Stroke::new(0.5, egui::Color32::LIGHT_GRAY))
+            .corner_radius(3.0)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.take_available_width();
+                    ui.colored_label(Self::level_to_color(self.level()), self.level().to_string());
+                    ui.label(self.message());
+                });
+            })
+            .response
+            .on_hover_ui_at_pointer(on_hover);
     }
 }
 
@@ -254,47 +266,28 @@ impl log::Log for EditorLogger {
 /// If a new level was selected, returns [Some] with that level. Otherwise, returns [None]
 pub(crate) fn show_log_level_picker(
     cur_level: log::LevelFilter,
+    min_level: log::LevelFilter,
     ui: &mut egui::Ui,
 ) -> Option<log::LevelFilter> {
-    if egui::Button::new("Trace")
-        .selected(matches!(cur_level, log::LevelFilter::Trace))
-        .ui(ui)
-        .clicked()
-    {
-        return Some(log::LevelFilter::Trace);
+    macro_rules! show_button {
+        ($level:expr, $name:literal) => {
+            if $level <= min_level {
+                if egui::Button::new($name)
+                    .selected(cur_level == $level)
+                    .ui(ui)
+                    .clicked()
+                {
+                    return Some($level);
+                }
+            }
+        };
     }
 
-    if egui::Button::new("Debug")
-        .selected(matches!(cur_level, log::LevelFilter::Debug))
-        .ui(ui)
-        .clicked()
-    {
-        return Some(log::LevelFilter::Debug);
-    }
-
-    if egui::Button::new("Info")
-        .selected(matches!(cur_level, log::LevelFilter::Info))
-        .ui(ui)
-        .clicked()
-    {
-        return Some(log::LevelFilter::Info);
-    }
-
-    if egui::Button::new("Warning")
-        .selected(matches!(cur_level, log::LevelFilter::Warn))
-        .ui(ui)
-        .clicked()
-    {
-        return Some(log::LevelFilter::Warn);
-    }
-
-    if egui::Button::new("Error")
-        .selected(matches!(cur_level, log::LevelFilter::Error))
-        .ui(ui)
-        .clicked()
-    {
-        return Some(log::LevelFilter::Error);
-    }
+    show_button!(log::LevelFilter::Trace, "Trace");
+    show_button!(log::LevelFilter::Debug, "Debug");
+    show_button!(log::LevelFilter::Info, "Info");
+    show_button!(log::LevelFilter::Warn, "Warning");
+    show_button!(log::LevelFilter::Error, "Error");
 
     None
 }

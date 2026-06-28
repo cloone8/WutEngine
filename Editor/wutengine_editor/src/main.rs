@@ -300,7 +300,7 @@ impl MainEditorWindow {
     fn show_ui(ui: &mut egui::Ui) {
         egui::Panel::top("Top panel")
             .resizable(false)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 egui::MenuBar::new().ui(ui, |ui| {
                     ui.menu_button("File", |ui| {
                         if ui.button("New Project").clicked() {
@@ -327,14 +327,14 @@ impl MainEditorWindow {
 
         egui::Panel::left("Left panel")
             .resizable(true)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.take_available_space();
                 ui.label("Hello from WutEngine Editor Left");
             });
 
         egui::Panel::right("Right panel")
             .resizable(true)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.take_available_space();
                 ui.label("Hello from WutEngine Editor Right");
             });
@@ -342,24 +342,28 @@ impl MainEditorWindow {
         egui::Panel::bottom("Bottom panel")
             .resizable(true)
             .default_size(250.0)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.take_available_space();
                 let editor_logger = logger::get_editor_logger();
 
                 egui::MenuBar::new().ui(ui, |ui| {
-                    ui.menu_button("Level", |ui| {
-                        if let Some(new_level) =
-                            logger::show_log_level_picker(editor_logger.get_external_level(), ui)
-                        {
+                    ui.menu_button("Log Level", |ui| {
+                        if let Some(new_level) = logger::show_log_level_picker(
+                            editor_logger.get_external_level(),
+                            log::LevelFilter::Trace,
+                            ui,
+                        ) {
                             editor_logger.set_external_level(new_level);
                             editor_logger.refilter_logs();
                         }
                     });
 
-                    ui.menu_button("WutEngine Level", |ui| {
-                        if let Some(new_level) =
-                            logger::show_log_level_picker(editor_logger.get_internal_level(), ui)
-                        {
+                    ui.menu_button("WutEngine Log Level", |ui| {
+                        if let Some(new_level) = logger::show_log_level_picker(
+                            editor_logger.get_internal_level(),
+                            log::LevelFilter::Info,
+                            ui,
+                        ) {
                             editor_logger.set_internal_level(new_level);
                             editor_logger.refilter_logs();
                         }
@@ -371,7 +375,7 @@ impl MainEditorWindow {
                 editor_logger.show(ui);
             });
 
-        egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             ui.label("Hello from WutEngine Editor");
         });
     }
