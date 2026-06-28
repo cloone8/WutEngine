@@ -11,6 +11,7 @@ publish.workspace = true
 wutengine.workspace = true
 wutengine_egui.workspace = true
 wutengine_util.workspace = true
+wutengine_util_macro.workspace = true
 
 log.workspace = true
 clap = { workspace = true, features = ["derive"] }
@@ -19,6 +20,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 derive_more = { workspace = true, features = ["error", "from", "is_variant"] }
 dirs.workspace = true
+nohash-hasher.workspace = true
 
 [build-dependencies]
 winresource.workspace = true

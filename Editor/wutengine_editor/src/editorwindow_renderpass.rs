@@ -57,14 +57,14 @@ impl RenderPass<(Window, wgpu::Texture), hecs::World> for EditorWindowRenderPass
             EGUI_RESOURCES.free_removed(self.to_free.drain(..));
         }
 
-        let mut target_window: Option<&mut wutengine_egui::EguiWindow> = None;
-        let mut query = drawable.query::<&mut EguiWindowContainer>();
+        let mut target_window: Option<&wutengine_egui::EguiWindow> = None;
+        let mut query = drawable.query::<&EguiWindowContainer>();
 
         for window_container in query.iter() {
-            if let Some(window_handle) = window_container.window_handle
+            if let Some(window_handle) = window_container.window_handle()
                 && window_handle == target.0
             {
-                target_window = Some(window_container.egui_window.as_mut());
+                target_window = Some(window_container.egui_window());
                 break;
             }
         }

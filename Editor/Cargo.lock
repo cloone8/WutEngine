@@ -4650,6 +4650,7 @@ dependencies = [
  "derive_more",
  "dirs",
  "log",
+ "nohash-hasher",
  "rfd",
  "serde",
  "serde_json",
@@ -4658,6 +4659,7 @@ dependencies = [
  "wutengine",
  "wutengine_egui",
  "wutengine_util",
+ "wutengine_util_macro",
 ]
 
 [[package]]

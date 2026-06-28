@@ -9,10 +9,10 @@ use wutengine::window::Window;
 use wutengine::window::WindowConfig;
 use wutengine_egui::egui;
 
-use crate::EditorWindow;
 use crate::EditorWindowContainer;
 use crate::EguiWindowContainer;
 use crate::project::ProjectFile;
+use crate::window::EditorWindow;
 
 /// Spawns the entities that handle the "select project" flow, in which the user
 /// can either pick an existing project or create a new one.

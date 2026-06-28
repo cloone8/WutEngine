@@ -4,7 +4,6 @@ use alloc::collections::VecDeque;
 use core::sync::atomic::AtomicU8;
 use core::sync::atomic::Ordering;
 use std::sync::Mutex;
-use wutengine_egui::egui::Widget;
 use wutengine_util::InitOnce;
 
 use wutengine_egui::egui;
@@ -36,7 +35,9 @@ pub(crate) struct EditorLogger {
     internal_level: AtomicU8,
     external_level: AtomicU8,
     max_logs: usize,
-    logs: Mutex<VecDeque<LogEntry>>,
+
+    /// The currently stored logs. Oldest at the front, newest at the back
+    pub(crate) logs: Mutex<VecDeque<LogEntry>>,
 }
 
 impl EditorLogger {
@@ -58,23 +59,6 @@ impl EditorLogger {
             max_logs: 1_000,
             logs: Mutex::new(VecDeque::new()),
         }
-    }
-
-    /// Shows the log UI
-    pub(crate) fn show(&self, ui: &mut egui::Ui) {
-        let logs = self.logs.lock().unwrap();
-        let text_style_height = ui.text_style_height(&egui::TextStyle::Body);
-
-        egui::ScrollArea::vertical()
-            .max_height(ui.available_height())
-            .stick_to_bottom(true)
-            .show_rows(ui, text_style_height, logs.len(), |ui, range| {
-                ui.take_available_space();
-
-                for log in logs.iter().skip(range.start).take(range.end - range.start) {
-                    log.show(ui);
-                }
-            });
     }
 
     /// Returns the current level filter for internal logs
@@ -148,7 +132,7 @@ impl EditorLogger {
 }
 
 #[derive(Debug, derive_more::IsVariant)]
-enum LogEntry {
+pub(crate) enum LogEntry {
     Internal {
         level: log::Level,
         message: String,
@@ -206,7 +190,7 @@ impl LogEntry {
         }
     }
 
-    fn show(&self, ui: &mut egui::Ui) {
+    pub(crate) fn show(&self, ui: &mut egui::Ui) {
         let on_hover = |ui: &mut egui::Ui| match self {
             Self::Internal { subsys, .. } => {
                 ui.label(format!("{} (internal)", subsys.as_str()));
@@ -277,34 +261,4 @@ impl log::Log for EditorLogger {
     fn flush(&self) {
         //no-op
     }
-}
-
-/// Shows a series of buttons to pick a log level. The current level is highlighted.
-/// If a new level was selected, returns [Some] with that level. Otherwise, returns [None]
-pub(crate) fn show_log_level_picker(
-    cur_level: log::LevelFilter,
-    min_level: log::LevelFilter,
-    ui: &mut egui::Ui,
-) -> Option<log::LevelFilter> {
-    macro_rules! show_button {
-        ($level:expr, $name:literal) => {
-            if $level <= min_level {
-                if egui::Button::new($name)
-                    .selected(cur_level == $level)
-                    .ui(ui)
-                    .clicked()
-                {
-                    return Some($level);
-                }
-            }
-        };
-    }
-
-    show_button!(log::LevelFilter::Trace, "Trace");
-    show_button!(log::LevelFilter::Debug, "Debug");
-    show_button!(log::LevelFilter::Info, "Info");
-    show_button!(log::LevelFilter::Warn, "Warning");
-    show_button!(log::LevelFilter::Error, "Error");
-
-    None
 }

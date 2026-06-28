@@ -25,6 +25,7 @@ panic = "abort"
 wutengine = { path = "../WutEngine/wutengine" }
 wutengine_egui = { path = "../WutEngine/wutengine_egui" }
 wutengine_util = { path = "../WutEngine/wutengine_util" }
+wutengine_util_macro = { path = "../WutEngine/wutengine_util_macro" }
 
 log = { version = "0.4" }
 clap = { version = "4" }
@@ -35,6 +36,7 @@ serde_json = { version = "1" }
 winresource = { version = "0.1" }
 derive_more = { version = "2" }
 dirs = { version = "6" }
+nohash-hasher = { version = "0.2" }
 
 [workspace.lints.rust]
 # Groups
