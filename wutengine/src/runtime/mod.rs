@@ -115,7 +115,12 @@ impl Runtime {
             crate::event::handle_events();
 
             // Run the async pool until it is stalled
-            self.async_pool.run_once();
+            let one_completed = self.async_pool.run_once();
+
+            if one_completed {
+                // Immediately redraw if a task was completed, so users can respond as quickly as possible
+                window::manager::request_redraws();
+            }
 
             // We wait for the rendering target to become available in the beginning of the frame,
             // because then if we block on vsync or similar the simulation will not be out of date

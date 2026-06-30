@@ -6,10 +6,7 @@ use alloc::sync::Arc;
 use core::num::NonZero;
 use core::sync::atomic::{AtomicBool, Ordering};
 use detect::CoreConfig;
-use futures::prelude::future::LocalFutureObj;
 use futures::task::LocalSpawn;
-use futures::task::LocalSpawnExt;
-use futures::task::SpawnExt;
 use std::thread::available_parallelism;
 
 use serde::Deserialize;
@@ -61,13 +58,20 @@ impl MainThreadAsyncRunner {
         }
     }
 
-    /// Runs all futures in this pool until no more progress can be made
-    pub fn run_once(&mut self) {
+    /// Runs all futures in this pool until no more progress can be made.
+    /// Returns `true` if at least one task was finished
+    pub fn run_once(&mut self) -> bool {
         profiling::function_scope!();
 
         assert_main_thread!();
 
-        self.pool.run_until_stalled();
+        let mut any = false;
+
+        while self.pool.try_run_one() {
+            any = true;
+        }
+
+        any
     }
 
     /// Inserts a new main-thread-only task into the
@@ -76,14 +80,6 @@ impl MainThreadAsyncRunner {
             .spawner()
             .spawn_local_obj(task.into())
             .expect("Failed to spawn task");
-        // let (send, recv) = futures::channel::oneshot::channel::<O>();
-        // let done = Arc::new(AtomicBool::new(false));
-        // {
-        //     let done = done.clone();
-
-        // }
-
-        // TaskHandle { done, recv }
     }
 }
 
@@ -276,6 +272,8 @@ impl<T> TaskHandle<T> {
         task.take().map(Self::get)
     }
 
+    /// Wraps a future and makes it notify a new [TaskHandle] when it is done. Returns
+    /// both the wrapped future and the new [TaskHandle]
     pub fn from_future<F>(task: F) -> (Self, Box<dyn Future<Output = ()> + Send + 'static>)
     where
         F: Future<Output = T> + Send + 'static,
@@ -305,18 +303,9 @@ where
     F: Future<Output = O> + Send + 'static,
     O: Send + 'static,
 {
-    let (send, recv) = futures::channel::oneshot::channel::<O>();
-    let done = Arc::new(AtomicBool::new(false));
+    let (handle, task) = TaskHandle::from_future(task);
 
-    {
-        let done = done.clone();
-        ASYNC_POOL.spawn_ok(async move {
-            let ret = task.await;
+    ASYNC_POOL.spawn_obj_ok(task.into());
 
-            _ = send.send(ret);
-            done.store(true, Ordering::Release);
-        });
-    }
-
-    TaskHandle { done, recv }
+    handle
 }
