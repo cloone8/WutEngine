@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["we_prefs", "wutengine_editor"]
+members = ["we_menu", "we_prefs", "wutengine_editor"]
 
 [workspace.package]
 version = "0.1.0"
@@ -23,6 +23,7 @@ panic = "abort"
 
 [workspace.dependencies]
 we_prefs = { path = "we_prefs" }
+we_menu = { path = "we_menu" }
 
 wutengine = { path = "../WutEngine/wutengine" }
 wutengine_egui = { path = "../WutEngine/wutengine_egui" }

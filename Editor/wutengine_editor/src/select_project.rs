@@ -95,7 +95,7 @@ impl EditorWindow for SelectProjectWindow {
                     .show(ui);
 
                 if ui.button("Create...").clicked() && self.create_project_task.is_none() {
-                    self.create_project_task = Some(wutengine::thread::run_async(
+                    self.create_project_task = Some(wutengine::runtime::run_on_main_thread(
                         rfd::AsyncFileDialog::new().pick_folder(),
                     ));
                 }
@@ -105,7 +105,7 @@ impl EditorWindow for SelectProjectWindow {
 }
 
 fn pick_project_file() -> TaskHandle<Option<rfd::FileHandle>> {
-    wutengine::thread::run_async(
+    wutengine::runtime::run_on_main_thread(
         rfd::AsyncFileDialog::new()
             .add_filter("WutEngine Project", &["we-project"])
             .pick_file(),

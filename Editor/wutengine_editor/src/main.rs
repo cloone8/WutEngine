@@ -30,7 +30,6 @@ mod assetmanager;
 mod cli_args;
 mod editorwindow_renderpass;
 mod logger;
-mod menu;
 mod panel;
 mod project;
 mod select_project;
@@ -144,5 +143,14 @@ fn start_editor(project_file_path: &Path) {
 
     main_editor_window_entity.add_component(main_editor_window);
 
-    menu::add_default_menu_entries();
+    add_default_menu_entries();
+}
+
+/// Adds the default menu entries
+fn add_default_menu_entries() {
+    we_menu::add_entry(&["File", "New Level"], 200, || {});
+
+    we_menu::add_entry(&["File", "Exit"], u64::MAX, || {
+        wutengine::runtime::exit();
+    });
 }

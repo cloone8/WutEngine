@@ -1,19 +1,20 @@
-//! Editor top-bar menu API
+#![doc = include_str!("../README.md")]
 
 use std::sync::Mutex;
 
 use wutengine_egui::egui;
 
-mod default;
-pub(crate) use default::*;
-
+/// The global [MenuManager]
 static MENU_MANAGER: MenuManager = MenuManager::new();
 
+/// The menu manager, contains the entries
 struct MenuManager {
+    /// The top level entries
     top_level_entries: Mutex<Vec<MenuEntry>>,
 }
 
 impl MenuManager {
+    /// A new empty menu manager
     const fn new() -> Self {
         Self {
             top_level_entries: Mutex::new(Vec::new()),
@@ -21,15 +22,24 @@ impl MenuManager {
     }
 }
 
+/// A menu entry
 #[derive(Debug)]
 struct MenuEntry {
+    /// The location relative to other entries. Lower is earlier
     location: u64,
+
+    /// The name of this entry
     name: String,
+
+    /// The contents of this entry
     content: MenuContent,
 }
 
 impl MenuEntry {
+    /// The interval between `location` values between which a separator is inserted
     const SEPARATOR_INTERVAL: u64 = 100;
+
+    /// Returns whether this entry has no children or actions
     fn is_empty(&self) -> bool {
         match &self.content {
             MenuContent::SubMenu(items) => items.is_empty(),
@@ -38,6 +48,7 @@ impl MenuEntry {
         }
     }
 
+    /// Cleans this entry and its children
     fn clean(&mut self) {
         let MenuContent::SubMenu(entries) = &mut self.content else {
             return;
@@ -60,6 +71,7 @@ impl MenuEntry {
             .unwrap_or_default();
     }
 
+    /// Shows this entry
     fn show(&self, prev_location: &mut Option<u64>, ui: &mut egui::Ui) {
         if let Some(prev_location) = prev_location
             && (prev_location.saturating_add(Self::SEPARATOR_INTERVAL)) <= self.location
@@ -89,19 +101,23 @@ impl MenuEntry {
     }
 }
 
+/// The contents of a menu entry
 #[derive(derive_more::Debug)]
 enum MenuContent {
+    /// A submenu
     SubMenu(Vec<MenuEntry>),
 
+    /// A button that calls a callback
     #[debug("Callback")]
     Callback(Box<dyn Fn() + Send + Sync>),
 
+    /// A submenu that shows a custom UI
     #[debug("Sub-UI")]
     Ui(Box<dyn Fn(&mut egui::Ui) + Send + Sync>),
 }
 
 /// Adds a menu entry at the given path
-pub(crate) fn add_entry(path: &[&str], location: u64, callback: impl Fn() + Send + Sync + 'static) {
+pub fn add_entry(path: &[&str], location: u64, callback: impl Fn() + Send + Sync + 'static) {
     if path.is_empty() {
         log::error!("Cannot insert menu button with empty path");
         return;
@@ -117,7 +133,7 @@ pub(crate) fn add_entry(path: &[&str], location: u64, callback: impl Fn() + Send
 }
 
 /// Adds a menu entry containing a custom UI callback at the given path
-pub(crate) fn add_entry_ui(
+pub fn add_entry_ui(
     path: &[&str],
     location: u64,
     callback: impl Fn(&mut egui::Ui) + Send + Sync + 'static,
@@ -131,6 +147,7 @@ pub(crate) fn add_entry_ui(
     add_entry_raw(path, new_entry);
 }
 
+/// Adds a raw menu entry
 fn add_entry_raw(path: &[&str], new_entry: MenuEntry) {
     let mut top_entries = MENU_MANAGER.top_level_entries.lock().unwrap();
 
@@ -145,19 +162,24 @@ fn add_entry_raw(path: &[&str], new_entry: MenuEntry) {
     clean_menu(&mut top_entries);
 }
 
+/// Formats a menu path for display
 fn format_menu_path(path: &[&str]) -> String {
     path.join("/").to_string()
 }
 
+/// An error while inserting a menu item
 #[derive(Debug, Clone, Copy, derive_more::Error, derive_more::Display)]
 enum InsertErr {
+    /// Item already exists
     #[display("Entry already exists")]
     AlreadyExists,
 
+    /// An insertion would replace a non-menu entry with a submenu
     #[display("An entry along the menu path already exists as a non-menu entry")]
     NotASubMenu,
 }
 
+/// Recursively travels down the menu list according to the path components given in `path` to insert the given entry
 fn insert_recursive(
     entries: &mut Vec<MenuEntry>,
     path: &[&str],
@@ -198,6 +220,8 @@ fn insert_recursive(
     Ok(())
 }
 
+/// After menu entries have been changed, this function cleans up the list by removing empty menu's and
+/// sorting menu's by their location field
 fn clean_menu(entries: &mut Vec<MenuEntry>) {
     for entry in entries.iter_mut() {
         entry.clean();
@@ -208,7 +232,7 @@ fn clean_menu(entries: &mut Vec<MenuEntry>) {
 }
 
 /// Shows the menu inside the current UI
-pub(crate) fn show(ui: &mut egui::Ui) {
+pub fn show(ui: &mut egui::Ui) {
     egui::MenuBar::new().ui(ui, |ui| {
         let menu = MENU_MANAGER.top_level_entries.lock().unwrap();
 

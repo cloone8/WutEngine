@@ -1,0 +1,16 @@
+[package]
+name = "we_menu"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+wutengine_egui.workspace = true
+
+derive_more = { workspace = true, features = ["debug"] }
+log.workspace = true
+
+[lints]
+workspace = true

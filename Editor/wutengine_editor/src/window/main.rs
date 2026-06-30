@@ -50,7 +50,7 @@ impl MainEditorWindow {
         egui::Panel::top("Top panel")
             .resizable(false)
             .show(ui, |ui| {
-                crate::menu::show(ui);
+                we_menu::show(ui);
             });
 
         egui::Panel::left("Left panel")

@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 we_prefs.workspace = true
+we_menu.workspace = true
 
 wutengine.workspace = true
 wutengine_egui.workspace = true
