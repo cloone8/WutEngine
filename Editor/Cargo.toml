@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["wutengine_editor"]
+members = ["we_prefs", "wutengine_editor"]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,6 +22,8 @@ codegen-units = 1
 panic = "abort"
 
 [workspace.dependencies]
+we_prefs = { path = "we_prefs" }
+
 wutengine = { path = "../WutEngine/wutengine" }
 wutengine_egui = { path = "../WutEngine/wutengine_egui" }
 wutengine_util = { path = "../WutEngine/wutengine_util" }
@@ -33,6 +35,7 @@ windows = { version = "0.62" }
 rfd = { version = "0.17" }
 serde = { version = "1" }
 serde_json = { version = "1" }
+serde_core = { version = "1" }
 winresource = { version = "0.1" }
 derive_more = { version = "2" }
 dirs = { version = "6" }

@@ -4093,6 +4093,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "we_prefs"
+version = "0.1.0"
+dependencies = [
+ "dirs",
+ "log",
+ "serde_core",
+ "serde_json",
+ "wutengine",
+]
+
+[[package]]
 name = "web-sys"
 version = "0.3.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4713,12 +4724,12 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "derive_more",
- "dirs",
  "log",
  "nohash-hasher",
  "rfd",
  "serde",
  "serde_json",
+ "we_prefs",
  "windows",
  "winresource",
  "wutengine",

@@ -1,14 +1,17 @@
-//! Per-user preferences, persistent between different projects
+#![doc = include_str!("../README.md")]
+
+extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use std::path::PathBuf;
 
-use serde::Serialize;
-use serde::de::DeserializeOwned;
+use serde_core::Serialize;
+use serde_core::de::DeserializeOwned;
 use wutengine::profiling;
 
 /// Event fired when an editor preference was changed [set]
-pub(crate) struct EditorPrefChanged {
+#[derive(Debug)]
+pub struct EditorPrefChanged {
     /// The key that was changed
     pub key: String,
 
@@ -17,7 +20,7 @@ pub(crate) struct EditorPrefChanged {
 }
 
 /// Sets a global editor preference to the given value
-pub(crate) fn set<T: Serialize>(key: &str, value: T) {
+pub fn set<T: Serialize>(key: &str, value: T) {
     profiling::function_scope!();
 
     log::debug!("Setting user preference {key}");
@@ -51,7 +54,7 @@ pub(crate) fn set<T: Serialize>(key: &str, value: T) {
 /// Returns the stored setting for the given editor preference, or returns the [Default::default].
 /// For a custom default value, see [get_or]
 #[inline]
-pub(crate) fn get<T: DeserializeOwned + Default>(key: &str) -> T {
+pub fn get<T: DeserializeOwned + Default>(key: &str) -> T {
     profiling::function_scope!();
 
     get_or(key, T::default())
@@ -59,7 +62,7 @@ pub(crate) fn get<T: DeserializeOwned + Default>(key: &str) -> T {
 
 /// Returns the stored setting for the given editor preference, or returns `default`.
 /// To return the [Default::default] instead of a custom one, see [get]
-pub(crate) fn get_or<T: DeserializeOwned>(key: &str, default: T) -> T {
+pub fn get_or<T: DeserializeOwned>(key: &str, default: T) -> T {
     profiling::function_scope!();
 
     let prefs = get_stored_preferences();
@@ -81,7 +84,7 @@ pub(crate) fn get_or<T: DeserializeOwned>(key: &str, default: T) -> T {
 }
 
 /// Deletes a stored editor preference value
-pub(crate) fn delete(key: &str) {
+pub fn delete(key: &str) {
     profiling::function_scope!();
 
     log::info!("Deleting user preference for {key}");
@@ -124,6 +127,8 @@ fn create_prefs_file() -> Result<(), std::io::Error> {
     std::fs::write(prefs_file_path, "{}")
 }
 
+/// Fully overwrite the stored preferences with the given ones. If no preferences are stored,
+/// creates the preferences file
 fn store_preferences(prefs: &BTreeMap<String, serde_json::Value>) -> Result<(), std::io::Error> {
     profiling::function_scope!();
 
@@ -136,6 +141,7 @@ fn store_preferences(prefs: &BTreeMap<String, serde_json::Value>) -> Result<(), 
     std::fs::write(prefs_file_path, as_string)
 }
 
+/// Returns the stored preferences
 fn get_stored_preferences() -> BTreeMap<String, serde_json::Value> {
     profiling::function_scope!();
 

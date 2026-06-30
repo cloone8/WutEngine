@@ -8,8 +8,6 @@ use wutengine_util::InitOnce;
 
 use wutengine_egui::egui;
 
-use crate::editor_preferences;
-
 static EDITOR_LOGGER: InitOnce<EditorLogger, false> = InitOnce::new();
 
 /// Initializes and sets the editor logger
@@ -46,9 +44,9 @@ impl EditorLogger {
 
     fn new() -> Self {
         let stored_internal_level =
-            editor_preferences::get_or(Self::INTERNAL_LOG_LEVEL_PREF, log::LevelFilter::Warn);
+            we_prefs::get_or(Self::INTERNAL_LOG_LEVEL_PREF, log::LevelFilter::Warn);
         let stored_external_level =
-            editor_preferences::get_or(Self::EXTERNAL_LOG_LEVEL_PREF, log::LevelFilter::Debug);
+            we_prefs::get_or(Self::EXTERNAL_LOG_LEVEL_PREF, log::LevelFilter::Debug);
 
         // Clamp to `info` if an invalid level was stored
         let stored_internal_level = stored_internal_level.min(log::LevelFilter::Info);
@@ -72,7 +70,7 @@ impl EditorLogger {
         self.internal_level
             .store(Self::levelfilter_to_int(level_filter), Ordering::Release);
 
-        editor_preferences::set(Self::INTERNAL_LOG_LEVEL_PREF, level_filter);
+        we_prefs::set(Self::INTERNAL_LOG_LEVEL_PREF, level_filter);
     }
 
     /// Returns the current level filter for external logs
@@ -86,7 +84,7 @@ impl EditorLogger {
         self.external_level
             .store(Self::levelfilter_to_int(level_filter), Ordering::Release);
 
-        editor_preferences::set(Self::EXTERNAL_LOG_LEVEL_PREF, level_filter);
+        we_prefs::set(Self::EXTERNAL_LOG_LEVEL_PREF, level_filter);
     }
 
     /// Filters the currently stored logs according to the configured filters
