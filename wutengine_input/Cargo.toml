@@ -19,7 +19,7 @@ wutengine_time.workspace = true
 
 log.workspace = true
 winit.workspace = true
-gilrs.workspace = true
+gilrs = { workspace = true, features = ["wgi"] }
 nohash-hasher.workspace = true
 profiling.workspace = true
 derive_more = { workspace = true, features = ["display", "from"] }

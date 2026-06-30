@@ -22,7 +22,7 @@ wutengine_shadercompiler.workspace = true
 
 log.workspace = true
 bytemuck.workspace = true
-egui = { workspace = true, features = ["bytemuck"] }
+egui = { workspace = true, features = ["default_fonts", "bytemuck"] }
 serde_json.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
 profiling.workspace = true

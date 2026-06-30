@@ -56,18 +56,16 @@ wutengine_util = { path = "wutengine_util", version = "0.6.0" }
 wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 
 ### External dependencies ###
-arc-swap = { version = "1.9" }
-bytemuck = { version = "1.25" }
-dashmap = { version = "6.1" }
-derive_more = { version = "2.1" }
-document-features = { version = "0.2" }
-egui = { version = "0.35" }
-egui_extras = { version = "0.35" }
+bytemuck = { version = "1.25", default-features = false }
+dashmap = { version = "6.1", default-features = false }
+derive_more = { version = "2.1", default-features = false }
+egui = { version = "0.35", default-features = false }
+egui_extras = { version = "0.35", default-features = false }
 futures = { version = "0.3", default-features = false }
-gilrs = { version = "0.11" }
-glam = { version = "0.33", features = ["std", "debug-glam-assert"] }
-hecs = { version = "0.11" }
-image = { version = "0.25.9" }
+gilrs = { version = "0.11", default-features = false }
+glam = { version = "0.33", default-features = false }
+hecs = { version = "0.11", default-features = false }
+image = { version = "0.25.9", default-features = false }
 indexmap = { version = "2" }
 jiff = { version = "0.2" }
 libc = { version = "0.2" }

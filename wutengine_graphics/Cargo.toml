@@ -51,7 +51,7 @@ wgpu = { workspace = true, features = [
 ] }
 nohash-hasher.workspace = true
 serde = { workspace = true, features = ["derive"] }
-dashmap = { workspace = true, features = ["rayon"] }
+dashmap = { workspace = true, features = ["inline"] }
 bytemuck = { workspace = true, features = [
     "derive",
     "must_cast",
@@ -59,7 +59,7 @@ bytemuck = { workspace = true, features = [
 ] }
 pollster.workspace = true
 twox-hash.workspace = true
-image = { workspace = true }
+image = { workspace = true, features = ["png"] }
 
 [lints]
 workspace = true

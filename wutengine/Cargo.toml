@@ -13,13 +13,8 @@ rust-version.workspace = true
 readme = "../README.md"
 
 [features]
-## Enable profiling support
 profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]
-
-## Enable the development overlay
 development_overlay = ["dep:wutengine_development_overlay"]
-
-## Add default asset importers
 asset_importers = ["wutengine_asset/importers"]
 
 [lints]
@@ -53,7 +48,6 @@ derive_more = { workspace = true, features = [
     "unwrap",
     "try_unwrap",
 ] }
-document-features.workspace = true
 hecs.workspace = true
 winit.workspace = true
 nohash-hasher.workspace = true
