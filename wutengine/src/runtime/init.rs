@@ -119,6 +119,8 @@ pub fn run(
         );
     }
 
+    let main_thread_pool = wutengine_thread::init_thread_pool();
+
     let mut runtime = Runtime {
         frame_pacer: window::pacer::FramePacer::default(),
         initialization_data: Some(Box::new(InitializationData {
@@ -129,6 +131,7 @@ pub fn run(
         draw_commands: graphics::initialize_command_queue(),
         overlay_passes: Vec::new(),
         frame_frequency: config.frame_frequency,
+        async_pool: main_thread_pool,
     };
 
     runtime.systems.build_schedule(SystemManifest::empty());

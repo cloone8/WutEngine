@@ -7,11 +7,14 @@ use alloc::sync::Arc;
 use wutengine_util_macro::VariantName;
 
 use crate::config;
+use crate::graphics;
 use crate::input;
 use crate::runtime::send_to_main_thread;
+use crate::time;
+use crate::window;
+use crate::window::Window;
+use crate::window::WindowConfig;
 use crate::window::WindowUpdateEvent;
-use crate::window::{Window, WindowConfig};
-use crate::{graphics, thread, time, window};
 
 use super::FrameFrequency;
 use super::Runtime;
@@ -20,7 +23,7 @@ use super::SystemManifest;
 /// An event sent to the main WutEngine [Runtime], to be handled by [winit::application::ApplicationHandler::user_event].
 ///
 /// This is meant for events that should be handled on the main thread
-#[derive(Debug, VariantName)]
+#[derive(derive_more::Debug, VariantName)]
 pub(crate) enum MainThreadEvent {
     /// The creation of a new window with the given ID and config was requested
     NewWindowRequested(Window, WindowConfig),
@@ -36,6 +39,10 @@ pub(crate) enum MainThreadEvent {
 
     /// Request to add one or more systems to the main system schedule
     AddSystem(SystemManifest),
+
+    /// Run a task on the main thread
+    #[debug("RunTask(...)")]
+    RunTask(Box<dyn Future<Output = ()> + Send + 'static>),
 
     /// User requested a redraw
     Redraw,
@@ -73,7 +80,6 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
 
         // Initialize the time manager later here, right before the runtime starts running frames
         time::init();
-        thread::init_thread_pool();
 
         if let Some(fps_limit) = config::try_get::<u64>("wutengine.window.fps_limit")
             && fps_limit != 0
@@ -241,6 +247,9 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
             }
             MainThreadEvent::Redraw => {
                 window::manager::request_redraws();
+            }
+            MainThreadEvent::RunTask(task) => {
+                self.async_pool.insert_task(task);
             }
         }
     }

@@ -78,6 +78,9 @@ pub(crate) struct Runtime {
 
     /// How often we should render frames. Influences when we request redraws
     frame_frequency: FrameFrequency,
+
+    /// Main-thread async pool
+    async_pool: wutengine_thread::MainThreadAsyncRunner,
 }
 
 ///TODO: Combine with [ActiveCameraRenderPass] with a generic?
@@ -110,6 +113,9 @@ impl Runtime {
 
             // Run any events sent after the previous frame ended
             crate::event::handle_events();
+
+            // Run the async pool until it is stalled
+            self.async_pool.run_once();
 
             // We wait for the rendering target to become available in the beginning of the frame,
             // because then if we block on vsync or similar the simulation will not be out of date
@@ -528,16 +534,25 @@ pub fn exit() {
 
     log::info!("Runtime exit requested.");
 
-    if EVENT_LOOP_PROXY
-        .send_event(MainThreadEvent::RuntimeExitRequested)
-        .is_err()
-    {
-        log::error!("Failed to send runtime exit event because the event loop was already closed");
-    }
+    crate::runtime::send_to_main_thread(MainThreadEvent::RuntimeExitRequested);
 }
 
 /// Useful when a frequency setting other than [FrameFrequency::Fast] was selected
 #[inline]
 pub fn request_frame() {
     crate::runtime::send_to_main_thread(MainThreadEvent::Redraw);
+}
+
+/// Run a future on the main thread
+#[inline]
+pub fn run_on_main_thread<F, T>(task: F) -> wutengine_thread::TaskHandle<T>
+where
+    F: Future<Output = T> + Send + 'static,
+    T: Send + 'static,
+{
+    let (handle, future) = wutengine_thread::TaskHandle::from_future(task);
+
+    crate::runtime::send_to_main_thread(MainThreadEvent::RunTask(future));
+
+    handle
 }

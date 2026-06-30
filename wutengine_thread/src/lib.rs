@@ -6,6 +6,10 @@ use alloc::sync::Arc;
 use core::num::NonZero;
 use core::sync::atomic::{AtomicBool, Ordering};
 use detect::CoreConfig;
+use futures::prelude::future::LocalFutureObj;
+use futures::task::LocalSpawn;
+use futures::task::LocalSpawnExt;
+use futures::task::SpawnExt;
 use std::thread::available_parallelism;
 
 use serde::Deserialize;
@@ -42,8 +46,49 @@ static THREAD_POOL_INITIALIZED: AtomicBool = AtomicBool::new(false);
 /// The global async thread pool
 static ASYNC_POOL: InitOnce<futures::executor::ThreadPool> = InitOnce::new();
 
+/// A main thread async pool for main-thread-only tasks
+#[derive(Debug)]
+pub struct MainThreadAsyncRunner {
+    /// The pool
+    pool: futures::executor::LocalPool,
+}
+
+impl MainThreadAsyncRunner {
+    /// Creates a new main-thread-only async pool
+    fn new() -> Self {
+        Self {
+            pool: futures::executor::LocalPool::new(),
+        }
+    }
+
+    /// Runs all futures in this pool until no more progress can be made
+    pub fn run_once(&mut self) {
+        profiling::function_scope!();
+
+        assert_main_thread!();
+
+        self.pool.run_until_stalled();
+    }
+
+    /// Inserts a new main-thread-only task into the
+    pub fn insert_task(&self, task: Box<dyn Future<Output = ()> + 'static>) {
+        self.pool
+            .spawner()
+            .spawn_local_obj(task.into())
+            .expect("Failed to spawn task");
+        // let (send, recv) = futures::channel::oneshot::channel::<O>();
+        // let done = Arc::new(AtomicBool::new(false));
+        // {
+        //     let done = done.clone();
+
+        // }
+
+        // TaskHandle { done, recv }
+    }
+}
+
 /// Initializes the global thread pool.
-pub fn init_thread_pool() {
+pub fn init_thread_pool() -> MainThreadAsyncRunner {
     assert_main_thread!();
 
     if THREAD_POOL_INITIALIZED.swap(true, Ordering::AcqRel) {
@@ -55,6 +100,8 @@ pub fn init_thread_pool() {
 
     init_worker_threads(&thread_config, cpu_config.as_ref());
     init_async_threads(&thread_config, cpu_config.as_ref());
+
+    MainThreadAsyncRunner::new()
 }
 
 /// Initialize the background async thread pool
@@ -227,6 +274,28 @@ impl<T> TaskHandle<T> {
         }
 
         task.take().map(Self::get)
+    }
+
+    pub fn from_future<F>(task: F) -> (Self, Box<dyn Future<Output = ()> + Send + 'static>)
+    where
+        F: Future<Output = T> + Send + 'static,
+        T: Send + 'static,
+    {
+        let (send, recv) = futures::channel::oneshot::channel::<T>();
+        let done = Arc::new(AtomicBool::new(false));
+
+        let fut = {
+            let done = done.clone();
+
+            async move {
+                let ret = task.await;
+
+                _ = send.send(ret);
+                done.store(true, Ordering::Release);
+            }
+        };
+
+        (Self { done, recv }, Box::new(fut))
     }
 }
 
