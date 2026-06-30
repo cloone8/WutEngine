@@ -95,9 +95,10 @@ impl EditorWindow for SelectProjectWindow {
                     .show(ui);
 
                 if ui.button("Create...").clicked() && self.create_project_task.is_none() {
-                    self.create_project_task = Some(wutengine::runtime::run_on_main_thread(
-                        rfd::AsyncFileDialog::new().pick_folder(),
-                    ));
+                    self.create_project_task =
+                        Some(wutengine::runtime::run_on_main_thread(async {
+                            rfd::AsyncFileDialog::new().pick_folder().await
+                        }));
                 }
             });
         });
@@ -105,11 +106,12 @@ impl EditorWindow for SelectProjectWindow {
 }
 
 fn pick_project_file() -> TaskHandle<Option<rfd::FileHandle>> {
-    wutengine::runtime::run_on_main_thread(
+    wutengine::runtime::run_on_main_thread(async {
         rfd::AsyncFileDialog::new()
             .add_filter("WutEngine Project", &["we-project"])
-            .pick_file(),
-    )
+            .pick_file()
+            .await
+    })
 }
 
 fn open_project(project_file: impl AsRef<Path>) {
