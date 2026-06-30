@@ -4919,6 +4919,7 @@ dependencies = [
  "futures",
  "libc",
  "log",
+ "nohash-hasher",
  "profiling",
  "rayon",
  "serde",
