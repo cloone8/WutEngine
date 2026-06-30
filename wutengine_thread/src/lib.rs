@@ -207,6 +207,27 @@ impl<T> TaskHandle<T> {
     pub fn get(self) -> T {
         futures::executor::block_on(self.recv).expect("Async task destroyed")
     }
+
+    /// Utility function that checks if an optional task was started and is ready.
+    #[inline(always)]
+    pub fn started_and_ready(task: &Option<Self>) -> bool {
+        let Some(task) = task else {
+            return false;
+        };
+
+        task.ready()
+    }
+
+    /// Utility function that returns the result of an optional task, if it was started
+    /// and is now ready. Leaves the task empty if it was ready
+    #[inline(always)]
+    pub fn get_if_started_and_ready(task: &mut Option<Self>) -> Option<T> {
+        if !Self::started_and_ready(task) {
+            return None;
+        }
+
+        task.take().map(Self::get)
+    }
 }
 
 /// Spawns an async task on the background thread pool.
