@@ -34,6 +34,7 @@ derive_more = { workspace = true, features = [
     "try_unwrap",
     "is_variant",
 ] }
+dirs = { workspace = true }
 wgpu = { workspace = true, features = [
     # Shader languages
     "naga-ir",

@@ -18,9 +18,11 @@ use crate::time;
 use crate::window;
 use crate::window::Window;
 use crate::world;
+use alloc::sync::Arc;
 use core::any::TypeId;
 use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
+use events::AddOnExitHandler;
+use events::AddOnExitRequestedHandler;
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
 use wutengine_graphics::label;
@@ -31,10 +33,13 @@ use wutengine_util::assert_main_thread;
 
 use rayon::prelude::*;
 
+mod api;
+mod events;
 mod init;
 mod system_builder;
 mod winit_app;
 
+pub use api::*;
 pub use init::*;
 
 pub use system_builder::*;
@@ -42,7 +47,7 @@ pub use system_builder::*;
 pub(crate) use winit_app::MainThreadEvent;
 
 static EVENT_LOOP_PROXY: InitOnce<winit::event_loop::EventLoopProxy<MainThreadEvent>> =
-    InitOnce::new();
+    InitOnce::new_checked();
 static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
 
 /// Notifies the main [winit] event loop of a given event.
@@ -81,6 +86,12 @@ pub(crate) struct Runtime {
 
     /// Main-thread async pool
     async_pool: wutengine_thread::MainThreadAsyncRunner,
+
+    /// On-exit-requested handlers
+    on_exit_requested_handlers: Vec<Arc<dyn Fn() -> bool + Send + Sync + 'static>>,
+
+    /// On-exit handlers
+    on_exit_handlers: Vec<Arc<dyn Fn() + Send + Sync + 'static>>,
 }
 
 ///TODO: Combine with [ActiveCameraRenderPass] with a generic?
@@ -114,6 +125,10 @@ impl Runtime {
             // Run any events sent after the previous frame ended
             crate::event::handle_events();
 
+            // Handle any events that could not be handled by the main event handler, because they require mutable access
+            // to the runtime
+            self.handle_main_runtime_events();
+
             // Run the async pool until it is stalled
             let one_completed = self.async_pool.run_once();
 
@@ -135,7 +150,7 @@ impl Runtime {
             self.render_all_windows(&surfaces);
 
             for (_, surface) in surfaces {
-                surface.present();
+                graphics::queue().present(surface);
             }
 
             input::end_frame();
@@ -145,6 +160,14 @@ impl Runtime {
         }
 
         profiling::finish_frame!();
+    }
+
+    fn handle_main_runtime_events(&mut self) {
+        profiling::function_scope!();
+
+        for event in events::MAIN_RUNTIME_EVENTS.borrow_mut().drain(..) {
+            event.handle(self);
+        }
     }
 
     fn run_systems_and_logic(&mut self) {
@@ -527,37 +550,4 @@ fn sync_overlay_passes(
     if passes_added {
         active_passes.sort_by_key(|p| p.order);
     }
-}
-
-/// Requests that the WutEngine runtime stops cleanly.
-/// This usually happens somewhere before the next frame.
-pub fn exit() {
-    if !WUTENGINE_RUNNING.load(Ordering::Acquire) {
-        log::error!("WutEngine runtime is not running. Cannot request exit");
-        return;
-    }
-
-    log::info!("Runtime exit requested.");
-
-    crate::runtime::send_to_main_thread(MainThreadEvent::RuntimeExitRequested);
-}
-
-/// Useful when a frequency setting other than [FrameFrequency::Fast] was selected
-#[inline]
-pub fn request_frame() {
-    crate::runtime::send_to_main_thread(MainThreadEvent::Redraw);
-}
-
-/// Run a future on the main thread
-#[inline]
-pub fn run_on_main_thread<F, T>(task: F) -> wutengine_thread::TaskHandle<T>
-where
-    F: Future<Output = T> + Send + 'static,
-    T: Send + 'static,
-{
-    let (handle, future) = wutengine_thread::TaskHandle::from_future(task);
-
-    crate::runtime::send_to_main_thread(MainThreadEvent::RunTask(future));
-
-    handle
 }

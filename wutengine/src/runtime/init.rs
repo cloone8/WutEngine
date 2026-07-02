@@ -85,7 +85,9 @@ pub fn run(
 
     wutengine_util::set_cur_thread_as_main_thread();
 
-    crate::event::init();
+    crate::event::init(|| {
+        //TODO
+    });
 
     // Initialize the config manager early, so all other managers and engine systems
     // can read from it to configure themselves
@@ -132,6 +134,8 @@ pub fn run(
         overlay_passes: Vec::new(),
         frame_frequency: config.frame_frequency,
         async_pool: main_thread_pool,
+        on_exit_requested_handlers: Vec::new(),
+        on_exit_handlers: Vec::new(),
     };
 
     runtime.systems.build_schedule(SystemManifest::empty());

@@ -110,7 +110,9 @@ impl VertexBuffer {
             "Unexpected number of bytes"
         );
 
-        let mut buffer_view = buffer.get_mapped_range_mut(..);
+        let mut buffer_view = buffer
+            .get_mapped_range_mut(..)
+            .expect("Invalid buffer range");
 
         buffer_view.copy_from_slice(bytes);
 
@@ -145,7 +147,9 @@ impl VertexBuffer {
 
         let buffer = Self::alloc_buffer::<T>(attribute, count, dynamic, device)?;
 
-        let mut buf_view = buffer.get_mapped_range_mut(..);
+        let mut buf_view = buffer
+            .get_mapped_range_mut(..)
+            .expect("Invalid buffer range");
         let mut buf_view_slice = buf_view.slice(..);
 
         write_func(&mut buf_view_slice);
@@ -153,7 +157,12 @@ impl VertexBuffer {
         drop(buf_view);
 
         let cpu_buffer = if keep_on_cpu {
-            Some(buffer.get_mapped_range(..).to_vec())
+            Some(
+                buffer
+                    .get_mapped_range(..)
+                    .expect("Invalid buffer range")
+                    .to_vec(),
+            )
         } else {
             None
         };

@@ -13,7 +13,7 @@ use crate::runtime::SystemManifest;
 use crate::world::World;
 use wutengine_util::InitOnce;
 
-static ENTITY_QUEUES: InitOnce<EntityCommandQueues> = InitOnce::new();
+static ENTITY_QUEUES: InitOnce<EntityCommandQueues> = InitOnce::new_checked();
 
 /// Utility struct containing the global entity command queues
 #[derive(Debug)]

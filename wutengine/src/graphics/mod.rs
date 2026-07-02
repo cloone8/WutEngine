@@ -36,7 +36,7 @@ pub struct DrawCommand {
 }
 
 /// The global draw command queue
-static DRAW_COMMAND_QUEUE: InitOnce<Sender<DrawCommand>> = InitOnce::new();
+static DRAW_COMMAND_QUEUE: InitOnce<Sender<DrawCommand>> = InitOnce::new_checked();
 
 /// Initializes the global draw command queue, and returns its receiving end.
 pub(crate) fn initialize_command_queue() -> Receiver<DrawCommand> {

@@ -238,7 +238,9 @@ impl BindGroup {
                 mapped_at_creation: true,
             });
 
-            let mut buf_slice = buffer.get_mapped_range_mut(..);
+            let mut buf_slice = buffer
+                .get_mapped_range_mut(..)
+                .expect("Invalid buffer range");
 
             let mut offset: usize = 0;
 

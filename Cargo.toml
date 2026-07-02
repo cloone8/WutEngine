@@ -59,6 +59,7 @@ wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
 bytemuck = { version = "1.25", default-features = false }
 dashmap = { version = "6.1", default-features = false }
 derive_more = { version = "2.1", default-features = false }
+dirs = { version = "6" }
 egui = { version = "0.35", default-features = false }
 egui_extras = { version = "0.35", default-features = false }
 futures = { version = "0.3", default-features = false }
@@ -70,7 +71,7 @@ indexmap = { version = "2" }
 jiff = { version = "0.2" }
 libc = { version = "0.2" }
 log = { version = "0.4" }
-naga = { version = "29.0", default-features = false }
+naga = { version = "30", default-features = false }
 nohash-hasher = { version = "0.2" }
 pollster = { version = "0.4" }
 profiling = { version = "1.0" }
@@ -94,7 +95,7 @@ syn = { version = "2.0" }
 toml = { version = "1.1" }
 twox-hash = { version = "2.1", default-features = false }
 uuid = { version = "1" }
-wgpu = { version = "29.0", default-features = false, features = [
+wgpu = { version = "30", default-features = false, features = [
     "fragile-send-sync-non-atomic-wasm",
 ] }
 windows = { version = "0.62" }

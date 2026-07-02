@@ -5,7 +5,7 @@ use std::sync::RwLock;
 
 use wutengine_util::InitOnce;
 
-static WORLD: InitOnce<RwLock<World>> = InitOnce::new();
+static WORLD: InitOnce<RwLock<World>> = InitOnce::new_checked();
 
 /// Initializes the global "world", which contains the ECS data
 pub(crate) fn init() {

@@ -7,6 +7,7 @@ use wutengine_asset::assets::mesh::MeshTopology;
 use wutengine_util_macro::unique_id_type64;
 
 use crate::GFX_DEVICE;
+use crate::PIPELINE_CACHE;
 use crate::label;
 use crate::mesh::asset_topology_to_wgpu;
 use crate::shader;
@@ -84,11 +85,11 @@ pub fn get_pipeline(
             "Vertex data types with alignments smaller than wgpu::VERTEX_ALIGNMENT are not yet supported"
         );
 
-        vertex_state_buffers.push(wgpu::VertexBufferLayout {
+        vertex_state_buffers.push(Some(wgpu::VertexBufferLayout {
             array_stride: attr_info.format.size(),
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &vertex_buffer_attributes[i..i + 1],
-        });
+        }));
     }
 
     // Combine all info into a pipeline descriptor, and create it
@@ -128,7 +129,7 @@ pub fn get_pipeline(
             alpha_to_coverage_enabled: false,
         },
         multiview_mask: None,
-        cache: None,
+        cache: PIPELINE_CACHE.as_ref(),
     });
 
     Ok(cache::pipeline::insert(pipeline_cache_key, pipeline))

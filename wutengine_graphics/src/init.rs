@@ -1,9 +1,17 @@
 //! Graphics initialization
 
+use std::ffi::OsStr;
+use std::ffi::OsString;
+use std::path::PathBuf;
+
 use alloc::sync::Arc;
 
+use crate::ACTIVE_CONFIG;
+use crate::GFX_DEVICE;
 use crate::GraphicsRuntimeConfig;
+use crate::PIPELINE_CACHE;
 use crate::config::GraphicsConfig;
+use crate::features_supported;
 use crate::label;
 use wutengine_util::InitOnce;
 
@@ -34,6 +42,7 @@ pub fn initialize_graphics_context() -> bool {
         power_preference: wgpu::PowerPreference::HighPerformance,
         force_fallback_adapter: false,
         compatible_surface: None,
+        apply_limit_buckets: false,
     })) {
         Ok(a) => a,
         Err(e) => {
@@ -105,6 +114,14 @@ pub fn initialize_graphics_context() -> bool {
         },
     );
 
+    if features_supported(wgpu::Features::PIPELINE_CACHE) {
+        log::debug!("Pipeline cache supported, trying to obtain one");
+        InitOnce::init(&super::PIPELINE_CACHE, get_pipeline_cache());
+    } else {
+        log::debug!("Pipeline cache not supported");
+        InitOnce::init(&super::PIPELINE_CACHE, None);
+    }
+
     true
 }
 
@@ -145,7 +162,14 @@ fn default_backend_options() -> wgpu::BackendOptions {
             force_shader_model: wgpu::ForceShaderModelToken::default(),
             agility_sdk: None,
         },
-        noop: wgpu::NoopBackendOptions { enable: false },
+        noop: wgpu::NoopBackendOptions {
+            enable: false,
+            limits: None,
+            features: None,
+            device_type: None,
+            subgroup_min_size: None,
+            subgroup_max_size: None,
+        },
     }
 }
 
@@ -172,4 +196,162 @@ fn gather_instance_flags(config: &GraphicsConfig) -> wgpu::InstanceFlags {
     log::trace!("Flags: {:?}", flags);
 
     flags
+}
+
+fn get_pipeline_cache() -> Option<wgpu::PipelineCache> {
+    profiling::function_scope!();
+
+    match get_existing_pipeline_cache() {
+        Ok(cache) => Some(cache),
+        Err(e) => {
+            if matches!(e, PipelineCacheErr::NotExists) {
+                log::debug!("No pipeline cache exists on disk, creating new one: {e}");
+            } else {
+                log::error!(
+                    "Existing pipeline on disk is corrupt or otherwise impossible to obtain, creating new one: {e}"
+                );
+            }
+
+            // SAFETY: This should be safe because we're creating a fresh pipeline, not an existing
+            // one
+            let new_cache = match with_checked_errs(|| unsafe {
+                super::GFX_DEVICE.create_pipeline_cache(&wgpu::PipelineCacheDescriptor {
+                    label: label!("WutEngine Pipeline Cache"),
+                    data: None,
+                    fallback: false,
+                })
+            }) {
+                Ok(cache) => cache,
+                Err(e) => {
+                    log::warn!("Failed to create new pipeline cache due to error: {e}");
+                    return None;
+                }
+            };
+
+            Some(new_cache)
+        }
+    }
+}
+
+#[derive(Debug, derive_more::Display, derive_more::From, derive_more::Error)]
+enum PipelineCacheErr {
+    NotExists,
+    UnknownAdapterKey,
+    UnknownExecutableName,
+    NoCacheDir,
+    Invalid,
+    IO(std::io::Error),
+}
+
+fn get_pipeline_cache_path() -> Result<PathBuf, PipelineCacheErr> {
+    let adapter_cache_key = wgpu::util::pipeline_cache_key(&ACTIVE_CONFIG.adapter)
+        .ok_or(PipelineCacheErr::UnknownAdapterKey)?;
+
+    let mut cache_filename = OsString::new();
+
+    cache_filename.push(
+        std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.file_stem().map(OsStr::to_os_string))
+            .ok_or(PipelineCacheErr::UnknownExecutableName)?,
+    );
+    cache_filename.push("_");
+    cache_filename.push(adapter_cache_key);
+    cache_filename.push(".we-pipelinecache");
+
+    let sys_cache_dir = dirs::cache_dir().ok_or(PipelineCacheErr::NoCacheDir)?;
+
+    Ok(sys_cache_dir
+        .join("WutEngine")
+        .join("pipeline_cache")
+        .join(cache_filename))
+}
+
+fn get_existing_pipeline_cache() -> Result<wgpu::PipelineCache, PipelineCacheErr> {
+    profiling::function_scope!();
+
+    let cache_path = get_pipeline_cache_path()?;
+
+    log::debug!(
+        "Trying to find existing pipeline cache at path {}",
+        cache_path.to_string_lossy()
+    );
+
+    if !(std::fs::exists(&cache_path)?) || !(std::fs::metadata(&cache_path)?.is_file()) {
+        return Err(PipelineCacheErr::NotExists);
+    }
+
+    let cache_bytes = std::fs::read(&cache_path)?;
+
+    // SAFETY: This _should_ come from a pipeline cache we saved to disk, due to the naming. This is almost
+    // impossible to verify though, due to the filesystem not being under our control when we're not running
+    let cache = match with_checked_errs(move || unsafe {
+        GFX_DEVICE.create_pipeline_cache(&wgpu::PipelineCacheDescriptor {
+            label: label!("WutEngine Pipeline Cache"),
+            data: Some(&cache_bytes),
+            fallback: false,
+        })
+    }) {
+        Ok(cache) => cache,
+        Err(e) => {
+            log::warn!("Could not use existing pipeline cache due to error: {e}");
+            return Err(PipelineCacheErr::Invalid);
+        }
+    };
+
+    Ok(cache)
+}
+
+/// Persists the currently active pipeline cache to disk
+pub fn persist_pipeline_cache() {
+    let Some(cache_bytes) = PIPELINE_CACHE.as_ref().and_then(|pcache| pcache.get_data()) else {
+        // Nothing to cache
+        return;
+    };
+
+    let cache_path = match get_pipeline_cache_path() {
+        Ok(cpath) => cpath,
+        Err(e) => {
+            log::error!(
+                "Failed to determine pipeline cache path, so can't persist pipeline cache: {e}"
+            );
+            return;
+        }
+    };
+
+    let Some(cache_parent_dir) = cache_path.parent() else {
+        log::error!("Could not determine pipeline cache parent directory");
+        return;
+    };
+
+    if let Err(e) = std::fs::create_dir_all(cache_parent_dir) {
+        log::error!("Could not create pipeline cache directory: {e}");
+        return;
+    }
+
+    if let Err(e) = std::fs::write(cache_path, cache_bytes) {
+        log::error!("Could not write pipeline cache bytes to disk: {e}");
+        return;
+    }
+
+    log::debug!("Succesfully persisted pipeline cache to disk");
+}
+
+/// Run the given function with checked errors. Does not check for OOM errors.
+/// Slow. Use during initialization only.
+fn with_checked_errs<T>(f: impl FnOnce() -> T) -> Result<T, wgpu::Error> {
+    let es_val = GFX_DEVICE.push_error_scope(wgpu::ErrorFilter::Validation);
+    let es_int = GFX_DEVICE.push_error_scope(wgpu::ErrorFilter::Internal);
+
+    let val = f();
+
+    if let Some(e) = pollster::block_on(es_int.pop()) {
+        return Err(e);
+    }
+
+    if let Some(e) = pollster::block_on(es_val.pop()) {
+        return Err(e);
+    }
+
+    Ok(val)
 }

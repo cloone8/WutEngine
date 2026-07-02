@@ -45,7 +45,7 @@ mod types {
 use types::*;
 
 /// Global physics manager
-pub(crate) static PHYSICS_MANAGER: InitOnce<RwLock<PhysicsManager>> = InitOnce::new();
+pub(crate) static PHYSICS_MANAGER: InitOnce<RwLock<PhysicsManager>> = InitOnce::new_checked();
 
 /// Initialize the physics system
 #[doc(hidden)]

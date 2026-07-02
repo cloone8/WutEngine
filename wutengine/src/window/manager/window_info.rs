@@ -129,7 +129,7 @@ impl WindowInfo {
         let surface_format = surface_caps
             .formats
             .iter()
-            .find(|f| f.is_srgb())
+            .find(|f| f.is_srgb() && !f.is_compressed())
             .copied()
             .unwrap_or(surface_caps.formats[0]);
 
@@ -164,6 +164,7 @@ impl WindowInfo {
                     surface_format.remove_srgb_suffix(),
                     surface_format.add_srgb_suffix(),
                 ],
+                color_space: wgpu::SurfaceColorSpace::Srgb,
             },
         );
     }

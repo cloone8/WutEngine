@@ -10,7 +10,7 @@ use wutengine_util::InitOnce;
 pub const NANOS_PER_SECOND: u64 = 1_000_000_000;
 
 /// The global time manager
-static TIME_MANAGER: InitOnce<TimeManager> = InitOnce::new();
+static TIME_MANAGER: InitOnce<TimeManager, false> = InitOnce::new_checked();
 
 /// Internal [TimeManager] fields
 /// All times are in nanoseconds, unless stated otherwise

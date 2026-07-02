@@ -23,7 +23,7 @@ unique_id_type32! {
 }
 
 /// Global [DevOverlayManager]
-static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new();
+static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new_checked();
 
 #[doc(hidden)]
 pub fn init(repaint_callback: Option<impl Fn(egui::RequestRepaintInfo) + Send + Sync + 'static>) {

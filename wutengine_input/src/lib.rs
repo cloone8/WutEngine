@@ -375,7 +375,7 @@ impl InputManager {
 }
 
 /// The global [InputManager]
-pub(crate) static INPUT_MANAGER: InitOnce<InputManager> = InitOnce::new();
+pub(crate) static INPUT_MANAGER: InitOnce<InputManager, false> = InitOnce::new_checked();
 
 /// Initializes the global [InputManager]
 #[doc(hidden)]

@@ -25,7 +25,7 @@ pub(super) mod display_info;
 pub(super) mod window_info;
 
 /// The global [WindowManager]
-static WINDOW_MANAGER: InitOnce<RwLock<WindowManager>> = InitOnce::new();
+static WINDOW_MANAGER: InitOnce<RwLock<WindowManager>> = InitOnce::new_checked();
 
 /// Initializes the global window management subsystem
 pub(crate) fn init() {
@@ -99,6 +99,15 @@ pub(super) fn get_window_and<T>(id: Window, map_func: impl FnOnce(Option<&Window
     let window_manager = WINDOW_MANAGER.read().unwrap();
 
     map_func(window_manager.windows.get(&id))
+}
+
+/// Returns the amount of currently open windows
+pub(crate) fn num_windows() -> usize {
+    profiling::function_scope!();
+
+    assert_main_thread!();
+
+    WINDOW_MANAGER.read().unwrap().windows.len()
 }
 
 /// Instructs the [WindowManager] to destroy the given window.

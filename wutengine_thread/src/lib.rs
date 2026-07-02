@@ -41,7 +41,7 @@ const DEFAULT_BACKGROUND_THREADS: NonZero<usize> = DEFAULT_WORKER_THREADS
 static THREAD_POOL_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 /// The global async thread pool
-static ASYNC_POOL: InitOnce<futures::executor::ThreadPool> = InitOnce::new();
+static ASYNC_POOL: InitOnce<futures::executor::ThreadPool> = InitOnce::new_checked();
 
 /// A main thread async pool for main-thread-only tasks
 #[derive(Debug)]

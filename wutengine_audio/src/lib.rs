@@ -9,7 +9,7 @@ pub use audioclip::*;
 pub use rodio;
 
 /// The global [AudioManager]
-static AUDIO_MANAGER: InitOnce<AudioManager> = InitOnce::new();
+static AUDIO_MANAGER: InitOnce<AudioManager> = InitOnce::new_checked();
 
 /// An audio manager. Manages global audio playback
 #[derive(Debug)]

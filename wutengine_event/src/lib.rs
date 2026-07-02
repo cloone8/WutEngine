@@ -17,10 +17,14 @@ use wutengine_util_macro::unique_id_type32;
 type GenericEventHandler = dyn Fn(&EventData) + Send + Sync;
 
 /// The global [EventManager]
-static EVENT_MANAGER: InitOnce<Mutex<EventManager>> = InitOnce::new();
+static EVENT_MANAGER: InitOnce<Mutex<EventManager>> = InitOnce::new_checked();
 
 /// The event queue to send events to the [EVENT_MANAGER]
-static EVENT_SENDER: InitOnce<Sender<EventData>> = InitOnce::new();
+static EVENT_SENDER: InitOnce<Sender<EventData>> = InitOnce::new_checked();
+
+/// Function that can be called to wake the main thread, which might cause it to
+/// run the event loop
+static WAKE_MAIN_THREAD_FN: InitOnce<Box<dyn Fn() + Send + Sync>> = InitOnce::new_checked();
 
 /// The event manager. Holds a set of event subscribers and a cross-thread event queue
 pub(crate) struct EventManager {
@@ -150,11 +154,12 @@ impl<T: Any + Send + Sync> Event for T {}
 
 /// Initializes the global event manager
 #[doc(hidden)]
-pub fn init() {
+pub fn init(wake_main_thread_callback: impl Fn() + Send + Sync + 'static) {
     let (manager, sender) = EventManager::new();
 
     InitOnce::init(&EVENT_SENDER, sender);
     InitOnce::init(&EVENT_MANAGER, Mutex::new(manager));
+    InitOnce::init(&WAKE_MAIN_THREAD_FN, Box::new(wake_main_thread_callback));
 }
 
 /// Publishes a new event. If any listeners are active, it will be
@@ -170,6 +175,7 @@ pub fn publish<T: Event>(event: T) {
     log::debug!("Publishing new event of type {}", data.ty_name);
 
     EVENT_SENDER.send(data).expect("Event manager gone");
+    WAKE_MAIN_THREAD_FN();
 }
 
 /// Subscribes to an event with the given handler. Returns a [Subscription] which can

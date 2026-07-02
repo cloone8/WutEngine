@@ -65,10 +65,10 @@ pub(crate) fn write_into_new_buffers(
     });
 
     {
-        let mut pos_mapped = pos_buf.get_mapped_range_mut(..);
-        let mut col_mapped = color_buf.get_mapped_range_mut(..);
-        let mut uv_mapped = uv_buf.get_mapped_range_mut(..);
-        let mut index_mapped = index_buffer.get_mapped_range_mut(..);
+        let mut pos_mapped = pos_buf.get_mapped_range_mut(..).unwrap();
+        let mut col_mapped = color_buf.get_mapped_range_mut(..).unwrap();
+        let mut uv_mapped = uv_buf.get_mapped_range_mut(..).unwrap();
+        let mut index_mapped = index_buffer.get_mapped_range_mut(..).unwrap();
 
         let pos_view = pos_mapped.slice(..);
         let col_view = col_mapped.slice(..);

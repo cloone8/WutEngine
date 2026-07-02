@@ -89,7 +89,9 @@ impl IndexBuffer {
 
         let buffer = Self::alloc_buffer::<T>(topology, count, dynamic, device)?;
 
-        let mut buffer_view = buffer.get_mapped_range_mut(..);
+        let mut buffer_view = buffer
+            .get_mapped_range_mut(..)
+            .expect("Invalid buffer range");
 
         let data_bytes = T::as_bytes(data);
 
@@ -125,7 +127,9 @@ impl IndexBuffer {
 
         let buffer = Self::alloc_buffer::<T>(topology, count, dynamic, device)?;
 
-        let mut buf_view = buffer.get_mapped_range_mut(..);
+        let mut buf_view = buffer
+            .get_mapped_range_mut(..)
+            .expect("Invalid buffer range");
         let mut buf_view_slice = buf_view.slice(..);
 
         write_func(&mut buf_view_slice);
@@ -133,7 +137,12 @@ impl IndexBuffer {
         drop(buf_view);
 
         let cpu_buffer = if keep_on_cpu {
-            Some(buffer.get_mapped_range(..).to_vec())
+            Some(
+                buffer
+                    .get_mapped_range(..)
+                    .expect("Invalid buffer range")
+                    .to_vec(),
+            )
         } else {
             None
         };

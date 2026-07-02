@@ -24,23 +24,27 @@ pub use bind_group::*;
 pub use config::*;
 
 pub use init::initialize_graphics_context;
+pub use init::persist_pipeline_cache;
 
 use wutengine_util::InitOnce;
 
 /// The global [wgpu::Adapter]
-static GFX_ADAPTER: InitOnce<wgpu::Adapter> = InitOnce::new();
+static GFX_ADAPTER: InitOnce<wgpu::Adapter> = InitOnce::new_checked();
 
 /// The global [wgpu::Instance]
-static GFX_INSTANCE: InitOnce<wgpu::Instance> = InitOnce::new();
+static GFX_INSTANCE: InitOnce<wgpu::Instance> = InitOnce::new_checked();
 
 /// The global [wgpu::Device]
-static GFX_DEVICE: InitOnce<wgpu::Device> = InitOnce::new();
+static GFX_DEVICE: InitOnce<wgpu::Device> = InitOnce::new_checked();
 
 /// The global [wgpu::Queue]
-static GFX_QUEUE: InitOnce<wgpu::Queue> = InitOnce::new();
+static GFX_QUEUE: InitOnce<wgpu::Queue> = InitOnce::new_checked();
 
 /// The global active [graphics configuration](GraphicsRuntimeConfig)
-static ACTIVE_CONFIG: InitOnce<GraphicsRuntimeConfig> = InitOnce::new();
+static ACTIVE_CONFIG: InitOnce<GraphicsRuntimeConfig> = InitOnce::new_checked();
+
+/// The pipeline cache, if we have one
+static PIPELINE_CACHE: InitOnce<Option<wgpu::PipelineCache>> = InitOnce::new_checked();
 
 /// Returns the global graphics adapter
 #[inline(always)]

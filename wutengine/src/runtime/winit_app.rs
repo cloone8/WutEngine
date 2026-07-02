@@ -9,6 +9,8 @@ use wutengine_util_macro::VariantName;
 use crate::config;
 use crate::graphics;
 use crate::input;
+use crate::runtime;
+use crate::runtime::events;
 use crate::runtime::send_to_main_thread;
 use crate::time;
 use crate::window;
@@ -47,8 +49,9 @@ pub(crate) enum MainThreadEvent {
     /// User requested a redraw
     Redraw,
 
-    /// Someone requested the exit of the runtime through [crate::runtime::exit]
-    RuntimeExitRequested,
+    /// Someone requested the exit of the runtime through [crate::runtime::exit].
+    /// If the `bool` is `true`, it means the exit is forced and cannot be overridden by handlers.
+    RuntimeExitRequested(bool),
 }
 
 impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
@@ -87,6 +90,8 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
             self.frame_pacer
                 .set_frame_interval(Some(Duration::from_secs_f64(1.0 / (fps_limit as f64))));
         }
+
+        events::add_event_listeners(self);
 
         // Must be called last, so we know the engine setup is done
         if let Some(post_init_callback) = post_init.post_start_callback.take() {
@@ -221,13 +226,17 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
 
                 log::debug!("Handling close window request for window {window_id}");
 
-                let remaining_windows = window::manager::close_window(window_id);
+                let cur_num_windows = window::manager::num_windows();
 
-                if remaining_windows == 0 {
+                if cur_num_windows == 1 {
+                    // Last window, so we exit the runtime when it closes
                     log::info!(
                         "Stopping the WutEngine runtime because there are no more windows remaining"
                     );
-                    event_loop.exit();
+                    runtime::exit();
+                } else {
+                    // More than one window, so just close it normally
+                    window::manager::close_window(window_id);
                 }
             }
 
@@ -235,9 +244,24 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                 window::manager::handle_update(window_id, update_event);
                 window::manager::refresh_window(&window_id, false);
             }
-            MainThreadEvent::RuntimeExitRequested => {
-                log::debug!("Runtime exit was requested. Stopping");
-                event_loop.exit();
+            MainThreadEvent::RuntimeExitRequested(force) => {
+                log::debug!("Runtime exit was requested. Force: {force}.");
+
+                let mut should_exit = true;
+
+                if !force {
+                    // If any of the handlers return true (cancel exit), we do not actually exit if not forced
+
+                    for on_exit_requested_handler in
+                        self.on_exit_requested_handlers.iter().map(Arc::as_ref)
+                    {
+                        should_exit &= !(on_exit_requested_handler());
+                    }
+                }
+
+                if should_exit {
+                    event_loop.exit();
+                }
             }
             MainThreadEvent::ForceSurfaceReconfigure(window_id) => {
                 window::manager::refresh_window(&window_id, true);
@@ -285,6 +309,10 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
         _ = event_loop;
 
         log::info!("Exiting WutEngine");
+
+        for handler in self.on_exit_handlers.drain(..) {
+            handler();
+        }
 
         log::logger().flush();
     }

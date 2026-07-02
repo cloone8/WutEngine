@@ -15,7 +15,7 @@ pub use toml;
 use wutengine_util::InitOnce;
 
 /// The global [ConfigManager]
-static CONFIG_MANAGER: InitOnce<ConfigManager> = InitOnce::new();
+static CONFIG_MANAGER: InitOnce<ConfigManager> = InitOnce::new_checked();
 
 /// A config manager
 #[derive(Debug)]
