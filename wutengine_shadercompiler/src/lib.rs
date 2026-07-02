@@ -1,10 +1,14 @@
 #![doc = include_str!("../README.md")]
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::collections::HashSet;
 
-use core::fmt::{Display, Write};
+use core::fmt::Display;
+use core::fmt::Write;
 use nohash_hasher::IntSet;
-use parser::{Condition, ParseErr, ShaderFile};
+use parser::Condition;
+use parser::ParseErr;
+use parser::ShaderFile;
 use smallvec::SmallVec;
 
 mod parser;
@@ -97,7 +101,7 @@ pub enum CompileErr {
 
     /// The WGSL after preprocessing was not valid
     #[display("Failed to compile preprocessed WGSL into a module: {}", _0)]
-    CompileWgsl(naga::front::wgsl::ParseError),
+    CompileWgsl(Box<naga::front::wgsl::ParseError>),
 
     /// A keyword mentioned in a condition was not present
     #[display("Missing value for keyword \"{}\"", _0)]
@@ -152,7 +156,7 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
                 capabilities: naga::valid::Capabilities::default(),
             });
 
-        Box::new(naga_frontend.parse(&applied)?)
+        Box::new(naga_frontend.parse(&applied).map_err(Box::new)?)
     };
 
     log::info!("Compiled shader variant {variant_id_string}");

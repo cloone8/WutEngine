@@ -58,7 +58,7 @@ bytemuck = { workspace = true, features = [
     "const_zeroed",
 ] }
 pollster.workspace = true
-twox-hash.workspace = true
+twox-hash = { workspace = true, features = ["std", "xxhash3_64"] }
 image = { workspace = true, features = ["png"] }
 
 [lints]
