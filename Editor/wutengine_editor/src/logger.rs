@@ -8,7 +8,7 @@ use wutengine_util::InitOnce;
 
 use wutengine_egui::egui;
 
-static EDITOR_LOGGER: InitOnce<EditorLogger, false> = InitOnce::new();
+static EDITOR_LOGGER: InitOnce<EditorLogger, false, false> = InitOnce::new_checked();
 
 /// Initializes and sets the editor logger
 pub(crate) fn init() {

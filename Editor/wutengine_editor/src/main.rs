@@ -36,10 +36,10 @@ mod select_project;
 mod window;
 
 /// Global egui context
-static EGUI_CONTEXT: InitOnce<egui::Context> = InitOnce::new();
+static EGUI_CONTEXT: InitOnce<egui::Context> = InitOnce::new_checked();
 
 /// Global egui resources
-static EGUI_RESOURCES: InitOnce<TextureMaterialMap> = InitOnce::new();
+static EGUI_RESOURCES: InitOnce<TextureMaterialMap> = InitOnce::new_checked();
 
 /// Base update interval of the editor
 const EDITOR_BASE_TICK_INTERVAL_SECS: f32 = 2.0;

@@ -10,7 +10,7 @@ pub(crate) use project_file::*;
 
 pub(crate) mod create;
 
-static PROJECT: InitOnce<Project> = InitOnce::new();
+static PROJECT: InitOnce<Project> = InitOnce::new_checked();
 
 /// An error while loading the project
 #[derive(Debug, derive_more::Error, derive_more::From, derive_more::Display)]
