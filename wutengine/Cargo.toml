@@ -14,7 +14,7 @@ readme = "../README.md"
 
 [features]
 profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]
-development_overlay = ["dep:wutengine_development_overlay"]
+development_overlay = ["dep:wutengine_development_overlay", "dep:serde_core"]
 asset_importers = ["wutengine_asset/importers"]
 
 [lints]
@@ -58,7 +58,9 @@ rayon.workspace = true
 serde_json.workspace = true
 spin_sleep = { workspace = true }
 uuid = { workspace = true }
+cursor-icon = { workspace = true }
 
 # Optional dependencies
+serde_core = { workspace = true, optional = true }
 wutengine_development_overlay = { workspace = true, optional = true } # Feature - development_overlay
 wutengine_puffin_egui = { workspace = true, optional = true }         # Feature - profiling

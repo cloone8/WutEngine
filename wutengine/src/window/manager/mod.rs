@@ -400,6 +400,16 @@ pub(crate) fn handle_update(target: Window, event: WindowUpdateEvent) {
 
             window.native.set_title(title.as_str());
         }
+        WindowUpdateEvent::UpdateCursor(cursor) => {
+            profiling::scope!("Update Cursor");
+
+            window.native.set_cursor(cursor);
+        }
+        WindowUpdateEvent::CursorVisibility(show) => {
+            profiling::scope!("Cursor Visibility");
+
+            window.native.set_cursor_visible(show);
+        }
     }
 }
 

@@ -21,6 +21,7 @@ fn send_to_main_runtime_collector<T: MainRuntimeEvent + Clone>(event: &T) {
 
 pub(super) fn add_event_listeners(runtime: &mut Runtime) {
     _ = wutengine_event::subscribe::<AddOnExitHandler>(send_to_main_runtime_collector);
+    _ = wutengine_event::subscribe::<AddOnExitRequestedHandler>(send_to_main_runtime_collector);
 
     runtime
         .on_exit_handlers
@@ -40,6 +41,7 @@ impl MainRuntimeEvent for AddOnExitHandler {
     }
 }
 
+#[derive(Clone)]
 pub(super) struct AddOnExitRequestedHandler(pub(super) Arc<dyn Fn() -> bool + Send + Sync>);
 
 impl MainRuntimeEvent for AddOnExitRequestedHandler {

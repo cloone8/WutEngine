@@ -25,7 +25,10 @@ impl FeatureOverlay {
         ));
         ui.label(format!(
             "Transient saves memory: {}",
-            adapter.transient_saves_memory
+            adapter
+                .transient_saves_memory
+                .map(|b| if b { "Yes" } else { "No" })
+                .unwrap_or("Unknown")
         ));
     }
     fn show_features(

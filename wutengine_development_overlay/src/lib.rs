@@ -6,6 +6,7 @@ use alloc::sync::Arc;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::sync::Mutex;
+use wutengine_egui::LogicOutput;
 use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
 use wutengine_input::WindowIdentifier;
@@ -115,6 +116,7 @@ pub fn run_overlay_logic(
     window_info: wutengine_egui::EguiWindowInfo,
     surface_size: (u32, u32),
     scale_factor: f32,
+    handle_logic_output: impl FnOnce(LogicOutput) + Send + Sync + 'static,
 ) {
     profiling::function_scope!();
 
@@ -161,14 +163,17 @@ pub fn run_overlay_logic(
 
         let egui_window = egui_window.as_ref().unwrap();
 
-        egui_window.run_logic(
+        let output = egui_window.run_logic(
             &DEV_OVERLAY.egui_context,
             &DEV_OVERLAY.textures,
             dev_overlay_ui,
         );
+
         *DEV_OVERLAY.last_target_window.lock().unwrap() = input_window;
 
         drop(egui_window_lock);
+
+        handle_logic_output(output);
     });
 
     // We have to at least wait until the overlay window is locked so that we do not proceed with the overlay renderpass

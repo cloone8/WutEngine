@@ -1,4 +1,3 @@
-
 use wutengine_development_overlay::wutengine_egui::egui;
 use wutengine_graphics::wgpu;
 
@@ -56,6 +55,7 @@ impl DevelopmentOverlayWindow for WindowManagerOverlay {
                         desired_maximum_frame_latency,
                         alpha_mode,
                         view_formats,
+                        color_space,
                     } = surface_config;
 
                     ui.label(format!("Format: {format:?}"));
@@ -80,6 +80,8 @@ impl DevelopmentOverlayWindow for WindowManagerOverlay {
                     ));
 
                     ui.label(format!("Alpha mode: {alpha_mode:?}"));
+
+                    ui.label(format!("Color space: {color_space:?}"));
 
                     if ui.button("Reconfigure").clicked() {
                         crate::runtime::send_to_main_thread(

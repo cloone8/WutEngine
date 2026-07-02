@@ -441,14 +441,23 @@ impl Runtime {
                     maximized: window.is_maximized(),
                 };
 
+                let window = *window;
+
                 crate::development_overlay::run_overlay_logic(
-                    input::WindowIdentifier::from(*window),
+                    input::WindowIdentifier::from(window),
                     egui_window_info,
                     (
                         surface_tex.texture.size().width,
                         surface_tex.texture.size().height,
                     ),
                     window.get_scale_factor() as f32,
+                    move |logic_output| {
+                        window.set_cursor_visible(logic_output.cursor_visible);
+
+                        if logic_output.cursor_visible {
+                            window.set_cursor(logic_output.cursor);
+                        }
+                    },
                 );
             }
         }

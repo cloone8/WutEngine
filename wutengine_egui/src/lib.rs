@@ -204,8 +204,10 @@ impl EguiWindow {
     }
 
     /// Handle platform output from egui
-    fn handle_platform_output(output: egui::PlatformOutput) {
+    fn handle_platform_output(output: egui::PlatformOutput) -> LogicOutput {
         profiling::function_scope!();
+
+        let mut logic_output = LogicOutput::default();
 
         for command in &output.commands {
             match command {
@@ -221,9 +223,24 @@ impl EguiWindow {
             }
         }
 
-        if output.requested_discard() {
-            warn_once!("Discards not yet requested");
+        if output.cursor_icon == egui::CursorIcon::None {
+            logic_output.cursor = cursor_icon::CursorIcon::Default;
+            logic_output.cursor_visible = false;
+        } else {
+            logic_output.cursor = utils::cursor_icon_from_egui(output.cursor_icon)
+                .expect("Cursor should not be hidden");
+            logic_output.cursor_visible = true;
         }
+
+        if output.cursor_image.is_some() {
+            warn_once!("Cursor images not yet supported");
+        }
+
+        if output.requested_discard() {
+            warn_once!("Discards not yet supported");
+        }
+
+        logic_output
     }
 
     /// Runs the egui UI logic on the provided context, with the provided texture map.
@@ -236,7 +253,7 @@ impl EguiWindow {
         context: &egui::Context,
         texture_map: &TextureMaterialMap,
         ui_callback: impl FnMut(&mut egui::Ui),
-    ) {
+    ) -> LogicOutput {
         profiling::function_scope!();
 
         let real_time = wutengine_time::unscaled_time64();
@@ -244,7 +261,7 @@ impl EguiWindow {
 
         let egui_output = context.run_ui(egui_input, ui_callback);
 
-        Self::handle_platform_output(egui_output.platform_output);
+        let logic_output = Self::handle_platform_output(egui_output.platform_output);
 
         let clipped_output = context.tessellate(egui_output.shapes, egui_output.pixels_per_point);
 
@@ -265,6 +282,8 @@ impl EguiWindow {
             to_free: egui_output.textures_delta.free, //TODO: If `last_output` is not None, we leak textures
             pixels_per_point: egui_output.pixels_per_point,
         });
+
+        logic_output
     }
 
     /// Renders the calculated UI onto the provided target texture.
@@ -434,6 +453,16 @@ impl EguiWindow {
             }
         }
     }
+}
+
+/// Logical output that needs to be handled by the caller
+#[derive(Debug, Clone, Default)]
+pub struct LogicOutput {
+    /// The requested cursor
+    pub cursor: cursor_icon::CursorIcon,
+
+    /// Whether the cursor is visible or not
+    pub cursor_visible: bool,
 }
 
 /// A map of egui textures to WutEngine materials. Used by [EguiWindow]

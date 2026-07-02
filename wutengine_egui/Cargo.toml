@@ -27,6 +27,7 @@ serde_json.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
 profiling.workspace = true
 nohash-hasher.workspace = true
+cursor-icon = { workspace = true }
 
 [lints]
 workspace = true

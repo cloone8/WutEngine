@@ -47,7 +47,7 @@ pub(crate) enum MainThreadEvent {
     RunTask(Box<dyn Future<Output = ()> + Send + 'static>),
 
     /// User requested a redraw
-    Redraw,
+    Wake,
 
     /// Someone requested the exit of the runtime through [crate::runtime::exit].
     /// If the `bool` is `true`, it means the exit is forced and cannot be overridden by handlers.
@@ -203,7 +203,12 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
         event_loop: &winit::event_loop::ActiveEventLoop,
         event: MainThreadEvent,
     ) {
+        window::manager::request_redraws();
+
         match event {
+            MainThreadEvent::Wake => {
+                // Nothing explicit to do as we already force a redraw earlier
+            }
             MainThreadEvent::NewWindowRequested(window_id, window_config) => {
                 profiling::scope!("New Window Requested");
 
@@ -255,7 +260,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                     for on_exit_requested_handler in
                         self.on_exit_requested_handlers.iter().map(Arc::as_ref)
                     {
-                        should_exit &= !(on_exit_requested_handler());
+                        should_exit = should_exit && !(on_exit_requested_handler());
                     }
                 }
 
@@ -268,9 +273,6 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
             }
             MainThreadEvent::AddSystem(manifest) => {
                 self.systems.queue_system(manifest);
-            }
-            MainThreadEvent::Redraw => {
-                window::manager::request_redraws();
             }
             MainThreadEvent::RunTask(task) => {
                 self.async_pool.insert_task(task);

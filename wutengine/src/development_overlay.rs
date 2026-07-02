@@ -6,7 +6,7 @@ pub use wutengine_development_overlay::*;
 use core::error::Error;
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde_core::Deserialize;
 use wutengine_egui::egui;
 use wutengine_egui::egui::Color32;
 

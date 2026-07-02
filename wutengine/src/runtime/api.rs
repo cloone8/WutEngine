@@ -41,9 +41,9 @@ fn request_exit(force: bool) {
     crate::runtime::send_to_main_thread(MainThreadEvent::RuntimeExitRequested(force));
 }
 
-/// Useful when a frequency setting other than [FrameFrequency::Fast] was selected
+/// Useful when a frequency setting other than [crate::runtime::FrameFrequency::Fast] was selected
 pub fn request_frame() {
-    crate::runtime::send_to_main_thread(MainThreadEvent::Redraw);
+    crate::runtime::send_to_main_thread(MainThreadEvent::Wake);
 }
 
 /// Run a future on the main thread

@@ -2,6 +2,7 @@
 
 use core::num::NonZeroU32;
 
+use cursor_icon::CursorIcon;
 use manager::display_info::DisplayExclusiveFullscreenMode;
 use winit::window::WindowAttributes;
 use wutengine_util_macro::VariantName;
@@ -16,6 +17,7 @@ pub use icon::*;
 mod display;
 pub use display::*;
 
+pub mod cursor;
 pub(crate) mod manager;
 pub(crate) mod pacer;
 
@@ -102,6 +104,12 @@ pub(crate) enum WindowUpdateEvent {
 
     /// Update the title string
     UpdateTitle(String),
+
+    /// Update the cursor
+    UpdateCursor(CursorIcon),
+
+    /// Sets the cursor to visible (true) or invisible (false)
+    CursorVisibility(bool),
 }
 
 fn clamp_min_size(min_size: (u32, u32)) -> (u32, u32) {
@@ -367,6 +375,36 @@ impl Window {
         }
     }
 
+    /// Sets the cursor icon for this window
+    #[inline]
+    pub fn set_cursor(self, cursor: cursor::CursorIcon) {
+        runtime::send_to_main_thread(runtime::MainThreadEvent::UpdateWindow(
+            self,
+            WindowUpdateEvent::UpdateCursor(cursor),
+        ));
+    }
+
+    /// Sets the visibility of the cursor
+    #[inline]
+    pub fn set_cursor_visible(self, visible: bool) {
+        runtime::send_to_main_thread(runtime::MainThreadEvent::UpdateWindow(
+            self,
+            WindowUpdateEvent::CursorVisibility(visible),
+        ));
+    }
+
+    /// Hides the cursor
+    #[inline(always)]
+    pub fn hide_cursor(self) {
+        self.set_cursor_visible(false);
+    }
+
+    /// Shows the cursor
+    #[inline(always)]
+    pub fn show_cursor(self) {
+        self.set_cursor_visible(true);
+    }
+
     /// Returns whether this window is the primary window
     #[inline]
     pub fn is_primary(self) -> bool {
@@ -471,6 +509,7 @@ impl Window {
     }
 
     /// Updates the title of the window
+    #[inline]
     pub fn set_title(self, title: impl Into<String>) {
         crate::runtime::send_to_main_thread(runtime::MainThreadEvent::UpdateWindow(
             self,
