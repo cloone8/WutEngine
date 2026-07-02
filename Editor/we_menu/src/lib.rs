@@ -234,6 +234,11 @@ fn clean_menu(entries: &mut Vec<MenuEntry>) {
 /// Shows the menu inside the current UI
 pub fn show(ui: &mut egui::Ui) {
     egui::MenuBar::new().ui(ui, |ui| {
+        {
+            let visuals = ui.visuals_mut();
+            visuals.button_frame = false;
+        }
+
         let menu = MENU_MANAGER.top_level_entries.lock().unwrap();
 
         let mut prev_location = None;

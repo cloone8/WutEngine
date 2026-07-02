@@ -3675,6 +3675,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "we_style"
+version = "0.1.0"
+dependencies = [
+ "wutengine_egui",
+]
+
+[[package]]
 name = "web-sys"
 version = "0.3.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4215,6 +4222,7 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 name = "wutengine"
 version = "0.6.0"
 dependencies = [
+ "cursor-icon",
  "derive_more",
  "hecs",
  "image",
@@ -4300,6 +4308,7 @@ dependencies = [
  "serde_json",
  "we_menu",
  "we_prefs",
+ "we_style",
  "windows",
  "winresource",
  "wutengine",
@@ -4313,6 +4322,7 @@ name = "wutengine_egui"
 version = "0.6.0"
 dependencies = [
  "bytemuck",
+ "cursor-icon",
  "derive_more",
  "egui",
  "log",

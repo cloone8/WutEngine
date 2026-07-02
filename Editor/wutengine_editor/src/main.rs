@@ -29,6 +29,7 @@ use wutengine_util::InitOnce;
 mod assetmanager;
 mod cli_args;
 mod editorwindow_renderpass;
+mod exit;
 mod logger;
 mod panel;
 mod project;
@@ -144,6 +145,8 @@ fn start_editor(project_file_path: &Path) {
     main_editor_window_entity.add_component(main_editor_window);
 
     add_default_menu_entries();
+
+    wutengine::runtime::add_on_exit_requested_handler(exit::on_exit_handler);
 }
 
 /// Adds the default menu entries

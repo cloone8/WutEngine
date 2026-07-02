@@ -1,5 +1,6 @@
 use wutengine_egui::egui;
 
+use crate::exit;
 use crate::panel::LogPanel;
 use crate::panel::TestPanel;
 use crate::panel::TreePanel;
@@ -47,8 +48,40 @@ impl MainEditorWindow {
     }
 
     fn show_ui(&mut self, ui: &mut egui::Ui) {
+        if exit::exit_requested() {
+            let modal = egui::Modal::new(egui::Id::new("Exit Modal")).show(ui.ctx(), |ui| {
+                ui.set_width(200.0);
+                ui.heading("Are you sure you want to exit?");
+
+                ui.add_space(32.0);
+
+                egui::Sides::new().show(
+                    ui,
+                    |ui| {
+                        if ui.button("Exit").clicked() {
+                            exit::allow_exit();
+                        }
+                    },
+                    |ui| {
+                        if ui.button("Cancel").clicked() {
+                            ui.close();
+                        }
+                    },
+                );
+            });
+
+            if modal.should_close() {
+                exit::stop_exit();
+            }
+        }
+
         egui::Panel::top("Top panel")
             .resizable(false)
+            .frame(
+                egui::Frame::side_top_panel(ui.style())
+                    .inner_margin(egui::Margin::symmetric(8, 2))
+                    .fill(we_style::MENU_COLOR),
+            )
             .show(ui, |ui| {
                 we_menu::show(ui);
             });

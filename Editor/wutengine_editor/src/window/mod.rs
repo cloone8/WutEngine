@@ -40,11 +40,17 @@ impl<T: EditorWindow> EditorWindowContainer<T> {
             return;
         }
 
-        egui_container
+        let output = egui_container
             .egui_window
             .run_logic(&EGUI_CONTEXT, &EGUI_RESOURCES, |ui| {
                 self.editor_window.show(ui);
             });
+
+        window_handle.set_cursor_visible(output.cursor_visible);
+
+        if output.cursor_visible {
+            window_handle.set_cursor(output.cursor);
+        }
     }
 }
 
