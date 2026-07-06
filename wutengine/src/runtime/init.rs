@@ -110,12 +110,14 @@ pub fn run(
     #[cfg(feature = "development_overlay")]
     {
         use crate::development_overlay::ConfigOverlay;
+        use crate::development_overlay::GamepadOverlay;
 
         crate::development_overlay::init(Some(|_| {
             crate::runtime::request_frame();
         }));
 
         crate::development_overlay::add_development_overlay_window(ConfigOverlay::default());
+        crate::development_overlay::add_development_overlay_window(GamepadOverlay::default());
         crate::development_overlay::add_development_overlay_window(
             crate::profiling::development_overlay::ProfilingOverlay::default(),
         );

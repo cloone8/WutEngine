@@ -2,6 +2,7 @@
 
 use wutengine_config::toml;
 pub use wutengine_development_overlay::*;
+use wutengine_input::gamepad::GamepadDump;
 
 use core::error::Error;
 use std::collections::BTreeMap;
@@ -147,6 +148,70 @@ impl DevelopmentOverlayWindow for ConfigOverlay {
 
         if let Some(err) = self.set_config_error.as_ref().map(String::as_str) {
             ui.colored_label(Color32::RED, err);
+        }
+    }
+}
+
+#[derive(Default)]
+pub(super) struct GamepadOverlay {}
+
+impl GamepadOverlay {
+    fn show_gamepad(gamepad: &GamepadDump, ui: &mut egui::Ui) {
+        egui::CollapsingHeader::new(gamepad.name.as_str())
+            .id_salt(gamepad.id.as_str())
+            .show(ui, |ui| {
+                ui.label(format!("ID: {}", gamepad.id));
+                ui.label(format!(
+                    "Product ID: {}",
+                    gamepad
+                        .product_id
+                        .map(|pid| pid.to_string())
+                        .unwrap_or("<unknown>".to_string())
+                ));
+                ui.label(format!(
+                    "Vendor ID: {}",
+                    gamepad
+                        .vendor_id
+                        .map(|vid| vid.to_string())
+                        .unwrap_or("<unknown>".to_string())
+                ));
+
+                ui.separator();
+
+                for (button, value) in gamepad.buttons.iter() {
+                    ui.label(format!("Button {}: {}", button, value));
+                }
+
+                ui.separator();
+
+                for (axis, value) in gamepad.axes.iter() {
+                    ui.label(format!("Axis {}: {}", axis, value));
+                }
+            });
+    }
+}
+
+impl DevelopmentOverlayWindow for GamepadOverlay {
+    fn name(&self) -> &str {
+        "Gamepads"
+    }
+
+    fn icon(&self) -> Option<&str> {
+        Some("🎮")
+    }
+
+    fn show(&mut self, ui: &mut egui::Ui) {
+        let gamepad_data = wutengine_input::gamepad::dump_state();
+
+        if gamepad_data.is_empty() {
+            ui.label("No gamepads identified");
+            return;
+        }
+
+        ui.label("Gamepads:");
+
+        for gamepad in gamepad_data {
+            GamepadOverlay::show_gamepad(&gamepad, ui);
         }
     }
 }

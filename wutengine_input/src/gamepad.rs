@@ -1,5 +1,9 @@
 //! Gamepad handling and APIs
 
+extern crate alloc;
+
+use alloc::collections::BTreeMap;
+
 use nohash_hasher::IntMap;
 use wutengine_math::Vec2;
 use wutengine_util_macro::VariantIndex;
@@ -524,4 +528,45 @@ pub fn axis_delta(device: Option<super::GamepadId>, axis: Axis) -> Vec2 {
             Vec2::ZERO
         }
     })
+}
+
+#[derive(Debug, Clone)]
+pub struct GamepadDump {
+    pub id: String,
+    pub name: String,
+    pub product_id: Option<u16>,
+    pub vendor_id: Option<u16>,
+    pub buttons: BTreeMap<String, f32>,
+    pub axes: BTreeMap<String, f32>,
+}
+
+/// Debugging function. Do not use
+pub fn dump_state() -> Vec<GamepadDump> {
+    let Some(gilrs) = INPUT_MANAGER.gamepad_manager.as_ref() else {
+        return Vec::new();
+    };
+
+    let gilrs = gilrs.lock().unwrap();
+
+    let mut output = Vec::new();
+    for (id, gamepad) in gilrs.gamepads() {
+        let state = gamepad.state();
+
+        output.push(GamepadDump {
+            id: id.to_string(),
+            name: gamepad.name().to_string(),
+            product_id: gamepad.product_id(),
+            vendor_id: gamepad.vendor_id(),
+            buttons: state
+                .buttons()
+                .map(|(code, data)| (code.into_u32().to_string(), data.value()))
+                .collect(),
+            axes: state
+                .axes()
+                .map(|(code, data)| (code.into_u32().to_string(), data.value()))
+                .collect(),
+        });
+    }
+
+    output
 }
