@@ -518,8 +518,41 @@ pub fn insert_raw_window_event(
 
             INPUT_MANAGER.mouse_window_position(MouseId::from_winit(*device_id), None);
         }
-        winit::event::WindowEvent::MouseWheel { .. } => {}
-        winit::event::WindowEvent::MouseInput { .. } => {}
+        winit::event::WindowEvent::MouseWheel {
+            device_id, delta, ..
+        } => {
+            profiling::scope!("MouseWheel");
+
+            match *delta {
+                winit::event::MouseScrollDelta::LineDelta(hor, ver) => {
+                    INPUT_MANAGER
+                        .mouse_scroll(MouseId::from_winit(*device_id), Vec2::new(hor, ver));
+                }
+                winit::event::MouseScrollDelta::PixelDelta(phys_pos) => {
+                    const PIXELS_PER_LINE: f32 = 50.0;
+                    const LINES_PER_PIXEL: f32 = 1.0 / PIXELS_PER_LINE;
+
+                    let hor = (phys_pos.x as f32) * LINES_PER_PIXEL;
+                    let ver = (phys_pos.y as f32) * LINES_PER_PIXEL;
+
+                    INPUT_MANAGER
+                        .mouse_scroll(MouseId::from_winit(*device_id), Vec2::new(hor, ver));
+                }
+            }
+        }
+        winit::event::WindowEvent::MouseInput {
+            device_id,
+            state,
+            button,
+        } => {
+            profiling::scope!("MouseInput");
+
+            INPUT_MANAGER.mouse_button(
+                MouseId::from_winit(*device_id),
+                logical_mouse_to_button_id(button),
+                *state,
+            );
+        }
         winit::event::WindowEvent::PinchGesture { .. } => {}
         winit::event::WindowEvent::PanGesture { .. } => {}
         winit::event::WindowEvent::DoubleTapGesture { .. } => {}
@@ -536,6 +569,18 @@ pub fn insert_raw_window_event(
     );
 
     true
+}
+
+/// Maps a logical winit mouse button to a raw id
+const fn logical_mouse_to_button_id(logical: &winit::event::MouseButton) -> winit::event::ButtonId {
+    match logical {
+        winit::event::MouseButton::Left => mouse::BUTTON_LEFT,
+        winit::event::MouseButton::Right => mouse::BUTTON_RIGHT,
+        winit::event::MouseButton::Middle => mouse::BUTTON_MIDDLE,
+        winit::event::MouseButton::Back => mouse::BUTTON_BACK,
+        winit::event::MouseButton::Forward => mouse::BUTTON_FORWARD,
+        winit::event::MouseButton::Other(other) => *other as winit::event::ButtonId,
+    }
 }
 
 /// Resets all per-frame delta values back to zero.
