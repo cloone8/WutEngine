@@ -11,6 +11,7 @@ publish.workspace = true
 we_prefs.workspace = true
 we_menu.workspace = true
 we_style.workspace = true
+we_fonts.workspace = true
 
 wutengine.workspace = true
 wutengine_egui.workspace = true

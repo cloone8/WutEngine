@@ -3,6 +3,8 @@
 
 extern crate alloc;
 
+use alloc::collections::BTreeMap;
+use alloc::sync::Arc;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
@@ -26,7 +28,6 @@ use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
-mod assetmanager;
 mod cli_args;
 mod editorwindow_renderpass;
 mod exit;
@@ -95,6 +96,8 @@ fn post_start(project: Option<PathBuf>) {
     InitOnce::init(&EGUI_CONTEXT, egui::Context::default());
     InitOnce::init(&EGUI_RESOURCES, TextureMaterialMap::default());
 
+    load_fonts();
+
     EGUI_CONTEXT.set_request_repaint_callback(|info| {
         _ = info;
 
@@ -146,7 +149,8 @@ fn start_editor(project_file_path: &Path) {
 
     add_default_menu_entries();
 
-    wutengine::runtime::add_on_exit_requested_handler(exit::on_exit_handler);
+    wutengine::runtime::add_on_exit_requested_handler(exit::on_exit_requested_handler);
+    wutengine::runtime::add_on_exit_handler(exit::on_exit_handler);
 }
 
 /// Adds the default menu entries
@@ -155,5 +159,62 @@ fn add_default_menu_entries() {
 
     we_menu::add_entry(&["File", "Exit"], u64::MAX, || {
         wutengine::runtime::exit();
+    });
+
+    we_menu::add_entry(&["Asset", "Import..."], 300, || {});
+
+    we_menu::add_entry(&["Asset", "Level"], 400, || {});
+}
+
+/// Loads the egui fonts
+fn load_fonts() {
+    let mut font_data = BTreeMap::new();
+
+    font_data.insert(
+        "FiraCode".to_string(),
+        Arc::new(egui::FontData::from_static(we_fonts::FIRA_CODA_VARIABLE)),
+    );
+
+    font_data.insert(
+        "DMSans".to_string(),
+        Arc::new(egui::FontData::from_static(we_fonts::DMSANS_VARIABLE)),
+    );
+
+    font_data.insert(
+        "DMSans Italic".to_string(),
+        Arc::new(egui::FontData::from_static(
+            we_fonts::DMSANS_VARIABLE_ITALIC,
+        )),
+    );
+
+    font_data.insert(
+        "NotoEmoji".to_string(),
+        Arc::new(egui::FontData::from_static(we_fonts::NOTO_EMOJI_VARIABLE)),
+    );
+
+    let mut families = BTreeMap::new();
+
+    families.insert(
+        egui::FontFamily::Monospace,
+        vec![
+            "FiraCode".to_string(),
+            "DMSans".to_string(),
+            "DMSans Italic".to_string(),
+            "NotoEmoji".to_string(),
+        ],
+    );
+
+    families.insert(
+        egui::FontFamily::Proportional,
+        vec![
+            "DMSans".to_string(),
+            "DMSans Italic".to_string(),
+            "NotoEmoji".to_string(),
+        ],
+    );
+
+    EGUI_CONTEXT.set_fonts(egui::FontDefinitions {
+        font_data,
+        families,
     });
 }

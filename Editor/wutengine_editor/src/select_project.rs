@@ -23,7 +23,7 @@ pub(crate) fn select_project() {
     log::info!("Selecting project to open");
 
     let initial_window_title = "Select a project - WutEngine Editor".to_string();
-    let initial_window_size = (1280, 720);
+    let initial_window_size = (854, 480);
 
     let initial_window = Window::create(WindowConfig {
         title: Some(initial_window_title.clone()),

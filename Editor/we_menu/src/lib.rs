@@ -84,8 +84,10 @@ impl MenuEntry {
         match &self.content {
             MenuContent::SubMenu(items) => {
                 ui.menu_button(&self.name, |ui| {
+                    let mut prev_location = None;
+
                     for item in items {
-                        item.show(prev_location, ui);
+                        item.show(&mut prev_location, ui);
                     }
                 });
             }

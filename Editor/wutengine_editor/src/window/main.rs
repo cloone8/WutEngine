@@ -1,6 +1,7 @@
 use wutengine_egui::egui;
 
 use crate::exit;
+use crate::panel::LibraryPanel;
 use crate::panel::LogPanel;
 use crate::panel::TestPanel;
 use crate::panel::TreePanel;
@@ -38,6 +39,7 @@ impl MainEditorWindow {
 
         let mut bottom_panels = PanelContainer::new();
         bottom_panels.add::<LogPanel>();
+        bottom_panels.add::<LibraryPanel>();
 
         Self {
             left_panels,
@@ -79,15 +81,19 @@ impl MainEditorWindow {
             .resizable(false)
             .frame(
                 egui::Frame::side_top_panel(ui.style())
-                    .inner_margin(egui::Margin::symmetric(8, 2))
+                    .inner_margin(egui::Margin::symmetric(8, 1))
                     .fill(we_style::MENU_COLOR),
             )
             .show(ui, |ui| {
                 we_menu::show(ui);
             });
 
+        let marginless =
+            egui::Frame::side_top_panel(ui.style()).inner_margin(egui::Margin::same(0));
+
         egui::Panel::left("Left panel")
             .resizable(true)
+            .frame(marginless)
             .show(ui, |ui| {
                 ui.take_available_space();
 
@@ -96,6 +102,7 @@ impl MainEditorWindow {
 
         egui::Panel::right("Right panel")
             .resizable(true)
+            .frame(marginless)
             .show(ui, |ui| {
                 ui.take_available_space();
 
@@ -104,6 +111,7 @@ impl MainEditorWindow {
 
         egui::Panel::bottom("Bottom panel")
             .resizable(true)
+            .frame(marginless)
             .default_size(250.0)
             .show(ui, |ui| {
                 ui.take_available_space();
@@ -111,10 +119,12 @@ impl MainEditorWindow {
                 self.bottom_panels.show(ui);
             });
 
-        egui::CentralPanel::default().show(ui, |ui| {
-            ui.take_available_space();
+        egui::CentralPanel::default()
+            .frame(marginless)
+            .show(ui, |ui| {
+                ui.take_available_space();
 
-            self.center_panels.show(ui);
-        });
+                self.center_panels.show(ui);
+            });
     }
 }

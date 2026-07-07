@@ -791,7 +791,6 @@ dependencies = [
  "bytemuck",
  "ecolor",
  "emath",
- "epaint_default_fonts",
  "font-types",
  "harfrust",
  "log",
@@ -805,12 +804,6 @@ dependencies = [
  "unicode-segmentation",
  "vello_cpu",
 ]
-
-[[package]]
-name = "epaint_default_fonts"
-version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13ee4e1f553a3584c301f3a56ff1a775f1384781396cea301c8d952e9b93f560"
 
 [[package]]
 name = "equivalent"
@@ -3655,6 +3648,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "we_fonts"
+version = "0.1.0"
+
+[[package]]
 name = "we_menu"
 version = "0.1.0"
 dependencies = [
@@ -4306,6 +4303,7 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
+ "we_fonts",
  "we_menu",
  "we_prefs",
  "we_style",

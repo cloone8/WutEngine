@@ -3,16 +3,25 @@
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 
+use crate::project;
+
 static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 static EXIT_ALLOWED: AtomicBool = AtomicBool::new(false);
 
 /// Handler for [wutengine::runtime::add_on_exit_requested_handler]
-pub(crate) fn on_exit_handler() -> bool {
+pub(crate) fn on_exit_requested_handler() -> bool {
     if EXIT_ALLOWED.load(Ordering::Acquire) {
         false
     } else {
         EXIT_REQUESTED.store(true, Ordering::Release);
         true
+    }
+}
+
+/// Handler for [wutengine::runtime::add_on_exit_handler]
+pub(crate) fn on_exit_handler() {
+    if let Err(e) = project::save() {
+        log::error!("Failed to save project to disk: {e}");
     }
 }
 

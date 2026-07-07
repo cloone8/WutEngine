@@ -12,6 +12,9 @@ pub(crate) use test_panel::*;
 mod tree_panel;
 pub(crate) use tree_panel::*;
 
+mod library_panel;
+pub(crate) use library_panel::*;
+
 unique_id_type32! {
     /// Unique identifier for an active [EditorPanel]
     pub(crate) EditorPanelId
