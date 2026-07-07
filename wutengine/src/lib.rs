@@ -18,6 +18,9 @@ pub mod development_overlay;
 #[doc(inline)]
 pub use hecs;
 
+#[doc(inline)]
+pub use uuid;
+
 pub mod log {
     //! Logging
 

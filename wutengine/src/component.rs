@@ -6,9 +6,6 @@ use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::sync::RwLock;
 
-#[doc(inline)]
-pub use uuid;
-
 static ADDED_DEFAULT_COMPONENT_SYSTEMS: LazyLock<RwLock<HashSet<TypeId>>> =
     LazyLock::new(|| RwLock::new(HashSet::default()));
 

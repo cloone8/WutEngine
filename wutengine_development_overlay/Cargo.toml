@@ -14,7 +14,7 @@ categories.workspace = true
 [dependencies]
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
-wutengine_egui.workspace = true
+wutengine_egui = { workspace = true, features = ["default_fonts"] }
 wutengine_input.workspace = true
 wutengine_graphics.workspace = true
 

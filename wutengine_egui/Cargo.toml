@@ -11,6 +11,9 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+default_fonts = ["egui/default_fonts"]
+
 [dependencies]
 wutengine_math.workspace = true
 wutengine_asset.workspace = true
@@ -22,7 +25,7 @@ wutengine_shadercompiler.workspace = true
 
 log.workspace = true
 bytemuck.workspace = true
-egui = { workspace = true, features = ["default_fonts", "bytemuck"] }
+egui = { workspace = true, features = ["bytemuck"] }
 serde_json.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
 profiling.workspace = true

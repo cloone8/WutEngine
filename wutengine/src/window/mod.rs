@@ -89,7 +89,7 @@ impl Default for WindowConfig {
             min_size: (1, 1),
             max_size: None,
             resizable: true,
-            icon: None,
+            icon: Some(Icon::Bytes(DEFAULT_ICON.to_vec())),
             vsync: None,
             fullscreen: Some(FullscreenMode::Borderless(BorderlessTarget::Primary)),
         }
