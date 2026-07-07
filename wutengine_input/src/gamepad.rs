@@ -530,13 +530,31 @@ pub fn axis_delta(device: Option<super::GamepadId>, axis: Axis) -> Vec2 {
     })
 }
 
+/// A dump of a gamepad state, for debugging
 #[derive(Debug, Clone)]
 pub struct GamepadDump {
+    /// ID of the gamepad
     pub id: String,
+
+    /// Human name of the gamepad
     pub name: String,
+
+    /// The used mapping, if any
+    pub mapping: Option<String>,
+
+    /// The mapping source, if any
+    pub mapping_source: String,
+
+    /// The product ID, if known
     pub product_id: Option<u16>,
+
+    /// The vendor ID, if known
     pub vendor_id: Option<u16>,
+
+    /// The state of any buttons
     pub buttons: BTreeMap<String, f32>,
+
+    /// The state of any axes
     pub axes: BTreeMap<String, f32>,
 }
 
@@ -555,6 +573,8 @@ pub fn dump_state() -> Vec<GamepadDump> {
         output.push(GamepadDump {
             id: id.to_string(),
             name: gamepad.name().to_string(),
+            mapping: gamepad.map_name().map(|s| s.to_string()),
+            mapping_source: format!("{:?}", gamepad.mapping_source()),
             product_id: gamepad.product_id(),
             vendor_id: gamepad.vendor_id(),
             buttons: state

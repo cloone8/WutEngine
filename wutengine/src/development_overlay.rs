@@ -157,34 +157,53 @@ pub(super) struct GamepadOverlay {}
 
 impl GamepadOverlay {
     fn show_gamepad(gamepad: &GamepadDump, ui: &mut egui::Ui) {
-        egui::CollapsingHeader::new(gamepad.name.as_str())
-            .id_salt(gamepad.id.as_str())
+        let GamepadDump {
+            id,
+            name,
+            mapping,
+            mapping_source,
+            product_id,
+            vendor_id,
+            buttons,
+            axes,
+        } = gamepad;
+
+        egui::CollapsingHeader::new(name)
+            .id_salt(id.as_str())
             .show(ui, |ui| {
-                ui.label(format!("ID: {}", gamepad.id));
+                ui.label(format!("ID: {}", id));
                 ui.label(format!(
                     "Product ID: {}",
-                    gamepad
-                        .product_id
+                    product_id
                         .map(|pid| pid.to_string())
                         .unwrap_or("<unknown>".to_string())
                 ));
                 ui.label(format!(
                     "Vendor ID: {}",
-                    gamepad
-                        .vendor_id
+                    vendor_id
                         .map(|vid| vid.to_string())
                         .unwrap_or("<unknown>".to_string())
                 ));
 
+                ui.label(format!("Mapping source: {mapping_source}"));
+
+                ui.label(format!(
+                    "Mapping: {}",
+                    mapping
+                        .as_ref()
+                        .map(|s| s.as_str())
+                        .unwrap_or("<no mapping>")
+                ));
+
                 ui.separator();
 
-                for (button, value) in gamepad.buttons.iter() {
+                for (button, value) in buttons.iter() {
                     ui.label(format!("Button {}: {}", button, value));
                 }
 
                 ui.separator();
 
-                for (axis, value) in gamepad.axes.iter() {
+                for (axis, value) in axes.iter() {
                     ui.label(format!("Axis {}: {}", axis, value));
                 }
             });
