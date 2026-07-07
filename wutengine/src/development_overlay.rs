@@ -160,6 +160,7 @@ impl GamepadOverlay {
         let GamepadDump {
             id,
             name,
+            uuid,
             mapping,
             mapping_source,
             product_id,
@@ -184,6 +185,8 @@ impl GamepadOverlay {
                         .map(|vid| vid.to_string())
                         .unwrap_or("<unknown>".to_string())
                 ));
+
+                ui.label(format!("UUID: {}", uuid::Uuid::from_bytes(*uuid)));
 
                 ui.label(format!("Mapping source: {mapping_source}"));
 

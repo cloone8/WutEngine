@@ -539,6 +539,9 @@ pub struct GamepadDump {
     /// Human name of the gamepad
     pub name: String,
 
+    /// The UUID of the gamepad,
+    pub uuid: [u8; 16],
+
     /// The used mapping, if any
     pub mapping: Option<String>,
 
@@ -573,6 +576,7 @@ pub fn dump_state() -> Vec<GamepadDump> {
         output.push(GamepadDump {
             id: id.to_string(),
             name: gamepad.name().to_string(),
+            uuid: gamepad.uuid(),
             mapping: gamepad.map_name().map(|s| s.to_string()),
             mapping_source: format!("{:?}", gamepad.mapping_source()),
             product_id: gamepad.product_id(),
