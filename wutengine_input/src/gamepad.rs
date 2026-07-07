@@ -126,16 +126,16 @@ pub fn poll_for_events() {
 
                 log::info!("Gamepad \"{name}\" with ID {} connected", event.id);
 
-                INPUT_MANAGER.set_most_recent_gamepad(GamepadId(event.id));
+                INPUT_MANAGER.set_most_recent_gamepad(gamepad_id);
 
-                gamepads.update_device(Some(&GamepadId(event.id)), |_| {});
+                gamepads.update_device(Some(&gamepad_id), |_| {});
             }
             gilrs::EventType::Disconnected => {
                 let name = gilrs_gamepad.name();
 
                 log::info!("Gamepad \"{name}\" with ID {} disconnected", event.id);
 
-                gamepads.remove_device(&GamepadId(event.id));
+                gamepads.remove_device(&gamepad_id);
             }
             _ => {}
         }
