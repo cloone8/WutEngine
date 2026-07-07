@@ -186,8 +186,26 @@ pub(crate) struct InputManager {
 
 impl Default for InputManager {
     fn default() -> Self {
-        let gilrs = match Gilrs::new() {
-            Ok(grs) => Some(Mutex::new(grs)),
+        let mut gamepads = DeviceSet::default();
+        let gilrs = match gilrs::GilrsBuilder::new()
+            .add_included_mappings(true)
+            .add_env_mappings(false)
+            .build()
+        {
+            Ok(grs) => {
+                // Poll for the initial set of gamepads
+                for (id, gamepad) in grs.gamepads() {
+                    log::info!(
+                        "Found already connected gamepad \"{}\" with ID {}",
+                        gamepad.name(),
+                        gamepad.id()
+                    );
+
+                    gamepads.update_device(Some(&GamepadId(id)), |_| {});
+                }
+
+                Some(Mutex::new(grs))
+            }
             Err(e) => {
                 log::error!("Failed to initialize Gilrs for reading gamepad input: {e}");
                 None
@@ -201,7 +219,7 @@ impl Default for InputManager {
             most_recent_gamepad: Default::default(),
             mice: Default::default(),
             keyboards: Default::default(),
-            gamepads: Default::default(),
+            gamepads: RwLock::new(gamepads),
         }
     }
 }

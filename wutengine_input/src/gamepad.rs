@@ -15,7 +15,7 @@ use super::DeviceSet;
 /// A gamepad input device
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From, derive_more::Display)]
 #[repr(transparent)]
-pub struct GamepadId(gilrs::GamepadId);
+pub struct GamepadId(pub(super) gilrs::GamepadId);
 
 /// The data for a gamepad
 #[derive(Debug)]
