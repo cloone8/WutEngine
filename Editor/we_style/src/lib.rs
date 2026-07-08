@@ -13,3 +13,6 @@ pub const PANEL_TAB_INACTIVE_COLOR: egui::Color32 = egui::Color32::from_gray(45)
 
 /// Color of the active panel tabs
 pub const PANEL_TAB_ACTIVE_COLOR: egui::Color32 = egui::Color32::from_gray(70);
+
+/// Background color of selected items
+pub const SELECTION_BACKGROUND_COLOR: egui::Color32 = egui::Color32::from_gray(70);

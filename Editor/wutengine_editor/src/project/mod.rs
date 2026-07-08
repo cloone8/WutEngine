@@ -19,6 +19,10 @@ static PROJECT: InitOnce<Project> = InitOnce::new_checked();
 /// An error while loading the project
 #[derive(Debug, derive_more::Error, derive_more::From, derive_more::Display)]
 pub(crate) enum LoadProjectError {
+    /// Failed to canonicalize project file path
+    #[display("Failed to canonicalize project file path: {}", _0)]
+    InvalidPath(std::io::Error),
+
     /// Failed to load main project file
     #[display("Failed to load the main project file: {}", _0)]
     ProjectFile(ProjectFileFromDiskErr),
@@ -35,7 +39,9 @@ pub(crate) fn load(project_file_path: &Path) -> Result<(), LoadProjectError> {
         "Project already loaded"
     );
 
-    let _project_file = ProjectFile::from_disk(project_file_path)?;
+    let project_file_path = project_file_path.canonicalize()?;
+
+    let _project_file = ProjectFile::from_disk(&project_file_path)?;
 
     let root_dir = project_file_path
         .parent()
@@ -60,6 +66,11 @@ pub(crate) fn load(project_file_path: &Path) -> Result<(), LoadProjectError> {
 /// Returns the name of the loaded project
 pub(crate) fn name() -> Option<&'static str> {
     PROJECT.name.as_deref()
+}
+
+/// Returns the global project asset manager
+pub(crate) fn asset_manager() -> &'static ProjectAssetManager {
+    &PROJECT.assets
 }
 
 /// Stores the project to disk

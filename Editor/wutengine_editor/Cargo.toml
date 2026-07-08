@@ -23,6 +23,8 @@ clap = { workspace = true, features = ["derive"] }
 rfd.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+postcard = { workspace = true, features = ["alloc"] }
+uuid = { workspace = true, features = ["v4"] }
 derive_more = { workspace = true, features = ["error", "from", "is_variant"] }
 nohash-hasher.workspace = true
 

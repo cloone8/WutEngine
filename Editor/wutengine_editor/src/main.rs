@@ -8,6 +8,7 @@ use alloc::sync::Arc;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
+use wutengine::asset::assets::level::SerializedLevel;
 
 use clap::Parser;
 use cli_args::CliArgs;
@@ -98,6 +99,12 @@ fn post_start(project: Option<PathBuf>) {
 
     load_fonts();
 
+    #[cfg(debug_assertions)]
+    {
+        //TODO: Some shit with our custom collapsible label
+        EGUI_CONTEXT.all_styles_mut(|style| style.debug.warn_if_rect_changes_id = false);
+    }
+
     EGUI_CONTEXT.set_request_repaint_callback(|info| {
         _ = info;
 
@@ -163,7 +170,20 @@ fn add_default_menu_entries() {
 
     we_menu::add_entry(&["Asset", "Import..."], 300, || {});
 
-    we_menu::add_entry(&["Asset", "Level"], 400, || {});
+    we_menu::add_entry(&["Asset", "Level"], 400, || {
+        let new_id = project::asset_manager()
+            .insert_asset(
+                SerializedLevel {
+                    name: "Test Level".to_string(),
+                    entries: vec![],
+                },
+                "Levels",
+                "Test Level",
+            )
+            .unwrap();
+
+        log::info!("New ID: {}", new_id);
+    });
 }
 
 /// Loads the egui fonts

@@ -248,5 +248,34 @@ pub fn show(ui: &mut egui::Ui) {
         for entry in menu.iter() {
             entry.show(&mut prev_location, ui);
         }
+
+        #[cfg(debug_assertions)]
+        show_debug(ui);
     });
+}
+
+/// Shows the editor debug menu
+#[cfg(debug_assertions)]
+fn show_debug(ui: &mut egui::Ui) {
+    ui.scope_builder(
+        egui::UiBuilder::new().layout(egui::Layout::right_to_left(egui::Align::Center)),
+        |ui| {
+            ui.menu_button(
+                egui::RichText::new("Editor Debug")
+                    .background_color(egui::Color32::LIGHT_RED)
+                    .color(egui::Color32::BLACK),
+                |ui| {
+                    let text = if ui.ctx().debug_on_hover() {
+                        "Layout debug ✔️"
+                    } else {
+                        "Layout debug"
+                    };
+
+                    if ui.button(text).clicked() {
+                        ui.ctx().set_debug_on_hover(!ui.ctx().debug_on_hover());
+                    }
+                },
+            );
+        },
+    );
 }
