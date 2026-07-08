@@ -2,7 +2,9 @@
 
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::RwLock;
 
+use assetmanager::ProjectAssetId;
 use wutengine_util::InitOnce;
 
 pub(crate) mod assetmanager;
@@ -52,6 +54,7 @@ pub(crate) fn load(project_file_path: &Path) -> Result<(), LoadProjectError> {
         name: None,
         assets: ProjectAssetManager::load(root_dir.clone())?,
         root: root_dir,
+        levels: RwLock::new(Vec::new()),
     };
 
     project.name = project_file_path
@@ -78,11 +81,19 @@ pub(crate) fn save() -> Result<(), SaveErr> {
     PROJECT.save()
 }
 
+/// Returns the open scenes
+pub(crate) fn open_levels() -> Vec<ProjectAssetId> {
+    PROJECT.levels.read().unwrap().clone()
+}
+
 /// The loaded project
 pub(crate) struct Project {
     name: Option<String>,
     root: PathBuf,
     assets: ProjectAssetManager,
+
+    /// All loaded levels. Not all levels in the project
+    levels: RwLock<Vec<ProjectAssetId>>,
 }
 
 impl Project {
