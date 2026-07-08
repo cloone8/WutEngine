@@ -29,6 +29,7 @@ use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
+mod asset_cache;
 mod cli_args;
 mod editorwindow_renderpass;
 mod exit;
@@ -128,6 +129,7 @@ fn post_start(project: Option<PathBuf>) {
 /// Starts the editor and loads the project file at the given path
 fn start_editor(project_file_path: &Path) {
     project::load(project_file_path).expect("Failed to load project"); //TODO: Handle properly
+    asset_cache::init();
 
     let initial_window_title = if let Some(proj_name) = project::name() {
         format!("{proj_name} - WutEngine Editor")

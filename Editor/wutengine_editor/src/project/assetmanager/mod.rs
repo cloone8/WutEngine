@@ -75,6 +75,10 @@ impl ProjectAssetManager {
 
         Ok(std::fs::write(&self.asset_index, assets_serialized)?)
     }
+
+    pub(crate) fn asset_root(&self) -> &Path {
+        &self.asset_root
+    }
 }
 
 /// An error while inserting a new asset
@@ -197,6 +201,10 @@ impl ProjectAssetManager {
     pub(crate) fn asset_iter(&self) -> impl Deref<Target = HashMap<ProjectAssetId, ProjectAsset>> {
         self.assets.read().unwrap()
     }
+
+    pub(crate) fn get_project_asset(&self, id: &ProjectAssetId) -> Option<ProjectAsset> {
+        self.assets.read().unwrap().get(id).cloned()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -217,7 +225,7 @@ impl Display for ProjectAssetId {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ProjectAsset {
     #[serde(skip)]
     id: Option<ProjectAssetId>,
@@ -229,6 +237,10 @@ pub(crate) struct ProjectAsset {
 }
 
 impl ProjectAsset {
+    pub(crate) fn id(&self) -> ProjectAssetId {
+        self.id.expect("ID should have been filled")
+    }
+
     pub(crate) fn name(&self) -> &str {
         self.path
             .file_stem()
@@ -244,11 +256,15 @@ impl ProjectAsset {
     pub(crate) fn path(&self) -> &Path {
         &self.path
     }
+
+    pub(crate) fn format(&self) -> ProjectAssetFormat {
+        self.format
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum ProjectAssetFormat {
+pub(crate) enum ProjectAssetFormat {
     Json,
     Postcard,
 }
