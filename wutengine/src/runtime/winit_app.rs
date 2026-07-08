@@ -223,6 +223,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                 let surface = graphics::instance().create_surface(native.clone()).unwrap();
 
                 window::manager::new_window(window_id, native, surface);
+                window::manager::request_redraws();
             }
             MainThreadEvent::CloseWindow(window_id) => {
                 profiling::scope!("Close Window");
@@ -241,6 +242,8 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                     // More than one window, so just close it normally
                     window::manager::close_window(window_id);
                 }
+
+                window::manager::request_redraws();
             }
 
             MainThreadEvent::UpdateWindow(window_id, update_event) => {
@@ -265,9 +268,12 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                 if should_exit {
                     event_loop.exit();
                 }
+
+                window::manager::request_redraws();
             }
             MainThreadEvent::ForceSurfaceReconfigure(window_id) => {
                 window::manager::refresh_window(&window_id, true);
+                window::manager::request_redraws();
             }
             MainThreadEvent::AddSystem(manifest) => {
                 self.systems.queue_system(manifest);
