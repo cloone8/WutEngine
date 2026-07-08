@@ -8,6 +8,7 @@ use core::any::TypeId;
 use core::error::Error;
 use core::fmt::Debug;
 use core::fmt::Display;
+use core::marker::PhantomData;
 use std::path::Path;
 use std::sync::LazyLock;
 use std::sync::RwLock;
@@ -69,23 +70,42 @@ pub trait Asset: Send + Sync + Any {
 }
 
 /// A serialized [Asset]
-pub trait SerializedAsset: Serialize + DeserializeOwned + Any {}
+pub trait SerializedAsset: Serialize + DeserializeOwned + Any {
+    /// Whether to always try to serialize this asset as binary
+    const PREFER_BINARY_SERIALIZATION: bool = false;
+}
 
 /// Handle to an asset
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AssetHandle<T> {
     /// The asset identifier
-    #[serde(skip_serializing_if = "Option::is_none")]
-    asset_id: Option<uuid::Uuid>,
+    asset_id: Option<uuid::NonNilUuid>,
 
     /// The loaded asset
-    #[serde(skip, default = "default_none")]
     asset: Option<Arc<T>>,
 }
 
-/// Helper for serde
-const fn default_none<T>() -> Option<Arc<T>> {
-    None
+impl<A> From<AssetRef<A::Serialized>> for AssetHandle<A>
+where
+    A: Asset,
+{
+    #[inline(always)]
+    fn from(value: AssetRef<A::Serialized>) -> Self {
+        Self::from_ref(&value)
+    }
+}
+
+impl<A> From<AssetHandle<A>> for AssetRef<A::Serialized>
+where
+    A: Asset,
+{
+    #[inline(always)]
+    fn from(value: AssetHandle<A>) -> Self {
+        Self {
+            asset_id: value.asset_id,
+            _ph: PhantomData,
+        }
+    }
 }
 
 impl<T> Default for AssetHandle<T> {
@@ -101,6 +121,14 @@ impl<T: Asset> AssetHandle<T> {
     /// Creates a new handle from an existing asset
     pub fn new(asset: impl Into<Self>) -> Self {
         asset.into()
+    }
+
+    /// Creates a new handle from an asset reference
+    pub fn from_ref(asset_ref: &AssetRef<T::Serialized>) -> Self {
+        Self {
+            asset_id: asset_ref.asset_id,
+            asset: None,
+        }
     }
 
     /// Creates a new handle from a serialized asset
@@ -141,6 +169,46 @@ impl<T> From<Option<T>> for AssetHandle<T> {
                 asset: None,
             },
         }
+    }
+}
+
+/// A serializable asset reference
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AssetRef<T> {
+    /// The ID of the asset
+    asset_id: Option<uuid::NonNilUuid>,
+
+    /// Phantom data for typing
+    _ph: PhantomData<T>,
+}
+
+impl<T> PartialEq for AssetRef<T> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.asset_id == other.asset_id
+    }
+}
+
+impl<T> Eq for AssetRef<T> {}
+
+impl<T> PartialOrd for AssetRef<T> {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> Ord for AssetRef<T> {
+    #[inline]
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.asset_id.cmp(&other.asset_id)
+    }
+}
+
+impl<T> core::hash::Hash for AssetRef<T> {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.asset_id.hash(state);
     }
 }
 

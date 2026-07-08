@@ -203,11 +203,9 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
         event_loop: &winit::event_loop::ActiveEventLoop,
         event: MainThreadEvent,
     ) {
-        window::manager::request_redraws();
-
         match event {
             MainThreadEvent::Wake => {
-                // Nothing explicit to do as we already force a redraw earlier
+                window::manager::request_redraws();
             }
             MainThreadEvent::NewWindowRequested(window_id, window_config) => {
                 profiling::scope!("New Window Requested");
@@ -276,6 +274,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
             }
             MainThreadEvent::RunTask(task) => {
                 self.async_pool.insert_task(task);
+                window::manager::request_redraws();
             }
         }
     }

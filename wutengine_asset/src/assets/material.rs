@@ -1,28 +1,68 @@
 //! Material asset
 
-use core::any::Any;
 use std::collections::HashMap;
 
 use serde::Deserialize;
 use serde::Serialize;
-use serde::de::DeserializeOwned;
+use wutengine_math::Color;
+use wutengine_math::Mat4;
+use wutengine_math::Vec2;
+use wutengine_math::Vec3;
+use wutengine_math::Vec4;
 
-use crate::AssetHandle;
+use crate::AssetRef;
 use crate::SerializedAsset;
+
+use super::sampler::SerializedSampler;
+use super::shader::SerializedShader;
+use super::texture::SerializedTexture;
 
 /// The data for a single material
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: Serialize"))]
-#[serde(bound(deserialize = "P: Deserialize<'de>"))]
-pub struct SerializedMaterial<S, P> {
+pub struct SerializedMaterial {
     /// The shader used by this material
-    pub shader: AssetHandle<S>,
+    pub shader: AssetRef<SerializedShader>,
 
     /// The set keyword values for this material
     pub keywords: HashMap<String, u64>,
 
     /// The parameter values for this material
-    pub parameters: HashMap<String, P>,
+    pub parameters: HashMap<String, SerializedMaterialParameter>,
 }
 
-impl<S: Any, P: Any + Serialize + DeserializeOwned> SerializedAsset for SerializedMaterial<S, P> {}
+impl SerializedAsset for SerializedMaterial {}
+
+/// A material parameter value
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum SerializedMaterialParameter {
+    /// Unsigned 32-bit integer
+    Uint(u32),
+
+    /// Signed 32-bit integer
+    Int(i32),
+
+    /// 32-bit float
+    Flt(f32),
+
+    /// Two-component float vector
+    Vec2(Vec2),
+
+    /// Three-component float vector
+    Vec3(Vec3),
+
+    /// Four-component float vector
+    Vec4(Vec4),
+
+    /// A 4 component color value
+    Color(Color),
+
+    /// 4x4 matrix
+    Mat4(Mat4),
+
+    /// 2D texture
+    Texture2D(AssetRef<SerializedTexture>),
+
+    /// Sampler
+    Sampler(AssetRef<SerializedSampler>),
+}

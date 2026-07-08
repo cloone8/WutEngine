@@ -11,6 +11,10 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+default = ["std"]
+std = ["glam/std"]
+
 [dependencies]
 glam = { workspace = true, features = ["bytemuck", "serde"] }
 serde = { workspace = true, features = ["derive"] }

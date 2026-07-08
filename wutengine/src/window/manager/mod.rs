@@ -1,6 +1,7 @@
 //! Module housing the window manager
 
 use alloc::sync::Arc;
+use core::sync::atomic::AtomicUsize;
 use display_info::DisplayInfo;
 use nohash_hasher::IntSet;
 use std::sync::RwLock;

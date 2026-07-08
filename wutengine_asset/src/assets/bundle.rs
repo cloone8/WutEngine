@@ -3,7 +3,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::AssetHandle;
+use crate::AssetRef;
+use crate::SerializedAsset;
 
 use super::entity::SerializedEntity;
 
@@ -17,6 +18,8 @@ pub struct SerializedBundle {
     pub entries: Vec<BundleEntry>,
 }
 
+impl SerializedAsset for SerializedBundle {}
+
 /// An entry in a [SerializedBundle]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "entry_type")]
@@ -25,5 +28,5 @@ pub enum BundleEntry {
     Entity(SerializedEntity),
 
     /// A reference to a [SerializedBundle]
-    Bundle(AssetHandle<SerializedBundle>),
+    Bundle(AssetRef<SerializedBundle>),
 }

@@ -3,7 +3,11 @@
 use alloc::sync::Arc;
 use core::convert::Infallible;
 use std::collections::HashMap;
+use wutengine_asset::AssetRef;
 use wutengine_asset::assets::material::SerializedMaterial;
+use wutengine_asset::assets::material::SerializedMaterialParameter;
+use wutengine_asset::assets::sampler::SerializedSampler;
+use wutengine_asset::assets::texture::SerializedTexture;
 use wutengine_math::Color;
 use wutengine_util_macro::unique_id_type32;
 
@@ -99,7 +103,7 @@ impl Clone for Material {
 }
 
 impl Asset for Material {
-    type Serialized = SerializedMaterial<Shader, MaterialParameter>;
+    type Serialized = SerializedMaterial;
 
     type FromSerializedErr = Infallible;
 
@@ -107,30 +111,31 @@ impl Asset for Material {
     where
         Self: Sized,
     {
-        let mut mat = Material::new(
-            serialized
-                .shader
-                .get_arc()
-                .expect("Shader asset not yet loaded"),
-            serialized.keywords.clone(),
-        );
+        todo!();
+        // let mut mat = Material::new(
+        //     serialized
+        //         .shader
+        //         .get_arc()
+        //         .expect("Shader asset not yet loaded"),
+        //     serialized.keywords.clone(),
+        // );
 
-        let queue = super::queue();
+        // let queue = super::queue();
 
-        for (param_name, param_value) in &serialized.parameters {
-            if let Err(e) =
-                mat.user_bind_group
-                    .set_parameter(param_name.as_str(), param_value.clone(), queue)
-            {
-                log::error!(
-                    "Error setting material parameter {param_name} during deserialization: {e}"
-                );
-            }
-        }
+        // for (param_name, param_value) in &serialized.parameters {
+        //     if let Err(e) =
+        //         mat.user_bind_group
+        //             .set_parameter(param_name.as_str(), param_value.clone(), queue)
+        //     {
+        //         log::error!(
+        //             "Error setting material parameter {param_name} during deserialization: {e}"
+        //         );
+        //     }
+        // }
 
-        mat.user_bind_group.update_bind_group(super::device());
+        // mat.user_bind_group.update_bind_group(super::device());
 
-        Ok(mat)
+        // Ok(mat)
     }
 }
 
@@ -143,8 +148,6 @@ impl Asset for Material {
     derive_more::Unwrap,
     derive_more::TryUnwrap,
     derive_more::From,
-    Serialize,
-    Deserialize,
     VariantName,
 )]
 pub enum MaterialParameter {
@@ -177,4 +180,32 @@ pub enum MaterialParameter {
 
     /// Sampler
     Sampler(AssetHandle<Sampler>),
+}
+
+impl From<SerializedMaterialParameter> for MaterialParameter {
+    #[inline]
+    fn from(value: SerializedMaterialParameter) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&SerializedMaterialParameter> for MaterialParameter {
+    fn from(value: &SerializedMaterialParameter) -> Self {
+        match value {
+            SerializedMaterialParameter::Uint(x) => Self::Uint(*x),
+            SerializedMaterialParameter::Int(x) => Self::Int(*x),
+            SerializedMaterialParameter::Flt(x) => Self::Flt(*x),
+            SerializedMaterialParameter::Vec2(vec2) => Self::Vec2(*vec2),
+            SerializedMaterialParameter::Vec3(vec3) => Self::Vec3(*vec3),
+            SerializedMaterialParameter::Vec4(vec4) => Self::Vec4(*vec4),
+            SerializedMaterialParameter::Color(color) => Self::Color(*color),
+            SerializedMaterialParameter::Mat4(mat4) => Self::Mat4(*mat4),
+            SerializedMaterialParameter::Texture2D(asset_ref) => {
+                Self::Texture2D(AssetHandle::from_ref(asset_ref))
+            }
+            SerializedMaterialParameter::Sampler(asset_ref) => {
+                Self::Sampler(AssetHandle::from_ref(asset_ref))
+            }
+        }
+    }
 }

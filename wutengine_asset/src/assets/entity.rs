@@ -3,7 +3,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::AssetHandle;
+use crate::AssetRef;
 
 use super::bundle::SerializedBundle;
 use super::component::SerializedComponent;
@@ -29,5 +29,5 @@ pub enum EntityEntry {
     Entity(SerializedEntity),
 
     /// A reference to a bundle
-    Bundle(AssetHandle<SerializedBundle>),
+    Bundle(AssetRef<SerializedBundle>),
 }
