@@ -70,7 +70,7 @@ pub trait Asset: Send + Sync + Any {
 }
 
 /// A serialized [Asset]
-pub trait SerializedAsset: Serialize + DeserializeOwned + Any {
+pub trait SerializedAsset: Serialize + DeserializeOwned + Any + Send + Sync {
     /// Whether to always try to serialize this asset as binary
     const PREFER_BINARY_SERIALIZATION: bool = false;
 }
