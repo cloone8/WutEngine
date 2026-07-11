@@ -1,6 +1,9 @@
 //! WutEngine ECS system registration and query helpers
 
+use alloc::format;
+use alloc::string::String;
 use alloc::sync::Arc;
+use alloc::vec::Vec;
 use core::{
     any::TypeId,
     fmt::Display,

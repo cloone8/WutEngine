@@ -13,6 +13,9 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
+[features]
+std = []
+
 [dependencies]
 wutengine_assets.workspace = true
 

@@ -1,8 +1,10 @@
 //! Material related functionality
 
+use alloc::string::String;
+use alloc::string::ToString;
 use alloc::sync::Arc;
 use core::convert::Infallible;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use serde::{Deserialize, Serialize};
 use wutengine_asset_server::AutoLoad;

@@ -1,7 +1,7 @@
 //! Implements the [winit::application::ApplicationHandler] interface for [crate::runtime::Runtime],
 //! so that its execution can be driven by [winit]
 
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 use core::time::Duration;
 
 use wutengine_util_macro::VariantName;

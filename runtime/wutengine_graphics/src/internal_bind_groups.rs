@@ -1,5 +1,7 @@
 //! The constant hard-coded bind groups for non-user shader parameters
 
+use alloc::string::String;
+use alloc::string::ToString;
 use core::num::NonZero;
 use std::sync::LazyLock;
 

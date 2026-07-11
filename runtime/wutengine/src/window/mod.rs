@@ -2,6 +2,7 @@
 
 use core::num::NonZeroU32;
 
+use alloc::{format, string::String, vec::Vec};
 use cursor_icon::CursorIcon;
 use manager::display_info::DisplayExclusiveFullscreenMode;
 use winit::window::WindowAttributes;

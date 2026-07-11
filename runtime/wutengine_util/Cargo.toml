@@ -12,9 +12,14 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
+[features]
+std = []
+hashbrown = ["dep:hashbrown"]
+
 [dependencies]
 log.workspace = true
 nohash-hasher.workspace = true
+hashbrown = { workspace = true, optional = true }
 
 [lints]
 workspace = true

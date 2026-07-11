@@ -1,12 +1,21 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
 
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::string::String;
 use alloc::sync::Arc;
 use core::{
     num::NonZero,
     sync::atomic::{AtomicBool, Ordering},
 };
+
+#[cfg(feature = "std")]
 use std::thread::available_parallelism;
 
 use detect::CoreConfig;

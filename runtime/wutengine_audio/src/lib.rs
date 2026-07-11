@@ -1,9 +1,16 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use wutengine_util::InitOnce;
 
 mod audioclip;
 pub use audioclip::*;
+
 #[doc(inline)]
 pub use rodio;
 

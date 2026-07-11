@@ -1,12 +1,12 @@
 //! Level asset
 
-use serde::{Deserialize, Serialize};
-
 use super::{bundle::SerializedBundle, entity::SerializedEntity};
 use crate::{AssetRef, SerializedAsset};
 
 /// A playable level, containing a set of entity/bundle entries.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct SerializedLevel {
     /// Name of the level
     pub name: String,
@@ -21,8 +21,10 @@ impl SerializedAsset for SerializedLevel {
 }
 
 /// An entry in a [SerializedLevel]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "entry_type")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "entry_type"))]
 pub enum LevelEntry {
     /// An entity
     Entity(SerializedEntity),

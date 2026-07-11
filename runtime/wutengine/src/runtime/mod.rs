@@ -1,7 +1,9 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
-use alloc::sync::Arc;
+use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
 use core::{any::TypeId, sync::atomic::AtomicBool};
+
+#[cfg(feature = "std")]
 use std::{sync::mpsc::Receiver, time::Instant};
 
 use events::{AddOnExitHandler, AddOnExitRequestedHandler};

@@ -1,15 +1,17 @@
 //! Shader asset
 
 use core::ops::RangeInclusive;
-use std::{collections::HashMap, path::PathBuf};
+use hashbrown::HashMap;
+use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
 use wutengine_util_macro::VariantIndex;
 
 use crate::SerializedAsset;
 
 /// The data for a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct SerializedShader {
     /// Human-readible name of the shader
     pub name: String,
@@ -18,7 +20,7 @@ pub struct SerializedShader {
     pub vertex_attributes: Vec<ShaderVertexAttribute>,
 
     /// Which default parameters the shader uses
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub default_parameters: ShaderDefaultParameters,
 
     /// What keywords can be set, and their allowed values
@@ -37,10 +39,12 @@ impl SerializedAsset for SerializedShader {
 }
 
 /// A vertex attribute used by a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct ShaderVertexAttribute {
     /// The type of the attribute
-    #[serde(flatten)]
+    #[cfg_attr(feature = "serde", serde(flatten))]
     pub ty: ShaderVertexAttributeType,
 
     /// The binding location in the shader used by the attribute
@@ -51,11 +55,10 @@ pub struct ShaderVertexAttribute {
 }
 
 /// The type of a shader vertex attribute
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, VariantIndex,
-)]
-#[serde(tag = "type")]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, VariantIndex)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", rename_all = "lowercase"))]
 #[index_repr(u8)]
 pub enum ShaderVertexAttributeType {
     /// Position data
@@ -107,24 +110,27 @@ impl core::fmt::Display for ShaderVertexAttributeType {
 }
 
 /// A configurable keyword for a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct ShaderKeyword {
     /// The default value
-    default: u64,
+    pub default: u64,
 
     /// The range of allowed values
-    allowed: RangeInclusive<u64>,
+    pub allowed: RangeInclusive<u64>,
 }
 
 /// An exposed parameter for a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "kind", rename_all = "lowercase"))]
 pub enum ShaderParameter {
     /// A buffer parameter. This includes all data types that have a concrete bit-value
     Buffer {
         /// The type of the parameter
-        #[serde(rename = "type")]
+        #[cfg_attr(feature = "serde", serde(rename = "type"))]
         ty: ShaderBufferParameterType,
 
         /// The name of the parameter
@@ -138,7 +144,7 @@ pub enum ShaderParameter {
     /// etc.
     Opaque {
         /// The type of the parameter
-        #[serde(rename = "type")]
+        #[cfg_attr(feature = "serde", serde(rename = "type"))]
         ty: ShaderOpaqueParameterType,
 
         /// The name of the parameter
@@ -160,9 +166,10 @@ impl ShaderParameter {
 }
 
 /// The source code of a shader
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "kind", rename_all = "lowercase"))]
 pub enum ShaderSource {
     /// Inline source
     Inline {
@@ -178,20 +185,24 @@ pub enum ShaderSource {
 }
 
 /// The condition string for a shader parameter
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-#[serde(transparent)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct ShaderParameterCondition(pub String);
 
 /// The set of shader default parameters
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct ShaderDefaultParameters {
     /// Uses the per-camera parameter block
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub camera: bool,
 
     /// Uses the per-instance parameter block
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub instance: bool,
 }
 
@@ -205,8 +216,10 @@ impl Default for ShaderDefaultParameters {
 }
 
 /// The type of a shader buffer parameter
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum ShaderBufferParameterType {
     /// 32-bit float
     Flt,
@@ -249,13 +262,15 @@ pub enum ShaderBufferParameterType {
 }
 
 /// The type of an opaque shader parameter
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum ShaderOpaqueParameterType {
     /// A texture sampler
     Sampler,
 
     /// A 2D texture
-    #[serde(rename = "texture_2d")]
+    #[cfg_attr(feature = "serde", serde(rename = "texture_2d"))]
     Texture2D,
 }

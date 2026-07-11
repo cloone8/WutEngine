@@ -16,10 +16,14 @@ mod flamegraph;
 mod stats;
 
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
+    vec,
+    vec::Vec,
 };
 use core::{fmt::Write, iter, time::Duration};
+
 use std::{sync::Mutex, time::Instant};
 
 use egui::{scroll_area::ScrollSource, *};

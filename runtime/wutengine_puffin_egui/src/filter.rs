@@ -1,5 +1,7 @@
 //! A filter string
 
+use alloc::string::String;
+
 /// A filter string used to filter scopes
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Filter {

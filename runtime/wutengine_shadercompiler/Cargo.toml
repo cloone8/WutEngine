@@ -12,13 +12,17 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
+[features]
+std = []
+
 [dependencies]
+wutengine_util = { workspace = true, features = ["hashbrown"] }
 naga = { workspace = true, features = ["wgsl-in"] }
 derive_more = { workspace = true, features = ["error", "display", "from"] }
 log.workspace = true
 smallvec.workspace = true
-nohash-hasher.workspace = true
 profiling.workspace = true
+hashbrown = { workspace = true }
 
 [lints]
 workspace = true

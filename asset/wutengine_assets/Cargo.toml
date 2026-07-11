@@ -12,15 +12,24 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
+[features]
+std = []
+serialize = ["serde"]
+deserialize = ["serde"]
+serde = ["dep:serde", "dep:serde_bytes", "uuid/serde", "hashbrown/serde"]
+
 [dependencies]
+wutengine_util = { workspace = true, features = ["hashbrown"] }
 wutengine_math.workspace = true
 wutengine_util_macro.workspace = true
 
-serde.workspace = true
-serde_bytes.workspace = true
-nohash-hasher.workspace = true
-uuid = { workspace = true, features = ["serde"] }
+hashbrown = { workspace = true }
+uuid = { workspace = true }
 derive_more = { workspace = true, features = ["from", "display"] }
+nohash-hasher.workspace = true
+
+serde = { workspace = true, optional = true }
+serde_bytes = { workspace = true, optional = true }
 
 [lints]
 workspace = true

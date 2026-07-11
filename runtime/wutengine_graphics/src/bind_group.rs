@@ -1,7 +1,10 @@
 //! Wrapper around a [wgpu::BindGroup]
 
+use alloc::borrow::ToOwned;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::num::NonZero;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use wutengine_assets::assets::shader::{ShaderBufferParameterType, ShaderParameter};
 

@@ -1,6 +1,10 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
 
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 mod bind_group;
 mod cache;
@@ -21,6 +25,7 @@ pub use config::*;
 pub use init::{initialize_graphics_context, persist_pipeline_cache};
 #[doc(inline)]
 pub use wgpu;
+
 use wutengine_util::InitOnce;
 
 /// The global [wgpu::Adapter]
@@ -121,7 +126,7 @@ macro_rules! label {
     };
 
     ($($arg:tt)+) => {
-        Some(format!($($arg)*).as_str())
+        Some(::alloc::format!($($arg)*).as_str())
     };
 }
 

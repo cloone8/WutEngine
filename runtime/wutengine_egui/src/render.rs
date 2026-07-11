@@ -2,7 +2,7 @@
 
 use alloc::sync::Arc;
 use core::num::NonZero;
-use std::collections::HashMap;
+use wutengine_util::hashbrown::HashMap;
 
 use nohash_hasher::IntMap;
 use wutengine_assets::assets::{mesh::MeshTopology, shader::ShaderVertexAttributeType};

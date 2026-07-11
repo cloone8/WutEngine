@@ -1,8 +1,8 @@
 //! Mesh related functionality.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
-use nohash_hasher::IntMap;
+use alloc::vec::Vec;
 use wutengine_assets::{
     FromSerializedAsset,
     assets::{
@@ -10,6 +10,7 @@ use wutengine_assets::{
         shader::ShaderVertexAttributeType,
     },
 };
+use wutengine_util::IntMap;
 
 use super::shader::{GVec2, GVec3};
 use crate::shader::GVec4;

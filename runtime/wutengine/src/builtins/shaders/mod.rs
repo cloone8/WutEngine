@@ -1,37 +1,103 @@
 //! Builtin shaders
 
-use std::sync::{Arc, LazyLock};
+#[cfg(feature = "std")]
+use std::sync::LazyLock;
 
+use alloc::string::ToString;
 use wutengine_assets::{
     FromSerializedAsset,
-    assets::shader::{SerializedShader, ShaderSource},
+    assets::shader::{
+        SerializedShader, ShaderBufferParameterType, ShaderDefaultParameters, ShaderKeyword,
+        ShaderOpaqueParameterType, ShaderParameter, ShaderParameterCondition, ShaderSource,
+        ShaderVertexAttribute, ShaderVertexAttributeType,
+    },
 };
+
+use alloc::sync::Arc;
+use alloc::vec;
 
 use crate::graphics::shader::Shader;
 
-/// Macro to automatically create a [Shader] from a descriptor and source file,
-/// overriding the "source" field of the shader descriptor to be inline
-macro_rules! from_descriptor_and_source {
-    ($name:literal) => {{
-        let descriptor = include_str!(concat!($name, ".json"));
-        let source = include_str!(concat!($name, ".wgsl"));
-
-        let mut shader = serde_json::from_str::<SerializedShader>(descriptor).expect(concat!(
-            "Invalid built-in shader: \"",
-            $name,
-            "\""
-        ));
-
-        shader.source = ShaderSource::Inline {
-            content: source.to_owned(),
-        };
-
-        Arc::new(Shader::from_serialized_asset(shader).unwrap())
-    }};
-}
-
 /// Fullscreen blit shader
-pub static BLIT: LazyLock<Arc<Shader>> = LazyLock::new(|| from_descriptor_and_source!("blit"));
+pub static BLIT: LazyLock<Arc<Shader>> = LazyLock::new(|| {
+    let source = include_str!("blit.wgsl");
+
+    let shader = SerializedShader {
+        name: "Blit".to_string(),
+        vertex_attributes: vec![],
+        default_parameters: ShaderDefaultParameters {
+            camera: false,
+            instance: false,
+        },
+        keywords: Default::default(),
+        parameters: vec![
+            ShaderParameter::Opaque {
+                ty: ShaderOpaqueParameterType::Sampler,
+                name: "source_sampler".to_string(),
+                condition: None,
+            },
+            ShaderParameter::Opaque {
+                ty: ShaderOpaqueParameterType::Texture2D,
+                name: "source_texture".to_string(),
+                condition: None,
+            },
+        ],
+        source: ShaderSource::Inline {
+            content: source.to_string(),
+        },
+    };
+
+    Arc::new(Shader::from_serialized_asset(shader).unwrap())
+});
 
 /// Unlit shader
-pub static UNLIT: LazyLock<Arc<Shader>> = LazyLock::new(|| from_descriptor_and_source!("unlit"));
+pub static UNLIT: LazyLock<Arc<Shader>> = LazyLock::new(|| {
+    let source = include_str!("unlit.wgsl");
+
+    let shader = SerializedShader {
+        name: "Unlit".to_string(),
+        vertex_attributes: vec![
+            ShaderVertexAttribute {
+                ty: ShaderVertexAttributeType::Position,
+                location: 0,
+                condition: None,
+            },
+            ShaderVertexAttribute {
+                ty: ShaderVertexAttributeType::Uv { channel: 0 },
+                location: 1,
+                condition: Some(ShaderParameterCondition("HAS_COLOR_MAP != 0".to_string())),
+            },
+        ],
+        default_parameters: ShaderDefaultParameters {
+            camera: true,
+            instance: true,
+        },
+        keywords: wutengine_util::map! {
+            "HAS_COLOR_MAP"=> ShaderKeyword {
+                default: 0,
+                allowed: 0..=1,
+            }
+        },
+        parameters: vec![
+            ShaderParameter::Buffer {
+                ty: ShaderBufferParameterType::Vec4f,
+                name: "base_color".to_string(),
+                condition: None,
+            },
+            ShaderParameter::Opaque {
+                ty: ShaderOpaqueParameterType::Sampler,
+                name: "color_map_sampler".to_string(),
+                condition: Some(ShaderParameterCondition("HAS_COLOR_MAP != 0".to_string())),
+            },
+            ShaderParameter::Opaque {
+                ty: ShaderOpaqueParameterType::Texture2D,
+                name: "color_map_texture".to_string(),
+                condition: Some(ShaderParameterCondition("HAS_COLOR_MAP != 0".to_string())),
+            },
+        ],
+        source: ShaderSource::Inline {
+            content: source.to_string(),
+        },
+    };
+    Arc::new(Shader::from_serialized_asset(shader).unwrap())
+});

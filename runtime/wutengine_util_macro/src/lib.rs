@@ -101,8 +101,8 @@ fn unique_id_type(config: UniqueIdConfig) -> proc_macro::TokenStream {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
         #vis struct #ident_id(#inner_type);
 
-        impl ::std::fmt::Display for #ident_id {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        impl ::core::fmt::Display for #ident_id {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                 write!(f, #format_string, self.0)
             }
         }

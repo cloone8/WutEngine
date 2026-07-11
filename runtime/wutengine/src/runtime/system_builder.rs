@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec::Vec};
 use core::{any::TypeId, num::NonZero};
 use std::collections::HashSet;
 

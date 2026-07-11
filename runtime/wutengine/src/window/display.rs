@@ -1,3 +1,5 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use wutengine_util_macro::unique_id_type32;
 
 use super::manager::display_info::DisplayExclusiveFullscreenMode;

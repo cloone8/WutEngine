@@ -1,6 +1,8 @@
 //! WutEngine components and component helpers
 
 use core::any::{Any, TypeId};
+
+#[cfg(feature = "std")]
 use std::{
     collections::HashSet,
     sync::{LazyLock, RwLock},

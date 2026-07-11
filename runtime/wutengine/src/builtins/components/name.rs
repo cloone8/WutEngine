@@ -1,5 +1,7 @@
 use core::{fmt::Display, ops::Deref};
 
+use alloc::string::String;
+
 use crate::component::Component;
 
 /// Simple component describing the user-assigned name for an entity

@@ -78,6 +78,9 @@ fn main() {
         );
     }
 
+    _ = wutengine::builtins::shaders::BLIT.as_ref();
+    _ = wutengine::builtins::shaders::UNLIT.as_ref();
+
     wutengine::runtime::run(
         InitRuntimeConfig {
             frame_frequency: FrameFrequency::WaitAtMost(EDITOR_BASE_TICK_INTERVAL_SECS),

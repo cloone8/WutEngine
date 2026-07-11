@@ -1,7 +1,10 @@
 //! GPU Shaders
 
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::{fmt::Display, hash::Hash};
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use wutengine_assets::{
     FromSerializedAsset,

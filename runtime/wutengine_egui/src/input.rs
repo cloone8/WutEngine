@@ -1,5 +1,6 @@
 //! WutEngine-to-egui input mapping
 
+use alloc::vec::Vec;
 use wutengine_input::keyboard;
 use wutengine_math::Vec2;
 

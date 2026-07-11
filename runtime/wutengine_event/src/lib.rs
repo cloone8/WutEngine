@@ -1,9 +1,17 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use core::{
     any::{Any, TypeId},
     ops::DerefMut,
 };
+
+#[cfg(feature = "std")]
 use std::{
     collections::HashMap,
     sync::{
@@ -12,6 +20,7 @@ use std::{
     },
 };
 
+use alloc::{boxed::Box, vec::Vec};
 use nohash_hasher::IntMap;
 use wutengine_util::{InitOnce, assert_main_thread};
 use wutengine_util_macro::unique_id_type32;

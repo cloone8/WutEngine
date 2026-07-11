@@ -11,6 +11,9 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+std = ["wutengine_assets/std", "wutengine_util/std"]
+
 [dependencies]
 wutengine_assets.workspace = true
 wutengine_util.workspace = true

@@ -1,11 +1,23 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use core::fmt::{Display, Write};
-use std::collections::{HashMap, HashSet};
 
-use nohash_hasher::IntSet;
+use alloc::{
+    borrow::ToOwned,
+    boxed::Box,
+    format,
+    string::{String, ToString},
+};
+use hashbrown::{HashMap, HashSet};
 use parser::{Condition, ParseErr, ShaderFile};
 use smallvec::SmallVec;
+use wutengine_util::IntSet;
 
 mod parser;
 

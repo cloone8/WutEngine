@@ -1,13 +1,14 @@
 //! Mesh asset
 
-use nohash_hasher::IntMap;
-use serde::{Deserialize, Serialize};
 use wutengine_math::{Color, Vec2, Vec3};
+use wutengine_util::IntMap;
 
 use crate::SerializedAsset;
 
 /// The data for a single mesh
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct SerializedMesh {
     /// The vertex positions
     pub vertices: Vec<Vec3>,
@@ -34,8 +35,10 @@ impl SerializedAsset for SerializedMesh {
 }
 
 /// Mesh indices
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "size")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "size"))]
 pub enum MeshIndices {
     /// 16-bit indices
     U16(Vec<u16>),
@@ -51,10 +54,10 @@ impl Default for MeshIndices {
 }
 
 /// The topology of the indices of a [SerializedMesh]
-#[derive(
-    Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, derive_more::Display,
-)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, derive_more::Display)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 #[display(rename_all = "lowercase")]
 pub enum MeshTopology {
     /// Triangles. 3 indices per primitive

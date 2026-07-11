@@ -1,9 +1,11 @@
 //! Gamepad handling and APIs
 
-extern crate alloc;
-
 use alloc::collections::BTreeMap;
 
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 use nohash_hasher::IntMap;
 use wutengine_math::Vec2;
 use wutengine_util_macro::VariantIndex;

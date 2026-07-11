@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{boxed::Box, format, sync::Arc};
 
 use wutengine_assets::assets::mesh::MeshTopology;
 use wutengine_graphics::{

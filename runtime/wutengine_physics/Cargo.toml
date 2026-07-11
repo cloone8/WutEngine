@@ -13,6 +13,7 @@ categories.workspace = true
 publish = true
 
 [features]
+std = ["wutengine_util/std", "wutengine_math/std"]
 phys2d = ["dep:rapier2d"]
 phys3d = ["dep:rapier3d"]
 

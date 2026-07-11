@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{string::String, sync::Arc, vec};
 
 use wutengine_graphics::wgpu;
 use wutengine_util::assert_main_thread;

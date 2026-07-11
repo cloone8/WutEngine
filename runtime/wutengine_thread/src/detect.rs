@@ -41,6 +41,7 @@ pub(super) fn try_detect_core_config() -> Option<CoreConfig> {
 mod win {
     use core::num::NonZero;
 
+    use alloc::vec;
     use nohash_hasher::IntSet;
     use smallvec::SmallVec;
     use windows::{

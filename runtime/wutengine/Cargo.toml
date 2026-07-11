@@ -14,12 +14,31 @@ readme.workspace = true
 publish = true
 
 [features]
-default = ["phys2d", "phys3d"]
-std = []
+default = ["phys2d", "phys3d", "std"]
+std = [
+    "wutengine_graphics/std",
+    "wutengine_util/std",
+    "wutengine_shadercompiler/std",
+    "wutengine_assets/std",
+    "wutengine_asset_server/std",
+    "wutengine_input/std",
+    "wutengine_math/std",
+    "wutengine_time/std",
+    "wutengine_config/std",
+    "wutengine_physics/std",
+    "wutengine_audio/std",
+    "wutengine_logger/std",
+    "wutengine_event/std",
+    "wutengine_thread/std",
+]
 phys2d = ["wutengine_physics/phys2d"]
 phys3d = ["wutengine_physics/phys3d"]
 profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]
-development_overlay = ["dep:wutengine_development_overlay", "dep:serde_core"]
+development_overlay = [
+    "dep:wutengine_development_overlay",
+    "dep:serde_core",
+    "std",
+]
 
 [lints]
 workspace = true
@@ -29,7 +48,7 @@ wutengine_graphics.workspace = true
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_shadercompiler.workspace = true
-wutengine_assets.workspace = true
+wutengine_assets = { workspace = true, features = ["deserialize"] }
 wutengine_asset_server.workspace = true
 wutengine_input.workspace = true
 wutengine_math.workspace = true

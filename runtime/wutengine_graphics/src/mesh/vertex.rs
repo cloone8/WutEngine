@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::{any::Any, num::NonZero};
 
 use wutengine_assets::assets::shader::ShaderVertexAttributeType;

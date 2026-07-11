@@ -1,5 +1,7 @@
-use alloc::sync::Arc;
+use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use core::sync::atomic::Ordering;
+
+#[cfg(feature = "std")]
 use std::{collections::HashMap, path::PathBuf};
 
 use winit::error::EventLoopError;

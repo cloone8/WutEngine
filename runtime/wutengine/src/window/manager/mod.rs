@@ -1,7 +1,8 @@
 //! Module housing the window manager
 
-use alloc::sync::Arc;
-use core::sync::atomic::AtomicUsize;
+use alloc::{sync::Arc, vec::Vec};
+
+#[cfg(feature = "std")]
 use std::sync::RwLock;
 
 use display_info::DisplayInfo;

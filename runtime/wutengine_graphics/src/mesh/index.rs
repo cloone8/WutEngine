@@ -1,5 +1,7 @@
 use core::num::NonZero;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use wutengine_assets::assets::mesh::MeshTopology;
 
 use crate::label;

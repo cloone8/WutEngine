@@ -19,7 +19,7 @@ unique_id_type64! {
 pub enum GetPipelineErr {
     /// Error during shader compilation
     #[display("Error while compiling shader for pipeline: {}", _0)]
-    ShaderCompile(Box<shader::CompileErr>),
+    ShaderCompile(alloc::boxed::Box<shader::CompileErr>),
 }
 
 /// Given the set of input parameters, returns a matching [wgpu::RenderPipeline].

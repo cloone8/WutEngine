@@ -1,15 +1,17 @@
 //! Shader compilation. The conversion of a [Shader](super::Shader) into a [CompiledShader](super::CompiledShader)
 
-use alloc::{borrow::Cow, collections::BTreeMap, sync::Arc};
+use alloc::{
+    borrow::Cow, boxed::Box, collections::BTreeMap, format, string::String, sync::Arc, vec::Vec,
+};
 use core::{fmt::Display, num::NonZero};
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
-use nohash_hasher::IntSet;
 use wutengine_assets::assets::shader::{ShaderBufferParameterType, ShaderVertexAttributeType};
 use wutengine_shadercompiler::{
     CAMERA_PARAMS_BIND_GROUP_INDEX, CompOutput, INSTANCE_PARAMS_BIND_GROUP_INDEX,
     MATERIAL_PARAMS_BIND_GROUP_INDEX,
 };
+use wutengine_util::IntSet;
 use wutengine_util::unreachable_dbg;
 
 use super::{Shader, ShaderParameter};

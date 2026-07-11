@@ -2,11 +2,12 @@
 //!
 //! For more information and examples, see the crates.io page and the repository
 
-// #![no_std]
+#![no_std]
 
 extern crate alloc;
 
-// extern crate std;
+#[cfg(feature = "std")]
+extern crate std;
 
 pub mod builtins;
 pub mod component;

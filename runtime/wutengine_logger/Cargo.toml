@@ -12,10 +12,14 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
+[features]
+std = ["wutengine_util/std", "wutengine_config/std"]
+
 [dependencies]
 wutengine_util.workspace = true
 wutengine_config.workspace = true
 
+hashbrown = { workspace = true }
 log = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["debug"] }
 profiling.workspace = true

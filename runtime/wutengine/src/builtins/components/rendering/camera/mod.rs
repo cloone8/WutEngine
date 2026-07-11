@@ -1,5 +1,6 @@
 use core::any::TypeId;
 
+use alloc::{boxed::Box, format, vec::Vec};
 use wutengine_assets::assets::{
     mesh::MeshTopology,
     sampler::{FilterMode, WrapMode, WrapModeType},

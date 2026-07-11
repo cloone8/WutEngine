@@ -1,13 +1,15 @@
 //! Keyboard interaction and APIs
 
-use std::collections::HashSet;
+use alloc::string::String;
+use alloc::vec::Vec;
+use hashbrown::HashSet;
+use wutengine_util::IntSet;
 
 mod key;
 mod logical_key;
 
 pub use key::*;
 pub use logical_key::*;
-use nohash_hasher::IntSet;
 
 use super::INPUT_MANAGER;
 
@@ -65,8 +67,8 @@ impl Keyboard {
     /// New [Keyboard] with no keys pressed
     pub(crate) fn new() -> Self {
         Self {
-            prev_pressed_keys: HashSet::default(),
-            pressed_keys: HashSet::default(),
+            prev_pressed_keys: IntSet::default(),
+            pressed_keys: IntSet::default(),
             logical_inputs: Vec::new(),
         }
     }

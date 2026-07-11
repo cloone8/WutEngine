@@ -1,6 +1,11 @@
 //! Graphics initialization
 
+use alloc::format;
+use alloc::string::String;
 use alloc::sync::Arc;
+use alloc::vec::Vec;
+
+#[cfg(feature = "std")]
 use std::{
     ffi::{OsStr, OsString},
     path::PathBuf,

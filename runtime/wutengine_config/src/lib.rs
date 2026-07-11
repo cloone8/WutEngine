@@ -1,7 +1,19 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use core::str::FromStr;
-use std::{collections::HashMap, io::ErrorKind, path::Path};
+
+use alloc::borrow::ToOwned;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
+use hashbrown::HashMap;
+use std::{io::ErrorKind, path::Path};
 
 use dashmap::DashMap;
 use serde::Deserialize;

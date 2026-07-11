@@ -1484,6 +1484,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 dependencies = [
  "foldhash",
+ "rustc-std-workspace-alloc",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -3259,6 +3262,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
+name = "rustc-std-workspace-alloc"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9d441c3b2ebf55cebf796bfdc265d67fa09db17b7bb6bd4be75c509e1e8fec3"
+
+[[package]]
 name = "rustc_version"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4864,6 +4873,7 @@ name = "wutengine_asset_server"
 version = "0.6.0"
 dependencies = [
  "derive_more",
+ "hashbrown 0.17.1",
  "log",
  "postcard",
  "profiling",
@@ -4878,11 +4888,13 @@ name = "wutengine_assets"
 version = "0.6.0"
 dependencies = [
  "derive_more",
+ "hashbrown 0.17.1",
  "nohash-hasher",
  "serde",
  "serde_bytes",
  "uuid",
  "wutengine_math",
+ "wutengine_util",
  "wutengine_util_macro",
 ]
 
@@ -4903,6 +4915,7 @@ version = "0.6.0"
 dependencies = [
  "dashmap",
  "derive_more",
+ "hashbrown 0.17.1",
  "log",
  "profiling",
  "serde",
@@ -4948,6 +4961,7 @@ dependencies = [
  "windows",
  "winresource",
  "wutengine",
+ "wutengine_assets",
  "wutengine_egui",
  "wutengine_util",
  "wutengine_util_macro",
@@ -4994,6 +5008,7 @@ dependencies = [
  "dashmap",
  "derive_more",
  "dirs",
+ "hashbrown 0.17.1",
  "image",
  "log",
  "nohash-hasher",
@@ -5018,6 +5033,7 @@ version = "0.6.0"
 dependencies = [
  "derive_more",
  "gilrs",
+ "hashbrown 0.17.1",
  "log",
  "nohash-hasher",
  "profiling",
@@ -5033,6 +5049,7 @@ name = "wutengine_logger"
 version = "0.6.0"
 dependencies = [
  "derive_more",
+ "hashbrown 0.17.1",
  "log",
  "profiling",
  "wutengine_config",
@@ -5081,11 +5098,12 @@ name = "wutengine_shadercompiler"
 version = "0.6.0"
 dependencies = [
  "derive_more",
+ "hashbrown 0.17.1",
  "log",
  "naga",
- "nohash-hasher",
  "profiling",
  "smallvec",
+ "wutengine_util",
 ]
 
 [[package]]
@@ -5118,6 +5136,7 @@ dependencies = [
 name = "wutengine_util"
 version = "0.6.0"
 dependencies = [
+ "hashbrown 0.17.1",
  "log",
  "nohash-hasher",
 ]

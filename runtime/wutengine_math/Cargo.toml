@@ -13,7 +13,6 @@ categories.workspace = true
 publish = true
 
 [features]
-default = ["std"]
 std = ["glam/std"]
 
 [dependencies]

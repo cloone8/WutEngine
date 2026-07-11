@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use std::path::PathBuf;
 
 use image::GenericImageView;

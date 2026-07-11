@@ -2,12 +2,12 @@
 
 use core::fmt::Display;
 
-use serde::{Deserialize, Serialize};
-
 use crate::SerializedAsset;
 
 /// Data for a sampler
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct SerializedSampler {
     /// Filtering mode the sampler uses for filtering in the same mip level
     pub texture_filtering: FilterMode,
@@ -25,9 +25,9 @@ impl SerializedAsset for SerializedSampler {
 }
 
 /// Filtering methods for a [SerializedSampler]
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub enum FilterMode {
     /// Linear filtering. Smoothly interpolates between the closest texels.
     #[default]
@@ -38,7 +38,9 @@ pub enum FilterMode {
 }
 
 /// Out-of-bounds wrapping modes for a [SerializedSampler]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub enum WrapModeType {
     /// One wrapping mode for each axis
     Single(WrapMode),
@@ -101,9 +103,9 @@ impl WrapModeType {
 }
 
 /// A wrapping more for [Sampler] out-of-bounds accesses
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub enum WrapMode {
     /// Clamp to the border pixel
     #[default]

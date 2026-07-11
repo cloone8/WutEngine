@@ -1,6 +1,9 @@
 //! Entity management and APIs
 
+use alloc::string::String;
 use core::{fmt::Display, hash::Hash};
+
+#[cfg(feature = "std")]
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use wutengine_util::InitOnce;

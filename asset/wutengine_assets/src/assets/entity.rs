@@ -1,12 +1,12 @@
 //! Entity asset
 
-use serde::{Deserialize, Serialize};
-
 use super::{bundle::SerializedBundle, component::SerializedComponent};
 use crate::AssetRef;
 
 /// A serialized entity. Contains a set of components and sub-entities
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
 pub struct SerializedEntity {
     /// Name of the entity
     pub name: String,
@@ -19,8 +19,10 @@ pub struct SerializedEntity {
 }
 
 /// A child of a [SerializedEntity]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "entry_type")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "entry_type"))]
 pub enum EntityEntry {
     /// Another [SerializedEntity]
     Entity(SerializedEntity),

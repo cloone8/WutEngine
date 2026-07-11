@@ -2,17 +2,24 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::string::ToString;
 use alloc::sync::Arc;
-use std::{
-    collections::HashMap,
-    sync::{LazyLock, Mutex},
-};
+use alloc::vec;
+use alloc::vec::Vec;
+
+use std::sync::{LazyLock, Mutex};
 
 use nohash_hasher::IntMap;
 use render::PrimitiveRenderState;
 use wutengine_assets::{
     FromSerializedAsset,
-    assets::shader::{SerializedShader, ShaderSource, ShaderVertexAttributeType},
+    assets::shader::{
+        SerializedShader, ShaderBufferParameterType, ShaderDefaultParameters, ShaderKeyword,
+        ShaderOpaqueParameterType, ShaderParameter, ShaderSource, ShaderVertexAttribute,
+        ShaderVertexAttributeType,
+    },
 };
 use wutengine_graphics::{
     label,
@@ -24,7 +31,7 @@ use wutengine_graphics::{
 };
 use wutengine_input::WindowIdentifier;
 use wutengine_math::vec2;
-use wutengine_util::{error_once, map, warn_once};
+use wutengine_util::{error_once, hashbrown::HashMap, map, warn_once};
 
 mod input;
 mod key_mapping;
@@ -63,14 +70,61 @@ impl Default for EguiWindowInfo {
 
 /// Shader for [egui]
 pub static EGUI_SHADER: LazyLock<Arc<Shader>> = LazyLock::new(|| {
-    let descriptor = include_str!("egui.json");
     let source = include_str!("egui.wgsl");
 
-    let mut shader =
-        serde_json::from_str::<SerializedShader>(descriptor).expect("Could not get egui shader");
+    let mut shader = SerializedShader {
+        name: "egui".to_string(),
+        vertex_attributes: vec![
+            ShaderVertexAttribute {
+                ty: ShaderVertexAttributeType::Position,
+                location: 0,
+                condition: None,
+            },
+            ShaderVertexAttribute {
+                ty: ShaderVertexAttributeType::Uv { channel: 0 },
+                location: 1,
+                condition: None,
+            },
+            ShaderVertexAttribute {
+                ty: ShaderVertexAttributeType::Color,
+                location: 2,
+                condition: None,
+            },
+        ],
+        default_parameters: ShaderDefaultParameters {
+            camera: false,
+            instance: false,
+        },
+        keywords: map![
+            "DITHERING" => ShaderKeyword {
+                default: 0,
+                allowed: 0..=1
+            }
+        ],
+        parameters: vec![
+            ShaderParameter::Buffer {
+                ty: ShaderBufferParameterType::Vec2f,
+                name: "screen_size".to_string(),
+                condition: None,
+            },
+            ShaderParameter::Opaque {
+                ty: ShaderOpaqueParameterType::Sampler,
+                name: "ui_texture_sampler".to_string(),
+                condition: None,
+            },
+            ShaderParameter::Opaque {
+                ty: ShaderOpaqueParameterType::Texture2D,
+                name: "ui_texture".to_string(),
+                condition: None,
+            },
+        ],
+        source: ShaderSource::Inline {
+            content: source.to_string(),
+        },
+    };
 
     shader.source = ShaderSource::Inline {
-        content: source.to_owned(),
+        content: source.to_string(),
     };
 
     Arc::new(Shader::from_serialized_asset(shader).unwrap())
@@ -170,8 +224,9 @@ impl EguiWindow {
 
         egui::RawInput {
             viewport_id: egui::ViewportId::ROOT,
-            viewports: map![
-                egui::ViewportId::ROOT => egui::ViewportInfo {
+            viewports: egui::ViewportIdMap::from_iter([(
+                egui::ViewportId::ROOT,
+                egui::ViewportInfo {
                     parent: None,
                     title: Some(self.title.clone()),
                     events: vec![],
@@ -183,9 +238,9 @@ impl EguiWindow {
                     maximized: Some(self.window_info.maximized),
                     fullscreen: None,
                     focused: Some(self.window_info.focused),
-                    occluded: Some(self.window_info.occluded)
-                }
-            ],
+                    occluded: Some(self.window_info.occluded),
+                },
+            )]),
             safe_area_insets: None,
             screen_rect: Some(sfc_rect),
             max_texture_side: Some(self.tex2d_size_limit),

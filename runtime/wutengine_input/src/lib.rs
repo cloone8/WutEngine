@@ -1,13 +1,20 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use core::fmt::Display;
-use std::{
-    collections::HashMap,
-    sync::{Mutex, RwLock},
-};
 
+#[cfg(feature = "std")]
+use std::sync::{Mutex, RwLock};
+
+use alloc::string::ToString;
 use gamepad::{Gamepad, GamepadId};
 use gilrs::Gilrs;
+use hashbrown::HashMap;
 use keyboard::{Keyboard, KeyboardId};
 use mouse::{Mouse, MouseId};
 use winit::event::{ButtonId, DeviceId, ElementState};
