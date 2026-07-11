@@ -4293,6 +4293,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88"
 
 [[package]]
+name = "weimport"
+version = "0.6.0"
+dependencies = [
+ "clap",
+ "derive_more",
+ "log",
+ "postcard",
+ "rayon",
+ "serde_json",
+ "simplelog",
+ "uuid",
+ "wutengine_asset_importers",
+ "wutengine_assets",
+]
+
+[[package]]
 name = "wgpu"
 version = "30.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

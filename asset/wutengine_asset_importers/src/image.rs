@@ -1,3 +1,5 @@
+//! Image/texture importer
+
 use core::error::Error;
 use std::path::Path;
 
@@ -34,28 +36,26 @@ pub enum ImageImportError {
 }
 
 impl AssetImporter for ImageAssetImporter {
-    // fn supports_file_type(&self, file_type: &str) -> bool {
-    //     image::ImageFormat::from_extension(file_type).is_some()
-    // }
+    fn supported_file_types() -> Vec<&'static str> {
+        let mut supported = Vec::new();
 
-    // fn import(
-    //     &self,
-    //     asset_bytes: &[u8],
-    //     file_type: &str,
-    //     _asset_dir: Option<&Path>,
-    // ) -> Result<Box<dyn Any>, Box<dyn Error>> {
-    // }
+        for format in image::ImageFormat::all() {
+            if !format.can_read() {
+                continue;
+            }
+
+            supported.extend_from_slice(format.extensions_str());
+        }
+
+        supported
+    }
 
     fn from_bytes(
         bytes: &[u8],
+        file_type: &str,
         path: Option<&Path>,
     ) -> Result<Vec<crate::ImportedAsset>, Box<dyn Error>> {
         profiling::function_scope!();
-
-        let file_type = path
-            .and_then(|p| p.extension())
-            .and_then(|ext| ext.to_str())
-            .unwrap_or("<unknown type>");
 
         log::info!("Importing image of type {file_type}");
 

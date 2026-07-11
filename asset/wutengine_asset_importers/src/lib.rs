@@ -7,6 +7,7 @@ use std::path::Path;
 mod image;
 pub use image::*;
 
+/// An asset imported through an [AssetImporter]
 #[derive(Debug)]
 pub struct ImportedAsset {
     /// Corresponds to the [wutengine_assets::SerializedAsset::ID] constant
@@ -19,12 +20,22 @@ pub struct ImportedAsset {
     pub asset: Box<dyn Any + Send + Sync>,
 }
 
-pub trait AssetImporter {
-    fn from_bytes(bytes: &[u8], path: Option<&Path>) -> Result<Vec<ImportedAsset>, Box<dyn Error>>;
+/// Something than can import assets from an external format into a [wutengine_assets::SerializedAsset], usable by WutEngine
+pub trait AssetImporter: Send + Sync + 'static {
+    /// The file types that this importer supports. Should be the on-disk extension of the file, like `png`, `jpg`, `obj`, `wav`, `mp3`, etc.
+    fn supported_file_types() -> Vec<&'static str>;
 
-    fn from_disk(path: &Path) -> Result<Vec<ImportedAsset>, Box<dyn Error>> {
+    /// Imports a given asset from in-memory bytes. If known, the original path to the asset is also given
+    fn from_bytes(
+        bytes: &[u8],
+        file_type: &str,
+        path: Option<&Path>,
+    ) -> Result<Vec<ImportedAsset>, Box<dyn Error>>;
+
+    /// Imports a given asset of a certain type from disk.
+    fn from_disk(file_type: &str, path: &Path) -> Result<Vec<ImportedAsset>, Box<dyn Error>> {
         let bytes = std::fs::read(path)?;
 
-        Self::from_bytes(&bytes, Some(path))
+        Self::from_bytes(&bytes, file_type, Some(path))
     }
 }

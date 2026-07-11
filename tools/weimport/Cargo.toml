@@ -1,0 +1,30 @@
+[package]
+name = "weimport"
+description = "CLI asset importer for WutEngine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
+
+[dependencies]
+wutengine_assets = { workspace = true }
+wutengine_asset_importers.workspace = true
+
+clap = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+postcard = { workspace = true, features = ["alloc"] }
+log.workspace = true
+simplelog.workspace = true
+uuid.workspace = true
+derive_more = { workspace = true, features = ["display", "error"] }
+rayon = { workspace = true }
+
+[lints]
+workspace = true
