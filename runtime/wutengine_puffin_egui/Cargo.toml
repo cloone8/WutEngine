@@ -22,7 +22,7 @@ egui_extras = { workspace = true, features = ["serde"] }
 indexmap.workspace = true
 log.workspace = true
 puffin = { workspace = true, features = ["packing"] }
-jiff.workspace = true
+jiff = { workspace = true, features = [] }
 
 [lints]
 workspace = true

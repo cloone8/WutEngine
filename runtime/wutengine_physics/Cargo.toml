@@ -28,10 +28,16 @@ derive_more = { workspace = true, features = ["debug"] }
 rayon = { workspace = true }
 
 rapier2d = { workspace = true, features = [
+    "std",
+    "dim2",
+    "f32",
     "parallel",
     "simd-stable",
 ], optional = true }
 rapier3d = { workspace = true, features = [
+    "std",
+    "dim3",
+    "f32",
     "parallel",
     "simd-stable",
 ], optional = true }

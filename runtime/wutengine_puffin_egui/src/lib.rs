@@ -890,7 +890,7 @@ fn format_time(nanos: NanoSecond) -> Option<String> {
     if (50..=150).contains(&years_since_epoch) {
         let datetime = jiff::Timestamp::from_nanosecond(nanos as i128)
             .ok()?
-            .to_zoned(jiff::tz::TimeZone::system());
+            .to_zoned(jiff::tz::TimeZone::try_system().unwrap_or(jiff::tz::TimeZone::UTC));
 
         let datetime_fmt = datetime.strftime("%F %T%.3f").to_string();
 
