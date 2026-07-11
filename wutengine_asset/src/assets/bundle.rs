@@ -18,7 +18,10 @@ pub struct SerializedBundle {
     pub entries: Vec<BundleEntry>,
 }
 
-impl SerializedAsset for SerializedBundle {}
+impl SerializedAsset for SerializedBundle {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("678f0243-8d5f-4829-90f1-0caca98e2efc")).unwrap();
+}
 
 /// An entry in a [SerializedBundle]
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -20,7 +20,10 @@ pub struct SerializedSampler {
     pub wrapping: WrapModeType,
 }
 
-impl SerializedAsset for SerializedSampler {}
+impl SerializedAsset for SerializedSampler {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("e39313cc-5ee5-4d8d-9ea3-51638a0dbc3e")).unwrap();
+}
 
 /// Filtering methods for a [SerializedSampler]
 #[derive(

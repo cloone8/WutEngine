@@ -34,7 +34,7 @@ impl StaticMeshRenderer {
 }
 
 impl Component for StaticMeshRenderer {
-    const ID: uuid::Uuid = uuid::uuid!("cb4802f7-5810-4354-be68-d51a2c44f1f9");
+    const ID: uuid::NonNilUuid = uuid::NonNilUuid::new(uuid::uuid!("cb4802f7-5810-4354-be68-d51a2c44f1f9")).unwrap();
 
     fn insert_default_component_systems(manifest: &mut crate::runtime::SystemManifest)
     where

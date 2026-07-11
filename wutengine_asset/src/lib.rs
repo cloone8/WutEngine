@@ -71,6 +71,10 @@ pub trait Asset: Send + Sync + Any {
 
 /// A serialized [Asset]
 pub trait SerializedAsset: Serialize + DeserializeOwned + Any + Send + Sync {
+    /// Hint: To obtain one, you can generate a random V4 UUID from many websites,
+    /// and then use the [uuid macro](uuid::uuid) to embed it at compile time
+    const ID: uuid::NonNilUuid;
+
     /// Whether to always try to serialize this asset as binary
     const PREFER_BINARY_SERIALIZATION: bool = false;
 }

@@ -127,5 +127,6 @@ impl Default for Transform {
 }
 
 impl Component for Transform {
-    const ID: uuid::Uuid = uuid::uuid!("5462eaa9-fed4-4603-84f4-1edf0bcdaeee");
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("5462eaa9-fed4-4603-84f4-1edf0bcdaeee")).unwrap();
 }

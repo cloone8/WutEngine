@@ -16,7 +16,10 @@ pub struct SerializedAudioClip {
     pub data: Vec<u8>,
 }
 
-impl SerializedAsset for SerializedAudioClip {}
+impl SerializedAsset for SerializedAudioClip {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("d408e523-0772-48dc-a77a-ed3d11c72ca0")).unwrap();
+}
 
 /// The format of a [SerializedAudioClip]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

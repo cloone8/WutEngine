@@ -27,7 +27,10 @@ pub struct SerializedMipMap {
     pub data: Vec<u8>,
 }
 
-impl SerializedAsset for SerializedTexture {}
+impl SerializedAsset for SerializedTexture {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("27f1a488-9df8-40e8-8663-75c3e769861c")).unwrap();
+}
 
 /// The configuration for creating a new texture
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

@@ -458,7 +458,7 @@ impl Camera {
 }
 
 impl Component for Camera {
-    const ID: uuid::Uuid = uuid::uuid!("564bccfc-8b3e-49b5-9855-48c42cef713f");
+    const ID: uuid::NonNilUuid = uuid::NonNilUuid::new(uuid::uuid!("564bccfc-8b3e-49b5-9855-48c42cef713f")).unwrap();
 
     fn insert_default_component_systems(manifest: &mut crate::runtime::SystemManifest)
     where

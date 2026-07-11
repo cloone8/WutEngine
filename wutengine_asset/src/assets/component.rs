@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 use serde::Serialize;
-use uuid::Uuid;
+use uuid::NonNilUuid;
 
 /// A serialized component
 /// Contains the UUID identifying the component type, and the generic
@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub struct SerializedComponent {
     /// The UUID identifying the type of the component, so it can be forwarded
     /// to the correct deserializer
-    pub component_type: Uuid,
+    pub component_type: NonNilUuid,
 
     /// The component data. The actual format depends on the serialization strategy used when
     /// storing this asset to disk, and should be known by the runtime

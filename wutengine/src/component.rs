@@ -40,7 +40,7 @@ pub trait Component: Any + Send + Sync {
     ///
     /// Hint: To obtain one, you can generate a random V4 UUID from many websites,
     /// and then use the [uuid macro](uuid::uuid) to embed it at compile time
-    const ID: uuid::Uuid;
+    const ID: uuid::NonNilUuid;
 
     /// Adds the systems that are always used by this component into the given manifest.
     ///

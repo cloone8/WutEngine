@@ -22,5 +22,5 @@ impl CameraRenderPass {
 }
 
 impl Component for CameraRenderPass {
-    const ID: uuid::Uuid = uuid::uuid!("62e189f7-ee97-42bf-aab3-2e8c9842343d");
+    const ID: uuid::NonNilUuid = uuid::NonNilUuid::new(uuid::uuid!("62e189f7-ee97-42bf-aab3-2e8c9842343d")).unwrap();
 }

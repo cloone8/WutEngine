@@ -33,7 +33,10 @@ pub struct SerializedShader {
     pub source: ShaderSource,
 }
 
-impl SerializedAsset for SerializedShader {}
+impl SerializedAsset for SerializedShader {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("32868890-f1de-427b-82f3-6bbb4508484e")).unwrap();
+}
 
 /// A vertex attribute used by a shader
 #[derive(Debug, Clone, Serialize, Deserialize)]

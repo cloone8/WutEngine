@@ -31,7 +31,10 @@ pub struct SerializedMesh {
     pub keep_data: bool,
 }
 
-impl SerializedAsset for SerializedMesh {}
+impl SerializedAsset for SerializedMesh {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("65e51770-cd08-4ba8-97db-70456af5e10b")).unwrap();
+}
 
 /// Mesh indices
 #[derive(Debug, Clone, derive_more::From, Serialize, Deserialize)]

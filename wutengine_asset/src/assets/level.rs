@@ -19,7 +19,10 @@ pub struct SerializedLevel {
     pub entries: Vec<LevelEntry>,
 }
 
-impl SerializedAsset for SerializedLevel {}
+impl SerializedAsset for SerializedLevel {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("7d1e38e2-ce4f-4aa2-b668-35c7fa495818")).unwrap();
+}
 
 /// An entry in a [SerializedLevel]
 #[derive(Debug, Clone, Serialize, Deserialize)]

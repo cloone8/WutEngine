@@ -30,7 +30,10 @@ pub struct SerializedMaterial {
     pub parameters: HashMap<String, SerializedMaterialParameter>,
 }
 
-impl SerializedAsset for SerializedMaterial {}
+impl SerializedAsset for SerializedMaterial {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("1b49f3cc-7779-431b-9bc3-ad98d275abce")).unwrap();
+}
 
 /// A material parameter value
 #[derive(Debug, Clone, Serialize, Deserialize)]
