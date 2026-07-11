@@ -1,11 +1,10 @@
 //! Rigidbody types and API
 
-use crate::rapier;
-use crate::rapier::prelude::*;
+use rapier3d::prelude::*;
 
 #[derive(Debug)]
 pub struct Rigidbody {
-    handle: rapier::dynamics::RigidBodyHandle,
+    handle: rapier3d::dynamics::RigidBodyHandle,
 }
 
 impl Rigidbody {

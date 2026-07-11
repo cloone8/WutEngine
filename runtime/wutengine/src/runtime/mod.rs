@@ -10,8 +10,6 @@ use crate::graphics;
 use crate::graphics::DrawCommand;
 use crate::graphics::RenderPassInfo;
 use crate::input;
-use crate::physics2d;
-use crate::physics3d;
 use crate::system::Phase;
 use crate::system::SystemManager;
 use crate::time;
@@ -196,14 +194,7 @@ impl Runtime {
         {
             profiling::scope!("Run physics step");
 
-            rayon::join(
-                || {
-                    physics2d::step(time::fixed_delta());
-                },
-                || {
-                    physics3d::step(time::fixed_delta());
-                },
-            );
+            wutengine_physics::step(time::fixed_delta());
         }
 
         Self::read_physics_state();
@@ -217,35 +208,34 @@ impl Runtime {
 
         profiling::function_scope!();
 
-        rayon::join(
-            || {
+        crate::physics::update_physics_world(
+            #[cfg(feature = "phys2d")]
+            |updater_2d| {
                 let world = world::get_world();
 
                 let mut query = world
                     .ecs
                     .query::<(&mut ColliderSet2D, Option<&Transform>)>();
 
-                physics2d::update_physics_world(|updater| {
-                    for (set2d, xform) in query.iter() {
-                        set2d.sync_to_physics_world(xform, updater);
-                    }
-                });
+                for (set2d, xform) in query.iter() {
+                    set2d.sync_to_physics_world(xform, updater_2d);
+                }
             },
-            || {
+            #[cfg(feature = "phys3d")]
+            |updater_3d| {
                 let world = world::get_world();
 
                 let mut query = world
                     .ecs
                     .query::<(&mut ColliderSet3D, Option<&Transform>)>();
 
-                physics3d::update_physics_world(|updater| {
-                    for (set3d, xform) in query.iter() {
-                        set3d.sync_to_physics_world(xform, updater);
-                    }
-                });
+                for (set3d, xform) in query.iter() {
+                    set3d.sync_to_physics_world(xform, updater_3d);
+                }
             },
         );
     }
+
     fn read_physics_state() {
         use crate::builtins::components::Transform;
         use crate::builtins::components::physics::*;

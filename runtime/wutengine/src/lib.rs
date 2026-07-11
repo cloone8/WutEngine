@@ -1,4 +1,6 @@
-#![doc = include_str!("../../../README.md")]
+//! The main WutEngine runtime
+//!
+//! For more information and examples, see the crates.io page and the repository
 
 extern crate alloc;
 
@@ -47,10 +49,7 @@ pub use wutengine_input as input;
 pub use wutengine_time as time;
 
 #[doc(inline)]
-pub use wutengine_physics2d as physics2d;
-
-#[doc(inline)]
-pub use wutengine_physics3d as physics3d;
+pub use wutengine_physics as physics;
 
 #[doc(inline)]
 pub use wutengine_config as config;

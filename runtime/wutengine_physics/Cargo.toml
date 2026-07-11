@@ -1,6 +1,6 @@
 [package]
-name = "wutengine_physics3d"
-description = "3D Physics for WutEngine"
+name = "wutengine_physics"
+description = "Physics implementation for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,10 +11,10 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 publish = true
-include = ["/../wutengine_physics/*"]
 
-[lib]
-path = "../wutengine_physics/src/lib.rs"
+[features]
+phys2d = ["dep:rapier2d"]
+phys3d = ["dep:rapier3d"]
 
 [dependencies]
 wutengine_util.workspace = true
@@ -25,8 +25,16 @@ log.workspace = true
 profiling.workspace = true
 nohash-hasher.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
+rayon = { workspace = true }
 
-rapier3d = { workspace = true, features = ["parallel", "simd-stable"] }
+rapier2d = { workspace = true, features = [
+    "parallel",
+    "simd-stable",
+], optional = true }
+rapier3d = { workspace = true, features = [
+    "parallel",
+    "simd-stable",
+], optional = true }
 
 [lints]
 workspace = true

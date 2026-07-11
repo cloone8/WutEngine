@@ -10,10 +10,13 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 rust-version.workspace = true
-readme = "../../README.md"
+readme.workspace = true
 publish = true
 
 [features]
+default = ["phys2d", "phys3d"]
+phys2d = ["wutengine_physics/phys2d"]
+phys3d = ["wutengine_physics/phys3d"]
 profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]
 development_overlay = ["dep:wutengine_development_overlay", "dep:serde_core"]
 asset_importers = ["wutengine_asset/importers"]
@@ -31,8 +34,7 @@ wutengine_input.workspace = true
 wutengine_math.workspace = true
 wutengine_time.workspace = true
 wutengine_config.workspace = true
-wutengine_physics2d.workspace = true
-wutengine_physics3d.workspace = true
+wutengine_physics.workspace = true
 wutengine_audio.workspace = true
 wutengine_logger.workspace = true
 wutengine_event.workspace = true

@@ -146,8 +146,7 @@ pub fn run(
 
     window::manager::init();
     crate::input::init();
-    crate::physics2d::init();
-    crate::physics3d::init();
+    crate::physics::init();
     crate::audio::init();
     crate::world::init();
 

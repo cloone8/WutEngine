@@ -12,8 +12,7 @@ members = [
     "runtime/wutengine_input",
     "runtime/wutengine_logger",
     "runtime/wutengine_math",
-    "runtime/wutengine_physics2d",
-    "runtime/wutengine_physics3d",
+    "runtime/wutengine_physics",
     "runtime/wutengine_puffin_egui",
     "runtime/wutengine_shadercompiler",
     "runtime/wutengine_thread",
@@ -35,6 +34,7 @@ authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 homepage = "https://github.com/cloone8/WutEngine"
 repository = "https://github.com/cloone8/WutEngine"
 license = "MPL-2.0"
+readme = "README.md"
 keywords = ["2D", "3D", "game", "engine"]
 categories = ["game-engines"]
 publish = false
@@ -53,8 +53,7 @@ wutengine_graphics = { path = "runtime/wutengine_graphics", version = "0.6.0" }
 wutengine_input = { path = "runtime/wutengine_input", version = "0.6.0" }
 wutengine_logger = { path = "runtime/wutengine_logger", version = "0.6.0" }
 wutengine_math = { path = "runtime/wutengine_math", version = "0.6.0" }
-wutengine_physics2d = { path = "runtime/wutengine_physics2d", version = "0.6.0" }
-wutengine_physics3d = { path = "runtime/wutengine_physics3d", version = "0.6.0" }
+wutengine_physics = { path = "runtime/wutengine_physics", version = "0.6.0" }
 wutengine_puffin_egui = { path = "runtime/wutengine_puffin_egui", version = "0.6.0" }
 wutengine_shadercompiler = { path = "runtime/wutengine_shadercompiler", version = "0.6.0" }
 wutengine_thread = { path = "runtime/wutengine_thread", version = "0.6.0" }

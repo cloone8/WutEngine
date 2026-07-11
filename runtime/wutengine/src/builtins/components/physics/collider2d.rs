@@ -2,8 +2,8 @@ use crate::builtins::components::Transform;
 use crate::component::Component;
 
 use crate::math::*;
-use wutengine_physics2d::PhysicsWorldUpdater;
-use wutengine_physics2d::collider::ColliderData2D;
+use wutengine_physics::phys2d::PhysicsWorldUpdater;
+use wutengine_physics::phys2d::collider::ColliderData2D;
 
 /// A set of colliders
 #[derive(Debug, Default)]
@@ -20,7 +20,7 @@ impl ColliderSet2D {
 
 #[derive(Debug, Default)]
 struct Collider2D {
-    handle: Option<crate::physics2d::collider::Collider>,
+    handle: Option<crate::physics::phys2d::collider::Collider>,
     last_pos_rot: (Vec2, f32),
     data: ColliderData2D,
 }

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 ///
 /// Returns the path to the new icon
 fn get_windows_icon() -> PathBuf {
-    let icon_png = include_bytes!("../../img/wutengine.png");
+    let icon_png = include_bytes!("wutengine.png");
 
     let icon_png = image::load_from_memory(icon_png).expect("Failed to load icon file");
 
