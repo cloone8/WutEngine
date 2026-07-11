@@ -1,4 +1,5 @@
-use wutengine_development_overlay::{DevelopmentOverlayWindow, wutengine_egui::egui};
+use wutengine_development_overlay::DevelopmentOverlayWindow;
+use wutengine_development_overlay::wutengine_egui::egui;
 use wutengine_graphics::wgpu;
 
 pub(crate) fn insert_all() {

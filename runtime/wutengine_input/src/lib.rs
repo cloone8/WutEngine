@@ -1,24 +1,22 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
-
-extern crate alloc;
-
-#[cfg(feature = "std")]
-extern crate std;
 
 use core::fmt::Display;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::RwLock;
 
-#[cfg(feature = "std")]
-use std::sync::{Mutex, RwLock};
-
-use alloc::string::ToString;
-use gamepad::{Gamepad, GamepadId};
+use gamepad::Gamepad;
+use gamepad::GamepadId;
 use gilrs::Gilrs;
-use hashbrown::HashMap;
-use keyboard::{Keyboard, KeyboardId};
-use mouse::{Mouse, MouseId};
-use winit::event::{ButtonId, DeviceId, ElementState};
+use keyboard::Keyboard;
+use keyboard::KeyboardId;
+use mouse::Mouse;
+use mouse::MouseId;
+use winit::event::ButtonId;
+use winit::event::DeviceId;
+use winit::event::ElementState;
 use wutengine_math::Vec2;
+
 use wutengine_util::InitOnce;
 
 pub mod gamepad;

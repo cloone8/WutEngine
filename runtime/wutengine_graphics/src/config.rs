@@ -1,6 +1,7 @@
 //! Graphics config options
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Graphics context initialization config
 #[derive(Debug, Clone, Deserialize)]

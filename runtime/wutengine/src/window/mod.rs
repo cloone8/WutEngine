@@ -2,13 +2,14 @@
 
 use core::num::NonZeroU32;
 
-use alloc::{format, string::String, vec::Vec};
 use cursor_icon::CursorIcon;
 use manager::display_info::DisplayExclusiveFullscreenMode;
 use winit::window::WindowAttributes;
-use wutengine_util_macro::{VariantName, unique_id_type32};
+use wutengine_util_macro::VariantName;
+use wutengine_util_macro::unique_id_type32;
 
-use crate::{graphics, runtime};
+use crate::graphics;
+use crate::runtime;
 
 mod icon;
 pub use icon::*;

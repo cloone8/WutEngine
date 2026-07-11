@@ -1,9 +1,13 @@
 //! Container for editor panels
 
-use we_style::{PANEL_TAB_ACTIVE_COLOR, PANEL_TAB_BAR_COLOR, PANEL_TAB_INACTIVE_COLOR};
-use wutengine_egui::{egui, egui::Widget};
+use we_style::PANEL_TAB_ACTIVE_COLOR;
+use we_style::PANEL_TAB_BAR_COLOR;
+use we_style::PANEL_TAB_INACTIVE_COLOR;
+use wutengine_egui::egui;
+use wutengine_egui::egui::Widget;
 
-use crate::panel::{EditorPanel, EditorPanelId};
+use crate::panel::EditorPanel;
+use crate::panel::EditorPanelId;
 
 #[derive(Debug)]
 pub(super) struct PanelContainer {

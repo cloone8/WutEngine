@@ -1,8 +1,9 @@
 use wutengine_development_overlay::wutengine_egui::egui;
 use wutengine_graphics::wgpu;
 
-use super::WINDOW_MANAGER;
 use crate::development_overlay::DevelopmentOverlayWindow;
+
+use super::WINDOW_MANAGER;
 
 #[derive(Default)]
 pub(super) struct WindowManagerOverlay {}

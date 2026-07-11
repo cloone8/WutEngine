@@ -1,4 +1,5 @@
-use wutengine_graphics::{renderpass::RenderPass, wgpu};
+use wutengine_graphics::renderpass::RenderPass;
+use wutengine_graphics::wgpu;
 use wutengine_input::WindowIdentifier;
 
 use crate::window::Window;

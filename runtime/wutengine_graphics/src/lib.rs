@@ -1,10 +1,6 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
 
 extern crate alloc;
-
-#[cfg(feature = "std")]
-extern crate std;
 
 mod bind_group;
 mod cache;
@@ -20,11 +16,15 @@ pub mod sampler;
 pub mod shader;
 pub mod texture;
 
-pub use bind_group::*;
-pub use config::*;
-pub use init::{initialize_graphics_context, persist_pipeline_cache};
 #[doc(inline)]
 pub use wgpu;
+
+pub use bind_group::*;
+
+pub use config::*;
+
+pub use init::initialize_graphics_context;
+pub use init::persist_pipeline_cache;
 
 use wutengine_util::InitOnce;
 
@@ -126,7 +126,7 @@ macro_rules! label {
     };
 
     ($($arg:tt)+) => {
-        Some(::alloc::format!($($arg)*).as_str())
+        Some(format!($($arg)*).as_str())
     };
 }
 

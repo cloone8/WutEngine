@@ -5,11 +5,11 @@
 )]
 
 use proc_macro::Span;
-use quote::{quote, quote_spanned};
-use syn::{
-    Attribute, Ident, LitStr, Type, Visibility, parse::Parse, parse_macro_input, parse_str,
-    spanned::Spanned,
-};
+use quote::quote;
+use quote::quote_spanned;
+use syn::parse::Parse;
+use syn::spanned::Spanned;
+use syn::{Attribute, Ident, LitStr, Type, Visibility, parse_macro_input, parse_str};
 
 /// Input for the [unique_id_type32] and [unique_id_type64] macros
 struct UniqueIdTypeInput {
@@ -101,8 +101,8 @@ fn unique_id_type(config: UniqueIdConfig) -> proc_macro::TokenStream {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
         #vis struct #ident_id(#inner_type);
 
-        impl ::core::fmt::Display for #ident_id {
-            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        impl ::std::fmt::Display for #ident_id {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 write!(f, #format_string, self.0)
             }
         }

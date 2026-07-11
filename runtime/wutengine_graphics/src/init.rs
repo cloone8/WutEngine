@@ -1,22 +1,19 @@
 //! Graphics initialization
 
-use alloc::format;
-use alloc::string::String;
+use std::ffi::OsStr;
+use std::ffi::OsString;
+use std::path::PathBuf;
+
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 
-#[cfg(feature = "std")]
-use std::{
-    ffi::{OsStr, OsString},
-    path::PathBuf,
-};
-
+use crate::ACTIVE_CONFIG;
+use crate::GFX_DEVICE;
+use crate::GraphicsRuntimeConfig;
+use crate::PIPELINE_CACHE;
+use crate::config::GraphicsConfig;
+use crate::features_supported;
+use crate::label;
 use wutengine_util::InitOnce;
-
-use crate::{
-    ACTIVE_CONFIG, GFX_DEVICE, GraphicsRuntimeConfig, PIPELINE_CACHE, config::GraphicsConfig,
-    features_supported, label,
-};
 
 /// Initializes the global graphics context for WutEngine. Acquires a graphics
 /// device and configures it.

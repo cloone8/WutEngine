@@ -2,12 +2,13 @@
 
 use alloc::sync::Arc;
 use std::sync::LazyLock;
-
-use smallvec::SmallVec;
 use wutengine_assets::assets::mesh::MeshTopology;
 
-use super::GraphicsCache;
+use smallvec::SmallVec;
+
 use crate::shader::CompiledShaderId;
+
+use super::GraphicsCache;
 
 /// The global pipeline cache
 static PIPELINE_CACHE: LazyLock<GraphicsCache<PipelineCacheKey, wgpu::RenderPipeline>> =

@@ -1,10 +1,10 @@
 //! WutEngine-to-egui input mapping
 
-use alloc::vec::Vec;
 use wutengine_input::keyboard;
 use wutengine_math::Vec2;
 
-use crate::{utils, wutengine_to_egui_key};
+use crate::utils;
+use crate::wutengine_to_egui_key;
 
 /// Checks a given mouse button for pressed/released events, and adds
 /// them to the events list if applicable

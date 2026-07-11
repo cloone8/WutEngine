@@ -1,31 +1,30 @@
 use core::any::TypeId;
 
-use alloc::{boxed::Box, format, vec::Vec};
-use wutengine_assets::assets::{
-    mesh::MeshTopology,
-    sampler::{FilterMode, WrapMode, WrapModeType},
-};
-use wutengine_graphics::{BindGroup, internal_bind_groups::create_camera_bind_group, label, wgpu};
-use wutengine_math::{Color, Mat4};
-use wutengine_shadercompiler::{CAMERA_PARAMS_BIND_GROUP_INDEX, MATERIAL_PARAMS_BIND_GROUP_INDEX};
-use wutengine_util::map;
+use wutengine_assets::assets::mesh::MeshTopology;
+use wutengine_assets::assets::sampler::FilterMode;
+use wutengine_assets::assets::sampler::WrapMode;
+use wutengine_assets::assets::sampler::WrapModeType;
+use wutengine_graphics::BindGroup;
+use wutengine_graphics::internal_bind_groups::create_camera_bind_group;
+use wutengine_graphics::label;
+use wutengine_graphics::wgpu;
+use wutengine_math::Color;
+use wutengine_math::Mat4;
+use wutengine_shadercompiler::CAMERA_PARAMS_BIND_GROUP_INDEX;
+use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util_macro::unique_id_type32;
 
-use crate::{
-    builtins,
-    builtins::components::Transform,
-    component::Component,
-    graphics,
-    graphics::{
-        DrawCommand,
-        material::{Material, MaterialParameter},
-        renderpass::RenderPass,
-        sampler::Sampler,
-        texture::Texture,
-    },
-    system::Phase,
-    window::Window,
-};
+use crate::builtins::components::Transform;
+use crate::component::Component;
+use crate::graphics::DrawCommand;
+use crate::graphics::material::{Material, MaterialParameter};
+use crate::graphics::renderpass::RenderPass;
+use crate::graphics::sampler::Sampler;
+use crate::graphics::texture::Texture;
+use crate::system::Phase;
+use crate::window::Window;
+use crate::{builtins, graphics};
+use wutengine_util::map;
 
 mod target;
 pub use target::*;

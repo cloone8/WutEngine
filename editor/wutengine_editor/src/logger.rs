@@ -1,11 +1,12 @@
 //! Editor logger
 
 use alloc::collections::VecDeque;
-use core::sync::atomic::{AtomicU8, Ordering};
+use core::sync::atomic::AtomicU8;
+use core::sync::atomic::Ordering;
 use std::sync::Mutex;
+use wutengine_util::InitOnce;
 
 use wutengine_egui::egui;
-use wutengine_util::InitOnce;
 
 static EDITOR_LOGGER: InitOnce<EditorLogger, false, false> = InitOnce::new_checked();
 

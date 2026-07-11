@@ -1,6 +1,6 @@
 //! Main runtime events
 
-use alloc::{sync::Arc, vec::Vec};
+use alloc::sync::Arc;
 use core::cell::RefCell;
 
 use wutengine_util::MainThreadOnly;

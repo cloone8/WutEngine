@@ -1,27 +1,18 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
 
 extern crate alloc;
 
-#[cfg(feature = "std")]
-extern crate std;
-
-use alloc::boxed::Box;
-use alloc::format;
-use alloc::string::String;
 use alloc::sync::Arc;
-use core::{
-    num::NonZero,
-    sync::atomic::{AtomicBool, Ordering},
-};
-
-#[cfg(feature = "std")]
-use std::thread::available_parallelism;
-
+use core::num::NonZero;
+use core::sync::atomic::{AtomicBool, Ordering};
 use detect::CoreConfig;
 use futures::task::LocalSpawn;
+use std::thread::available_parallelism;
+
 use serde::Deserialize;
-use wutengine_util::{InitOnce, assert_main_thread};
+
+use wutengine_util::InitOnce;
+use wutengine_util::assert_main_thread;
 
 mod detect;
 

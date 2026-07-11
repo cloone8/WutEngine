@@ -3,13 +3,15 @@
 mod primitives;
 
 pub use primitives::*;
-use wutengine_assets::assets::shader::{
-    ShaderBufferParameterType, ShaderOpaqueParameterType, ShaderVertexAttributeType,
-};
-use wutengine_math::Vec4;
+use wutengine_assets::assets::shader::ShaderBufferParameterType;
+use wutengine_assets::assets::shader::ShaderOpaqueParameterType;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_util_macro::VariantName;
 
-use crate::{material::MaterialParameter, sampler::DEFAULT_SAMPLER, texture::DEFAULT_TEXTURE};
+use crate::material::MaterialParameter;
+use crate::sampler::DEFAULT_SAMPLER;
+use crate::texture::DEFAULT_TEXTURE;
+use wutengine_math::Vec4;
 
 /// Alignment on the GPU of this data type.
 ///

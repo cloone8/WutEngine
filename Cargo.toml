@@ -20,12 +20,12 @@ members = [
     "runtime/wutengine_util_macro",
     "asset/wutengine_assets",
     "asset/wutengine_asset_importers",
-    "asset/wutengine_asset_server",
     "editor/wutengine_editor",
     "editor/we_fonts",
     "editor/we_menu",
     "editor/we_prefs",
     "editor/we_style",
+    "asset/wutengine_asset_server",
 ]
 
 [workspace.package]
@@ -85,11 +85,6 @@ egui_extras = { version = "0.35", default-features = false }
 futures = { version = "0.3", default-features = false }
 gilrs = { version = "0.11", default-features = false }
 glam = { version = "0.33", default-features = false }
-hashbrown = { version = "0.17", default-features = false, features = [
-    "inline-more",
-    "alloc",
-    "default-hasher",
-] } # We use these features in all crates, so just enable them here
 hecs = { version = "0.11", default-features = false }
 image = { version = "0.25.9", default-features = false }
 indexmap = { version = "2" }
@@ -97,7 +92,7 @@ jiff = { version = "0.2", default-features = false }
 libc = { version = "0.2" }
 log = { version = "0.4" }
 naga = { version = "30", default-features = false }
-nohash-hasher = { version = "0.2", default-features = false }
+nohash-hasher = { version = "0.2" }
 pollster = { version = "1", default-features = false }
 postcard = { version = "1", default-features = false }
 profiling = { version = "1.0" }

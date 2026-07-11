@@ -1,12 +1,15 @@
 //! Pre-made bundles of entities
 
+use serde::Deserialize;
+use serde::Serialize;
+
+use crate::AssetRef;
+use crate::SerializedAsset;
+
 use super::entity::SerializedEntity;
-use crate::{AssetRef, SerializedAsset};
 
 /// A serialized bundle of entries, each of which is either an entity or another bundle
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SerializedBundle {
     /// The name of the bundle
     pub name: String,
@@ -21,10 +24,8 @@ impl SerializedAsset for SerializedBundle {
 }
 
 /// An entry in a [SerializedBundle]
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "entry_type"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "entry_type")]
 pub enum BundleEntry {
     /// An inline [SerializedEntity]
     Entity(SerializedEntity),

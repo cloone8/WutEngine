@@ -1,12 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
 
-extern crate alloc;
-
-#[cfg(feature = "std")]
-extern crate std;
-
-#[cfg(feature = "std")]
 use std::sync::RwLock;
 
 use wutengine_util::InitOnce;

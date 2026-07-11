@@ -1,7 +1,10 @@
-use wutengine_egui::{egui, egui::Widget};
+use wutengine_egui::egui;
+use wutengine_egui::egui::Widget;
 
-use super::{EditorPanel, EditorPanelId};
 use crate::logger::get_editor_logger;
+
+use super::EditorPanel;
+use super::EditorPanelId;
 
 /// Panel that shows the logs sent through the [log] crate
 pub(crate) struct LogPanel;

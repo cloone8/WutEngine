@@ -1,13 +1,16 @@
 //! Graphics APIs and rendering functionality
 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::sync::Arc;
 use core::any::TypeId;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::channel;
 
-#[cfg(feature = "std")]
-use std::sync::mpsc::{Receiver, Sender, channel};
+use wutengine_graphics::material::Material;
+use wutengine_graphics::mesh::Mesh;
+use wutengine_graphics::renderpass::RenderPass;
 
 pub use wutengine_graphics::*;
-use wutengine_graphics::{material::Material, mesh::Mesh, renderpass::RenderPass};
 use wutengine_math::Mat4;
 use wutengine_util::InitOnce;
 

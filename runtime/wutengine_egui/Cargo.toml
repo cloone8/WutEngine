@@ -16,13 +16,13 @@ publish = true
 default_fonts = ["egui/default_fonts"]
 
 [dependencies]
-wutengine_math = { workspace = true, features = ["std"] }
-wutengine_assets = { workspace = true, features = ["std"] }
-wutengine_input = { workspace = true, features = ["std"] }
-wutengine_util = { workspace = true, features = ["std"] }
-wutengine_graphics = { workspace = true, features = ["std"] }
-wutengine_time = { workspace = true, features = ["std"] }
-wutengine_shadercompiler = { workspace = true, features = ["std"] }
+wutengine_math.workspace = true
+wutengine_assets.workspace = true
+wutengine_input.workspace = true
+wutengine_util.workspace = true
+wutengine_graphics.workspace = true
+wutengine_time.workspace = true
+wutengine_shadercompiler.workspace = true
 
 log.workspace = true
 bytemuck.workspace = true

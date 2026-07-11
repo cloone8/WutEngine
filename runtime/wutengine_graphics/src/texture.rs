@@ -3,10 +3,10 @@
 use core::convert::Infallible;
 use std::sync::LazyLock;
 
-use wutengine_assets::{
-    FromSerializedAsset,
-    assets::texture::{SerializedTexture, TextureConfig, TextureFormat},
-};
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::texture::SerializedTexture;
+use wutengine_assets::assets::texture::TextureConfig;
+use wutengine_assets::assets::texture::TextureFormat;
 
 use crate::label;
 

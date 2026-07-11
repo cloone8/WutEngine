@@ -1,6 +1,4 @@
 use core::any::TypeId;
-
-#[cfg(feature = "std")]
 use std::collections::HashSet;
 
 /// Helper trait that allows for better runtime scheduling of ECS systems

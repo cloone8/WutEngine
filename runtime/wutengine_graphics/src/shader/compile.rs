@@ -1,29 +1,30 @@
 //! Shader compilation. The conversion of a [Shader](super::Shader) into a [CompiledShader](super::CompiledShader)
 
-use alloc::{
-    borrow::Cow, boxed::Box, collections::BTreeMap, format, string::String, sync::Arc, vec::Vec,
-};
-use core::{fmt::Display, num::NonZero};
-use hashbrown::HashMap;
+use alloc::borrow::Cow;
+use alloc::collections::BTreeMap;
+use alloc::sync::Arc;
+use core::fmt::Display;
+use core::num::NonZero;
+use std::collections::HashMap;
+use wutengine_shadercompiler::CompOutput;
 
-use wutengine_assets::assets::shader::{ShaderBufferParameterType, ShaderVertexAttributeType};
+use nohash_hasher::IntSet;
+use wutengine_assets::assets::shader::ShaderBufferParameterType;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_shadercompiler::{
-    CAMERA_PARAMS_BIND_GROUP_INDEX, CompOutput, INSTANCE_PARAMS_BIND_GROUP_INDEX,
+    CAMERA_PARAMS_BIND_GROUP_INDEX, INSTANCE_PARAMS_BIND_GROUP_INDEX,
     MATERIAL_PARAMS_BIND_GROUP_INDEX,
 };
-use wutengine_util::IntSet;
+
+use crate::internal_bind_groups::{get_camera_bind_group_layout, get_instance_bind_group_layout};
+use crate::label;
+use crate::shader::shader_attr_wgpu_vertex_format;
+use crate::shader::shader_opaque_param_wgpu_binding_type;
+use crate::shader::{CompiledShaderId, WutEngineShaderHasher};
+use crate::{BindGroup, GFX_DEVICE, cache};
 use wutengine_util::unreachable_dbg;
 
 use super::{Shader, ShaderParameter};
-use crate::{
-    BindGroup, GFX_DEVICE, cache,
-    internal_bind_groups::{get_camera_bind_group_layout, get_instance_bind_group_layout},
-    label,
-    shader::{
-        CompiledShaderId, WutEngineShaderHasher, shader_attr_wgpu_vertex_format,
-        shader_opaque_param_wgpu_binding_type,
-    },
-};
 
 /// An error while compiling a [Shader] into a [CompiledShader]
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]

@@ -1,20 +1,17 @@
 //! Entity management and APIs
 
-use alloc::string::String;
-use core::{fmt::Display, hash::Hash};
-
-#[cfg(feature = "std")]
+use core::fmt::Display;
+use core::hash::Hash;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
+use crate::builtins::components::Name;
+use crate::builtins::components::Transform;
+use crate::component;
+use crate::component::Component;
+use crate::runtime::MainThreadEvent;
+use crate::runtime::SystemManifest;
+use crate::world::World;
 use wutengine_util::InitOnce;
-
-use crate::{
-    builtins::components::{Name, Transform},
-    component,
-    component::Component,
-    runtime::{MainThreadEvent, SystemManifest},
-    world::World,
-};
 
 static ENTITY_QUEUES: InitOnce<EntityCommandQueues> = InitOnce::new_checked();
 

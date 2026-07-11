@@ -1,17 +1,9 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
 
 extern crate alloc;
 
-#[cfg(feature = "std")]
-extern crate std;
-
-use alloc::boxed::Box;
-use alloc::format;
-use alloc::string::String;
-use alloc::string::ToString;
 use alloc::sync::Arc;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 use std::sync::RwLock;
 
 use wutengine_util::map;

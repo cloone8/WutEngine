@@ -2,7 +2,8 @@
 
 use std::path::PathBuf;
 
-use clap::{Parser, ValueEnum};
+use clap::Parser;
+use clap::ValueEnum;
 use wutengine::graphics;
 
 /// Command line arguments for the WutEngine Editor

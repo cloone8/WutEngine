@@ -1,0 +1,52 @@
+{
+    "name": "egui",
+    "keywords": {
+        "DITHERING": {
+            "default": 0,
+            "allowed": {
+                "start": 0,
+                "end": 1
+            }
+        }
+    },
+    "vertex_attributes": [
+        {
+            "type": "position",
+            "location": 0
+        },
+        {
+            "type": "uv",
+            "location": 1,
+            "channel": 0
+        },
+        {
+            "type": "color",
+            "location": 2
+        }
+    ],
+    "default_parameters": {
+        "camera": false,
+        "instance": false
+    },
+    "parameters": [
+        {
+            "kind": "buffer",
+            "type": "vec2f",
+            "name": "screen_size"
+        },
+        {
+            "kind": "opaque",
+            "type": "sampler",
+            "name": "ui_texture_sampler"
+        },
+        {
+            "kind": "opaque",
+            "type": "texture_2d",
+            "name": "ui_texture"
+        }
+    ],
+    "source": {
+        "kind": "file",
+        "path": "egui.wgsl"
+    }
+}

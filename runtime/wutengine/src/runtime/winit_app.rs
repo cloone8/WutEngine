@@ -1,18 +1,26 @@
 //! Implements the [winit::application::ApplicationHandler] interface for [crate::runtime::Runtime],
 //! so that its execution can be driven by [winit]
 
-use alloc::{boxed::Box, sync::Arc};
 use core::time::Duration;
 
+use alloc::sync::Arc;
 use wutengine_util_macro::VariantName;
 
-use super::{FrameFrequency, Runtime, SystemManifest};
-use crate::{
-    config, graphics, input, runtime,
-    runtime::{events, send_to_main_thread},
-    time, window,
-    window::{Window, WindowConfig, WindowUpdateEvent},
-};
+use crate::config;
+use crate::graphics;
+use crate::input;
+use crate::runtime;
+use crate::runtime::events;
+use crate::runtime::send_to_main_thread;
+use crate::time;
+use crate::window;
+use crate::window::Window;
+use crate::window::WindowConfig;
+use crate::window::WindowUpdateEvent;
+
+use super::FrameFrequency;
+use super::Runtime;
+use super::SystemManifest;
 
 /// An event sent to the main WutEngine [Runtime], to be handled by [winit::application::ApplicationHandler::user_event].
 ///

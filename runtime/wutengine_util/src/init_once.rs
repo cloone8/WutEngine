@@ -1,6 +1,9 @@
 //! Single init, slightly unsafe, zero-overhead global manager
 
-use core::{cell::UnsafeCell, mem::MaybeUninit, ops::Deref, sync::atomic::Ordering};
+use core::cell::UnsafeCell;
+use core::mem::MaybeUninit;
+use core::ops::Deref;
+use core::sync::atomic::Ordering;
 
 use crate::assert_main_thread;
 

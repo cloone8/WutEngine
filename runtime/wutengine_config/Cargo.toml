@@ -12,14 +12,10 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
-[features]
-std = ["wutengine_util/std", "wutengine_event/std"]
-
 [dependencies]
 wutengine_util.workspace = true
 wutengine_event.workspace = true
 
-hashbrown = { workspace = true }
 log.workspace = true
 profiling.workspace = true
 dashmap = { workspace = true, features = ["inline"] }

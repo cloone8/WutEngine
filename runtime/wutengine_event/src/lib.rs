@@ -1,28 +1,16 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
 
-extern crate alloc;
+use core::any::Any;
+use core::any::TypeId;
+use core::ops::DerefMut;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 
-#[cfg(feature = "std")]
-extern crate std;
-
-use core::{
-    any::{Any, TypeId},
-    ops::DerefMut,
-};
-
-#[cfg(feature = "std")]
-use std::{
-    collections::HashMap,
-    sync::{
-        Mutex,
-        mpsc::{Receiver, Sender},
-    },
-};
-
-use alloc::{boxed::Box, vec::Vec};
 use nohash_hasher::IntMap;
-use wutengine_util::{InitOnce, assert_main_thread};
+use wutengine_util::InitOnce;
+use wutengine_util::assert_main_thread;
 use wutengine_util_macro::unique_id_type32;
 
 /// Type-erased event handler function

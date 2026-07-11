@@ -13,15 +13,10 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
-[features]
-std = []
-from_disk = ["wutengine_assets/deserialize"]
-
 [dependencies]
 wutengine_assets.workspace = true
 wutengine_util.workspace = true
 
-hashbrown.workspace = true
 uuid.workspace = true
 derive_more = { workspace = true, features = ["error", "display", "from"] }
 log.workspace = true

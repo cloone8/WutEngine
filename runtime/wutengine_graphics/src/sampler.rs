@@ -1,16 +1,20 @@
 //! Texture samplers
 
 use alloc::sync::Arc;
-use core::{convert::Infallible, fmt::Debug};
+use core::convert::Infallible;
+use core::fmt::Debug;
 use std::sync::LazyLock;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::sampler::FilterMode;
+use wutengine_assets::assets::sampler::SerializedSampler;
+use wutengine_assets::assets::sampler::WrapMode;
+use wutengine_assets::assets::sampler::WrapModeType;
 
-use wutengine_assets::{
-    FromSerializedAsset,
-    assets::sampler::{FilterMode, SerializedSampler, WrapMode, WrapModeType},
-};
+use crate::GFX_DEVICE;
+use crate::cache::sampler::SamplerCacheKey;
+use crate::label;
 
 use super::cache;
-use crate::{GFX_DEVICE, cache::sampler::SamplerCacheKey, label};
 
 /// The default sampler. Linear-repeat
 pub(crate) static DEFAULT_SAMPLER: LazyLock<Sampler> = LazyLock::new(|| {

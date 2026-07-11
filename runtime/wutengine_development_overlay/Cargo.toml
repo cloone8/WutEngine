@@ -13,11 +13,11 @@ categories.workspace = true
 publish = true
 
 [dependencies]
-wutengine_util = { workspace = true, features = ["std"] }
+wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_egui = { workspace = true, features = ["default_fonts"] }
-wutengine_input = { workspace = true, features = ["std"] }
-wutengine_graphics = { workspace = true, features = ["std"] }
+wutengine_input.workspace = true
+wutengine_graphics.workspace = true
 
 log.workspace = true
 profiling.workspace = true

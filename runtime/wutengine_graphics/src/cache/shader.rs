@@ -3,8 +3,9 @@
 use alloc::sync::Arc;
 use std::sync::LazyLock;
 
-use super::GraphicsCache;
 use crate::shader::{CompiledShader, CompiledShaderId};
+
+use super::GraphicsCache;
 
 static SHADER_COMPILATION_CACHE: LazyLock<GraphicsCache<CompiledShaderId, CompiledShader>> =
     LazyLock::new(Default::default);

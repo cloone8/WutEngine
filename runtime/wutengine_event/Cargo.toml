@@ -12,9 +12,6 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
-[features]
-std = ["wutengine_util/std"]
-
 [dependencies]
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true

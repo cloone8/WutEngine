@@ -2,12 +2,20 @@
 
 extern crate alloc;
 
-use core::{any::Any, convert::Infallible, error::Error, fmt::Debug, marker::PhantomData};
+use core::any::Any;
+use core::convert::Infallible;
+use core::error::Error;
+use core::fmt::Debug;
+use core::marker::PhantomData;
+
+use serde::Deserialize;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 pub mod assets;
 
 /// A serialized asset
-pub trait SerializedAsset: MaybeSerialize + MaybeDeserialize + Any + Send + Sync {
+pub trait SerializedAsset: Serialize + DeserializeOwned + Any + Send + Sync {
     /// Hint: To obtain one, you can generate a random V4 UUID from many websites,
     /// and then use the [uuid macro](uuid::uuid) to embed it at compile time
     const ID: uuid::NonNilUuid;
@@ -16,39 +24,9 @@ pub trait SerializedAsset: MaybeSerialize + MaybeDeserialize + Any + Send + Sync
     const PREFER_BINARY_SERIALIZATION: bool = false;
 }
 
-#[cfg(feature = "serialize")]
-/// Used to conditionally require serde serialization. Automatically implemented for types that implement serde serialize
-pub trait MaybeSerialize: serde::Serialize {}
-
-#[cfg(feature = "serialize")]
-impl<T> MaybeSerialize for T where T: serde::Serialize {}
-
-#[cfg(not(feature = "serialize"))]
-/// Used to conditionally require serde serialization. Automatically implemented for types that implement serde serialize
-pub trait MaybeSerialize {}
-
-#[cfg(not(feature = "serialize"))]
-impl<T> MaybeSerialize for T {}
-
-#[cfg(feature = "deserialize")]
-/// Used to conditionally require serde deserialization. Automatically implemented for types that implement serde deserializeowned
-pub trait MaybeDeserialize: serde::de::DeserializeOwned {}
-
-#[cfg(feature = "deserialize")]
-impl<T> MaybeDeserialize for T where T: serde::de::DeserializeOwned {}
-
-#[cfg(not(feature = "deserialize"))]
-/// Used to conditionally require serde deserialization. Automatically implemented for types that implement serde deserializeowned
-pub trait MaybeDeserialize {}
-
-#[cfg(not(feature = "deserialize"))]
-impl<T> MaybeDeserialize for T {}
-
 /// A serializable asset reference
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct AssetRef<T> {
     /// The ID of the asset
     asset_id: Option<uuid::NonNilUuid>,

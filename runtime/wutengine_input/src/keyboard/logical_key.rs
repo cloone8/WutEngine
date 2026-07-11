@@ -1,7 +1,5 @@
 use super::winit_nativekey_to_unknown_logical;
 
-use alloc::string::String;
-
 /// A logical keyboard input.
 ///
 /// Used by non-location based input mappings, like UI and text input.

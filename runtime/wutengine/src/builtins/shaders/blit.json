@@ -1,0 +1,25 @@
+{
+    "name": "Blit",
+    "keywords": {},
+    "vertex_attributes": [],
+    "default_parameters": {
+        "camera": false,
+        "instance": false
+    },
+    "parameters": [
+        {
+            "kind": "opaque",
+            "type": "sampler",
+            "name": "source_sampler"
+        },
+        {
+            "kind": "opaque",
+            "type": "texture_2d",
+            "name": "source_texture"
+        }
+    ],
+    "source": {
+        "kind": "file",
+        "path": "blit.wgsl"
+    }
+}

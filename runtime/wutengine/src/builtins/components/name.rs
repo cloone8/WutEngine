@@ -1,6 +1,5 @@
-use core::{fmt::Display, ops::Deref};
-
-use alloc::string::String;
+use core::fmt::Display;
+use core::ops::Deref;
 
 use crate::component::Component;
 

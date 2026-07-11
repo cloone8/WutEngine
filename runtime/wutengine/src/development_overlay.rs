@@ -1,13 +1,15 @@
 //! Development overlays
 
+use wutengine_config::toml;
+pub use wutengine_development_overlay::*;
+use wutengine_input::gamepad::GamepadDump;
+
 use core::error::Error;
 use std::collections::BTreeMap;
 
 use serde_core::Deserialize;
-use wutengine_config::toml;
-pub use wutengine_development_overlay::*;
-use wutengine_egui::{egui, egui::Color32};
-use wutengine_input::gamepad::GamepadDump;
+use wutengine_egui::egui;
+use wutengine_egui::egui::Color32;
 
 #[derive(Default)]
 pub(super) struct ConfigOverlay {

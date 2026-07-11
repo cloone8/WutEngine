@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 /// A serialized project file, containing metadata about a WutEngine Editor project
 #[derive(Debug, Clone, Serialize, Deserialize)]

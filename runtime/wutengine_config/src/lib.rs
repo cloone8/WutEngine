@@ -1,25 +1,17 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
-
-extern crate alloc;
-
-#[cfg(feature = "std")]
-extern crate std;
 
 use core::str::FromStr;
-
-use alloc::borrow::ToOwned;
-use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
-use hashbrown::HashMap;
-use std::{io::ErrorKind, path::Path};
+use std::collections::HashMap;
+use std::io::ErrorKind;
+use std::path::Path;
 
 use dashmap::DashMap;
 use serde::Deserialize;
 use smallvec::SmallVec;
+
 #[doc(inline)]
 pub use toml;
+
 use wutengine_util::InitOnce;
 
 /// The global [ConfigManager]

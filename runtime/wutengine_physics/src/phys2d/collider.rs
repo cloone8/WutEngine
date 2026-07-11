@@ -11,11 +11,11 @@ unique_id_type64! {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Collider(pub(crate) ColliderId);
 
-use rapier2d::prelude::*;
-use wutengine_math::*;
-
 use super::ColliderPose;
 use crate::RapierConversion;
+
+use rapier2d::prelude::*;
+use wutengine_math::*;
 
 /// Data to a 2D collider
 #[derive(Debug, Clone)]

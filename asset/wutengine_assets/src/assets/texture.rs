@@ -1,17 +1,18 @@
 //! Texture asset
 
+use serde::Deserialize;
+use serde::Serialize;
+
 use crate::SerializedAsset;
 
 /// The data for the texture
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedTexture {
     /// The texture configuration
     pub config: TextureConfig,
 
     /// The raw decoded image data
-    #[cfg_attr(feature = "serde", serde(with = "serde_bytes"))]
+    #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
 
     /// The data for each mip level
@@ -19,12 +20,10 @@ pub struct SerializedTexture {
 }
 
 /// The data for a mip-map level of a [SerializedTexture]
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedMipMap {
     /// The raw decoded image data
-    #[cfg_attr(feature = "serde", serde(with = "serde_bytes"))]
+    #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
 }
 
@@ -34,9 +33,7 @@ impl SerializedAsset for SerializedTexture {
 }
 
 /// The configuration for creating a new texture
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TextureConfig {
     /// The width of the texture in pixels. Must be at least 1
     pub width: u32,
@@ -49,9 +46,7 @@ pub struct TextureConfig {
 }
 
 /// The format of a [SerializedTexture]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TextureFormat {
     /// RGBA with 8-bits per component
     Rgba8,

@@ -1,4 +1,3 @@
-use alloc::{string::String, vec::Vec};
 use wutengine_util::assert_main_thread;
 
 use crate::window::Display;

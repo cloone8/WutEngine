@@ -1,16 +1,24 @@
 //! Material asset
 
-use hashbrown::HashMap;
+use std::collections::HashMap;
 
-use wutengine_math::{Color, Mat4, Vec2, Vec3, Vec4};
+use serde::Deserialize;
+use serde::Serialize;
+use wutengine_math::Color;
+use wutengine_math::Mat4;
+use wutengine_math::Vec2;
+use wutengine_math::Vec3;
+use wutengine_math::Vec4;
 
-use super::{sampler::SerializedSampler, shader::SerializedShader, texture::SerializedTexture};
-use crate::{AssetRef, SerializedAsset};
+use crate::AssetRef;
+use crate::SerializedAsset;
+
+use super::sampler::SerializedSampler;
+use super::shader::SerializedShader;
+use super::texture::SerializedTexture;
 
 /// The data for a single material
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedMaterial {
     /// The shader used by this material
     pub shader: AssetRef<SerializedShader>,
@@ -28,10 +36,8 @@ impl SerializedAsset for SerializedMaterial {
 }
 
 /// A material parameter value
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "type"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum SerializedMaterialParameter {
     /// Unsigned 32-bit integer
     Uint(u32),

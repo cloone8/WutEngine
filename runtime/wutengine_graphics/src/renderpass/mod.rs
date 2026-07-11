@@ -20,7 +20,7 @@ where
         Self: Sized;
 
     /// Construct a default version of this pass. Called once per camera
-    fn construct() -> alloc::boxed::Box<dyn RenderPass<T, D>>
+    fn construct() -> Box<dyn RenderPass<T, D>>
     where
         Self: Sized;
 

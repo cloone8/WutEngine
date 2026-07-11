@@ -14,18 +14,10 @@ publish = true
 
 [features]
 default = ["labels"]
-std = [
-    "wutengine_util/std",
-    "wutengine_assets/std",
-    "wutengine_asset_server/std",
-    "wutengine_math/std",
-    "wutengine_shadercompiler/std",
-    "wutengine_config/std",
-]
 labels = []
 
 [dependencies]
-wutengine_util = { workspace = true, features = ["hashbrown"] }
+wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_assets.workspace = true
 wutengine_asset_server.workspace = true
@@ -33,7 +25,6 @@ wutengine_math.workspace = true
 wutengine_shadercompiler.workspace = true
 wutengine_config.workspace = true
 
-hashbrown = { workspace = true }
 log.workspace = true
 profiling.workspace = true
 smallvec.workspace = true

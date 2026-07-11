@@ -2,12 +2,16 @@
 
 extern crate alloc;
 
-use alloc::sync::Arc;
-use core::{any::Any, error::Error};
-use hashbrown::HashMap;
-use std::sync::{OnceLock, RwLock};
+use core::any::Any;
+use core::error::Error;
+use std::collections::HashMap;
+use std::sync::OnceLock;
+use std::sync::RwLock;
 
-use wutengine_assets::{AssetRef, FromSerializedAsset};
+use alloc::sync::Arc;
+use wutengine_assets::AssetRef;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::SerializedAsset;
 use wutengine_util::InitOnce;
 
 static ASSET_SERVER: InitOnce<AssetServer> = InitOnce::new_checked();
@@ -41,48 +45,37 @@ impl AssetServer {
 
         drop(read_lock);
 
-        #[cfg(not(feature = "from_disk"))]
-        {
-            Err(GetAssetErr::FromDiskNotSupported)
-        }
+        profiling::scope!("Load from loader", asset_id.to_string().as_str());
 
-        #[cfg(feature = "from_disk")]
-        {
-            profiling::scope!("Load from loader", asset_id.to_string().as_str());
+        log::info!(
+            "Loading asset {} of type {} from disk",
+            asset_id,
+            core::any::type_name::<T>()
+        );
 
-            log::info!(
-                "Loading asset {} of type {} from disk",
-                asset_id,
-                core::any::type_name::<T>()
-            );
+        let asset_bytes = self.loader.load_asset(asset_id)?;
 
-            let asset_bytes = self.loader.load_asset(asset_id)?;
-
-            let asset = if T::Serialized::PREFER_BINARY_SERIALIZATION
-                || self.loader.always_binary_format()
-            {
+        let asset =
+            if T::Serialized::PREFER_BINARY_SERIALIZATION || self.loader.always_binary_format() {
                 postcard::from_bytes::<T::Serialized>(&asset_bytes)?
             } else {
                 serde_json::from_slice::<T::Serialized>(&asset_bytes)?
             };
 
-            let converted_asset =
-                Arc::new(T::from_serialized_asset(asset).map_err(GetAssetErr::From)?);
+        let converted_asset = Arc::new(T::from_serialized_asset(asset).map_err(GetAssetErr::From)?);
 
-            let mut write_lock = self.cache.write().unwrap();
+        let mut write_lock = self.cache.write().unwrap();
 
-            let prev =
-                write_lock.insert(*asset_id, CachedAsset::from_asset(converted_asset.clone()));
+        let prev = write_lock.insert(*asset_id, CachedAsset::from_asset(converted_asset.clone()));
 
-            if prev.is_some() {
-                log::warn!(
-                    "Duplicate load for asset {}. Internal engine issue",
-                    asset_id
-                );
-            }
-
-            Ok(converted_asset)
+        if prev.is_some() {
+            log::warn!(
+                "Duplicate load for asset {}. Internal engine issue",
+                asset_id
+            );
         }
+
+        Ok(converted_asset)
     }
 
     pub fn get_ref<T: FromSerializedAsset>(
@@ -101,9 +94,6 @@ impl AssetServer {
 pub enum GetAssetErr<E: Error> {
     #[display("The given asset reference has no asset ID attached")]
     MissingId,
-
-    #[display("Loading from disk was selected as a feature")]
-    FromDiskNotSupported,
 
     #[display("The asset is not of type {}", _0)]
     #[from(skip)]

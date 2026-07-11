@@ -1,31 +1,26 @@
 //! Material related functionality
 
-use alloc::string::String;
-use alloc::string::ToString;
 use alloc::sync::Arc;
 use core::convert::Infallible;
-use hashbrown::HashMap;
+use std::collections::HashMap;
+use wutengine_asset_server::AutoLoad;
+use wutengine_assets::AssetRef;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::material::SerializedMaterial;
+use wutengine_assets::assets::material::SerializedMaterialParameter;
+use wutengine_assets::assets::sampler::SerializedSampler;
+use wutengine_assets::assets::texture::SerializedTexture;
+use wutengine_math::Color;
+use wutengine_util_macro::unique_id_type32;
 
 use serde::{Deserialize, Serialize};
-use wutengine_asset_server::AutoLoad;
-use wutengine_assets::{
-    AssetRef, FromSerializedAsset,
-    assets::{
-        material::{SerializedMaterial, SerializedMaterialParameter},
-        sampler::SerializedSampler,
-        texture::SerializedTexture,
-    },
-};
-use wutengine_math::{Color, Mat4, Vec2, Vec3, Vec4};
-use wutengine_util_macro::{VariantName, unique_id_type32};
+use wutengine_math::{Mat4, Vec2, Vec3, Vec4};
+use wutengine_util_macro::VariantName;
 
-use super::{
-    BindGroup,
-    sampler::Sampler,
-    shader,
-    shader::{CompiledShader, Shader},
-    texture::Texture,
-};
+use super::sampler::Sampler;
+use super::shader::{CompiledShader, Shader};
+use super::texture::Texture;
+use super::{BindGroup, shader};
 
 unique_id_type32! {
     /// Globally unique identifier for a [Material]

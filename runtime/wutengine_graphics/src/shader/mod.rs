@@ -1,25 +1,23 @@
 //! GPU Shaders
 
-use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
-use core::{fmt::Display, hash::Hash};
-use hashbrown::HashMap;
+use core::fmt::Display;
+use core::hash::Hash;
+use std::collections::HashMap;
 
-use wutengine_assets::{
-    FromSerializedAsset,
-    assets::shader::{
-        SerializedShader, ShaderDefaultParameters, ShaderKeyword, ShaderParameter,
-        ShaderVertexAttribute,
-    },
-};
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::shader::SerializedShader;
+use wutengine_assets::assets::shader::ShaderDefaultParameters;
+use wutengine_assets::assets::shader::ShaderKeyword;
+use wutengine_assets::assets::shader::ShaderParameter;
+use wutengine_assets::assets::shader::ShaderVertexAttribute;
 use wutengine_util_macro::unique_id_type64;
 
 mod compile;
 mod types;
 
-pub(crate) use compile::*;
 pub use types::*;
+
+pub(crate) use compile::*;
 
 unique_id_type64! {
     /// Unique identifier for a [Shader]

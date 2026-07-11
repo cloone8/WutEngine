@@ -1,19 +1,23 @@
 //! Module housing the window manager
 
-use alloc::{sync::Arc, vec::Vec};
-
-#[cfg(feature = "std")]
-use std::sync::RwLock;
-
+use alloc::sync::Arc;
+use core::sync::atomic::AtomicUsize;
 use display_info::DisplayInfo;
-use nohash_hasher::{IntMap, IntSet};
-use smallvec::SmallVec;
+use nohash_hasher::IntSet;
+use std::sync::RwLock;
 use window_info::WindowInfo;
 use wutengine_graphics::wgpu;
-use wutengine_util::{InitOnce, assert_main_thread};
 
-use super::{Display, Window, WindowUpdateEvent};
+use nohash_hasher::IntMap;
+use smallvec::SmallVec;
+
 use crate::config;
+use wutengine_util::InitOnce;
+use wutengine_util::assert_main_thread;
+
+use super::Display;
+use super::Window;
+use super::WindowUpdateEvent;
 
 #[cfg(feature = "development_overlay")]
 mod development_overlay;

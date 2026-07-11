@@ -1,14 +1,14 @@
 //! The constant hard-coded bind groups for non-user shader parameters
 
-use alloc::string::String;
-use alloc::string::ToString;
 use core::num::NonZero;
 use std::sync::LazyLock;
 
-use wutengine_assets::assets::shader::{ShaderBufferParameterType, ShaderParameter};
+use wutengine_assets::assets::shader::ShaderBufferParameterType;
+use wutengine_assets::assets::shader::ShaderParameter;
+
+use crate::label;
 
 use super::{BindGroup, GFX_DEVICE};
-use crate::label;
 
 fn get_camera_params() -> &'static [ShaderParameter] {
     static CAMERA_PARAMS: LazyLock<[ShaderParameter; 3]> = LazyLock::new(|| {

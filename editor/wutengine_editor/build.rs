@@ -1,6 +1,7 @@
 //! Build script for WutEngine Editor
 
-use std::{env, path::PathBuf};
+use std::env;
+use std::path::PathBuf;
 
 /// For windows builds, grabs the icon file and converts it to a proper `.ico`.
 ///

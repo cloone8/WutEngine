@@ -4,11 +4,10 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use core::convert::Infallible;
+use wutengine_assets::FromSerializedAsset;
 
-use wutengine_assets::{
-    FromSerializedAsset,
-    assets::audioclip::{AudioClipFormat, SerializedAudioClip},
-};
+use wutengine_assets::assets::audioclip::AudioClipFormat;
+use wutengine_assets::assets::audioclip::SerializedAudioClip;
 
 /// A clip of audio
 #[derive(Debug, Clone)]

@@ -5,7 +5,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use std::path::PathBuf;
 
-use serde_core::{Serialize, de::DeserializeOwned};
+use serde_core::Serialize;
+use serde_core::de::DeserializeOwned;
 use wutengine::profiling;
 
 /// Event fired when an editor preference was changed [set]

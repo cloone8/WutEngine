@@ -15,8 +15,6 @@ license = "MIT OR Apache-2.0"
 keywords.workspace = true
 publish = true
 
-[features]
-
 [dependencies]
 derive_more = { workspace = true, features = ["debug"] }
 egui.workspace = true

@@ -1,17 +1,18 @@
 //! Audio clip asset
 
+use serde::Deserialize;
+use serde::Serialize;
+
 use crate::SerializedAsset;
 
 /// A clip of audio
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedAudioClip {
     /// The format of the clip
     pub format: AudioClipFormat,
 
     /// The raw data
-    #[cfg_attr(feature = "serde", serde(with = "serde_bytes"))]
+    #[serde(with = "serde_bytes")]
     pub data: Vec<u8>,
 }
 
@@ -21,9 +22,7 @@ impl SerializedAsset for SerializedAudioClip {
 }
 
 /// The format of a [SerializedAudioClip]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[cfg_attr(feature = "deserialize", derive(serde::Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AudioClipFormat {
     /// WAV (.wav)
     Wav,

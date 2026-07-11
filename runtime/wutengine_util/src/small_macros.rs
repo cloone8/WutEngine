@@ -13,14 +13,13 @@
 /// ];
 /// ```
 #[macro_export]
-#[cfg(feature = "hashbrown")]
 macro_rules! map {
     () => {
-        $crate::hashbrown::HashMap::default()
+        ::std::collections::HashMap::default()
     };
 
     ($($key:expr => $val:expr),+) => {{
-        let mut new_hashmap = $crate::hashbrown::HashMap::default();
+        let mut new_hashmap = ::std::collections::HashMap::default();
 
         $(
             new_hashmap.insert($key.into(), $val.into());

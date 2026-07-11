@@ -1,11 +1,8 @@
-use alloc::vec::Vec;
-use wutengine_util::hashbrown::HashSet;
+use std::collections::HashSet;
+
+use crate::runtime::{PendingSystem, SystemManifest};
 
 use super::{Phase, SystemManager, SystemSet};
-use crate::{
-    runtime::{PendingSystem, SystemManifest},
-    system::SystemId,
-};
 
 /// Schedule building
 impl SystemManager {
@@ -76,8 +73,6 @@ impl SystemManager {
 
             set_offset += 1;
         }
-
-        drop(unsatisfied_dependencies);
 
         // Now that we've satisfied our dependencies, we check for clashes in the borrows.
         // If we find a clash, we skip to the next set, inserting a new layer if needed
