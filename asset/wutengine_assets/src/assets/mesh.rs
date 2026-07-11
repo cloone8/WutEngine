@@ -1,11 +1,8 @@
 //! Mesh asset
 
 use nohash_hasher::IntMap;
-use serde::Deserialize;
-use serde::Serialize;
-use wutengine_math::Color;
-use wutengine_math::Vec2;
-use wutengine_math::Vec3;
+use serde::{Deserialize, Serialize};
+use wutengine_math::{Color, Vec2, Vec3};
 
 use crate::SerializedAsset;
 

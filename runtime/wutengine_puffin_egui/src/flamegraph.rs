@@ -2,11 +2,12 @@
 
 use alloc::vec;
 
-use super::{ERROR_COLOR, HOVER_COLOR, SelectedFrames};
-use crate::filter::Filter;
 use egui::{emath::GuiRounding, *};
 use indexmap::IndexMap;
 use puffin::*;
+
+use super::{ERROR_COLOR, HOVER_COLOR, SelectedFrames};
+use crate::filter::Filter;
 
 /// Sorting parameter
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

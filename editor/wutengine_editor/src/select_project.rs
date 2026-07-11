@@ -2,18 +2,19 @@
 
 use std::path::Path;
 
-use wutengine::entity::Entity;
-use wutengine::runtime;
-use wutengine::thread::TaskHandle;
-use wutengine::window::Window;
-use wutengine::window::WindowConfig;
+use wutengine::{
+    entity::Entity,
+    runtime,
+    thread::TaskHandle,
+    window::{Window, WindowConfig},
+};
 use wutengine_egui::egui;
 
-use crate::EditorWindowContainer;
-use crate::EguiWindowContainer;
-use crate::project::ProjectFile;
-use crate::project::create::create_empty_project;
-use crate::window::EditorWindow;
+use crate::{
+    EditorWindowContainer, EguiWindowContainer,
+    project::{ProjectFile, create::create_empty_project},
+    window::EditorWindow,
+};
 
 /// Spawns the entities that handle the "select project" flow, in which the user
 /// can either pick an existing project or create a new one.

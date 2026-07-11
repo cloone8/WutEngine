@@ -2,16 +2,16 @@
 
 use core::num::NonZeroU32;
 
-use wutengine::component::Component;
-use wutengine::input::WindowIdentifier;
-use wutengine::runtime::SystemConfig;
-use wutengine::system::Phase;
-use wutengine::window::Window;
-use wutengine::window::WindowConfig;
+use wutengine::{
+    component::Component,
+    input::WindowIdentifier,
+    runtime::SystemConfig,
+    system::Phase,
+    window::{Window, WindowConfig},
+};
 use wutengine_egui::egui;
 
-use crate::EGUI_CONTEXT;
-use crate::EGUI_RESOURCES;
+use crate::{EGUI_CONTEXT, EGUI_RESOURCES};
 
 mod main;
 pub(crate) use main::*;

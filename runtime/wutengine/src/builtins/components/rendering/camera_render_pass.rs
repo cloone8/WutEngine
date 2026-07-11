@@ -1,9 +1,8 @@
-use crate::component::Component;
-use crate::graphics::DrawCommand;
-use crate::graphics::RenderPassInfo;
-use crate::graphics::renderpass::RenderPass;
-
 use super::Camera;
+use crate::{
+    component::Component,
+    graphics::{DrawCommand, RenderPassInfo, renderpass::RenderPass},
+};
 
 /// A render pass that executes draw commands for a camera.
 #[derive(Debug, Default)]
@@ -22,5 +21,6 @@ impl CameraRenderPass {
 }
 
 impl Component for CameraRenderPass {
-    const ID: uuid::NonNilUuid = uuid::NonNilUuid::new(uuid::uuid!("62e189f7-ee97-42bf-aab3-2e8c9842343d")).unwrap();
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("62e189f7-ee97-42bf-aab3-2e8c9842343d")).unwrap();
 }

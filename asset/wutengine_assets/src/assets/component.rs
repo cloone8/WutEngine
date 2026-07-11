@@ -1,7 +1,6 @@
 //! Serializable components
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::NonNilUuid;
 
 /// A serialized component

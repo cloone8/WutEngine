@@ -1,22 +1,17 @@
 #![doc = include_str!("../README.md")]
 
 use core::fmt::Display;
-use std::collections::HashMap;
-use std::sync::Mutex;
-use std::sync::RwLock;
+use std::{
+    collections::HashMap,
+    sync::{Mutex, RwLock},
+};
 
-use gamepad::Gamepad;
-use gamepad::GamepadId;
+use gamepad::{Gamepad, GamepadId};
 use gilrs::Gilrs;
-use keyboard::Keyboard;
-use keyboard::KeyboardId;
-use mouse::Mouse;
-use mouse::MouseId;
-use winit::event::ButtonId;
-use winit::event::DeviceId;
-use winit::event::ElementState;
+use keyboard::{Keyboard, KeyboardId};
+use mouse::{Mouse, MouseId};
+use winit::event::{ButtonId, DeviceId, ElementState};
 use wutengine_math::Vec2;
-
 use wutengine_util::InitOnce;
 
 pub mod gamepad;

@@ -1,8 +1,7 @@
 use wutengine_egui::egui;
 
-use crate::project;
-
 use super::EditorPanel;
+use crate::project;
 
 #[derive(Debug)]
 pub(crate) struct TreePanel;

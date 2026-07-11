@@ -1,12 +1,9 @@
 //! Pre-made bundles of entities
 
-use serde::Deserialize;
-use serde::Serialize;
-
-use crate::AssetRef;
-use crate::SerializedAsset;
+use serde::{Deserialize, Serialize};
 
 use super::entity::SerializedEntity;
+use crate::{AssetRef, SerializedAsset};
 
 /// A serialized bundle of entries, each of which is either an entity or another bundle
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

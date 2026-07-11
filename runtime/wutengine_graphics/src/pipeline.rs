@@ -6,15 +6,8 @@ use smallvec::SmallVec;
 use wutengine_assets::assets::mesh::MeshTopology;
 use wutengine_util_macro::unique_id_type64;
 
-use crate::GFX_DEVICE;
-use crate::PIPELINE_CACHE;
-use crate::label;
-use crate::mesh::asset_topology_to_wgpu;
-use crate::shader;
-
-use super::cache;
-use super::cache::pipeline::PipelineCacheKey;
-use super::material::Material;
+use super::{cache, cache::pipeline::PipelineCacheKey, material::Material};
+use crate::{GFX_DEVICE, PIPELINE_CACHE, label, mesh::asset_topology_to_wgpu, shader};
 
 unique_id_type64! {
     /// Unique ID for a render pipeline. Mostly used for debug labels

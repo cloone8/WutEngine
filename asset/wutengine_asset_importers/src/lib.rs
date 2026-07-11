@@ -1,7 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use core::any::Any;
-use core::error::Error;
+use core::{any::Any, error::Error};
 use std::path::Path;
 
 mod image;

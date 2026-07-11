@@ -3,9 +3,7 @@ use alloc::sync::Arc;
 use wutengine_graphics::wgpu;
 use wutengine_util::assert_main_thread;
 
-use crate::config;
-use crate::graphics;
-use crate::window::Window;
+use crate::{config, graphics, window::Window};
 
 #[derive(Debug)]
 pub(in crate::window) struct WindowInfo {

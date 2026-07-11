@@ -2,15 +2,10 @@
 
 use alloc::sync::Arc;
 use core::any::TypeId;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::channel;
-
-use wutengine_graphics::material::Material;
-use wutengine_graphics::mesh::Mesh;
-use wutengine_graphics::renderpass::RenderPass;
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 pub use wutengine_graphics::*;
+use wutengine_graphics::{material::Material, mesh::Mesh, renderpass::RenderPass};
 use wutengine_math::Mat4;
 use wutengine_util::InitOnce;
 

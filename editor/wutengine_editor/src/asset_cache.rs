@@ -2,15 +2,15 @@
 
 use alloc::sync::Arc;
 use core::any::Any;
-use std::collections::HashMap;
-use std::sync::RwLock;
+use std::{collections::HashMap, sync::RwLock};
 
 use wutengine::asset::SerializedAsset;
 use wutengine_util::InitOnce;
 
-use crate::project;
-use crate::project::assetmanager::ProjectAssetFormat;
-use crate::project::assetmanager::ProjectAssetId;
+use crate::{
+    project,
+    project::assetmanager::{ProjectAssetFormat, ProjectAssetId},
+};
 
 static ASSET_CACHE: InitOnce<AssetCacheManager> = InitOnce::new_checked();
 

@@ -1,17 +1,13 @@
 use core::error::Error;
 use std::path::Path;
 
-use image::DynamicImage;
-use image::EncodableLayout;
-use image::GenericImageView;
-use wutengine_assets::SerializedAsset;
+use image::{DynamicImage, EncodableLayout, GenericImageView};
+use wutengine_assets::{
+    SerializedAsset,
+    assets::texture::{SerializedMipMap, SerializedTexture, TextureConfig, TextureFormat},
+};
 
-use crate::AssetImporter;
-use crate::ImportedAsset;
-use wutengine_assets::assets::texture::SerializedMipMap;
-use wutengine_assets::assets::texture::SerializedTexture;
-use wutengine_assets::assets::texture::TextureConfig;
-use wutengine_assets::assets::texture::TextureFormat;
+use crate::{AssetImporter, ImportedAsset};
 
 /// Image asset importer. Imports images from an encoded format (png, jpg, etc.) into a raw decoded texture
 #[derive(Debug)]

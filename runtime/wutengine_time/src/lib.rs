@@ -1,8 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::Mutex;
-use std::time::Instant;
+use std::{sync::Mutex, time::Instant};
 
 use wutengine_util::InitOnce;
 

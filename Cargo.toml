@@ -20,12 +20,12 @@ members = [
     "runtime/wutengine_util_macro",
     "asset/wutengine_assets",
     "asset/wutengine_asset_importers",
+    "asset/wutengine_asset_server",
     "editor/wutengine_editor",
     "editor/we_fonts",
     "editor/we_menu",
     "editor/we_prefs",
     "editor/we_style",
-    "asset/wutengine_asset_server",
 ]
 
 [workspace.package]

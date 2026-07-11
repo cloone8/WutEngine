@@ -1,11 +1,11 @@
-use core::any::Any;
-use core::num::NonZero;
+use core::{any::Any, num::NonZero};
 
 use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 
-use crate::label;
-use crate::shader::GVec4;
-use crate::shader::{GVec2, GVec3};
+use crate::{
+    label,
+    shader::{GVec2, GVec3, GVec4},
+};
 
 /// A raw vertex buffer
 #[derive(Debug)]

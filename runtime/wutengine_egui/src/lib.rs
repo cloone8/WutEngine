@@ -3,38 +3,36 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
-use render::PrimitiveRenderState;
-use std::collections::HashMap;
-use std::sync::LazyLock;
-use std::sync::Mutex;
-use wutengine_assets::FromSerializedAsset;
-use wutengine_graphics::label;
-use wutengine_util::error_once;
-use wutengine_util::warn_once;
+use std::{
+    collections::HashMap,
+    sync::{LazyLock, Mutex},
+};
 
 use nohash_hasher::IntMap;
-use wutengine_assets::assets::shader::SerializedShader;
-use wutengine_assets::assets::shader::ShaderSource;
-use wutengine_assets::assets::shader::ShaderVertexAttributeType;
-use wutengine_graphics::material::Material;
-use wutengine_graphics::material::MaterialParameter;
-use wutengine_graphics::sampler::Sampler;
-use wutengine_graphics::shader::GVec3;
-use wutengine_graphics::shader::Shader;
-use wutengine_graphics::texture::Texture;
-use wutengine_graphics::wgpu;
+use render::PrimitiveRenderState;
+use wutengine_assets::{
+    FromSerializedAsset,
+    assets::shader::{SerializedShader, ShaderSource, ShaderVertexAttributeType},
+};
+use wutengine_graphics::{
+    label,
+    material::{Material, MaterialParameter},
+    sampler::Sampler,
+    shader::{GVec3, Shader},
+    texture::Texture,
+    wgpu,
+};
 use wutengine_input::WindowIdentifier;
 use wutengine_math::vec2;
-use wutengine_util::map;
+use wutengine_util::{error_once, map, warn_once};
 
 mod input;
 mod key_mapping;
 mod render;
 pub mod utils;
 
-pub use key_mapping::*;
-
 pub use egui;
+pub use key_mapping::*;
 
 /// Information for the window we're rendering [egui] on
 #[derive(Debug, Clone, Copy)]

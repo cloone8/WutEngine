@@ -1,6 +1,4 @@
-use wutengine_math::Mat4;
-use wutengine_math::Quat;
-use wutengine_math::Vec3;
+use wutengine_math::{Mat4, Quat, Vec3};
 
 use crate::component::Component;
 

@@ -3,30 +3,27 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::sync::Arc;
-use std::collections::HashMap;
-use std::path::Path;
-use std::path::PathBuf;
-use wutengine::asset::assets::level::SerializedLevel;
+use alloc::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 use cli_args::CliArgs;
 use editorwindow_renderpass::EditorWindowRenderPass;
-use window::EditorWindowContainer;
-use window::EguiWindowContainer;
-use window::MainEditorWindow;
-use wutengine::builtins::components::rendering::OverlayRenderPass;
-use wutengine::entity::Entity;
-use wutengine::graphics;
-use wutengine::runtime::FrameFrequency;
-use wutengine::runtime::InitRuntimeConfig;
-use wutengine::time;
-use wutengine::time::NANOS_PER_SECOND;
-use wutengine::window::Window;
-use wutengine::window::WindowConfig;
-use wutengine_egui::egui;
-use wutengine_egui::TextureMaterialMap;
+use window::{EditorWindowContainer, EguiWindowContainer, MainEditorWindow};
+use wutengine::{
+    asset::assets::level::SerializedLevel,
+    builtins::components::rendering::OverlayRenderPass,
+    entity::Entity,
+    graphics,
+    runtime::{FrameFrequency, InitRuntimeConfig},
+    time,
+    time::NANOS_PER_SECOND,
+    window::{Window, WindowConfig},
+};
+use wutengine_egui::{TextureMaterialMap, egui};
 use wutengine_util::InitOnce;
 
 mod asset_cache;
@@ -52,7 +49,7 @@ const EDITOR_BASE_TICK_INTERVAL_SECS: f32 = 2.0;
 #[cfg(windows)]
 /// Try to attach to an already open console
 fn try_attach_to_console() {
-    use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
+    use windows::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole};
 
     // We can't log here because the logger is not yet initialized
     unsafe {

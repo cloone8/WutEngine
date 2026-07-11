@@ -1,11 +1,9 @@
 //! Shader asset
 
 use core::ops::RangeInclusive;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wutengine_util_macro::VariantIndex;
 
 use crate::SerializedAsset;

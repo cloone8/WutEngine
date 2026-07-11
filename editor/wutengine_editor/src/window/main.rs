@@ -1,13 +1,10 @@
 use wutengine_egui::egui;
 
-use crate::exit;
-use crate::panel::LibraryPanel;
-use crate::panel::LogPanel;
-use crate::panel::TestPanel;
-use crate::panel::TreePanel;
-
-use super::EditorWindow;
-use super::panel_container::PanelContainer;
+use super::{EditorWindow, panel_container::PanelContainer};
+use crate::{
+    exit,
+    panel::{LibraryPanel, LogPanel, TestPanel, TreePanel},
+};
 
 /// The main editor window
 #[derive(derive_more::Debug)]

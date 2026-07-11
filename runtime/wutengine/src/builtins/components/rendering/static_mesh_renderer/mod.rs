@@ -1,12 +1,13 @@
 use wutengine_asset_server::AutoLoad;
 use wutengine_math::Mat4;
 
-use crate::builtins::components::Transform;
-use crate::component::Component;
-use crate::graphics;
-use crate::graphics::material::Material;
-use crate::graphics::mesh::Mesh;
-use crate::system::Phase;
+use crate::{
+    builtins::components::Transform,
+    component::Component,
+    graphics,
+    graphics::{material::Material, mesh::Mesh},
+    system::Phase,
+};
 
 /// A static mesh renderer
 #[derive(Debug, Default)]

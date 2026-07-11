@@ -6,9 +6,8 @@ use nohash_hasher::IntSet;
 use winit::event::ButtonId;
 use wutengine_math::Vec2;
 
-use crate::WindowIdentifier;
-
 use super::INPUT_MANAGER;
+use crate::WindowIdentifier;
 
 /// Left mouse button
 pub const BUTTON_LEFT: u32 = 0;

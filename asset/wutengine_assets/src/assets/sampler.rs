@@ -2,8 +2,7 @@
 
 use core::fmt::Display;
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::SerializedAsset;
 

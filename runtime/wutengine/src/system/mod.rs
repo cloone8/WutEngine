@@ -1,21 +1,22 @@
 //! WutEngine ECS system registration and query helpers
 
 use alloc::sync::Arc;
-use core::any::TypeId;
-use core::fmt::Display;
-use core::sync::atomic::AtomicU32;
-use core::sync::atomic::Ordering;
-use rayon::prelude::*;
+use core::{
+    any::TypeId,
+    fmt::Display,
+    sync::atomic::{AtomicU32, Ordering},
+};
 use std::collections::HashSet;
+
+use rayon::prelude::*;
 
 mod queryable;
 mod scheduler;
 
 pub use queryable::*;
-
-use crate::runtime::SystemManifest;
-use crate::world::World;
 use wutengine_util::assert_main_thread;
+
+use crate::{runtime::SystemManifest, world::World};
 
 /// The generic type used for a non-typed system callback.
 pub(crate) type GenericSystem = dyn Fn(&World) + Send + Sync + 'static;

@@ -3,21 +3,16 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
+use core::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use wutengine_egui::LogicOutput;
-use wutengine_egui::TextureMaterialMap;
-use wutengine_egui::egui;
-use wutengine_input::WindowIdentifier;
-use wutengine_util_macro::unique_id_type32;
-
-use wutengine_graphics::wgpu;
-
-use wutengine_util::InitOnce;
 
 #[doc(inline)]
 pub use wutengine_egui;
+use wutengine_egui::{LogicOutput, TextureMaterialMap, egui};
+use wutengine_graphics::wgpu;
+use wutengine_input::WindowIdentifier;
+use wutengine_util::InitOnce;
+use wutengine_util_macro::unique_id_type32;
 
 unique_id_type32! {
     DevOverlayWindowId

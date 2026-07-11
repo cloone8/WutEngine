@@ -1,17 +1,13 @@
 #![doc = include_str!("../README.md")]
 
 use core::str::FromStr;
-use std::collections::HashMap;
-use std::io::ErrorKind;
-use std::path::Path;
+use std::{collections::HashMap, io::ErrorKind, path::Path};
 
 use dashmap::DashMap;
 use serde::Deserialize;
 use smallvec::SmallVec;
-
 #[doc(inline)]
 pub use toml;
-
 use wutengine_util::InitOnce;
 
 /// The global [ConfigManager]

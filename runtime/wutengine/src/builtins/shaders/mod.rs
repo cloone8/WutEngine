@@ -1,12 +1,13 @@
 //! Builtin shaders
 
-use std::sync::Arc;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
+
+use wutengine_assets::{
+    FromSerializedAsset,
+    assets::shader::{SerializedShader, ShaderSource},
+};
 
 use crate::graphics::shader::Shader;
-use wutengine_assets::FromSerializedAsset;
-use wutengine_assets::assets::shader::SerializedShader;
-use wutengine_assets::assets::shader::ShaderSource;
 
 /// Macro to automatically create a [Shader] from a descriptor and source file,
 /// overriding the "source" field of the shader descriptor to be inline

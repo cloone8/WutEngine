@@ -1,8 +1,9 @@
 //! Project definition
 
-use std::path::Path;
-use std::path::PathBuf;
-use std::sync::RwLock;
+use std::{
+    path::{Path, PathBuf},
+    sync::RwLock,
+};
 
 use assetmanager::ProjectAssetId;
 use wutengine_util::InitOnce;
@@ -10,9 +11,8 @@ use wutengine_util::InitOnce;
 pub(crate) mod assetmanager;
 
 mod project_file;
-pub(crate) use project_file::*;
-
 use assetmanager::ProjectAssetManager;
+pub(crate) use project_file::*;
 
 pub(crate) mod create;
 

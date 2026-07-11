@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
-use crate::runtime::{PendingSystem, SystemManifest};
-
 use super::{Phase, SystemManager, SystemSet};
+use crate::runtime::{PendingSystem, SystemManifest};
 
 /// Schedule building
 impl SystemManager {

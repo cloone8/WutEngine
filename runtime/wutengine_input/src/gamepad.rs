@@ -8,9 +8,8 @@ use nohash_hasher::IntMap;
 use wutengine_math::Vec2;
 use wutengine_util_macro::VariantIndex;
 
-use crate::INPUT_MANAGER;
-
 use super::DeviceSet;
+use crate::INPUT_MANAGER;
 
 /// A gamepad input device
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From, derive_more::Display)]

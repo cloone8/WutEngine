@@ -1,19 +1,16 @@
 //! Project asset manager
 
 use alloc::collections::BTreeMap;
-use core::any::Any;
-use core::fmt::Display;
-use core::ops::Deref;
-use std::collections::HashMap;
-use std::path::Path;
-use std::path::PathBuf;
-use std::sync::RwLock;
-use uuid::NonNilUuid;
-use wutengine::asset::SerializedAsset;
-use wutengine::world;
+use core::{any::Any, fmt::Display, ops::Deref};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::RwLock,
+};
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use uuid::NonNilUuid;
+use wutengine::{asset::SerializedAsset, world};
 
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub(crate) enum LoadErr {

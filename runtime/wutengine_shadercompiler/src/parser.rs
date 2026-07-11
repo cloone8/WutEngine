@@ -1,7 +1,6 @@
 //! WutEngine shader compiler directive parser
 
-use core::borrow::Borrow;
-use core::hash::Hash;
+use core::{borrow::Borrow, hash::Hash};
 use std::collections::HashMap;
 
 const DIRECTIVE_LEADER: &str = "//#";

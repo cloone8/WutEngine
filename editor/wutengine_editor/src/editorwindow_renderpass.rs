@@ -1,14 +1,13 @@
 //! Rendering editor windows
 
-use wutengine::graphics::renderpass::RenderPass;
-use wutengine::graphics::wgpu;
-use wutengine::hecs;
-use wutengine::time;
-use wutengine::window::Window;
+use wutengine::{
+    graphics::{renderpass::RenderPass, wgpu},
+    hecs, time,
+    window::Window,
+};
 use wutengine_egui::egui;
 
-use crate::EGUI_RESOURCES;
-use crate::EguiWindowContainer;
+use crate::{EGUI_RESOURCES, EguiWindowContainer};
 
 /// Overlay pass that renders all editor windows
 #[derive(Debug)]

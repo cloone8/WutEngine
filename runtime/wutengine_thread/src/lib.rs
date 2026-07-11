@@ -3,16 +3,16 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
-use core::num::NonZero;
-use core::sync::atomic::{AtomicBool, Ordering};
-use detect::CoreConfig;
-use futures::task::LocalSpawn;
+use core::{
+    num::NonZero,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use std::thread::available_parallelism;
 
+use detect::CoreConfig;
+use futures::task::LocalSpawn;
 use serde::Deserialize;
-
-use wutengine_util::InitOnce;
-use wutengine_util::assert_main_thread;
+use wutengine_util::{InitOnce, assert_main_thread};
 
 mod detect;
 

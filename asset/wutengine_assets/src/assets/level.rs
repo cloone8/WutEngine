@@ -1,13 +1,9 @@
 //! Level asset
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::AssetRef;
-use crate::SerializedAsset;
-
-use super::bundle::SerializedBundle;
-use super::entity::SerializedEntity;
+use super::{bundle::SerializedBundle, entity::SerializedEntity};
+use crate::{AssetRef, SerializedAsset};
 
 /// A playable level, containing a set of entity/bundle entries.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

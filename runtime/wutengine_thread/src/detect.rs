@@ -43,11 +43,15 @@ mod win {
 
     use nohash_hasher::IntSet;
     use smallvec::SmallVec;
-    use windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
-    use windows::Win32::System::SystemInformation::CpuSetInformation;
-    use windows::Win32::System::SystemInformation::GetSystemCpuSetInformation;
-    use windows::Win32::System::SystemInformation::SYSTEM_CPU_SET_INFORMATION;
-    use windows::core::HRESULT;
+    use windows::{
+        Win32::{
+            Foundation::ERROR_INSUFFICIENT_BUFFER,
+            System::SystemInformation::{
+                CpuSetInformation, GetSystemCpuSetInformation, SYSTEM_CPU_SET_INFORMATION,
+            },
+        },
+        core::HRESULT,
+    };
 
     use super::CoreConfig;
 
@@ -147,10 +151,11 @@ mod win {
 #[cfg(target_os = "macos")]
 mod macos {
     use alloc::ffi::CString;
-    use core::ffi::CStr;
-    use core::ffi::c_char;
-    use core::num::NonZero;
-    use core::ptr::null_mut;
+    use core::{
+        ffi::{CStr, c_char},
+        num::NonZero,
+        ptr::null_mut,
+    };
     use std::os::raw::c_void;
 
     use smallvec::SmallVec;

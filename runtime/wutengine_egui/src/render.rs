@@ -3,21 +3,19 @@
 use alloc::sync::Arc;
 use core::num::NonZero;
 use std::collections::HashMap;
-use wutengine_graphics::label;
 
 use nohash_hasher::IntMap;
-use wutengine_assets::assets::mesh::MeshTopology;
-use wutengine_assets::assets::shader::ShaderVertexAttributeType;
-use wutengine_graphics::mesh::IndexDatatype;
-use wutengine_graphics::shader::GVec2;
-use wutengine_graphics::shader::GVec3;
-use wutengine_graphics::shader::GVec4;
-use wutengine_graphics::wgpu;
+use wutengine_assets::assets::{mesh::MeshTopology, shader::ShaderVertexAttributeType};
+use wutengine_graphics::{
+    label,
+    mesh::IndexDatatype,
+    shader::{GVec2, GVec3, GVec4},
+    wgpu,
+};
 use wutengine_math::Vec4;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 
-use crate::TextureMaterial;
-use crate::utils;
+use crate::{TextureMaterial, utils};
 
 /// Writes the given primitives into a new set of buffers, sized by the `_bytes` parameters.
 /// Returns the new buffers

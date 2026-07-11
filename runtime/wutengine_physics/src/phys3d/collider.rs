@@ -1,9 +1,10 @@
 //! Collider types and API
 
-use super::ColliderPose;
-use crate::RapierConversion;
 use rapier3d::prelude::*;
 use wutengine_util_macro::unique_id_type64;
+
+use super::ColliderPose;
+use crate::RapierConversion;
 
 unique_id_type64! {
     /// The handle to a single collider

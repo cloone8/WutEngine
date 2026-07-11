@@ -1,10 +1,10 @@
 //! WutEngine components and component helpers
 
-use core::any::Any;
-use core::any::TypeId;
-use std::collections::HashSet;
-use std::sync::LazyLock;
-use std::sync::RwLock;
+use core::any::{Any, TypeId};
+use std::{
+    collections::HashSet,
+    sync::{LazyLock, RwLock},
+};
 
 static ADDED_DEFAULT_COMPONENT_SYSTEMS: LazyLock<RwLock<HashSet<TypeId>>> =
     LazyLock::new(|| RwLock::new(HashSet::default()));

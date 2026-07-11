@@ -3,12 +3,10 @@
 use core::num::NonZero;
 use std::sync::LazyLock;
 
-use wutengine_assets::assets::shader::ShaderBufferParameterType;
-use wutengine_assets::assets::shader::ShaderParameter;
-
-use crate::label;
+use wutengine_assets::assets::shader::{ShaderBufferParameterType, ShaderParameter};
 
 use super::{BindGroup, GFX_DEVICE};
+use crate::label;
 
 fn get_camera_params() -> &'static [ShaderParameter] {
     static CAMERA_PARAMS: LazyLock<[ShaderParameter; 3]> = LazyLock::new(|| {

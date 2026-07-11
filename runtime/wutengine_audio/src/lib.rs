@@ -4,7 +4,6 @@ use wutengine_util::InitOnce;
 
 mod audioclip;
 pub use audioclip::*;
-
 #[doc(inline)]
 pub use rodio;
 

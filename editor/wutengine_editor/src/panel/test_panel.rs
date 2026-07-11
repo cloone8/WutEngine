@@ -1,5 +1,4 @@
-use super::EditorPanel;
-use super::EditorPanelId;
+use super::{EditorPanel, EditorPanelId};
 
 /// Testing panel
 #[derive(Debug)]

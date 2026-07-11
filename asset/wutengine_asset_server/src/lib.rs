@@ -2,16 +2,14 @@
 
 extern crate alloc;
 
-use core::any::Any;
-use core::error::Error;
-use std::collections::HashMap;
-use std::sync::OnceLock;
-use std::sync::RwLock;
-
 use alloc::sync::Arc;
-use wutengine_assets::AssetRef;
-use wutengine_assets::FromSerializedAsset;
-use wutengine_assets::SerializedAsset;
+use core::{any::Any, error::Error};
+use std::{
+    collections::HashMap,
+    sync::{OnceLock, RwLock},
+};
+
+use wutengine_assets::{AssetRef, FromSerializedAsset, SerializedAsset};
 use wutengine_util::InitOnce;
 
 static ASSET_SERVER: InitOnce<AssetServer> = InitOnce::new_checked();

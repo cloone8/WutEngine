@@ -11,5 +11,4 @@ pub use current_function::*;
 pub use init_once::*;
 pub use main_thread::*;
 pub use main_thread_only::*;
-
 pub use shard_hasher::*;

@@ -1,9 +1,10 @@
 use wutengine_graphics::wgpu;
 
-use crate::component::Component;
-use crate::graphics::RenderPassInfo;
-use crate::graphics::renderpass::RenderPass;
-use crate::window::Window;
+use crate::{
+    component::Component,
+    graphics::{RenderPassInfo, renderpass::RenderPass},
+    window::Window,
+};
 
 /// A render pass that renders on a raw surface, on top of all cameras
 #[derive(Debug, Default)]
@@ -22,5 +23,6 @@ impl OverlayRenderPass {
 }
 
 impl Component for OverlayRenderPass {
-    const ID: uuid::NonNilUuid = uuid::NonNilUuid::new(uuid::uuid!("993f53f6-ea80-4b48-9194-508a9d32f7a0")).unwrap();
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("993f53f6-ea80-4b48-9194-508a9d32f7a0")).unwrap();
 }

@@ -1,21 +1,16 @@
 use alloc::sync::Arc;
 use core::sync::atomic::Ordering;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use winit::error::EventLoopError;
 use wutengine_util::InitOnce;
 
-use crate::entity;
-use crate::graphics;
-use crate::runtime::EVENT_LOOP_PROXY;
-use crate::runtime::MainThreadEvent;
-use crate::runtime::Runtime;
-use crate::runtime::WUTENGINE_RUNNING;
-use crate::system;
-use crate::window;
-
 use super::SystemManifest;
+use crate::{
+    entity, graphics,
+    runtime::{EVENT_LOOP_PROXY, MainThreadEvent, Runtime, WUTENGINE_RUNNING},
+    system, window,
+};
 
 /// An error while starting the WutEngine runtime with [run]
 #[derive(Debug, derive_more::Error, derive_more::Display, derive_more::From)]
@@ -109,8 +104,7 @@ pub fn run(
 
     #[cfg(feature = "development_overlay")]
     {
-        use crate::development_overlay::ConfigOverlay;
-        use crate::development_overlay::GamepadOverlay;
+        use crate::development_overlay::{ConfigOverlay, GamepadOverlay};
 
         crate::development_overlay::init(Some(|_| {
             crate::runtime::request_frame();

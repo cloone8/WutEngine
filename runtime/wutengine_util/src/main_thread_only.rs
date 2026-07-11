@@ -1,7 +1,6 @@
 //! Module for the [MainThreadOnly] type
 
-use core::ops::Deref;
-use core::ops::DerefMut;
+use core::ops::{Deref, DerefMut};
 
 use crate::assert_main_thread;
 

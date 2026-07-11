@@ -3,8 +3,7 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
-use std::collections::HashMap;
-use std::sync::RwLock;
+use std::{collections::HashMap, sync::RwLock};
 
 use wutengine_util::map;
 

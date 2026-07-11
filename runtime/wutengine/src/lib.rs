@@ -2,7 +2,11 @@
 //!
 //! For more information and examples, see the crates.io page and the repository
 
+// #![no_std]
+
 extern crate alloc;
+
+// extern crate std;
 
 pub mod builtins;
 pub mod component;
@@ -19,7 +23,6 @@ pub mod development_overlay;
 
 #[doc(inline)]
 pub use hecs;
-
 #[doc(inline)]
 pub use uuid;
 
@@ -28,37 +31,27 @@ pub mod log {
 
     #[doc(inline)]
     pub use log::*;
-
     #[doc(inline)]
     pub use wutengine_logger::*;
 }
 
 #[doc(inline)]
-pub use wutengine_assets as asset;
-
-#[doc(inline)]
 pub use wutengine_asset_server as asset_server;
-
+#[doc(inline)]
+pub use wutengine_assets as asset;
 #[doc(inline)]
 pub use wutengine_audio as audio;
-
-#[doc(inline)]
-pub use wutengine_math as math;
-
-#[doc(inline)]
-pub use wutengine_input as input;
-
-#[doc(inline)]
-pub use wutengine_time as time;
-
-#[doc(inline)]
-pub use wutengine_physics as physics;
-
 #[doc(inline)]
 pub use wutengine_config as config;
-
 #[doc(inline)]
 pub use wutengine_event as event;
-
+#[doc(inline)]
+pub use wutengine_input as input;
+#[doc(inline)]
+pub use wutengine_math as math;
+#[doc(inline)]
+pub use wutengine_physics as physics;
 #[doc(inline)]
 pub use wutengine_thread as thread;
+#[doc(inline)]
+pub use wutengine_time as time;

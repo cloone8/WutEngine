@@ -5,11 +5,11 @@
 )]
 
 use proc_macro::Span;
-use quote::quote;
-use quote::quote_spanned;
-use syn::parse::Parse;
-use syn::spanned::Spanned;
-use syn::{Attribute, Ident, LitStr, Type, Visibility, parse_macro_input, parse_str};
+use quote::{quote, quote_spanned};
+use syn::{
+    Attribute, Ident, LitStr, Type, Visibility, parse::Parse, parse_macro_input, parse_str,
+    spanned::Spanned,
+};
 
 /// Input for the [unique_id_type32] and [unique_id_type64] macros
 struct UniqueIdTypeInput {

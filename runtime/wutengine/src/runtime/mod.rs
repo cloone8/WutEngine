@@ -1,35 +1,28 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
-use crate::builtins::components::rendering::ActiveCameraRenderPass;
-use crate::builtins::components::rendering::Camera;
-use crate::builtins::components::rendering::CameraRenderPass;
-use crate::builtins::components::rendering::OverlayRenderPass;
-use crate::entity;
-use crate::entity::EntityManager;
-use crate::graphics;
-use crate::graphics::DrawCommand;
-use crate::graphics::RenderPassInfo;
-use crate::input;
-use crate::system::Phase;
-use crate::system::SystemManager;
-use crate::time;
-use crate::window;
-use crate::window::Window;
-use crate::world;
 use alloc::sync::Arc;
-use core::any::TypeId;
-use core::sync::atomic::AtomicBool;
-use events::AddOnExitHandler;
-use events::AddOnExitRequestedHandler;
-use std::sync::mpsc::Receiver;
-use std::time::Instant;
-use wutengine_graphics::label;
-use wutengine_graphics::renderpass::RenderPass;
-use wutengine_graphics::wgpu;
-use wutengine_util::InitOnce;
-use wutengine_util::assert_main_thread;
+use core::{any::TypeId, sync::atomic::AtomicBool};
+use std::{sync::mpsc::Receiver, time::Instant};
 
+use events::{AddOnExitHandler, AddOnExitRequestedHandler};
 use rayon::prelude::*;
+use wutengine_graphics::{label, renderpass::RenderPass, wgpu};
+use wutengine_util::{InitOnce, assert_main_thread};
+
+use crate::{
+    builtins::components::rendering::{
+        ActiveCameraRenderPass, Camera, CameraRenderPass, OverlayRenderPass,
+    },
+    entity,
+    entity::EntityManager,
+    graphics,
+    graphics::{DrawCommand, RenderPassInfo},
+    input,
+    system::{Phase, SystemManager},
+    time, window,
+    window::Window,
+    world,
+};
 
 mod api;
 mod events;
@@ -39,9 +32,7 @@ mod winit_app;
 
 pub use api::*;
 pub use init::*;
-
 pub use system_builder::*;
-
 pub(crate) use winit_app::MainThreadEvent;
 
 static EVENT_LOOP_PROXY: InitOnce<winit::event_loop::EventLoopProxy<MainThreadEvent>> =
@@ -203,8 +194,7 @@ impl Runtime {
     }
 
     fn write_physics_state() {
-        use crate::builtins::components::Transform;
-        use crate::builtins::components::physics::*;
+        use crate::builtins::components::{Transform, physics::*};
 
         profiling::function_scope!();
 
@@ -237,8 +227,7 @@ impl Runtime {
     }
 
     fn read_physics_state() {
-        use crate::builtins::components::Transform;
-        use crate::builtins::components::physics::*;
+        use crate::builtins::components::{Transform, physics::*};
 
         profiling::function_scope!();
 

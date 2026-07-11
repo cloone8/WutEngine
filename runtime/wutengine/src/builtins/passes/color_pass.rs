@@ -1,18 +1,18 @@
 use alloc::sync::Arc;
 
 use wutengine_assets::assets::mesh::MeshTopology;
-use wutengine_graphics::label;
-use wutengine_graphics::material::Material;
-use wutengine_graphics::material::MaterialId;
-use wutengine_graphics::mesh::Mesh;
-use wutengine_graphics::renderpass::RenderPass;
-use wutengine_graphics::wgpu;
-use wutengine_shadercompiler::INSTANCE_PARAMS_BIND_GROUP_INDEX;
-use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
+use wutengine_graphics::{
+    label,
+    material::{Material, MaterialId},
+    mesh::Mesh,
+    renderpass::RenderPass,
+    wgpu,
+};
+use wutengine_shadercompiler::{
+    INSTANCE_PARAMS_BIND_GROUP_INDEX, MATERIAL_PARAMS_BIND_GROUP_INDEX,
+};
 
-use crate::builtins::components::rendering::Camera;
-use crate::graphics;
-use crate::graphics::DrawCommand;
+use crate::{builtins::components::rendering::Camera, graphics, graphics::DrawCommand};
 
 /// The main pass for color rendering
 #[derive(Debug)]

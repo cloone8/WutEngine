@@ -1,9 +1,6 @@
-use crate::builtins::components::Transform;
-use crate::component::Component;
+use wutengine_physics::phys2d::{PhysicsWorldUpdater, collider::ColliderData2D};
 
-use crate::math::*;
-use wutengine_physics::phys2d::PhysicsWorldUpdater;
-use wutengine_physics::phys2d::collider::ColliderData2D;
+use crate::{builtins::components::Transform, component::Component, math::*};
 
 /// A set of colliders
 #[derive(Debug, Default)]

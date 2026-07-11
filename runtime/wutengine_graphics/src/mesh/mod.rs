@@ -3,15 +3,16 @@
 use std::collections::HashMap;
 
 use nohash_hasher::IntMap;
-use wutengine_assets::FromSerializedAsset;
-use wutengine_assets::assets::mesh::MeshIndices;
-use wutengine_assets::assets::mesh::MeshTopology;
-use wutengine_assets::assets::mesh::SerializedMesh;
-use wutengine_assets::assets::shader::ShaderVertexAttributeType;
-
-use crate::shader::GVec4;
+use wutengine_assets::{
+    FromSerializedAsset,
+    assets::{
+        mesh::{MeshIndices, MeshTopology, SerializedMesh},
+        shader::ShaderVertexAttributeType,
+    },
+};
 
 use super::shader::{GVec2, GVec3};
+use crate::shader::GVec4;
 
 mod index;
 pub use index::*;

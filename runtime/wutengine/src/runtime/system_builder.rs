@@ -1,6 +1,5 @@
 use alloc::sync::Arc;
-use core::any::TypeId;
-use core::num::NonZero;
+use core::{any::TypeId, num::NonZero};
 use std::collections::HashSet;
 
 use rayon::prelude::*;

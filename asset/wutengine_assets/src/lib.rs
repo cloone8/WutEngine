@@ -2,15 +2,9 @@
 
 extern crate alloc;
 
-use core::any::Any;
-use core::convert::Infallible;
-use core::error::Error;
-use core::fmt::Debug;
-use core::marker::PhantomData;
+use core::{any::Any, convert::Infallible, error::Error, fmt::Debug, marker::PhantomData};
 
-use serde::Deserialize;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub mod assets;
 

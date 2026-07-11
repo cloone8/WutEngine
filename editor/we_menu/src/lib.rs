@@ -2,8 +2,7 @@
 
 use std::sync::Mutex;
 
-use wutengine_egui::egui;
-use wutengine_egui::egui::Widget;
+use wutengine_egui::{egui, egui::Widget};
 
 /// The global [MenuManager]
 static MENU_MANAGER: MenuManager = MenuManager::new();

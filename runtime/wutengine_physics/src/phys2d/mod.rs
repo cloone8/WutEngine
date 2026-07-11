@@ -1,5 +1,4 @@
-use std::sync::RwLock;
-use std::sync::mpsc::Receiver;
+use std::sync::{RwLock, mpsc::Receiver};
 
 use collider::ColliderId;
 use nohash_hasher::IntMap;

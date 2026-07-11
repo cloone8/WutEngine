@@ -1,17 +1,13 @@
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
-use std::path::Path;
-use std::path::PathBuf;
-use std::sync::Once;
+use core::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    path::{Path, PathBuf},
+    sync::Once,
+};
 
-use wutengine_egui::egui;
-use wutengine_egui::egui::Widget;
-
-use crate::project::asset_manager;
-use crate::project::assetmanager;
-use crate::project::assetmanager::ProjectAssetId;
+use wutengine_egui::{egui, egui::Widget};
 
 use super::EditorPanel;
+use crate::project::{asset_manager, assetmanager, assetmanager::ProjectAssetId};
 
 static SHOULD_UPDATE: AtomicBool = AtomicBool::new(false);
 

@@ -15,17 +15,15 @@ mod filter;
 mod flamegraph;
 mod stats;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
-use alloc::sync::Arc;
-use core::fmt::Write;
-use core::iter;
-use core::time::Duration;
-use egui::scroll_area::ScrollSource;
-use egui::*;
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
+use core::{fmt::Write, iter, time::Duration};
+use std::{sync::Mutex, time::Instant};
+
+use egui::{scroll_area::ScrollSource, *};
 use puffin::*;
-use std::sync::Mutex;
-use std::time::Instant;
 
 /// Error color
 const ERROR_COLOR: Color32 = Color32::RED;

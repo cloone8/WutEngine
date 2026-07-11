@@ -2,20 +2,11 @@
 
 use std::collections::HashMap;
 
-use serde::Deserialize;
-use serde::Serialize;
-use wutengine_math::Color;
-use wutengine_math::Mat4;
-use wutengine_math::Vec2;
-use wutengine_math::Vec3;
-use wutengine_math::Vec4;
+use serde::{Deserialize, Serialize};
+use wutengine_math::{Color, Mat4, Vec2, Vec3, Vec4};
 
-use crate::AssetRef;
-use crate::SerializedAsset;
-
-use super::sampler::SerializedSampler;
-use super::shader::SerializedShader;
-use super::texture::SerializedTexture;
+use super::{sampler::SerializedSampler, shader::SerializedShader, texture::SerializedTexture};
+use crate::{AssetRef, SerializedAsset};
 
 /// The data for a single material
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,12 +1,9 @@
 //! Entity asset
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
+use super::{bundle::SerializedBundle, component::SerializedComponent};
 use crate::AssetRef;
-
-use super::bundle::SerializedBundle;
-use super::component::SerializedComponent;
 
 /// A serialized entity. Contains a set of components and sub-entities
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

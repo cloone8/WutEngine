@@ -1,7 +1,6 @@
 //! Exit interruptions and handlers
 
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 use crate::project;
 

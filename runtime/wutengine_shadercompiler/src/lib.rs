@@ -1,14 +1,10 @@
 #![doc = include_str!("../README.md")]
 
-use std::collections::HashMap;
-use std::collections::HashSet;
+use core::fmt::{Display, Write};
+use std::collections::{HashMap, HashSet};
 
-use core::fmt::Display;
-use core::fmt::Write;
 use nohash_hasher::IntSet;
-use parser::Condition;
-use parser::ParseErr;
-use parser::ShaderFile;
+use parser::{Condition, ParseErr, ShaderFile};
 use smallvec::SmallVec;
 
 mod parser;

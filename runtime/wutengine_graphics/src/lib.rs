@@ -16,16 +16,11 @@ pub mod sampler;
 pub mod shader;
 pub mod texture;
 
+pub use bind_group::*;
+pub use config::*;
+pub use init::{initialize_graphics_context, persist_pipeline_cache};
 #[doc(inline)]
 pub use wgpu;
-
-pub use bind_group::*;
-
-pub use config::*;
-
-pub use init::initialize_graphics_context;
-pub use init::persist_pipeline_cache;
-
 use wutengine_util::InitOnce;
 
 /// The global [wgpu::Adapter]

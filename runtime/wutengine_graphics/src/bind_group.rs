@@ -3,18 +3,19 @@
 use core::num::NonZero;
 use std::collections::HashMap;
 
-use wutengine_assets::assets::shader::ShaderBufferParameterType;
-use wutengine_assets::assets::shader::ShaderParameter;
+use wutengine_assets::assets::shader::{ShaderBufferParameterType, ShaderParameter};
 
-use crate::label;
-use crate::shader::shader_buffer_param_default_value;
-use crate::shader::shader_opaque_param_default_value;
-
-use super::material::MaterialParameter;
-use super::shader::ShaderBufferParameter;
-use super::shader::ShaderOpaqueParameter;
-use super::shader::shader_buffer_param_align;
-use super::shader::shader_buffer_param_size;
+use super::{
+    material::MaterialParameter,
+    shader::{
+        ShaderBufferParameter, ShaderOpaqueParameter, shader_buffer_param_align,
+        shader_buffer_param_size,
+    },
+};
+use crate::{
+    label,
+    shader::{shader_buffer_param_default_value, shader_opaque_param_default_value},
+};
 
 /// A shader bind group. Holds a set of parameters and their GPU side representation.
 #[derive(Debug, Clone)]

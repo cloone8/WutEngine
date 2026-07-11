@@ -3,10 +3,7 @@
 use alloc::sync::Arc;
 use core::sync::atomic::Ordering;
 
-use super::AddOnExitHandler;
-use super::AddOnExitRequestedHandler;
-use super::MainThreadEvent;
-use super::WUTENGINE_RUNNING;
+use super::{AddOnExitHandler, AddOnExitRequestedHandler, MainThreadEvent, WUTENGINE_RUNNING};
 
 /// Requests that the WutEngine runtime stops cleanly.
 /// This usually happens somewhere before the next frame.
