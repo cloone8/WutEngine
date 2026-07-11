@@ -1,25 +1,30 @@
 [workspace]
 resolver = "3"
 members = [
-    "wutengine",
-    "wutengine_asset",
-    "wutengine_audio",
-    "wutengine_config",
-    "wutengine_development_overlay",
-    "wutengine_egui",
-    "wutengine_event",
-    "wutengine_graphics",
-    "wutengine_input",
-    "wutengine_logger",
-    "wutengine_math",
-    "wutengine_physics2d",
-    "wutengine_physics3d",
-    "wutengine_puffin_egui",
-    "wutengine_shadercompiler",
-    "wutengine_thread",
-    "wutengine_time",
-    "wutengine_util",
-    "wutengine_util_macro",
+    "runtime/wutengine",
+    "runtime/wutengine_asset",
+    "runtime/wutengine_audio",
+    "runtime/wutengine_config",
+    "runtime/wutengine_development_overlay",
+    "runtime/wutengine_egui",
+    "runtime/wutengine_event",
+    "runtime/wutengine_graphics",
+    "runtime/wutengine_input",
+    "runtime/wutengine_logger",
+    "runtime/wutengine_math",
+    "runtime/wutengine_physics2d",
+    "runtime/wutengine_physics3d",
+    "runtime/wutengine_puffin_egui",
+    "runtime/wutengine_shadercompiler",
+    "runtime/wutengine_thread",
+    "runtime/wutengine_time",
+    "runtime/wutengine_util",
+    "runtime/wutengine_util_macro",
+    "editor/wutengine_editor",
+    "editor/we_fonts",
+    "editor/we_menu",
+    "editor/we_prefs",
+    "editor/we_style",
 ]
 
 [workspace.package]
@@ -32,32 +37,41 @@ repository = "https://github.com/cloone8/WutEngine"
 license = "MPL-2.0"
 keywords = ["2D", "3D", "game", "engine"]
 categories = ["game-engines"]
+publish = false
 
 [workspace.dependencies]
 ### Workspace dependencies ###
-wutengine = { path = "wutengine", version = "0.6.0" }
-wutengine_asset = { path = "wutengine_asset", version = "0.6.0" }
-wutengine_audio = { path = "wutengine_audio", version = "0.6.0" }
-wutengine_config = { path = "wutengine_config", version = "0.6.0" }
-wutengine_development_overlay = { path = "wutengine_development_overlay", version = "0.6.0" }
-wutengine_egui = { path = "wutengine_egui", version = "0.6.0" }
-wutengine_event = { path = "wutengine_event", version = "0.6.0" }
-wutengine_graphics = { path = "wutengine_graphics", version = "0.6.0" }
-wutengine_input = { path = "wutengine_input", version = "0.6.0" }
-wutengine_logger = { path = "wutengine_logger", version = "0.6.0" }
-wutengine_math = { path = "wutengine_math", version = "0.6.0" }
-wutengine_physics2d = { path = "wutengine_physics2d", version = "0.6.0" }
-wutengine_physics3d = { path = "wutengine_physics3d", version = "0.6.0" }
-wutengine_puffin_egui = { path = "wutengine_puffin_egui", version = "0.6.0" }
-wutengine_shadercompiler = { path = "wutengine_shadercompiler", version = "0.6.0" }
-wutengine_thread = { path = "wutengine_thread", version = "0.6.0" }
-wutengine_time = { path = "wutengine_time", version = "0.6.0" }
-wutengine_util = { path = "wutengine_util", version = "0.6.0" }
-wutengine_util_macro = { path = "wutengine_util_macro", version = "0.6.0" }
+## Runtime ##
+wutengine = { path = "runtime/wutengine", version = "0.6.0" }
+wutengine_asset = { path = "runtime/wutengine_asset", version = "0.6.0" }
+wutengine_audio = { path = "runtime/wutengine_audio", version = "0.6.0" }
+wutengine_config = { path = "runtime/wutengine_config", version = "0.6.0" }
+wutengine_development_overlay = { path = "runtime/wutengine_development_overlay", version = "0.6.0" }
+wutengine_egui = { path = "runtime/wutengine_egui", version = "0.6.0" }
+wutengine_event = { path = "runtime/wutengine_event", version = "0.6.0" }
+wutengine_graphics = { path = "runtime/wutengine_graphics", version = "0.6.0" }
+wutengine_input = { path = "runtime/wutengine_input", version = "0.6.0" }
+wutengine_logger = { path = "runtime/wutengine_logger", version = "0.6.0" }
+wutengine_math = { path = "runtime/wutengine_math", version = "0.6.0" }
+wutengine_physics2d = { path = "runtime/wutengine_physics2d", version = "0.6.0" }
+wutengine_physics3d = { path = "runtime/wutengine_physics3d", version = "0.6.0" }
+wutengine_puffin_egui = { path = "runtime/wutengine_puffin_egui", version = "0.6.0" }
+wutengine_shadercompiler = { path = "runtime/wutengine_shadercompiler", version = "0.6.0" }
+wutengine_thread = { path = "runtime/wutengine_thread", version = "0.6.0" }
+wutengine_time = { path = "runtime/wutengine_time", version = "0.6.0" }
+wutengine_util = { path = "runtime/wutengine_util", version = "0.6.0" }
+wutengine_util_macro = { path = "runtime/wutengine_util_macro", version = "0.6.0" }
+
+## Editor ##
+we_fonts = { path = "editor/we_fonts" }
+we_menu = { path = "editor/we_menu" }
+we_prefs = { path = "editor/we_prefs" }
+we_style = { path = "editor/we_style" }
 
 ### External dependencies ###
 bytemuck = { version = "1.25", default-features = false }
 cursor-icon = { version = "1", default-features = false }
+clap = { version = "4" }
 dashmap = { version = "6.1", default-features = false }
 derive_more = { version = "2.1", default-features = false }
 dirs = { version = "6" }
@@ -75,12 +89,14 @@ log = { version = "0.4" }
 naga = { version = "30", default-features = false }
 nohash-hasher = { version = "0.2" }
 pollster = { version = "0.4" }
+postcard = { version = "1", default-features = false }
 profiling = { version = "1.0" }
 puffin = { version = "0.20" }
 quote = { version = "1.0" }
 rapier2d = { version = "0.33" }
 rapier3d = { version = "0.33" }
 rayon = { version = "1.11" }
+rfd = { version = "0.17" }
 rodio = { version = "0.22", default-features = false }
 serde = { version = "1.0" }
 serde_core = { version = "1.0" }
@@ -103,6 +119,14 @@ wgpu = { version = "30", default-features = false, features = [
 windows = { version = "0.62" }
 windows-strings = { version = "0.5" }
 winit = { version = "0.30" }
+winresource = { version = "0.1" }
+
+[profile.dev]
+strip = "none"
+lto = "off"
+opt-level = 1
+debug = "full"
+debug-assertions = true
 
 [profile.release]
 strip = true

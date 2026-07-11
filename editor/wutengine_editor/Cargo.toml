@@ -1,0 +1,43 @@
+[package]
+name = "wutengine_editor"
+description = "Main editor application"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "wutengine"
+path = "src/main.rs"
+
+[dependencies]
+we_prefs.workspace = true
+we_menu.workspace = true
+we_style.workspace = true
+we_fonts.workspace = true
+
+wutengine.workspace = true
+wutengine_egui.workspace = true
+wutengine_util.workspace = true
+wutengine_util_macro.workspace = true
+
+log.workspace = true
+clap = { workspace = true, features = ["derive"] }
+rfd.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+postcard = { workspace = true, features = ["alloc"] }
+uuid = { workspace = true, features = ["v4"] }
+derive_more = { workspace = true, features = ["error", "from", "is_variant"] }
+nohash-hasher.workspace = true
+
+[build-dependencies]
+winresource.workspace = true
+image = { workspace = true, features = ["png", "ico"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = ["Win32_System_Console"] }
+
+[lints]
+workspace = true

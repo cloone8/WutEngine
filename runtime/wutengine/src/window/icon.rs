@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use image::GenericImageView;
 
 /// The default WutEngine icon
-pub const DEFAULT_ICON: &[u8] = include_bytes!("../../../img/wutengine.png");
+pub const DEFAULT_ICON: &[u8] = include_bytes!("../../../../img/wutengine.png");
 
 /// A window icon. The icon dimensions must be equal on both sides, and a power of two
 #[derive(Debug, Clone)]
