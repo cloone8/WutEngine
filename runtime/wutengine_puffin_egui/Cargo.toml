@@ -13,6 +13,7 @@ homepage.workspace = true
 repository.workspace = true
 license = "MIT OR Apache-2.0"
 keywords.workspace = true
+publish = true
 
 [dependencies]
 derive_more = { workspace = true, features = ["debug"] }

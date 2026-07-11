@@ -10,7 +10,8 @@ license.workspace = true
 keywords.workspace = true
 categories.workspace = true
 rust-version.workspace = true
-readme = "../README.md"
+readme = "../../README.md"
+publish = true
 
 [features]
 profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]

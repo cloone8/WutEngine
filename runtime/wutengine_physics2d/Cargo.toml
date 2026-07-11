@@ -10,6 +10,8 @@ repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 categories.workspace = true
+publish = true
+include = ["../wutengine_physics/src"]
 
 [lib]
 path = "../wutengine_physics/src/lib.rs"

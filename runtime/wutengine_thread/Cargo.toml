@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_thread"
+description = "Threading and tasks for WutEngine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,6 +10,7 @@ repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 categories.workspace = true
+publish = true
 
 [dependencies]
 wutengine_util.workspace = true
