@@ -36,6 +36,7 @@ log = { version = "0.4" }
 clap = { version = "4" }
 derive_more = { version = "2" }
 dirs = { version = "6" }
+image = { version = "0.25", default-features = false }
 rfd = { version = "0.17" }
 serde = { version = "1" }
 serde_json = { version = "1" }
@@ -79,7 +80,6 @@ fn_params_excessive_bools = "warn"
 infinite_loop = "warn"
 verbose_file_reads = "warn"
 unneeded_field_pattern = "warn"
-unimplemented = "warn"
 todo = "warn"
 suspicious_operation_groupings = "warn"
 needless_collect = "warn"

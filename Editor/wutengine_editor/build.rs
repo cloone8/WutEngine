@@ -1,21 +1,25 @@
 //! Build script for WutEngine Editor
 
 use std::env;
+use std::path::PathBuf;
 
-// fn get_windows_icon() -> PathBuf {
-//     let icon_png = include_bytes!("assets/Icon.png");
+/// For windows builds, grabs the icon file and converts it to a proper `.ico`.
+///
+/// Returns the path to the new icon
+fn get_windows_icon() -> PathBuf {
+    let icon_png = include_bytes!("../../WutEngine/img/wutengine.png");
 
-//     let icon_png = image::load_from_memory(icon_png).expect("Failed to load icon file");
+    let icon_png = image::load_from_memory(icon_png).expect("Failed to load icon file");
 
-//     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-//     let ico_file_dest = out_dir.join("icon.ico");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let ico_file_dest = out_dir.join("icon.ico");
 
-//     icon_png
-//         .save_with_format(&ico_file_dest, image::ImageFormat::Ico)
-//         .expect("Failed to convert icon to ico");
+    icon_png
+        .save_with_format(&ico_file_dest, image::ImageFormat::Ico)
+        .expect("Failed to convert icon to ico");
 
-//     ico_file_dest
-// }
+    ico_file_dest
+}
 
 /// Returns the git sha for the current commit of this crate
 fn get_git_sha(short: bool) -> Option<String> {
@@ -44,10 +48,10 @@ fn get_git_sha(short: bool) -> Option<String> {
 
 fn main() {
     if env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows" {
-        // let ico_file = get_windows_icon();
+        let ico_file = get_windows_icon();
 
         let mut res = winresource::WindowsResource::new();
-        // res.set_icon(ico_file.to_str().expect("Icon path is not a string"));
+        res.set_icon(ico_file.to_str().expect("Icon path is not a string"));
         res.set(
             "FileDescription",
             format!("WutEngine Editor ({})", get_git_sha(true).unwrap()).as_str(),

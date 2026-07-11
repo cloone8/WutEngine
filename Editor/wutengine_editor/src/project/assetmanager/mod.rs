@@ -11,6 +11,7 @@ use std::sync::RwLock;
 use uuid::NonNilUuid;
 use wutengine::asset::Asset;
 use wutengine::asset::SerializedAsset;
+use wutengine::world;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -179,6 +180,7 @@ impl ProjectAssetManager {
         let project_asset = ProjectAsset {
             id: Some(id),
             format,
+            asset_type: A::ID,
             path: project_relative.to_path_buf(),
         };
 
@@ -231,6 +233,9 @@ pub(crate) struct ProjectAsset {
     id: Option<ProjectAssetId>,
 
     format: ProjectAssetFormat,
+
+    /// Corresponds to the [SerializedAsset::ID] constant
+    asset_type: uuid::NonNilUuid,
 
     #[serde(serialize_with = "to_cross_platform_path")]
     path: PathBuf,

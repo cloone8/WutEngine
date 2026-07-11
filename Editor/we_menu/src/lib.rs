@@ -3,6 +3,7 @@
 use std::sync::Mutex;
 
 use wutengine_egui::egui;
+use wutengine_egui::egui::Widget;
 
 /// The global [MenuManager]
 static MENU_MANAGER: MenuManager = MenuManager::new();
@@ -265,15 +266,14 @@ fn show_debug(ui: &mut egui::Ui) {
                     .background_color(egui::Color32::LIGHT_RED)
                     .color(egui::Color32::BLACK),
                 |ui| {
-                    let text = if ui.ctx().debug_on_hover() {
-                        "Layout debug ✔️"
-                    } else {
-                        "Layout debug"
-                    };
+                    ui.menu_button("egui", |ui| {
+                        let mut cur_debug_opts = ui.ctx().global_style().debug;
 
-                    if ui.button(text).clicked() {
-                        ui.ctx().set_debug_on_hover(!ui.ctx().debug_on_hover());
-                    }
+                        cur_debug_opts.ui(ui);
+
+                        ui.ctx()
+                            .global_style_mut(|style| style.debug = cur_debug_opts);
+                    });
                 },
             );
         },

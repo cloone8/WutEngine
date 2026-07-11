@@ -213,7 +213,6 @@ impl AssetTreeNode {
             Self::Branch { .. } => egui::RichText::new("📁").color(egui::Color32::YELLOW),
         }
     }
-
     fn insert_at(&mut self, node_path: &Path, node: AssetTreeNode) {
         let AssetTreeNode::Branch { path, children, .. } = self else {
             panic!("Cannot insert at leaf node");

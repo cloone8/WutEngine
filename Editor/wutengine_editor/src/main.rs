@@ -30,6 +30,7 @@ use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
 mod asset_cache;
+mod asset_gui;
 mod cli_args;
 mod editorwindow_renderpass;
 mod exit;
@@ -214,6 +215,11 @@ fn load_fonts() {
         Arc::new(egui::FontData::from_static(we_fonts::NOTO_EMOJI_VARIABLE)),
     );
 
+    font_data.insert(
+        "EmojiIconFont".to_string(),
+        Arc::new(egui::FontData::from_static(we_fonts::EMOJI_ICON_FONT)),
+    );
+
     let mut families = BTreeMap::new();
 
     families.insert(
@@ -223,6 +229,7 @@ fn load_fonts() {
             "DMSans".to_string(),
             "DMSans Italic".to_string(),
             "NotoEmoji".to_string(),
+            "EmojiIconFont".to_string(),
         ],
     );
 
@@ -232,6 +239,7 @@ fn load_fonts() {
             "DMSans".to_string(),
             "DMSans Italic".to_string(),
             "NotoEmoji".to_string(),
+            "EmojiIconFont".to_string(),
         ],
     );
 

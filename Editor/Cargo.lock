@@ -4332,6 +4332,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "derive_more",
+ "image",
  "log",
  "nohash-hasher",
  "postcard",
