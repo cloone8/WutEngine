@@ -1,11 +1,11 @@
 //! Misc. utilities and mapping functions
 
-use wutengine_asset::assets::sampler::FilterMode;
-use wutengine_asset::assets::sampler::SerializedSampler;
-use wutengine_asset::assets::sampler::WrapMode;
-use wutengine_asset::assets::sampler::WrapModeType;
-use wutengine_asset::assets::texture::TextureConfig;
-use wutengine_asset::assets::texture::TextureFormat;
+use wutengine_assets::assets::sampler::FilterMode;
+use wutengine_assets::assets::sampler::SerializedSampler;
+use wutengine_assets::assets::sampler::WrapMode;
+use wutengine_assets::assets::sampler::WrapModeType;
+use wutengine_assets::assets::texture::TextureConfig;
+use wutengine_assets::assets::texture::TextureFormat;
 
 /// Converts a WutEngine [Vec2](wutengine_math::Vec2) to an [egui::Vec2]
 #[inline]

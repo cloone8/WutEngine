@@ -37,7 +37,7 @@ impl SerializedAsset for SerializedMesh {
 }
 
 /// Mesh indices
-#[derive(Debug, Clone, derive_more::From, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "size")]
 pub enum MeshIndices {
     /// 16-bit indices
@@ -55,10 +55,10 @@ impl Default for MeshIndices {
 
 /// The topology of the indices of a [SerializedMesh]
 #[derive(
-    Debug, Clone, Copy, Default, PartialEq, Eq, Hash, derive_more::Display, Serialize, Deserialize,
+    Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, derive_more::Display,
 )]
-#[display(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
+#[display(rename_all = "lowercase")]
 pub enum MeshTopology {
     /// Triangles. 3 indices per primitive
     #[default]

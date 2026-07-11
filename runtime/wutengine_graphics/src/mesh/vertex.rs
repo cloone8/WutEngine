@@ -1,7 +1,7 @@
 use core::any::Any;
 use core::num::NonZero;
 
-use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 
 use crate::label;
 use crate::shader::GVec4;

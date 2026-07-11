@@ -4,15 +4,15 @@ use alloc::sync::Arc;
 use core::convert::Infallible;
 use core::fmt::Debug;
 use std::sync::LazyLock;
-use wutengine_asset::assets::sampler::FilterMode;
-use wutengine_asset::assets::sampler::SerializedSampler;
-use wutengine_asset::assets::sampler::WrapMode;
-use wutengine_asset::assets::sampler::WrapModeType;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::sampler::FilterMode;
+use wutengine_assets::assets::sampler::SerializedSampler;
+use wutengine_assets::assets::sampler::WrapMode;
+use wutengine_assets::assets::sampler::WrapModeType;
 
 use crate::GFX_DEVICE;
 use crate::cache::sampler::SamplerCacheKey;
 use crate::label;
-use wutengine_asset::Asset;
 
 use super::cache;
 
@@ -36,15 +36,12 @@ pub struct Sampler {
     native: Arc<wgpu::Sampler>,
 }
 
-impl Asset for Sampler {
+impl FromSerializedAsset for Sampler {
+    type Error = Infallible;
+
     type Serialized = SerializedSampler;
 
-    type FromSerializedErr = Infallible;
-
-    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
-    where
-        Self: Sized,
-    {
+    fn from_serialized_asset(serialized: Self::Serialized) -> Result<Self, Self::Error> {
         Ok(Sampler::new(
             serialized.texture_filtering,
             serialized.mipmap_filtering,

@@ -19,7 +19,6 @@ phys2d = ["wutengine_physics/phys2d"]
 phys3d = ["wutengine_physics/phys3d"]
 profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]
 development_overlay = ["dep:wutengine_development_overlay", "dep:serde_core"]
-asset_importers = ["wutengine_asset/importers"]
 
 [lints]
 workspace = true
@@ -29,7 +28,8 @@ wutengine_graphics.workspace = true
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_shadercompiler.workspace = true
-wutengine_asset.workspace = true
+wutengine_assets.workspace = true
+wutengine_asset_server.workspace = true
 wutengine_input.workspace = true
 wutengine_math.workspace = true
 wutengine_time.workspace = true

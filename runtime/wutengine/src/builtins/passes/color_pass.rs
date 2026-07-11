@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_assets::assets::mesh::MeshTopology;
 use wutengine_graphics::label;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::material::MaterialId;

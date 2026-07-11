@@ -1,6 +1,6 @@
 use core::num::NonZero;
 
-use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_assets::assets::mesh::MeshTopology;
 
 use crate::label;
 

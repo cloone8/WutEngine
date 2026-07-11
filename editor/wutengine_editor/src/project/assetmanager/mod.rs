@@ -9,7 +9,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::RwLock;
 use uuid::NonNilUuid;
-use wutengine::asset::Asset;
 use wutengine::asset::SerializedAsset;
 use wutengine::world;
 

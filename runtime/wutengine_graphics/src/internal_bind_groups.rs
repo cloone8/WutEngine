@@ -3,8 +3,8 @@
 use core::num::NonZero;
 use std::sync::LazyLock;
 
-use wutengine_asset::assets::shader::ShaderBufferParameterType;
-use wutengine_asset::assets::shader::ShaderParameter;
+use wutengine_assets::assets::shader::ShaderBufferParameterType;
+use wutengine_assets::assets::shader::ShaderParameter;
 
 use crate::label;
 

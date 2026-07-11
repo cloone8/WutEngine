@@ -3,9 +3,9 @@
 mod primitives;
 
 pub use primitives::*;
-use wutengine_asset::assets::shader::ShaderBufferParameterType;
-use wutengine_asset::assets::shader::ShaderOpaqueParameterType;
-use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_assets::assets::shader::ShaderBufferParameterType;
+use wutengine_assets::assets::shader::ShaderOpaqueParameterType;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_util_macro::VariantName;
 
 use crate::material::MaterialParameter;
@@ -321,13 +321,13 @@ impl ShaderOpaqueParameter {
         match self {
             Self::Texture2D(cur) => {
                 if let MaterialParameter::Texture2D(tex) = value {
-                    *cur = tex.get_ref().unwrap().get_view().clone();
+                    *cur = tex.get_view().clone();
                     return true;
                 }
             }
             Self::Sampler(cur) => {
                 if let MaterialParameter::Sampler(smp) = value {
-                    *cur = smp.get_ref().unwrap().get_wgpu().clone();
+                    *cur = smp.get_wgpu().clone();
                     return true;
                 }
             }

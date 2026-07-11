@@ -1,4 +1,4 @@
-use wutengine_asset::AssetHandle;
+use wutengine_asset_server::AutoLoad;
 use wutengine_audio::AudioClip;
 
 use crate::component::Component;
@@ -6,7 +6,7 @@ use crate::component::Component;
 /// A component that plays audio
 #[derive(Default, derive_more::Debug)]
 pub struct AudioPlayer {
-    clip: Option<AssetHandle<AudioClip>>,
+    clip: AutoLoad<AudioClip>,
 
     #[debug(skip)]
     player: Option<wutengine_audio::rodio::Player>,
@@ -36,8 +36,8 @@ impl AudioPlayer {
     }
 
     /// Sets the clip used by this player. Will stop any current playback and reset the player back to the start
-    pub fn set_clip(&mut self, clip: Option<AssetHandle<AudioClip>>) {
-        self.clip = clip;
+    pub fn set_clip(&mut self, clip: impl Into<AutoLoad<AudioClip>>) {
+        self.clip = clip.into();
         self.clip_init = false;
 
         let Some(player) = self.player.as_ref() else {
@@ -86,16 +86,11 @@ impl AudioPlayer {
 
         self.clip_init = true;
 
-        let (Some(player), Some(clip_asset)) = (self.player.as_ref(), self.clip.as_ref()) else {
+        let (Some(player), Some(clip_asset)) = (self.player.as_ref(), self.clip.try_get()) else {
             return;
         };
 
-        let Some(clip) = clip_asset.get_ref() else {
-            log::error!("Failed to load audio clip asset");
-            return;
-        };
-
-        let decoder = match clip.new_decoder() {
+        let decoder = match clip_asset.new_decoder() {
             Ok(decoder) => decoder,
             Err(e) => {
                 log::error!("Failed to get audio decoder for clip: {e}");

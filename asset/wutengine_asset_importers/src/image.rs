@@ -1,16 +1,17 @@
-use core::any::Any;
 use core::error::Error;
 use std::path::Path;
 
 use image::DynamicImage;
 use image::EncodableLayout;
 use image::GenericImageView;
+use wutengine_assets::SerializedAsset;
 
 use crate::AssetImporter;
-use crate::assets::texture::SerializedMipMap;
-use crate::assets::texture::SerializedTexture;
-use crate::assets::texture::TextureConfig;
-use crate::assets::texture::TextureFormat;
+use crate::ImportedAsset;
+use wutengine_assets::assets::texture::SerializedMipMap;
+use wutengine_assets::assets::texture::SerializedTexture;
+use wutengine_assets::assets::texture::TextureConfig;
+use wutengine_assets::assets::texture::TextureFormat;
 
 /// Image asset importer. Imports images from an encoded format (png, jpg, etc.) into a raw decoded texture
 #[derive(Debug)]
@@ -33,24 +34,30 @@ pub enum ImageImportError {
 }
 
 impl AssetImporter for ImageAssetImporter {
-    type AssetType
-        = SerializedTexture
-    where
-        Self: Sized;
+    // fn supports_file_type(&self, file_type: &str) -> bool {
+    //     image::ImageFormat::from_extension(file_type).is_some()
+    // }
 
-    fn supports_file_type(&self, file_type: &str) -> bool {
-        image::ImageFormat::from_extension(file_type).is_some()
-    }
+    // fn import(
+    //     &self,
+    //     asset_bytes: &[u8],
+    //     file_type: &str,
+    //     _asset_dir: Option<&Path>,
+    // ) -> Result<Box<dyn Any>, Box<dyn Error>> {
+    // }
 
-    fn import(
-        &self,
-        asset_bytes: &[u8],
-        file_type: &str,
-        _asset_dir: Option<&Path>,
-    ) -> Result<Box<dyn Any>, Box<dyn Error>> {
+    fn from_bytes(
+        bytes: &[u8],
+        path: Option<&Path>,
+    ) -> Result<Vec<crate::ImportedAsset>, Box<dyn Error>> {
         profiling::function_scope!();
 
-        log::info!("Importing image of type {file_type}",);
+        let file_type = path
+            .and_then(|p| p.extension())
+            .and_then(|ext| ext.to_str())
+            .unwrap_or("<unknown type>");
+
+        log::info!("Importing image of type {file_type}");
 
         let image_format = image::ImageFormat::from_extension(file_type)
             .expect("Passed an incompatible image format");
@@ -58,7 +65,8 @@ impl AssetImporter for ImageAssetImporter {
         let mut loaded = {
             profiling::scope!("Import base image");
 
-            image::load_from_memory_with_format(asset_bytes, image_format)?
+            image::load_from_memory_with_format(bytes, image_format)
+                .map_err(ImageImportError::Decode)?
         };
 
         {
@@ -103,15 +111,24 @@ impl AssetImporter for ImageAssetImporter {
             None
         };
 
-        Ok(Box::new(SerializedTexture {
-            config: TextureConfig {
-                width,
-                height,
-                format: pixel_format,
-            },
-            data: buffer.to_vec(),
-            mips,
-        }))
+        let file_name = path
+            .and_then(|p| p.file_stem())
+            .and_then(|name| name.to_str())
+            .map(|name| name.to_string());
+
+        Ok(vec![ImportedAsset {
+            id: SerializedTexture::ID,
+            name: file_name,
+            asset: Box::new(SerializedTexture {
+                config: TextureConfig {
+                    width,
+                    height,
+                    format: pixel_format,
+                },
+                data: buffer.to_vec(),
+                mips,
+            }),
+        }])
     }
 }
 

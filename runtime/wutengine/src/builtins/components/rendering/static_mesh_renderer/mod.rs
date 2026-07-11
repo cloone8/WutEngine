@@ -1,3 +1,4 @@
+use wutengine_asset_server::AutoLoad;
 use wutengine_math::Mat4;
 
 use crate::builtins::components::Transform;
@@ -6,13 +7,12 @@ use crate::graphics;
 use crate::graphics::material::Material;
 use crate::graphics::mesh::Mesh;
 use crate::system::Phase;
-use wutengine_asset::AssetHandle;
 
 /// A static mesh renderer
 #[derive(Debug, Default)]
 pub struct StaticMeshRenderer {
-    mesh: AssetHandle<Mesh>,
-    material: AssetHandle<Material>,
+    mesh: AutoLoad<Mesh>,
+    material: AutoLoad<Material>,
 }
 
 /// Public API
@@ -23,18 +23,19 @@ impl StaticMeshRenderer {
     }
 
     /// Sets the mesh to render to the provided mesh
-    pub fn set_mesh(&mut self, mesh: AssetHandle<Mesh>) {
+    pub fn set_mesh(&mut self, mesh: AutoLoad<Mesh>) {
         self.mesh = mesh;
     }
 
     /// Sets the material this renderer uses to the provided material
-    pub fn set_material(&mut self, material: AssetHandle<Material>) {
+    pub fn set_material(&mut self, material: AutoLoad<Material>) {
         self.material = material;
     }
 }
 
 impl Component for StaticMeshRenderer {
-    const ID: uuid::NonNilUuid = uuid::NonNilUuid::new(uuid::uuid!("cb4802f7-5810-4354-be68-d51a2c44f1f9")).unwrap();
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("cb4802f7-5810-4354-be68-d51a2c44f1f9")).unwrap();
 
     fn insert_default_component_systems(manifest: &mut crate::runtime::SystemManifest)
     where
@@ -57,7 +58,7 @@ impl Component for StaticMeshRenderer {
 /// System implementations
 impl StaticMeshRenderer {
     fn submit_draw_call(&self, transform: Mat4) {
-        let (Some(mesh), Some(mat)) = (self.mesh.get_arc(), self.material.get_arc()) else {
+        let (Some(mesh), Some(mat)) = (self.mesh.try_get(), self.material.try_get()) else {
             log::trace!(
                 "Not rendering static mesh renderer because either the mesh or the material is missing"
             );

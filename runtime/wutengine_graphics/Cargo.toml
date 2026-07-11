@@ -19,7 +19,8 @@ labels = []
 [dependencies]
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
-wutengine_asset.workspace = true
+wutengine_assets.workspace = true
+wutengine_asset_server.workspace = true
 wutengine_math.workspace = true
 wutengine_shadercompiler.workspace = true
 wutengine_config.workspace = true

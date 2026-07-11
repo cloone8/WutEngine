@@ -7,16 +7,15 @@ use render::PrimitiveRenderState;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::sync::Mutex;
+use wutengine_assets::FromSerializedAsset;
 use wutengine_graphics::label;
 use wutengine_util::error_once;
 use wutengine_util::warn_once;
 
 use nohash_hasher::IntMap;
-use wutengine_asset::Asset;
-use wutengine_asset::AssetHandle;
-use wutengine_asset::assets::shader::SerializedShader;
-use wutengine_asset::assets::shader::ShaderSource;
-use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_assets::assets::shader::SerializedShader;
+use wutengine_assets::assets::shader::ShaderSource;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::material::MaterialParameter;
 use wutengine_graphics::sampler::Sampler;
@@ -76,7 +75,7 @@ pub static EGUI_SHADER: LazyLock<Arc<Shader>> = LazyLock::new(|| {
         content: source.to_owned(),
     };
 
-    Arc::new(Shader::from_serialized(&shader).unwrap())
+    Arc::new(Shader::from_serialized_asset(shader).unwrap())
 });
 
 /// Information on a single egui viewport
@@ -483,8 +482,9 @@ impl TextureMaterialMap {
         let mut texture_map = self.0.lock().unwrap();
 
         for (tex_id, delta) in set {
-            let sampler =
-                Sampler::from_serialized(&utils::sampler_from_egui(&delta.options)).unwrap();
+            let sampler = Arc::new(
+                Sampler::from_serialized_asset(utils::sampler_from_egui(&delta.options)).unwrap(),
+            );
 
             match delta.pos {
                 Some(pos) => {
@@ -497,7 +497,7 @@ impl TextureMaterialMap {
                         .raw_bind_group_mut()
                         .set_parameter(
                             "ui_texture_sampler",
-                            MaterialParameter::Sampler(AssetHandle::new(texmat.sampler.clone())),
+                            MaterialParameter::Sampler(texmat.sampler.clone()),
                             queue,
                         )
                         .unwrap();
@@ -524,7 +524,10 @@ impl TextureMaterialMap {
                     );
                 }
                 None => {
-                    let texture = Texture::new(&utils::tex_config_from_egui_data(&delta.image), 1);
+                    let texture = Arc::new(Texture::new(
+                        &utils::tex_config_from_egui_data(&delta.image),
+                        1,
+                    ));
                     texture.set_data(utils::egui_image_bytes(&delta.image));
 
                     let mut material =
@@ -534,7 +537,7 @@ impl TextureMaterialMap {
                         .raw_bind_group_mut()
                         .set_parameter(
                             "ui_texture_sampler",
-                            MaterialParameter::Sampler(AssetHandle::new(sampler.clone())),
+                            MaterialParameter::Sampler(sampler.clone()),
                             queue,
                         )
                         .unwrap();
@@ -543,7 +546,7 @@ impl TextureMaterialMap {
                         .raw_bind_group_mut()
                         .set_parameter(
                             "ui_texture",
-                            MaterialParameter::Texture2D(AssetHandle::new(texture.clone())),
+                            MaterialParameter::Texture2D(texture.clone()),
                             queue,
                         )
                         .unwrap();
@@ -590,10 +593,10 @@ impl TextureMaterialMap {
 #[derive(Debug)]
 struct TextureMaterial {
     /// The texture this material is for
-    texture: Texture,
+    texture: Arc<Texture>,
 
     /// The sampler used to sample [Self::texture]
-    sampler: Sampler,
+    sampler: Arc<Sampler>,
 
     /// The actual material
     material: Material,

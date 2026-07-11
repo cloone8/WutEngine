@@ -4,11 +4,12 @@ use core::fmt::Display;
 use core::hash::Hash;
 use std::collections::HashMap;
 
-use wutengine_asset::assets::shader::SerializedShader;
-use wutengine_asset::assets::shader::ShaderDefaultParameters;
-use wutengine_asset::assets::shader::ShaderKeyword;
-use wutengine_asset::assets::shader::ShaderParameter;
-use wutengine_asset::assets::shader::ShaderVertexAttribute;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::shader::SerializedShader;
+use wutengine_assets::assets::shader::ShaderDefaultParameters;
+use wutengine_assets::assets::shader::ShaderKeyword;
+use wutengine_assets::assets::shader::ShaderParameter;
+use wutengine_assets::assets::shader::ShaderVertexAttribute;
 use wutengine_util_macro::unique_id_type64;
 
 mod compile;
@@ -17,8 +18,6 @@ mod types;
 pub use types::*;
 
 pub(crate) use compile::*;
-
-use wutengine_asset::Asset;
 
 unique_id_type64! {
     /// Unique identifier for a [Shader]
@@ -51,27 +50,22 @@ pub struct Shader {
     pub(crate) source: String,
 }
 
-impl Asset for Shader {
+impl FromSerializedAsset for Shader {
+    type Error = std::io::Error;
+
     type Serialized = SerializedShader;
 
-    type FromSerializedErr = std::io::Error;
-
-    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
-    where
-        Self: Sized,
-    {
+    fn from_serialized_asset(serialized: Self::Serialized) -> Result<Self, Self::Error> {
         Ok(Self {
             id: ShaderId::new(),
-            name: serialized.name.clone(),
-            vertex_attributes: serialized.vertex_attributes.clone(),
+            name: serialized.name,
+            vertex_attributes: serialized.vertex_attributes,
             default_parameters: serialized.default_parameters,
-            keywords: serialized.keywords.clone(),
-            parameters: serialized.parameters.clone(),
-            source: match &serialized.source {
-                wutengine_asset::assets::shader::ShaderSource::Inline { content } => {
-                    content.clone()
-                }
-                wutengine_asset::assets::shader::ShaderSource::File { path } => {
+            keywords: serialized.keywords,
+            parameters: serialized.parameters,
+            source: match serialized.source {
+                wutengine_assets::assets::shader::ShaderSource::Inline { content } => content,
+                wutengine_assets::assets::shader::ShaderSource::File { path } => {
                     std::fs::read_to_string(path)?
                 }
             },

@@ -3,7 +3,7 @@
 use alloc::sync::Arc;
 
 use smallvec::SmallVec;
-use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_assets::assets::mesh::MeshTopology;
 use wutengine_util_macro::unique_id_type64;
 
 use crate::GFX_DEVICE;

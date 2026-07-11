@@ -2,7 +2,7 @@
 
 use alloc::sync::Arc;
 use std::sync::LazyLock;
-use wutengine_asset::assets::mesh::MeshTopology;
+use wutengine_assets::assets::mesh::MeshTopology;
 
 use smallvec::SmallVec;
 

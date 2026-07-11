@@ -1,9 +1,9 @@
 use core::any::TypeId;
 
-use wutengine_asset::assets::mesh::MeshTopology;
-use wutengine_asset::assets::sampler::FilterMode;
-use wutengine_asset::assets::sampler::WrapMode;
-use wutengine_asset::assets::sampler::WrapModeType;
+use wutengine_assets::assets::mesh::MeshTopology;
+use wutengine_assets::assets::sampler::FilterMode;
+use wutengine_assets::assets::sampler::WrapMode;
+use wutengine_assets::assets::sampler::WrapModeType;
 use wutengine_graphics::BindGroup;
 use wutengine_graphics::internal_bind_groups::create_camera_bind_group;
 use wutengine_graphics::label;
@@ -407,7 +407,7 @@ impl Camera {
             return;
         }
 
-        let mut mat = Material::new(builtins::shaders::BLIT.get_arc().unwrap(), map![]);
+        let mut mat = Material::new(builtins::shaders::BLIT.clone(), map![]);
 
         if let Some(render_target_texture) = self.render_target.as_ref() {
             Self::set_blit_material_params(&mut mat, render_target_texture);
@@ -458,7 +458,8 @@ impl Camera {
 }
 
 impl Component for Camera {
-    const ID: uuid::NonNilUuid = uuid::NonNilUuid::new(uuid::uuid!("564bccfc-8b3e-49b5-9855-48c42cef713f")).unwrap();
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("564bccfc-8b3e-49b5-9855-48c42cef713f")).unwrap();
 
     fn insert_default_component_systems(manifest: &mut crate::runtime::SystemManifest)
     where

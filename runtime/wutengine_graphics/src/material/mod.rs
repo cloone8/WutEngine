@@ -3,19 +3,19 @@
 use alloc::sync::Arc;
 use core::convert::Infallible;
 use std::collections::HashMap;
-use wutengine_asset::AssetRef;
-use wutengine_asset::assets::material::SerializedMaterial;
-use wutengine_asset::assets::material::SerializedMaterialParameter;
-use wutengine_asset::assets::sampler::SerializedSampler;
-use wutengine_asset::assets::texture::SerializedTexture;
+use wutengine_asset_server::AutoLoad;
+use wutengine_assets::AssetRef;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::material::SerializedMaterial;
+use wutengine_assets::assets::material::SerializedMaterialParameter;
+use wutengine_assets::assets::sampler::SerializedSampler;
+use wutengine_assets::assets::texture::SerializedTexture;
 use wutengine_math::Color;
 use wutengine_util_macro::unique_id_type32;
 
 use serde::{Deserialize, Serialize};
 use wutengine_math::{Mat4, Vec2, Vec3, Vec4};
 use wutengine_util_macro::VariantName;
-
-use wutengine_asset::{Asset, AssetHandle};
 
 use super::sampler::Sampler;
 use super::shader::{CompiledShader, Shader};
@@ -102,42 +102,75 @@ impl Clone for Material {
     }
 }
 
-impl Asset for Material {
+impl FromSerializedAsset for Material {
+    type Error = Infallible;
+
     type Serialized = SerializedMaterial;
 
-    type FromSerializedErr = Infallible;
+    fn from_serialized_asset(serialized: Self::Serialized) -> Result<Self, Self::Error> {
+        let asset_server = wutengine_asset_server::global_asset_server();
 
-    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
-    where
-        Self: Sized,
-    {
-        todo!();
-        // let mut mat = Material::new(
-        //     serialized
-        //         .shader
-        //         .get_arc()
-        //         .expect("Shader asset not yet loaded"),
-        //     serialized.keywords.clone(),
-        // );
+        let shader: Arc<Shader> = asset_server
+            .get_ref(&serialized.shader)
+            .expect("Failed to load shader");
 
-        // let queue = super::queue();
+        let mut mat = Material::new(shader, serialized.keywords.clone());
 
-        // for (param_name, param_value) in &serialized.parameters {
-        //     if let Err(e) =
-        //         mat.user_bind_group
-        //             .set_parameter(param_name.as_str(), param_value.clone(), queue)
-        //     {
-        //         log::error!(
-        //             "Error setting material parameter {param_name} during deserialization: {e}"
-        //         );
-        //     }
-        // }
+        let queue = super::queue();
 
-        // mat.user_bind_group.update_bind_group(super::device());
+        for (param_name, param_value) in &serialized.parameters {
+            if let Err(e) =
+                mat.user_bind_group
+                    .set_parameter(param_name.as_str(), param_value.into(), queue)
+            {
+                log::error!(
+                    "Error setting material parameter {param_name} during deserialization: {e}"
+                );
+            }
+        }
 
-        // Ok(mat)
+        mat.user_bind_group.update_bind_group(super::device());
+
+        Ok(mat)
     }
 }
+
+// impl Asset for Material {
+//     type Serialized = SerializedMaterial;
+
+//     type FromSerializedErr = Infallible;
+
+//     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
+//     where
+//         Self: Sized,
+//     {
+//         todo!();
+// let mut mat = Material::new(
+//     serialized
+//         .shader
+//         .get_arc()
+//         .expect("Shader asset not yet loaded"),
+//     serialized.keywords.clone(),
+// );
+
+// let queue = super::queue();
+
+// for (param_name, param_value) in &serialized.parameters {
+//     if let Err(e) =
+//         mat.user_bind_group
+//             .set_parameter(param_name.as_str(), param_value.clone(), queue)
+//     {
+//         log::error!(
+//             "Error setting material parameter {param_name} during deserialization: {e}"
+//         );
+//     }
+// }
+
+// mat.user_bind_group.update_bind_group(super::device());
+
+// Ok(mat)
+//     }
+// }
 
 /// A material parameter value
 #[derive(
@@ -176,10 +209,10 @@ pub enum MaterialParameter {
     Mat4(Mat4),
 
     /// 2D texture
-    Texture2D(AssetHandle<Texture>),
+    Texture2D(Arc<Texture>),
 
     /// Sampler
-    Sampler(AssetHandle<Sampler>),
+    Sampler(Arc<Sampler>),
 }
 
 impl From<SerializedMaterialParameter> for MaterialParameter {
@@ -200,12 +233,16 @@ impl From<&SerializedMaterialParameter> for MaterialParameter {
             SerializedMaterialParameter::Vec4(vec4) => Self::Vec4(*vec4),
             SerializedMaterialParameter::Color(color) => Self::Color(*color),
             SerializedMaterialParameter::Mat4(mat4) => Self::Mat4(*mat4),
-            SerializedMaterialParameter::Texture2D(asset_ref) => {
-                Self::Texture2D(AssetHandle::from_ref(asset_ref))
-            }
-            SerializedMaterialParameter::Sampler(asset_ref) => {
-                Self::Sampler(AssetHandle::from_ref(asset_ref))
-            }
+            SerializedMaterialParameter::Texture2D(asset_ref) => Self::Texture2D(
+                wutengine_asset_server::global_asset_server()
+                    .get_ref(asset_ref)
+                    .unwrap(),
+            ),
+            SerializedMaterialParameter::Sampler(asset_ref) => Self::Sampler(
+                wutengine_asset_server::global_asset_server()
+                    .get_ref(asset_ref)
+                    .unwrap(),
+            ),
         }
     }
 }

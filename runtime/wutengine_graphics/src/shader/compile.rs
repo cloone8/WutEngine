@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use wutengine_shadercompiler::CompOutput;
 
 use nohash_hasher::IntSet;
-use wutengine_asset::assets::shader::ShaderBufferParameterType;
-use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_assets::assets::shader::ShaderBufferParameterType;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_shadercompiler::{
     CAMERA_PARAMS_BIND_GROUP_INDEX, INSTANCE_PARAMS_BIND_GROUP_INDEX,
     MATERIAL_PARAMS_BIND_GROUP_INDEX,

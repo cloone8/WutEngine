@@ -16,7 +16,7 @@ impl CameraProjection {
     /// render target clipping planes and aspect ratio
     pub fn get_matrix(self, aspect_ratio: f32, clip_near: f32, clip_far: f32) -> Mat4 {
         match self {
-            Self::Perspective(fov) => Mat4::perspective_lh(
+            Self::Perspective(fov) => crate::math::camera::lh::proj::directx::perspective(
                 fov.get_vertical(aspect_ratio).to_radians(),
                 aspect_ratio,
                 clip_near,
@@ -26,7 +26,7 @@ impl CameraProjection {
                 let half_vertical_size = vertical_size / 2.0;
                 let half_horizontal_size = half_vertical_size * aspect_ratio;
 
-                Mat4::orthographic_lh(
+                crate::math::camera::lh::proj::directx::orthographic(
                     -half_horizontal_size,
                     half_horizontal_size,
                     -half_vertical_size,

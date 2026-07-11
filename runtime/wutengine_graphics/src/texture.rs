@@ -3,10 +3,10 @@
 use core::convert::Infallible;
 use std::sync::LazyLock;
 
-use wutengine_asset::assets::texture::TextureConfig;
-use wutengine_asset::assets::texture::TextureFormat;
-
-use wutengine_asset::Asset;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::texture::SerializedTexture;
+use wutengine_assets::assets::texture::TextureConfig;
+use wutengine_assets::assets::texture::TextureFormat;
 
 use crate::label;
 
@@ -40,15 +40,12 @@ pub struct Texture {
     view: wgpu::TextureView,
 }
 
-impl Asset for Texture {
-    type Serialized = wutengine_asset::assets::texture::SerializedTexture;
+impl FromSerializedAsset for Texture {
+    type Error = Infallible;
 
-    type FromSerializedErr = Infallible;
+    type Serialized = SerializedTexture;
 
-    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
-    where
-        Self: Sized,
-    {
+    fn from_serialized_asset(serialized: Self::Serialized) -> Result<Self, Self::Error> {
         let mip_count = match &serialized.mips {
             Some(mips) => (mips.len() + 1) as u32,
             None => 1,
@@ -210,7 +207,7 @@ impl Texture {
     }
 }
 
-/// Converts a [WutEngine texture format](wutengine_asset::assets::texture::TextureFormat) to a [wgpu::TextureFormat]
+/// Converts a [WutEngine texture format](wutengine_assets::assets::texture::TextureFormat) to a [wgpu::TextureFormat]
 pub const fn convert_texture_format(asset_format: TextureFormat) -> wgpu::TextureFormat {
     match asset_format {
         TextureFormat::Rgba8 => wgpu::TextureFormat::Rgba8Unorm,

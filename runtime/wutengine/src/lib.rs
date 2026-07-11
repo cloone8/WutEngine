@@ -34,7 +34,10 @@ pub mod log {
 }
 
 #[doc(inline)]
-pub use wutengine_asset as asset;
+pub use wutengine_assets as asset;
+
+#[doc(inline)]
+pub use wutengine_asset_server as asset_server;
 
 #[doc(inline)]
 pub use wutengine_audio as audio;

@@ -3,8 +3,8 @@
 use core::num::NonZero;
 use std::collections::HashMap;
 
-use wutengine_asset::assets::shader::ShaderBufferParameterType;
-use wutengine_asset::assets::shader::ShaderParameter;
+use wutengine_assets::assets::shader::ShaderBufferParameterType;
+use wutengine_assets::assets::shader::ShaderParameter;
 
 use crate::label;
 use crate::shader::shader_buffer_param_default_value;

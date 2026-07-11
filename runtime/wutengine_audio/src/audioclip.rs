@@ -4,10 +4,10 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use core::convert::Infallible;
+use wutengine_assets::FromSerializedAsset;
 
-use wutengine_asset::Asset;
-use wutengine_asset::assets::audioclip::AudioClipFormat;
-use wutengine_asset::assets::audioclip::SerializedAudioClip;
+use wutengine_assets::assets::audioclip::AudioClipFormat;
+use wutengine_assets::assets::audioclip::SerializedAudioClip;
 
 /// A clip of audio
 #[derive(Debug, Clone)]
@@ -55,18 +55,31 @@ impl AudioClip {
     }
 }
 
-impl Asset for AudioClip {
+impl FromSerializedAsset for AudioClip {
+    type Error = Infallible;
+
     type Serialized = SerializedAudioClip;
 
-    type FromSerializedErr = Infallible;
-
-    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
-    where
-        Self: Sized,
-    {
+    fn from_serialized_asset(serialized: Self::Serialized) -> Result<Self, Self::Error> {
         Ok(Self {
             format: serialized.format,
-            data: Arc::from(serialized.data.clone()),
+            data: Arc::from(serialized.data),
         })
     }
 }
+
+// impl Asset for AudioClip {
+//     type Serialized = SerializedAudioClip;
+
+//     type FromSerializedErr = Infallible;
+
+//     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
+//     where
+//         Self: Sized,
+//     {
+//         Ok(Self {
+//             format: serialized.format,
+//             data: Arc::from(serialized.data.clone()),
+//         })
+//     }
+// }

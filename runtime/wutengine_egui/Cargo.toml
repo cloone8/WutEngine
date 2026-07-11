@@ -17,7 +17,7 @@ default_fonts = ["egui/default_fonts"]
 
 [dependencies]
 wutengine_math.workspace = true
-wutengine_asset.workspace = true
+wutengine_assets.workspace = true
 wutengine_input.workspace = true
 wutengine_util.workspace = true
 wutengine_graphics.workspace = true

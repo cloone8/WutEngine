@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use wutengine_graphics::label;
 
 use nohash_hasher::IntMap;
-use wutengine_asset::assets::mesh::MeshTopology;
-use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_assets::assets::mesh::MeshTopology;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_graphics::mesh::IndexDatatype;
 use wutengine_graphics::shader::GVec2;
 use wutengine_graphics::shader::GVec3;

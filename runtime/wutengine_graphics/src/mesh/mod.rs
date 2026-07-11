@@ -3,13 +3,13 @@
 use std::collections::HashMap;
 
 use nohash_hasher::IntMap;
-use wutengine_asset::assets::mesh::MeshIndices;
-use wutengine_asset::assets::mesh::MeshTopology;
-use wutengine_asset::assets::mesh::SerializedMesh;
-use wutengine_asset::assets::shader::ShaderVertexAttributeType;
+use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::mesh::MeshIndices;
+use wutengine_assets::assets::mesh::MeshTopology;
+use wutengine_assets::assets::mesh::SerializedMesh;
+use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 
 use crate::shader::GVec4;
-use wutengine_asset::Asset;
 
 use super::shader::{GVec2, GVec3};
 
@@ -143,16 +143,13 @@ pub enum MeshFromDataErr {
     Empty,
 }
 
-impl Asset for Mesh {
+impl FromSerializedAsset for Mesh {
+    type Error = MeshFromDataErr;
+
     type Serialized = SerializedMesh;
 
-    type FromSerializedErr = MeshFromDataErr;
-
-    fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
-    where
-        Self: Sized,
-    {
-        Self::new(serialized).ok_or(MeshFromDataErr::Empty)
+    fn from_serialized_asset(serialized: Self::Serialized) -> Result<Self, Self::Error> {
+        Self::new(&serialized).ok_or(MeshFromDataErr::Empty)
     }
 }
 
