@@ -19,7 +19,12 @@ wutengine_util.workspace = true
 wutengine_task.workspace = true
 
 uuid.workspace = true
-derive_more = { workspace = true, features = ["error", "display", "from"] }
+derive_more = { workspace = true, features = [
+    "debug",
+    "error",
+    "display",
+    "from",
+] }
 log.workspace = true
 profiling.workspace = true
 serde_json.workspace = true
