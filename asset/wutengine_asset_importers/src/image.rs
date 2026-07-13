@@ -6,6 +6,7 @@ use std::path::Path;
 use image::DynamicImage;
 use image::EncodableLayout;
 use image::GenericImageView;
+use image::Pixel;
 use wutengine_assets::SerializedAsset;
 
 use crate::AssetImporter;
@@ -74,6 +75,8 @@ impl AssetImporter for ImageAssetImporter {
             loaded.apply_orientation(image::metadata::Orientation::FlipVertical);
         }
 
+        loaded = reformat_if_needed(loaded);
+
         let (width, height) = loaded.dimensions();
 
         // Load main image
@@ -117,7 +120,7 @@ impl AssetImporter for ImageAssetImporter {
             .map(|name| name.to_string());
 
         Ok(vec![ImportedAsset {
-            id: SerializedTexture::ID,
+            asset_type_id: SerializedTexture::ID,
             name: file_name,
             asset: Box::new(SerializedTexture {
                 config: TextureConfig {
@@ -129,6 +132,28 @@ impl AssetImporter for ImageAssetImporter {
                 mips,
             }),
         }])
+    }
+}
+
+fn reformat_if_needed(image: image::DynamicImage) -> image::DynamicImage {
+    profiling::function_scope!();
+
+    match image {
+        DynamicImage::ImageRgb8(rgb8_image) => {
+            let mut new_image =
+                image::ImageBuffer::from_fn(rgb8_image.width(), rgb8_image.height(), |x, y| {
+                    let pix = rgb8_image.get_pixel(x, y);
+
+                    pix.to_rgba()
+                });
+
+            new_image
+                .set_color_space(rgb8_image.color_space())
+                .expect("Failed to set color space of reformatted image");
+
+            image::DynamicImage::ImageRgba8(new_image)
+        }
+        other => other,
     }
 }
 
