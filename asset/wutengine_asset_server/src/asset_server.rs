@@ -22,6 +22,7 @@ pub struct AssetServer {
     loader: Box<dyn AssetLoader>,
 }
 
+/// Public API
 impl AssetServer {
     /// Creates a new asset server that uses the given loader
     pub fn new(loader: Box<dyn AssetLoader>) -> Arc<Self> {
@@ -53,6 +54,32 @@ impl AssetServer {
         self.clone().get_uncached::<T>(*asset_id)
     }
 
+    /// Loads the asset referenced by the given asset reference asynchronously. Returns a handle
+    /// that yields the asset.
+    pub fn get_ref<T: FromSerializedAsset>(
+        self: &Arc<Self>,
+        asset_ref: &wutengine_assets::AssetRef<T::Serialized>,
+    ) -> TaskHandle<Result<Arc<T>, GetAssetErr<T::Error>>> {
+        let Some(asset_id) = asset_ref.get_id() else {
+            return TaskHandle::from_value(Err(GetAssetErr::MissingId));
+        };
+
+        self.get_asset(&asset_id)
+    }
+
+    /// Purge all cached assets
+    pub fn purge_cache(&self) {
+        *self.cache.write().unwrap() = HashMap::default(); // Make sure we also clear the memory used by the hashmap itself
+    }
+
+    /// Purge a single asset from the cache. Returns whether the asset was actually cached
+    pub fn purge_asset_from_cache(&self, asset_id: &uuid::NonNilUuid) -> bool {
+        self.cache.write().unwrap().remove(asset_id).is_some()
+    }
+}
+
+/// Private API
+impl AssetServer {
     fn get_uncached<T: FromSerializedAsset>(
         self: Arc<Self>,
         asset_id: uuid::NonNilUuid,
@@ -93,19 +120,6 @@ impl AssetServer {
 
             Ok(converted_asset)
         })
-    }
-
-    /// Loads the asset referenced by the given asset reference asynchronously. Returns a handle
-    /// that yields the asset.
-    pub fn get_ref<T: FromSerializedAsset>(
-        self: &Arc<Self>,
-        asset_ref: &wutengine_assets::AssetRef<T::Serialized>,
-    ) -> TaskHandle<Result<Arc<T>, GetAssetErr<T::Error>>> {
-        let Some(asset_id) = asset_ref.get_id() else {
-            return TaskHandle::from_value(Err(GetAssetErr::MissingId));
-        };
-
-        self.get_asset(&asset_id)
     }
 }
 

@@ -41,7 +41,7 @@ pub(crate) enum SaveErr {
 pub(crate) struct ProjectAssetManager {
     asset_index: PathBuf,
     asset_root: PathBuf,
-    assets: RwLock<HashMap<ProjectAssetId, ProjectAsset>>,
+    assets: RwLock<HashMap<uuid::NonNilUuid, ProjectAsset>>,
 }
 
 /// Loading/saving
@@ -55,7 +55,7 @@ impl ProjectAssetManager {
 
         let bytes = std::fs::read(&asset_index_file)?;
 
-        let mut assets: HashMap<ProjectAssetId, ProjectAsset> = serde_json::from_slice(&bytes)?;
+        let mut assets: HashMap<uuid::NonNilUuid, ProjectAsset> = serde_json::from_slice(&bytes)?;
 
         for (&id, asset) in assets.iter_mut() {
             asset.id = Some(id);
@@ -115,7 +115,7 @@ impl ProjectAssetManager {
         asset: A,
         directory: impl AsRef<Path>,
         name: &str,
-    ) -> Result<ProjectAssetId, InsertAssetErr> {
+    ) -> Result<uuid::NonNilUuid, InsertAssetErr> {
         let name = name.trim();
 
         if name.is_empty() {
@@ -174,7 +174,7 @@ impl ProjectAssetManager {
 
         log::info!("{}", project_relative.to_string_lossy());
 
-        let id = ProjectAssetId::new_random();
+        let id = uuid::NonNilUuid::new(uuid::Uuid::new_v4()).unwrap();
 
         let project_asset = ProjectAsset {
             id: Some(id),
@@ -199,37 +199,21 @@ impl ProjectAssetManager {
     }
 
     /// NOTE: Returns a read-lock, so the asset manager is locked while the returned value is held
-    pub(crate) fn asset_iter(&self) -> impl Deref<Target = HashMap<ProjectAssetId, ProjectAsset>> {
+    pub(crate) fn asset_iter(
+        &self,
+    ) -> impl Deref<Target = HashMap<uuid::NonNilUuid, ProjectAsset>> {
         self.assets.read().unwrap()
     }
 
-    pub(crate) fn get_project_asset(&self, id: &ProjectAssetId) -> Option<ProjectAsset> {
+    pub(crate) fn get_project_asset(&self, id: &uuid::NonNilUuid) -> Option<ProjectAsset> {
         self.assets.read().unwrap().get(id).cloned()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[repr(transparent)]
-#[serde(transparent)]
-pub(crate) struct ProjectAssetId(uuid::NonNilUuid);
-
-impl ProjectAssetId {
-    #[inline]
-    fn new_random() -> Self {
-        Self(uuid::NonNilUuid::new(uuid::Uuid::new_v4()).unwrap())
-    }
-}
-
-impl Display for ProjectAssetId {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        self.0.fmt(f)
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ProjectAsset {
     #[serde(skip)]
-    id: Option<ProjectAssetId>,
+    id: Option<uuid::NonNilUuid>,
 
     format: ProjectAssetFormat,
 
@@ -241,7 +225,7 @@ pub(crate) struct ProjectAsset {
 }
 
 impl ProjectAsset {
-    pub(crate) fn id(&self) -> ProjectAssetId {
+    pub(crate) fn id(&self) -> uuid::NonNilUuid {
         self.id.expect("ID should have been filled")
     }
 
@@ -291,7 +275,7 @@ where
 
 #[derive(Debug, Clone)]
 pub(crate) struct AssetCreated {
+    pub(crate) id: uuid::NonNilUuid,
     pub(crate) path: PathBuf,
-    pub(crate) id: ProjectAssetId,
     pub(crate) name: String,
 }

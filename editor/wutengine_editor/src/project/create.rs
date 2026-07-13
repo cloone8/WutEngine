@@ -63,6 +63,10 @@ pub(crate) fn create_empty_project(name: &str, root: &Path) -> Result<PathBuf, C
     let project_folder = root.join(name);
     std::fs::create_dir(&project_folder)?;
 
+    // Create an empty assets folder
+    let assets_folder = project_folder.join("assets");
+    std::fs::create_dir(assets_folder)?;
+
     // Write the actual main project file
     let project_file = serde_json::to_string_pretty(&ProjectFile::new())
         .expect("Failed to serialize new project file");

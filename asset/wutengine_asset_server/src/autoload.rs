@@ -16,7 +16,7 @@ pub trait AssetServerProvider: core::fmt::Debug + Clone {
 }
 
 /// The global [AssetServerProvider]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Global;
 
 impl AssetServerProvider for Global {

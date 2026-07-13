@@ -9,7 +9,6 @@ use wutengine_egui::egui::Widget;
 
 use crate::project::asset_manager;
 use crate::project::assetmanager;
-use crate::project::assetmanager::ProjectAssetId;
 
 use super::EditorPanel;
 
@@ -186,7 +185,7 @@ enum AssetTreeNode {
         children: Vec<AssetTreeNode>,
     },
     Leaf {
-        id: ProjectAssetId,
+        id: uuid::NonNilUuid,
         path: PathBuf,
         name: String,
     },
@@ -395,7 +394,7 @@ fn context_menu_dir(root: impl AsRef<Path>, ui: &mut egui::Ui) {
     };
 }
 
-fn context_menu_asset(id: &ProjectAssetId, path: impl AsRef<Path>, ui: &mut egui::Ui) {
+fn context_menu_asset(id: &uuid::NonNilUuid, path: impl AsRef<Path>, ui: &mut egui::Ui) {
     let path = path.as_ref();
 
     if ui.button(path.to_string_lossy()).clicked() {

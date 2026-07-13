@@ -25,8 +25,8 @@ use wutengine::time;
 use wutengine::time::NANOS_PER_SECOND;
 use wutengine::window::Window;
 use wutengine::window::WindowConfig;
-use wutengine_egui::egui;
 use wutengine_egui::TextureMaterialMap;
+use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
 mod asset_cache;
@@ -34,6 +34,7 @@ mod asset_gui;
 mod cli_args;
 mod editorwindow_renderpass;
 mod exit;
+mod import_asset;
 mod logger;
 mod panel;
 mod project;
@@ -52,7 +53,7 @@ const EDITOR_BASE_TICK_INTERVAL_SECS: f32 = 2.0;
 #[cfg(windows)]
 /// Try to attach to an already open console
 fn try_attach_to_console() {
-    use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
+    use windows::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole};
 
     // We can't log here because the logger is not yet initialized
     unsafe {
@@ -171,7 +172,21 @@ fn add_default_menu_entries() {
         wutengine::runtime::exit();
     });
 
-    we_menu::add_entry(&["Asset", "Import..."], 300, || {});
+    we_menu::add_entry(&["Asset", "Import..."], 300, || {
+        wutengine::task::spawn_async(async {
+            let import_result = import_asset::import_asset_prompt().get_async().await;
+
+            let Some(imported_paths) = import_result else {
+                return;
+            };
+
+            let mut import_queue = import_asset::IMPORT_QUEUE.lock().unwrap();
+
+            for imported_path in imported_paths {
+                import_queue.push_back(import_asset::ImportJob::new_from_path(imported_path));
+            }
+        });
+    });
 
     we_menu::add_entry(&["Asset", "Level"], 400, || {
         let new_id = project::asset_manager()
