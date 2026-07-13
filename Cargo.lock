@@ -4857,7 +4857,7 @@ dependencies = [
  "wutengine_physics",
  "wutengine_puffin_egui",
  "wutengine_shadercompiler",
- "wutengine_thread",
+ "wutengine_task",
  "wutengine_time",
  "wutengine_util",
  "wutengine_util_macro",
@@ -4886,6 +4886,7 @@ dependencies = [
  "serde_json",
  "uuid",
  "wutengine_assets",
+ "wutengine_task",
  "wutengine_util",
 ]
 
@@ -5105,7 +5106,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wutengine_thread"
+name = "wutengine_task"
 version = "0.6.0"
 dependencies = [
  "futures",

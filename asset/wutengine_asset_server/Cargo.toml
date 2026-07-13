@@ -16,6 +16,7 @@ publish = true
 [dependencies]
 wutengine_assets.workspace = true
 wutengine_util.workspace = true
+wutengine_task.workspace = true
 
 uuid.workspace = true
 derive_more = { workspace = true, features = ["error", "display", "from"] }

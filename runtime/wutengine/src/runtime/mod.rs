@@ -83,7 +83,7 @@ pub(crate) struct Runtime {
     frame_frequency: FrameFrequency,
 
     /// Main-thread async pool
-    async_pool: wutengine_thread::MainThreadAsyncRunner,
+    async_pool: wutengine_task::MainThreadAsyncRunner,
 
     /// On-exit-requested handlers
     on_exit_requested_handlers: Vec<Arc<dyn Fn() -> bool + Send + Sync + 'static>>,

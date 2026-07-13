@@ -61,4 +61,4 @@ pub use wutengine_config as config;
 pub use wutengine_event as event;
 
 #[doc(inline)]
-pub use wutengine_thread as thread;
+pub use wutengine_task as task;

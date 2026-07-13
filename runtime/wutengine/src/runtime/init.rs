@@ -123,7 +123,7 @@ pub fn run(
         );
     }
 
-    let main_thread_pool = wutengine_thread::init_thread_pool();
+    let main_thread_pool = wutengine_task::init_thread_pool();
 
     let mut runtime = Runtime {
         frame_pacer: window::pacer::FramePacer::default(),

@@ -4,12 +4,11 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use core::num::NonZero;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::AtomicBool;
+use core::sync::atomic::Ordering;
 use detect::CoreConfig;
 use futures::task::LocalSpawn;
 use std::thread::available_parallelism;
-
-use serde::Deserialize;
 
 use wutengine_util::InitOnce;
 use wutengine_util::assert_main_thread;
@@ -17,8 +16,12 @@ use wutengine_util::assert_main_thread;
 mod detect;
 
 /// User thread configuration
-#[derive(Debug, Clone, Default, Deserialize)]
-#[serde(default)]
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(
+    feature = "config",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(default)
+)]
 struct ThreadConfig {
     /// The amount of worker threads to spawn. If zero, automatically
     /// picks the number of worker threads based on the available
@@ -91,7 +94,14 @@ pub fn init_thread_pool() -> MainThreadAsyncRunner {
         panic!("Thread pool already initialized");
     }
 
-    let thread_config = wutengine_config::get::<ThreadConfig>("wutengine.thread");
+    let thread_config = cfg_select! {
+        feature = "config" => {
+            wutengine_config::get::<ThreadConfig>("wutengine.thread")
+        }
+        _ => {
+            ThreadConfig::default()
+        }
+    };
     let cpu_config = detect::try_detect_core_config();
 
     init_worker_threads(&thread_config, cpu_config.as_ref());
@@ -237,6 +247,7 @@ pub struct TaskHandle<T> {
     recv: futures::channel::oneshot::Receiver<T>,
 }
 
+/// Main API
 impl<T> TaskHandle<T> {
     /// Returns `true` if the task is done and has produced its output (if any)
     #[inline]
@@ -248,9 +259,19 @@ impl<T> TaskHandle<T> {
     /// To first check whether the results are ready, see [Self::ready]
     #[inline]
     pub fn get(self) -> T {
-        futures::executor::block_on(self.recv).expect("Async task destroyed")
+        futures::executor::block_on(self.get_async())
     }
 
+    /// Returns the output of the async task. To first check whether the results are ready,
+    /// see [Self::ready]
+    #[inline]
+    pub async fn get_async(self) -> T {
+        self.recv.await.expect("Async task destroyed")
+    }
+}
+
+/// Static utilities
+impl<T> TaskHandle<T> {
     /// Utility function that checks if an optional task was started and is ready.
     #[inline(always)]
     pub fn started_and_ready(task: &Option<Self>) -> bool {
@@ -295,10 +316,48 @@ impl<T> TaskHandle<T> {
 
         (Self { done, recv }, Box::new(fut))
     }
+
+    /// Constructs a new handle from an already-ready handle.
+    pub fn from_value(val: T) -> Self {
+        let (send, recv) = futures::channel::oneshot::channel::<T>();
+
+        if send.send(val).is_err() {
+            panic!("Channel should be open");
+        }
+
+        Self {
+            done: Arc::new(AtomicBool::new(true)),
+            recv,
+        }
+    }
 }
 
-/// Spawns an async task on the background thread pool.
-pub fn run_async<F, O>(task: F) -> TaskHandle<O>
+/// Spawns a task on the main worker pool.
+/// For running async functions ([futures](Future)), see [spawn_async]
+pub fn spawn_on_worker<F, O>(task: F) -> TaskHandle<O>
+where
+    F: FnOnce() -> O + Send + 'static,
+    O: Send + 'static,
+{
+    let (send, recv) = futures::channel::oneshot::channel::<O>();
+    let done = Arc::new(AtomicBool::new(false));
+
+    {
+        let done = done.clone();
+
+        rayon::spawn(move || {
+            let ret = task();
+
+            _ = send.send(ret);
+            done.store(true, Ordering::Release);
+        });
+    }
+
+    TaskHandle { done, recv }
+}
+
+/// Spawns an async task on the background thread pool. For spawning high-compute
+pub fn spawn_async<F, O>(task: F) -> TaskHandle<O>
 where
     F: Future<Output = O> + Send + 'static,
     O: Send + 'static,

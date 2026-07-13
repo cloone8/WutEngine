@@ -3,17 +3,12 @@
 use alloc::sync::Arc;
 use core::convert::Infallible;
 use std::collections::HashMap;
-use wutengine_asset_server::AutoLoad;
-use wutengine_assets::AssetRef;
 use wutengine_assets::FromSerializedAsset;
 use wutengine_assets::assets::material::SerializedMaterial;
 use wutengine_assets::assets::material::SerializedMaterialParameter;
-use wutengine_assets::assets::sampler::SerializedSampler;
-use wutengine_assets::assets::texture::SerializedTexture;
 use wutengine_math::Color;
 use wutengine_util_macro::unique_id_type32;
 
-use serde::{Deserialize, Serialize};
 use wutengine_math::{Mat4, Vec2, Vec3, Vec4};
 use wutengine_util_macro::VariantName;
 
@@ -112,6 +107,7 @@ impl FromSerializedAsset for Material {
 
         let shader: Arc<Shader> = asset_server
             .get_ref(&serialized.shader)
+            .get()
             .expect("Failed to load shader");
 
         let mut mat = Material::new(shader, serialized.keywords.clone());
@@ -134,43 +130,6 @@ impl FromSerializedAsset for Material {
         Ok(mat)
     }
 }
-
-// impl Asset for Material {
-//     type Serialized = SerializedMaterial;
-
-//     type FromSerializedErr = Infallible;
-
-//     fn from_serialized(serialized: &Self::Serialized) -> Result<Self, Self::FromSerializedErr>
-//     where
-//         Self: Sized,
-//     {
-//         todo!();
-// let mut mat = Material::new(
-//     serialized
-//         .shader
-//         .get_arc()
-//         .expect("Shader asset not yet loaded"),
-//     serialized.keywords.clone(),
-// );
-
-// let queue = super::queue();
-
-// for (param_name, param_value) in &serialized.parameters {
-//     if let Err(e) =
-//         mat.user_bind_group
-//             .set_parameter(param_name.as_str(), param_value.clone(), queue)
-//     {
-//         log::error!(
-//             "Error setting material parameter {param_name} during deserialization: {e}"
-//         );
-//     }
-// }
-
-// mat.user_bind_group.update_bind_group(super::device());
-
-// Ok(mat)
-//     }
-// }
 
 /// A material parameter value
 #[derive(
@@ -222,6 +181,7 @@ impl From<SerializedMaterialParameter> for MaterialParameter {
     }
 }
 
+#[allow(clippy::fallible_impl_from, reason = "Asset loading should not fail")]
 impl From<&SerializedMaterialParameter> for MaterialParameter {
     fn from(value: &SerializedMaterialParameter) -> Self {
         match value {
@@ -236,11 +196,13 @@ impl From<&SerializedMaterialParameter> for MaterialParameter {
             SerializedMaterialParameter::Texture2D(asset_ref) => Self::Texture2D(
                 wutengine_asset_server::global_asset_server()
                     .get_ref(asset_ref)
+                    .get()
                     .unwrap(),
             ),
             SerializedMaterialParameter::Sampler(asset_ref) => Self::Sampler(
                 wutengine_asset_server::global_asset_server()
                     .get_ref(asset_ref)
+                    .get()
                     .unwrap(),
             ),
         }

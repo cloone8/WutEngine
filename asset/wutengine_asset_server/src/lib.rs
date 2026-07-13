@@ -12,9 +12,10 @@ use alloc::sync::Arc;
 use wutengine_assets::AssetRef;
 use wutengine_assets::FromSerializedAsset;
 use wutengine_assets::SerializedAsset;
+use wutengine_task::TaskHandle;
 use wutengine_util::InitOnce;
 
-static ASSET_SERVER: InitOnce<AssetServer> = InitOnce::new_checked();
+static ASSET_SERVER: InitOnce<Arc<AssetServer>> = InitOnce::new_checked();
 
 pub struct AssetServer {
     cache: RwLock<HashMap<uuid::NonNilUuid, CachedAsset>>,
@@ -30,60 +31,74 @@ impl AssetServer {
     }
 
     pub fn get_asset<T: FromSerializedAsset>(
-        &self,
+        self: &Arc<Self>,
         asset_id: &uuid::NonNilUuid,
-    ) -> Result<Arc<T>, GetAssetErr<T::Error>> {
+    ) -> TaskHandle<Result<Arc<T>, GetAssetErr<T::Error>>> {
         profiling::function_scope!(asset_id.to_string().as_str());
 
         let read_lock = self.cache.read().unwrap();
 
         if let Some(cached) = read_lock.get(asset_id) {
-            return cached
-                .try_get_as::<T>()
-                .ok_or_else(|| GetAssetErr::IncorrectType(core::any::type_name::<T>()));
+            return TaskHandle::from_value(
+                cached
+                    .try_get_as::<T>()
+                    .ok_or_else(|| GetAssetErr::IncorrectType(core::any::type_name::<T>())),
+            );
         }
 
         drop(read_lock);
 
-        profiling::scope!("Load from loader", asset_id.to_string().as_str());
+        self.clone().get_uncached::<T>(*asset_id)
+    }
 
-        log::info!(
-            "Loading asset {} of type {} from disk",
-            asset_id,
-            core::any::type_name::<T>()
-        );
+    fn get_uncached<T: FromSerializedAsset>(
+        self: Arc<Self>,
+        asset_id: uuid::NonNilUuid,
+    ) -> TaskHandle<Result<Arc<T>, GetAssetErr<T::Error>>> {
+        wutengine_task::spawn_async(async move {
+            profiling::scope!("Load from loader", asset_id.to_string().as_str());
 
-        let asset_bytes = self.loader.load_asset(asset_id)?;
+            log::info!(
+                "Loading asset {} of type {} from disk",
+                asset_id,
+                core::any::type_name::<T>()
+            );
 
-        let asset =
-            if T::Serialized::PREFER_BINARY_SERIALIZATION || self.loader.always_binary_format() {
+            let asset_bytes = self.loader.load_asset(&asset_id)?;
+
+            let asset = if T::Serialized::PREFER_BINARY_SERIALIZATION
+                || self.loader.always_binary_format()
+            {
                 postcard::from_bytes::<T::Serialized>(&asset_bytes)?
             } else {
                 serde_json::from_slice::<T::Serialized>(&asset_bytes)?
             };
 
-        let converted_asset = Arc::new(T::from_serialized_asset(asset).map_err(GetAssetErr::From)?);
+            let converted_asset =
+                Arc::new(T::from_serialized_asset(asset).map_err(GetAssetErr::From)?);
 
-        let mut write_lock = self.cache.write().unwrap();
+            let mut write_lock = self.cache.write().unwrap();
 
-        let prev = write_lock.insert(*asset_id, CachedAsset::from_asset(converted_asset.clone()));
+            let prev =
+                write_lock.insert(asset_id, CachedAsset::from_asset(converted_asset.clone()));
 
-        if prev.is_some() {
-            log::warn!(
-                "Duplicate load for asset {}. Internal engine issue",
-                asset_id
-            );
-        }
+            if prev.is_some() {
+                log::warn!(
+                    "Duplicate load for asset {}. Internal engine issue",
+                    asset_id
+                );
+            }
 
-        Ok(converted_asset)
+            Ok(converted_asset)
+        })
     }
 
     pub fn get_ref<T: FromSerializedAsset>(
-        &self,
+        self: &Arc<Self>,
         asset_ref: &wutengine_assets::AssetRef<T::Serialized>,
-    ) -> Result<Arc<T>, GetAssetErr<T::Error>> {
+    ) -> TaskHandle<Result<Arc<T>, GetAssetErr<T::Error>>> {
         let Some(asset_id) = asset_ref.get_id() else {
-            return Err(GetAssetErr::MissingId);
+            return TaskHandle::from_value(Err(GetAssetErr::MissingId));
         };
 
         self.get_asset(&asset_id)
@@ -122,7 +137,7 @@ pub enum GetAssetErr<E: Error> {
 pub fn init(loader: Option<Box<dyn AssetLoader>>) {
     let loader = loader.unwrap_or_else(|| Box::new(DummyLoader));
 
-    InitOnce::init(&ASSET_SERVER, AssetServer::new(loader));
+    InitOnce::init(&ASSET_SERVER, Arc::new(AssetServer::new(loader)));
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -134,7 +149,7 @@ pub enum LoadAssetErr {
     IO(std::io::Error),
 
     #[display("The asset loader returned an error: {}", _0)]
-    Other(Box<dyn Error>),
+    Other(Box<dyn Error + Send>),
 }
 
 pub trait AssetLoader: Send + Sync {
@@ -216,7 +231,7 @@ impl<T: FromSerializedAsset> AutoLoad<T> {
 
         let asset_id = self.serialized_asset_id?;
 
-        let loaded = match ASSET_SERVER.get_asset::<T>(&asset_id) {
+        let loaded = match ASSET_SERVER.get_asset::<T>(&asset_id).get() {
             Ok(loaded) => loaded,
             Err(e) => {
                 log::error!("Failed to load asset with ID {}: {e}", asset_id);
@@ -267,7 +282,7 @@ where
 }
 
 #[inline(always)]
-pub fn global_asset_server() -> &'static AssetServer {
+pub fn global_asset_server() -> &'static Arc<AssetServer> {
     &ASSET_SERVER
 }
 

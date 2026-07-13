@@ -38,7 +38,7 @@ wutengine_physics.workspace = true
 wutengine_audio.workspace = true
 wutengine_logger.workspace = true
 wutengine_event.workspace = true
-wutengine_thread.workspace = true
+wutengine_task = { workspace = true, features = ["config"] }
 
 log.workspace = true
 simplelog.workspace = true

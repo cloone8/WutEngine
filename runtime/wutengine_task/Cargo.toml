@@ -1,5 +1,5 @@
 [package]
-name = "wutengine_thread"
+name = "wutengine_task"
 description = "Threading and tasks for WutEngine"
 version.workspace = true
 edition.workspace = true
@@ -12,11 +12,14 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
+[features]
+config = ["dep:wutengine_config", "dep:serde"]
+
 [dependencies]
 wutengine_util.workspace = true
-wutengine_config.workspace = true
+wutengine_config = { workspace = true, optional = true }
 
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive"], optional = true }
 log.workspace = true
 rayon.workspace = true
 profiling.workspace = true

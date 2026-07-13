@@ -4,7 +4,7 @@ use std::path::Path;
 
 use wutengine::entity::Entity;
 use wutengine::runtime;
-use wutengine::thread::TaskHandle;
+use wutengine::task::TaskHandle;
 use wutengine::window::Window;
 use wutengine::window::WindowConfig;
 use wutengine_egui::egui;

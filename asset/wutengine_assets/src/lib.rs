@@ -75,7 +75,7 @@ impl<T> core::hash::Hash for AssetRef<T> {
 /// Trait for types that can be converted from a serialized asset
 pub trait FromSerializedAsset: Any + Send + Sync + Sized {
     /// A conversion error
-    type Error: Error;
+    type Error: Error + Send;
 
     /// The serialized form of this asset
     type Serialized: SerializedAsset;
