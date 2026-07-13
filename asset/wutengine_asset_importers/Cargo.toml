@@ -13,14 +13,27 @@ keywords.workspace = true
 categories.workspace = true
 publish = true
 
+[features]
+generic = ["dep:serde_json", "dep:postcard"]
+
 [dependencies]
 wutengine_assets.workspace = true
 
 uuid.workspace = true
-derive_more = { workspace = true, features = ["display", "error", "from"] }
+derive_more = { workspace = true, features = [
+    "display",
+    "error",
+    "from",
+    "debug",
+] }
 log.workspace = true
 image = { workspace = true, features = ["rayon", "default-formats"] }
 profiling.workspace = true
+
+serde_json = { workspace = true, optional = true } # Feature - generic
+postcard = { workspace = true, features = [
+    "alloc",
+], optional = true } # Feature - generic
 
 [lints]
 workspace = true

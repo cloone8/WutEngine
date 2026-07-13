@@ -1,4 +1,6 @@
-use std::collections::VecDeque;
+//! Asset importing
+
+use alloc::collections::VecDeque;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -8,6 +10,7 @@ use wutengine::task::TaskHandle;
 use wutengine_egui::egui;
 
 use crate::project;
+use crate::project::assetmanager::ProjectAssetFormat;
 
 pub(crate) static IMPORT_QUEUE: Mutex<VecDeque<ImportJob>> = Mutex::new(VecDeque::new());
 
@@ -42,7 +45,7 @@ impl ImportJob {
         ui.horizontal(|ui| {
             ui.label(format!("Destination directory: /{}", self.destination_dir));
 
-            if ui.button("Pick directory...").clicked() && self.pick_new_dir_job.is_none() {
+            if ui.button("Choose...").clicked() && self.pick_new_dir_job.is_none() {
                 let cur_destination_dir = project::asset_manager()
                     .asset_root()
                     .join(self.destination_dir.clone());
@@ -79,7 +82,13 @@ impl ImportJob {
 
         ui.separator();
 
-        if ui.button("Done").clicked() {
+        if ui.button("Import").clicked() {
+            import_asset(
+                Some(self.file_type.as_str()),
+                Some(self.name.as_str()),
+                &self.path,
+                &PathBuf::from(&self.destination_dir),
+            );
             return true;
         }
 
@@ -90,26 +99,16 @@ impl ImportJob {
 impl ImportJob {
     pub(crate) fn new_from_path(path: PathBuf) -> Self {
         Self {
-            file_type: Self::get_file_type_from_path(&path).unwrap_or_default(),
+            file_type: get_file_type_from_path(&path)
+                .map(ToString::to_string)
+                .unwrap_or_default(),
             destination_dir: String::new(),
-            name: Self::get_file_name_from_path(&path).unwrap_or_default(),
+            name: get_file_name_from_path(&path)
+                .map(ToString::to_string)
+                .unwrap_or_default(),
             path,
             pick_new_dir_job: None,
         }
-    }
-
-    /// Returns the file type from a path, if it has an extension
-    fn get_file_type_from_path(path: &Path) -> Option<String> {
-        let ext = path.extension()?;
-
-        ext.to_str().map(|s| s.to_string())
-    }
-
-    /// Returns the file type from a path, if it has an extension
-    fn get_file_name_from_path(path: &Path) -> Option<String> {
-        let stem = path.file_stem()?;
-
-        stem.to_str().map(|s| s.to_string())
     }
 }
 
@@ -127,4 +126,142 @@ pub(crate) fn import_asset_prompt() -> TaskHandle<Option<Vec<PathBuf>>> {
                 .collect(),
         )
     })
+}
+
+/// Returns the file type from a path, if it has an extension
+fn get_file_type_from_path(path: &Path) -> Option<&str> {
+    let ext = path.extension()?;
+
+    ext.to_str()
+}
+
+/// Returns the file type from a path, if it has an extension
+fn get_file_name_from_path(path: &Path) -> Option<&str> {
+    let stem = path.file_stem()?;
+
+    stem.to_str()
+}
+
+/// Import an asset into the project. The resulting assets are placed within `destination_dir`
+pub(crate) fn import_asset(
+    file_type: Option<&str>,
+    name: Option<&str>,
+    source_file: &Path,
+    destination_dir: &Path,
+) {
+    let file_type = if let Some(ftype) = file_type {
+        ftype
+    } else if let Some(ftype_ext) = get_file_type_from_path(source_file) {
+        ftype_ext
+    } else {
+        log::error!("Failed to import asset, because the asset type could not be determined");
+        return;
+    };
+
+    let Some(importers) = wutengine_asset_importers::default_importers().get(file_type) else {
+        log::error!(
+            "Failed to import asset of type \"{file_type}\" because no compatible importer could be found"
+        );
+        return;
+    };
+
+    let mut errs = Vec::new();
+    let mut imported_assets = Vec::new();
+
+    for importer in importers {
+        match importer.import_from_path(file_type, source_file) {
+            Ok(imported) => {
+                imported_assets = imported;
+                break;
+            }
+            Err(e) => {
+                errs.push((importer.name(), e));
+            }
+        }
+    }
+
+    if imported_assets.is_empty() && !errs.is_empty() {
+        let mut msgs = Vec::new();
+
+        for (imp_name, err) in errs {
+            msgs.push(format!("{imp_name}: {err}"));
+        }
+
+        let importer_errs_fmt = msgs.join("\n\t");
+
+        log::error!("All compatible importers failed with errors:\n{importer_errs_fmt}");
+        return;
+    }
+
+    if imported_assets.is_empty() {
+        log::warn!(
+            "Importing file \"{}\" did not result in any imported assets",
+            source_file.to_string_lossy()
+        );
+    }
+
+    for (index_in_batch, imported_asset) in imported_assets.into_iter().enumerate() {
+        let asset_unique_idx = index_in_batch;
+
+        let Some(target_type) =
+            wutengine_asset_importers::default_asset_types().get(&imported_asset.asset_type_id)
+        else {
+            log::error!(
+                "Asset type with ID {} is unknown, cannot import and serialize",
+                imported_asset.asset_type_id
+            );
+            continue;
+        };
+
+        let (serialized, format) = if target_type.prefers_binary() {
+            log::debug!("Serializing as binary");
+            (
+                target_type.serialize_binary(imported_asset.asset),
+                ProjectAssetFormat::Postcard,
+            )
+        } else {
+            log::debug!("Serializing as text");
+            (
+                target_type.serialize_text(imported_asset.asset),
+                ProjectAssetFormat::Json,
+            )
+        };
+
+        match serialized {
+            Ok(ser) => {
+                let dest_name = imported_asset.name.unwrap_or_else(|| {
+                    name.map(|name| format!("{name}_{asset_unique_idx}"))
+                        .unwrap_or_else(|| {
+                            format!("{}_{}", target_type.asset_type_name(), asset_unique_idx)
+                        })
+                });
+
+                let extension = if target_type.prefers_binary() {
+                    ".we-binasset"
+                } else {
+                    ".we-txtasset"
+                };
+
+                let asset_file_name = format!("{dest_name}{extension}");
+                let destination_path = destination_dir.join(asset_file_name);
+
+                if let Err(e) = project::asset_manager().insert_serialized_asset(
+                    &ser,
+                    format,
+                    imported_asset.asset_type_id,
+                    &destination_path,
+                ) {
+                    log::error!("Failed to insert asset into project: {e}");
+                } else {
+                    log::info!(
+                        "Imported asset {dest_name} to path {}",
+                        destination_path.to_string_lossy()
+                    );
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to serialize asset due to error: {e}");
+            }
+        }
+    }
 }

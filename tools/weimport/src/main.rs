@@ -3,26 +3,19 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
-use core::any::Any;
 use core::error::Error;
 use core::num::NonZero;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
-use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::sync::LazyLock;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 
 use clap::Args;
 use clap::Parser;
-use wutengine_asset_importers::AssetImporter;
-use wutengine_asset_importers::ImportedAsset;
-use wutengine_assets::SerializedAsset;
-use wutengine_assets::assets::texture::SerializedTexture;
 
 use crate::input_iterator::InputIterator;
 use crate::job_queue::JobQueue;
@@ -30,49 +23,6 @@ use crate::job_queue::JobToken;
 
 mod input_iterator;
 mod job_queue;
-
-/// A map from asset types to one or more compatible importers
-static IMPORTERS: LazyLock<HashMap<&'static str, Vec<Arc<Importer>>>> =
-    LazyLock::new(get_importers);
-
-/// Returns all known importers for use in [IMPORTERS]
-fn get_importers() -> HashMap<&'static str, Vec<Arc<Importer>>> {
-    let known_importers = [Importer::from_asset_importer::<
-        wutengine_asset_importers::ImageAssetImporter,
-    >()];
-
-    let mut importer_map: HashMap<&str, Vec<Arc<Importer>>> = HashMap::new();
-
-    for importer in known_importers {
-        let importer = Arc::new(importer);
-
-        for &supported_file_type in &importer.file_types {
-            importer_map
-                .entry(supported_file_type)
-                .or_default()
-                .push(importer.clone());
-        }
-    }
-
-    importer_map
-}
-
-/// A map from assed UUID (as in [SerializedAsset::ID]) to import functions and names
-static ASSET_TYPES: LazyLock<HashMap<uuid::NonNilUuid, SerializedAssetType>> =
-    LazyLock::new(get_asset_types);
-
-/// Returns all known asset types for use in [ASSET_TYPES]
-fn get_asset_types() -> HashMap<uuid::NonNilUuid, SerializedAssetType> {
-    let known_asset_types = [SerializedAssetType::new_from_asset::<SerializedTexture>()];
-
-    let mut asset_type_map = HashMap::new();
-
-    for known_asset_type in known_asset_types {
-        asset_type_map.insert(known_asset_type.id, known_asset_type);
-    }
-
-    asset_type_map
-}
 
 /// Command line arguments
 #[derive(Debug, Parser)]
@@ -121,83 +71,6 @@ struct OutputArg {
     output: Option<PathBuf>,
 }
 
-/// A type-erased asset importer function, as used in [Importer]
-type ImportFn =
-    dyn Fn(&str, &[u8], Option<&Path>) -> Result<Vec<ImportedAsset>, Box<dyn Error>> + Send + Sync;
-
-/// A type-erased asset importer
-struct Importer {
-    /// The name of the importer
-    name: &'static str,
-
-    /// The supported file types
-    file_types: Vec<&'static str>,
-
-    /// The importer function
-    import_from_bytes: Box<ImportFn>,
-}
-
-impl Importer {
-    /// Creates a new [Importer] from an [AssetImporter]
-    fn from_asset_importer<T: AssetImporter>() -> Self {
-        Self {
-            name: core::any::type_name::<T>(),
-            file_types: T::supported_file_types(),
-            import_from_bytes: Box::new(|ftype, bytes, orig_path| {
-                T::from_bytes(bytes, ftype, orig_path)
-            }),
-        }
-    }
-}
-
-/// A type-erased asset serialization function, as used in [SerializedAssetType]
-type SerializeFn =
-    dyn Fn(Box<dyn Any + Send + Sync + 'static>) -> Result<Vec<u8>, Box<dyn Error>> + Send + Sync;
-
-/// A type-erased [SerializedAsset], with pointers to its serialization functions and other config
-struct SerializedAssetType {
-    /// Asset type UUID
-    id: uuid::NonNilUuid,
-
-    /// Asset type name
-    name: String,
-
-    /// Whether this type prefers binary serialization over text serialization
-    prefer_binary: bool,
-
-    /// The binary serialization function
-    serialize_binary: Box<SerializeFn>,
-
-    /// The text serialization function
-    serialize_text: Box<SerializeFn>,
-}
-
-impl SerializedAssetType {
-    /// Create a new [SerializedAssetType] from its [SerializedAsset] trait
-    fn new_from_asset<T: SerializedAsset>() -> Self {
-        Self {
-            id: T::ID,
-            name: core::any::type_name::<T>()
-                .split("::")
-                .last()
-                .unwrap()
-                .to_lowercase()
-                .to_string(),
-            prefer_binary: T::PREFER_BINARY_SERIALIZATION,
-            serialize_binary: Box::new(|asset| {
-                let as_typed: Box<T> = asset.downcast::<T>().expect("Invalid downcast");
-
-                Ok(postcard::to_allocvec(as_typed.as_ref()).map_err(Box::new)?)
-            }),
-            serialize_text: Box::new(|asset| {
-                let as_typed: Box<T> = asset.downcast::<T>().expect("Invalid downcast");
-
-                Ok(serde_json::to_vec_pretty(as_typed.as_ref()).map_err(Box::new)?)
-            }),
-        }
-    }
-}
-
 /// An asset could not be imported
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 enum ImportAssetErr {
@@ -242,18 +115,18 @@ fn import_asset(
         }
     );
 
-    let Some(importer) = IMPORTERS
+    let Some(importer) = wutengine_asset_importers::default_importers()
         .get(file_type.as_str())
         .map(|importers| importers.first().expect("Empty importer array").clone())
     else {
         return Err(ImportAssetErr::NoImporter(file_type));
     };
 
-    let imported_assets = match (importer.import_from_bytes)(&file_type, &bytes, file_path) {
+    let imported_assets = match importer.import_from_bytes(&file_type, &bytes, file_path) {
         Ok(imported) => imported,
         Err(e) => {
             return Err(ImportAssetErr::ImporterFailed {
-                importer_name: importer.name,
+                importer_name: importer.name(),
                 err: e,
             });
         }
@@ -264,24 +137,25 @@ fn import_asset(
     for imported_asset in imported_assets {
         let asset_unique_idx = ASSET_IDX.fetch_add(1, Ordering::AcqRel);
 
-        let target_type = ASSET_TYPES
-            .get(&imported_asset.id)
-            .ok_or_else(|| ImportAssetErr::UnknownAssetType(imported_asset.id))?;
+        let target_type = wutengine_asset_importers::default_asset_types()
+            .get(&imported_asset.asset_type_id)
+            .ok_or_else(|| ImportAssetErr::UnknownAssetType(imported_asset.asset_type_id))?;
 
-        let serialized = if target_type.prefer_binary {
+        let serialized = if target_type.prefers_binary() {
             log::debug!("Serializing as binary");
-            (target_type.serialize_binary)(imported_asset.asset)
+            target_type.serialize_binary(imported_asset.asset)
         } else {
             log::debug!("Serializing as text");
-            (target_type.serialize_text)(imported_asset.asset)
+            target_type.serialize_text(imported_asset.asset)
         };
 
         match serialized {
             Ok(ser) => {
-                let name = imported_asset
-                    .name
-                    .unwrap_or_else(|| format!("{}_{}", target_type.name, asset_unique_idx));
-                let extension = if target_type.prefer_binary {
+                let name = imported_asset.name.unwrap_or_else(|| {
+                    format!("{}_{}", target_type.asset_type_name(), asset_unique_idx)
+                });
+
+                let extension = if target_type.prefers_binary() {
                     ".we-binasset"
                 } else {
                     ".we-txtasset"

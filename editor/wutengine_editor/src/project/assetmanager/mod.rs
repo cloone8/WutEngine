@@ -107,6 +107,68 @@ pub(crate) enum InsertAssetErr {
 
 /// Asset management
 impl ProjectAssetManager {
+    pub(crate) fn insert_serialized_asset(
+        &self,
+        asset_content: &[u8],
+        asset_format: ProjectAssetFormat,
+        asset_type: uuid::NonNilUuid,
+        path: impl AsRef<Path>,
+    ) -> Result<uuid::NonNilUuid, InsertAssetErr> {
+        let path = path.as_ref();
+
+        let path_abs = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            self.asset_root.join(path)
+        };
+
+        // Make sure the resulting path is within the asset root
+        if !path_abs.starts_with(&self.asset_root) {
+            return Err(InsertAssetErr::OutsideProject(path_abs));
+        }
+
+        let parent_dir = path_abs
+            .parent()
+            .expect("Path must be within asset root, so must have a parent");
+
+        // Create the intermediate directories
+        std::fs::create_dir_all(parent_dir).map_err(InsertAssetErr::IO)?;
+
+        std::fs::write(&path_abs, asset_content).map_err(InsertAssetErr::IO)?;
+
+        let canonicalized_path = path_abs
+            .canonicalize()
+            .expect("Failed to canonicalize asset path");
+
+        // Store the new asset info, and return the new ID
+        let project_relative = canonicalized_path
+            .strip_prefix(&self.asset_root)
+            .expect("Failed to make path project relative");
+
+        log::info!("{}", project_relative.to_string_lossy());
+
+        let id = uuid::NonNilUuid::new(uuid::Uuid::new_v4()).unwrap();
+
+        let project_asset = ProjectAsset {
+            id: Some(id),
+            format: asset_format,
+            asset_type,
+            path: project_relative.to_path_buf(),
+        };
+
+        let mut assets = self.assets.write().unwrap();
+
+        assets.insert(id, project_asset);
+
+        drop(assets);
+
+        wutengine::event::publish(AssetCreated {
+            path: canonicalized_path,
+            id,
+        });
+
+        Ok(id)
+    }
     /// Adds a new asset to the project with the provided name, in the given directory.
     /// All directory paths are relative to the project root. If the path contains `..` components,
     /// they must not escape the project root
@@ -136,9 +198,6 @@ impl ProjectAssetManager {
             return Err(InsertAssetErr::OutsideProject(directory_abs));
         }
 
-        // Create the intermediate directories
-        std::fs::create_dir_all(&directory_abs).map_err(InsertAssetErr::IO)?;
-
         // Now determine the path including the asset name and extension
         let extension = if A::PREFER_BINARY_SERIALIZATION {
             ".we-binasset"
@@ -160,42 +219,7 @@ impl ProjectAssetManager {
             (as_string.into_bytes(), ProjectAssetFormat::Json)
         };
 
-        // Write it to disk
-        std::fs::write(&path, serialized).map_err(InsertAssetErr::IO)?;
-
-        let path = path
-            .canonicalize()
-            .expect("Failed to canonicalize asset path");
-
-        // Store the new asset info, and return the new ID
-        let project_relative = path
-            .strip_prefix(&self.asset_root)
-            .expect("Failed to make path project relative");
-
-        log::info!("{}", project_relative.to_string_lossy());
-
-        let id = uuid::NonNilUuid::new(uuid::Uuid::new_v4()).unwrap();
-
-        let project_asset = ProjectAsset {
-            id: Some(id),
-            format,
-            asset_type: A::ID,
-            path: project_relative.to_path_buf(),
-        };
-
-        let mut assets = self.assets.write().unwrap();
-
-        assets.insert(id, project_asset);
-
-        drop(assets);
-
-        wutengine::event::publish(AssetCreated {
-            path,
-            id,
-            name: name.to_string(),
-        });
-
-        Ok(id)
+        self.insert_serialized_asset(&serialized, format, A::ID, path)
     }
 
     /// NOTE: Returns a read-lock, so the asset manager is locked while the returned value is held
@@ -277,5 +301,4 @@ where
 pub(crate) struct AssetCreated {
     pub(crate) id: uuid::NonNilUuid,
     pub(crate) path: PathBuf,
-    pub(crate) name: String,
 }

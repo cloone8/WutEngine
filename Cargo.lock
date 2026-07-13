@@ -4299,13 +4299,10 @@ dependencies = [
  "clap",
  "derive_more",
  "log",
- "postcard",
  "rayon",
- "serde_json",
  "simplelog",
  "uuid",
  "wutengine_asset_importers",
- "wutengine_assets",
 ]
 
 [[package]]
@@ -4870,7 +4867,9 @@ dependencies = [
  "derive_more",
  "image",
  "log",
+ "postcard",
  "profiling",
+ "serde_json",
  "uuid",
  "wutengine_assets",
 ]
@@ -4965,6 +4964,7 @@ dependencies = [
  "windows",
  "winresource",
  "wutengine",
+ "wutengine_asset_importers",
  "wutengine_egui",
  "wutengine_util",
  "wutengine_util_macro",

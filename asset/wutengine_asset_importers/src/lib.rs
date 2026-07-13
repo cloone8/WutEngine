@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+extern crate alloc;
+
 use core::any::Any;
 use core::error::Error;
 use std::path::Path;
@@ -7,11 +9,17 @@ use std::path::Path;
 mod image;
 pub use image::*;
 
+#[cfg(feature = "generic")]
+mod generic;
+
+#[cfg(feature = "generic")]
+pub use generic::*;
+
 /// An asset imported through an [AssetImporter]
 #[derive(Debug)]
 pub struct ImportedAsset {
     /// Corresponds to the [wutengine_assets::SerializedAsset::ID] constant
-    pub id: uuid::NonNilUuid,
+    pub asset_type_id: uuid::NonNilUuid,
 
     /// An optional asset name, if one can be determined from the asset
     pub name: Option<String>,

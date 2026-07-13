@@ -53,7 +53,7 @@ pub enum TextureFormat {
     /// RGBA with 8-bits per component
     Rgba8,
 
-    /// RGBA with 8-bits per component, with sRGB
+    /// RGBA with 8-bits per component, using the sRGB color space
     Rgba8Srgb,
 
     /// RGBA with 32-bit per color float components
