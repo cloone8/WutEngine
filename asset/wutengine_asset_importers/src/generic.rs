@@ -7,6 +7,13 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::LazyLock;
 use wutengine_assets::SerializedAsset;
+use wutengine_assets::assets::audioclip::SerializedAudioClip;
+use wutengine_assets::assets::bundle::SerializedBundle;
+use wutengine_assets::assets::level::SerializedLevel;
+use wutengine_assets::assets::material::SerializedMaterial;
+use wutengine_assets::assets::mesh::SerializedMesh;
+use wutengine_assets::assets::sampler::SerializedSampler;
+use wutengine_assets::assets::shader::SerializedShader;
 use wutengine_assets::assets::texture::SerializedTexture;
 
 use crate::AssetImporter;
@@ -42,7 +49,16 @@ pub fn default_importers() -> &'static HashMap<&'static str, Vec<Arc<Importer>>>
 pub fn default_asset_types() -> &'static HashMap<uuid::NonNilUuid, SerializedAssetType> {
     static DEFAULT_ASSET_TYPES: LazyLock<HashMap<uuid::NonNilUuid, SerializedAssetType>> =
         LazyLock::new(|| {
-            let known_asset_types = [SerializedAssetType::new_from_asset::<SerializedTexture>()];
+            let known_asset_types = [
+                SerializedAssetType::new_from_asset::<SerializedTexture>(),
+                SerializedAssetType::new_from_asset::<SerializedAudioClip>(),
+                SerializedAssetType::new_from_asset::<SerializedBundle>(),
+                SerializedAssetType::new_from_asset::<SerializedLevel>(),
+                SerializedAssetType::new_from_asset::<SerializedMaterial>(),
+                SerializedAssetType::new_from_asset::<SerializedMesh>(),
+                SerializedAssetType::new_from_asset::<SerializedSampler>(),
+                SerializedAssetType::new_from_asset::<SerializedShader>(),
+            ];
 
             let mut asset_type_map = HashMap::new();
 
@@ -130,7 +146,11 @@ impl Importer {
 
 /// A type-erased asset serialization function, as used in [SerializedAssetType]
 type SerializeFn =
-    dyn Fn(Box<dyn Any + Send + Sync>) -> Result<Vec<u8>, Box<dyn Error>> + Send + Sync;
+    dyn Fn(&(dyn Any + Send + Sync)) -> Result<Vec<u8>, Box<dyn Error>> + Send + Sync;
+
+/// A type-erased asset serialization function, as used in [SerializedAssetType]
+type DeserializeFn =
+    dyn Fn(&[u8]) -> Result<Box<dyn Any + Send + Sync>, Box<dyn Error>> + Send + Sync;
 
 /// A type-erased [SerializedAsset], with pointers to its serialization functions and other config
 #[derive(derive_more::Debug, Clone)]
@@ -151,6 +171,14 @@ pub struct SerializedAssetType {
     /// The text serialization function
     #[debug(skip)]
     serialize_text_fn: Arc<SerializeFn>,
+
+    /// The binary deserialization function
+    #[debug(skip)]
+    deserialize_binary_fn: Arc<DeserializeFn>,
+
+    /// The text deserialization function
+    #[debug(skip)]
+    deserialize_text_fn: Arc<DeserializeFn>,
 }
 
 impl SerializedAssetType {
@@ -166,14 +194,24 @@ impl SerializedAssetType {
                 .to_string(),
             prefer_binary: T::PREFER_BINARY_SERIALIZATION,
             serialize_binary_fn: Arc::new(|asset| {
-                let as_typed: Box<T> = asset.downcast::<T>().expect("Invalid downcast");
+                let as_typed: &T = asset.downcast_ref::<T>().expect("Invalid downcast");
 
-                Ok(postcard::to_allocvec(as_typed.as_ref()).map_err(Box::new)?)
+                Ok(postcard::to_allocvec(as_typed).map_err(Box::new)?)
             }),
             serialize_text_fn: Arc::new(|asset| {
-                let as_typed: Box<T> = asset.downcast::<T>().expect("Invalid downcast");
+                let as_typed: &T = asset.downcast_ref::<T>().expect("Invalid downcast");
 
-                Ok(serde_json::to_vec_pretty(as_typed.as_ref()).map_err(Box::new)?)
+                Ok(serde_json::to_vec_pretty(as_typed).map_err(Box::new)?)
+            }),
+            deserialize_binary_fn: Arc::new(|bytes| {
+                let as_typed = postcard::from_bytes::<T>(bytes).map_err(Box::new)?;
+
+                Ok(Box::new(as_typed))
+            }),
+            deserialize_text_fn: Arc::new(|bytes| {
+                let as_typed = serde_json::from_slice::<T>(bytes).map_err(Box::new)?;
+
+                Ok(Box::new(as_typed))
             }),
         }
     }
@@ -200,7 +238,7 @@ impl SerializedAssetType {
     #[inline]
     pub fn serialize_binary(
         &self,
-        asset: Box<dyn Any + Send + Sync>,
+        asset: &(dyn Any + Send + Sync),
     ) -> Result<Vec<u8>, Box<dyn Error>> {
         (self.serialize_binary_fn)(asset)
     }
@@ -209,8 +247,27 @@ impl SerializedAssetType {
     #[inline]
     pub fn serialize_text(
         &self,
-        asset: Box<dyn Any + Send + Sync>,
+        asset: &(dyn Any + Send + Sync),
     ) -> Result<Vec<u8>, Box<dyn Error>> {
         (self.serialize_text_fn)(asset)
+    }
+
+    /// Deserialize a binary-serialized asset into a generic asset type
+    #[inline]
+    pub fn deserialize_binary(
+        &self,
+
+        bytes: &[u8],
+    ) -> Result<Box<dyn Any + Send + Sync>, Box<dyn Error>> {
+        (self.deserialize_binary_fn)(bytes)
+    }
+
+    /// Deserialize a text-serialized asset into a generic asset type
+    #[inline]
+    pub fn deserialize_text(
+        &self,
+        bytes: &[u8],
+    ) -> Result<Box<dyn Any + Send + Sync>, Box<dyn Error>> {
+        (self.deserialize_text_fn)(bytes)
     }
 }

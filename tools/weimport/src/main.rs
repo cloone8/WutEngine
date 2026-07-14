@@ -143,10 +143,10 @@ fn import_asset(
 
         let serialized = if target_type.prefers_binary() {
             log::debug!("Serializing as binary");
-            target_type.serialize_binary(imported_asset.asset)
+            target_type.serialize_binary(imported_asset.asset.as_ref())
         } else {
             log::debug!("Serializing as text");
-            target_type.serialize_text(imported_asset.asset)
+            target_type.serialize_text(imported_asset.asset.as_ref())
         };
 
         match serialized {

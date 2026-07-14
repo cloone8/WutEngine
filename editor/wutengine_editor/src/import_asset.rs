@@ -205,13 +205,13 @@ pub(crate) fn import_asset(
         let (serialized, format) = if target_type.prefers_binary() {
             log::debug!("Serializing as binary");
             (
-                target_type.serialize_binary(imported_asset.asset),
+                target_type.serialize_binary(imported_asset.asset.as_ref()),
                 ProjectAssetFormat::Postcard,
             )
         } else {
             log::debug!("Serializing as text");
             (
-                target_type.serialize_text(imported_asset.asset),
+                target_type.serialize_text(imported_asset.asset.as_ref()),
                 ProjectAssetFormat::Json,
             )
         };
