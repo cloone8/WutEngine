@@ -29,9 +29,13 @@ impl LibraryPanel {
 
         let assets = asset_manager().asset_iter();
 
-        for (id, asset) in assets.iter() {
+        for (asset_id, asset) in assets.iter() {
+            let asset_gui = crate::asset_gui::get_asset_gui(&asset.asset_type());
+
             let leaf = AssetTreeNode::Leaf {
-                id: *id,
+                asset_id: *asset_id,
+                icon: asset_gui.icon,
+                icon_color: asset_gui.icon_color,
                 path: asset.path().to_path_buf(),
                 name: asset.name().to_string(),
             };
@@ -185,7 +189,9 @@ enum AssetTreeNode {
         children: Vec<AssetTreeNode>,
     },
     Leaf {
-        id: uuid::NonNilUuid,
+        asset_id: uuid::NonNilUuid,
+        icon: &'static str,
+        icon_color: egui::Color32,
         path: PathBuf,
         name: String,
     },
@@ -208,7 +214,9 @@ impl AssetTreeNode {
 
     fn icon(&self) -> egui::RichText {
         match self {
-            Self::Leaf { .. } => egui::RichText::new("📦").color(egui::Color32::LIGHT_BLUE),
+            Self::Leaf {
+                icon, icon_color, ..
+            } => egui::RichText::new(*icon).color(*icon_color),
             Self::Branch { .. } => egui::RichText::new("📁").color(egui::Color32::YELLOW),
         }
     }
@@ -288,8 +296,14 @@ impl AssetTreeNode {
                     context_menu_dir(path, ui);
                 });
             }
-            Self::Leaf { id, path, name } => {
-                let response = egui::Label::new(format!("📦 {}", name))
+            Self::Leaf {
+                asset_id,
+                icon,
+                path,
+                name,
+                ..
+            } => {
+                let response = egui::Label::new(format!("{} {}", icon, name))
                     .selectable(false)
                     .sense(egui::Sense::click())
                     .ui(ui);
@@ -299,7 +313,7 @@ impl AssetTreeNode {
                     *selected = Some(path.clone());
                 }
 
-                response.context_menu(|ui| context_menu_asset(id, path, ui));
+                response.context_menu(|ui| context_menu_asset(asset_id, path, ui));
             }
         }
     }
@@ -367,7 +381,9 @@ impl AssetTreeNode {
                 Self::Branch { path, .. } => {
                     response.context_menu(|ui| context_menu_dir(path, ui));
                 }
-                Self::Leaf { id, path, .. } => {
+                Self::Leaf {
+                    asset_id: id, path, ..
+                } => {
                     response.context_menu(|ui| context_menu_asset(id, path, ui));
                 }
             }
@@ -394,11 +410,11 @@ fn context_menu_dir(root: impl AsRef<Path>, ui: &mut egui::Ui) {
     };
 }
 
-fn context_menu_asset(id: &uuid::NonNilUuid, path: impl AsRef<Path>, ui: &mut egui::Ui) {
+fn context_menu_asset(asset_id: &uuid::NonNilUuid, path: impl AsRef<Path>, ui: &mut egui::Ui) {
     let path = path.as_ref();
 
     if ui.button(path.to_string_lossy()).clicked() {
-        log::info!("Click on {}", id);
+        log::info!("Click on {}", asset_id);
     };
 }
 

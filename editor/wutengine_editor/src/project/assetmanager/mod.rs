@@ -253,6 +253,10 @@ impl ProjectAsset {
         self.id.expect("ID should have been filled")
     }
 
+    pub(crate) fn asset_type(&self) -> uuid::NonNilUuid {
+        self.asset_type
+    }
+
     pub(crate) fn name(&self) -> &str {
         self.path
             .file_stem()

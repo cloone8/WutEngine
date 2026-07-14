@@ -11,16 +11,16 @@ where
     FnAfter: FnOnce(Out) -> Ret + Send + 'static,
     Ret: Send + 'static,
 {
-    let pick_file_task = runtime::run_on_main_thread(move || {
-        let pick_handle = func();
-
-        pick_handle
-    });
+    let pick_file_task = runtime::run_on_main_thread(func);
 
     wutengine::task::spawn_async(async move {
         let result = pick_file_task.get_async().await.await;
 
-        after(result)
+        let output = after(result);
+
+        wutengine::runtime::request_frame();
+
+        output
     })
 }
 
