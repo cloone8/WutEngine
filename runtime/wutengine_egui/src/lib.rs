@@ -4,6 +4,7 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use render::PrimitiveRenderState;
+use std::assert_matches;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::sync::Mutex;
@@ -482,6 +483,12 @@ impl TextureMaterialMap {
         let mut texture_map = self.0.lock().unwrap();
 
         for (tex_id, delta) in set {
+            assert_matches!(
+                tex_id,
+                egui::TextureId::Managed(_),
+                "Only managed textures are supported at the moment"
+            );
+
             let sampler = Arc::new(
                 Sampler::from_serialized_asset(utils::sampler_from_egui(&delta.options)).unwrap(),
             );
