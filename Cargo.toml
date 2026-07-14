@@ -26,7 +26,7 @@ members = [
     "editor/we_prefs",
     "editor/we_style",
     "asset/wutengine_asset_server",
-    "tools/weimport",
+    "tools/weimport", "tools/weassetconv",
 ]
 
 [workspace.package]

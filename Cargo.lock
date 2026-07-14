@@ -4514,6 +4514,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "weassetconv"
+version = "0.6.0"
+dependencies = [
+ "clap",
+ "log",
+ "simplelog",
+ "uuid",
+ "wutengine_asset_importers",
+]
+
+[[package]]
 name = "web-sys"
 version = "0.3.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"

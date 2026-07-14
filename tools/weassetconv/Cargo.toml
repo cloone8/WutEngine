@@ -1,6 +1,6 @@
 [package]
-name = "weimport"
-description = "CLI asset importer for WutEngine"
+name = "weassetconv"
+description = "WutEngine asset conversion utility"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -20,8 +20,6 @@ clap = { workspace = true, features = ["derive"] }
 log.workspace = true
 simplelog.workspace = true
 uuid.workspace = true
-derive_more = { workspace = true, features = ["display", "error"] }
-rayon = { workspace = true }
 
 [lints]
 workspace = true
