@@ -103,6 +103,8 @@ fn post_start(project: Option<PathBuf>) {
 
     load_fonts();
 
+    egui_extras::install_image_loaders(&EGUI_CONTEXT);
+
     #[cfg(debug_assertions)]
     {
         //TODO: Some shit with our custom collapsible label

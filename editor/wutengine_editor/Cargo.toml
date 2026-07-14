@@ -23,6 +23,12 @@ wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
 wutengine_asset_importers = { workspace = true, features = ["generic"] }
 
+egui_extras = { workspace = true, features = [
+    "image",
+    "gif",
+    "svg",
+    "svg_text",
+] }
 log.workspace = true
 clap = { workspace = true, features = ["derive"] }
 rfd.workspace = true
