@@ -44,7 +44,7 @@ pub(crate) enum MainThreadEvent {
 
     /// Run a task on the main thread
     #[debug("RunTask(...)")]
-    RunTask(Box<dyn Future<Output = ()> + Send + 'static>),
+    RunTask(Box<dyn FnOnce() + Send + 'static>),
 
     /// User requested a redraw
     Wake,
@@ -279,7 +279,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                 self.systems.queue_system(manifest);
             }
             MainThreadEvent::RunTask(task) => {
-                self.async_pool.insert_task(task);
+                task();
                 window::manager::request_redraws();
             }
         }

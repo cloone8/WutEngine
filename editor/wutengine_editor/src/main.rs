@@ -34,6 +34,7 @@ mod asset_gui;
 mod cli_args;
 mod editorwindow_renderpass;
 mod exit;
+mod filepicker;
 mod import_asset;
 mod logger;
 mod panel;

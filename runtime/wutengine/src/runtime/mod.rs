@@ -82,9 +82,6 @@ pub(crate) struct Runtime {
     /// How often we should render frames. Influences when we request redraws
     frame_frequency: FrameFrequency,
 
-    /// Main-thread async pool
-    async_pool: wutengine_task::MainThreadAsyncRunner,
-
     /// On-exit-requested handlers
     on_exit_requested_handlers: Vec<Arc<dyn Fn() -> bool + Send + Sync + 'static>>,
 
@@ -126,14 +123,6 @@ impl Runtime {
             // Handle any events that could not be handled by the main event handler, because they require mutable access
             // to the runtime
             self.handle_main_runtime_events();
-
-            // Run the async pool until it is stalled
-            let one_completed = self.async_pool.run_once();
-
-            if one_completed {
-                // Immediately redraw if a task was completed, so users can respond as quickly as possible
-                window::manager::request_redraws();
-            }
 
             // We wait for the rendering target to become available in the beginning of the frame,
             // because then if we block on vsync or similar the simulation will not be out of date

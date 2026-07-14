@@ -1,6 +1,7 @@
 //! Project selection flow
 
 use std::path::Path;
+use std::path::PathBuf;
 
 use wutengine::entity::Entity;
 use wutengine::runtime;
@@ -11,6 +12,7 @@ use wutengine_egui::egui;
 
 use crate::EditorWindowContainer;
 use crate::EguiWindowContainer;
+use crate::filepicker;
 use crate::project::ProjectFile;
 use crate::project::create::create_empty_project;
 use crate::window::EditorWindow;
@@ -49,8 +51,8 @@ pub(crate) fn select_project() {
 
 struct SelectProjectWindow {
     new_project_name: String,
-    open_project_task: Option<TaskHandle<Option<rfd::FileHandle>>>,
-    create_project_task: Option<TaskHandle<Option<rfd::FileHandle>>>,
+    open_project_task: Option<TaskHandle<Option<PathBuf>>>,
+    create_project_task: Option<TaskHandle<Option<PathBuf>>>,
 }
 
 impl SelectProjectWindow {
@@ -58,13 +60,13 @@ impl SelectProjectWindow {
         if let Some(result) = TaskHandle::get_if_started_and_ready(&mut self.open_project_task)
             && let Some(project_file) = result
         {
-            open_project(project_file.path());
+            open_project(project_file);
         }
 
         if let Some(result) = TaskHandle::get_if_started_and_ready(&mut self.create_project_task)
             && let Some(project_dir) = result
         {
-            match create_empty_project(&self.new_project_name, project_dir.path()) {
+            match create_empty_project(&self.new_project_name, &project_dir) {
                 Ok(pf) => {
                     open_project(pf);
                 }
@@ -96,22 +98,20 @@ impl EditorWindow for SelectProjectWindow {
 
                 if ui.button("Create...").clicked() && self.create_project_task.is_none() {
                     self.create_project_task =
-                        Some(wutengine::runtime::run_on_main_thread(async {
-                            rfd::AsyncFileDialog::new().pick_folder().await
-                        }));
+                        Some(filepicker::pick_folder(rfd::AsyncFileDialog::new()));
+                    // Some(wutengine::runtime::run_on_main_thread(async {
+                    //     rfd::AsyncFileDialog::new().pick_folder().await
+                    // }));
                 }
             });
         });
     }
 }
 
-fn pick_project_file() -> TaskHandle<Option<rfd::FileHandle>> {
-    wutengine::runtime::run_on_main_thread(async {
-        rfd::AsyncFileDialog::new()
-            .add_filter("WutEngine Project", &["we-project"])
-            .pick_file()
-            .await
-    })
+fn pick_project_file() -> TaskHandle<Option<PathBuf>> {
+    filepicker::pick_file(
+        rfd::AsyncFileDialog::new().add_filter("WutEngine Project", &["we-project"]),
+    )
 }
 
 fn open_project(project_file: impl AsRef<Path>) {

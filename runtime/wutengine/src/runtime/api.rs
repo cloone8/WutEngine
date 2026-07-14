@@ -49,10 +49,10 @@ pub fn request_frame() {
 /// Run a future on the main thread
 pub fn run_on_main_thread<F, T>(task: F) -> wutengine_task::TaskHandle<T>
 where
-    F: Future<Output = T> + Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
     T: Send + 'static,
 {
-    let (handle, future) = wutengine_task::TaskHandle::from_future(task);
+    let (handle, future) = wutengine_task::TaskHandle::from_closure(task);
 
     crate::runtime::send_to_main_thread(MainThreadEvent::RunTask(future));
 

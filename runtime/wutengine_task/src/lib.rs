@@ -7,7 +7,6 @@ use core::num::NonZero;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use detect::CoreConfig;
-use futures::task::LocalSpawn;
 use std::thread::available_parallelism;
 
 use wutengine_util::InitOnce;
@@ -46,48 +45,8 @@ static THREAD_POOL_INITIALIZED: AtomicBool = AtomicBool::new(false);
 /// The global async thread pool
 static ASYNC_POOL: InitOnce<futures::executor::ThreadPool> = InitOnce::new_checked();
 
-/// A main thread async pool for main-thread-only tasks
-#[derive(Debug)]
-pub struct MainThreadAsyncRunner {
-    /// The pool
-    pool: futures::executor::LocalPool,
-}
-
-impl MainThreadAsyncRunner {
-    /// Creates a new main-thread-only async pool
-    fn new() -> Self {
-        Self {
-            pool: futures::executor::LocalPool::new(),
-        }
-    }
-
-    /// Runs all futures in this pool until no more progress can be made.
-    /// Returns `true` if at least one task was finished
-    pub fn run_once(&mut self) -> bool {
-        profiling::function_scope!();
-
-        assert_main_thread!();
-
-        let mut any = false;
-
-        while self.pool.try_run_one() {
-            any = true;
-        }
-
-        any
-    }
-
-    /// Inserts a new main-thread-only task into the
-    pub fn insert_task(&self, task: Box<dyn Future<Output = ()> + 'static>) {
-        self.pool
-            .spawner()
-            .spawn_local_obj(task.into())
-            .expect("Failed to spawn task");
-    }
-}
-
 /// Initializes the global thread pool.
-pub fn init_thread_pool() -> MainThreadAsyncRunner {
+pub fn init_thread_pool() {
     assert_main_thread!();
 
     if THREAD_POOL_INITIALIZED.swap(true, Ordering::AcqRel) {
@@ -106,8 +65,6 @@ pub fn init_thread_pool() -> MainThreadAsyncRunner {
 
     init_worker_threads(&thread_config, cpu_config.as_ref());
     init_async_threads(&thread_config, cpu_config.as_ref());
-
-    MainThreadAsyncRunner::new()
 }
 
 /// Initialize the background async thread pool
@@ -317,6 +274,30 @@ impl<T> TaskHandle<T> {
         (Self { done, recv }, Box::new(fut))
     }
 
+    /// Wraps a closure and makes it notify a new [TaskHandle] when it is done. Returns
+    /// both the wrapped closure and the new [TaskHandle]
+    pub fn from_closure<F>(task: F) -> (Self, Box<dyn FnOnce() + Send + 'static>)
+    where
+        F: FnOnce() -> T + Send + 'static,
+        T: Send + 'static,
+    {
+        let (send, recv) = futures::channel::oneshot::channel::<T>();
+        let done = Arc::new(AtomicBool::new(false));
+
+        let closure = {
+            let done = done.clone();
+
+            move || {
+                let ret = task();
+
+                _ = send.send(ret);
+                done.store(true, Ordering::Release);
+            }
+        };
+
+        (Self { done, recv }, Box::new(closure))
+    }
+
     /// Constructs a new handle from an already-ready handle.
     pub fn from_value(val: T) -> Self {
         let (send, recv) = futures::channel::oneshot::channel::<T>();
@@ -356,7 +337,7 @@ where
     TaskHandle { done, recv }
 }
 
-/// Spawns an async task on the background thread pool. For spawning high-compute
+/// Spawns an async task on the background thread pool. For spawning high-compute, see [spawn_on_worker]
 pub fn spawn_async<F, O>(task: F) -> TaskHandle<O>
 where
     F: Future<Output = O> + Send + 'static,

@@ -5,10 +5,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use wutengine::runtime;
 use wutengine::task::TaskHandle;
 use wutengine_egui::egui;
 
+use crate::filepicker;
 use crate::project;
 use crate::project::assetmanager::ProjectAssetFormat;
 
@@ -50,13 +50,14 @@ impl ImportJob {
                     .asset_root()
                     .join(self.destination_dir.clone());
 
-                self.pick_new_dir_job = Some(runtime::run_on_main_thread(async move {
-                    let picked_folder = rfd::AsyncFileDialog::new()
-                        .set_directory(cur_destination_dir)
-                        .pick_folder()
-                        .await?;
+                let picked_folder_task = filepicker::pick_folder(
+                    rfd::AsyncFileDialog::new().set_directory(cur_destination_dir),
+                );
 
-                    let picked_folder_path = picked_folder.path().canonicalize().unwrap();
+                self.pick_new_dir_job = Some(wutengine::task::spawn_async(async move {
+                    let picked_folder = picked_folder_task.get_async().await?;
+
+                    let picked_folder_path = picked_folder.canonicalize().unwrap();
 
                     if !picked_folder_path.starts_with(project::asset_manager().asset_root()) {
                         log::error!("Picked import destination is not within project");
@@ -71,7 +72,7 @@ impl ImportJob {
                         .to_string();
 
                     Some(picked_path_relative)
-                }))
+                }));
             }
         });
 
@@ -113,19 +114,7 @@ impl ImportJob {
 }
 
 pub(crate) fn import_asset_prompt() -> TaskHandle<Option<Vec<PathBuf>>> {
-    runtime::run_on_main_thread(async {
-        let picked = rfd::AsyncFileDialog::new()
-            .set_title("Select the asset to import")
-            .pick_files()
-            .await?;
-
-        Some(
-            picked
-                .into_iter()
-                .map(|picked_file| picked_file.path().to_path_buf())
-                .collect(),
-        )
-    })
+    filepicker::pick_files(rfd::AsyncFileDialog::new().set_title("Select the asset to import"))
 }
 
 /// Returns the file type from a path, if it has an extension
