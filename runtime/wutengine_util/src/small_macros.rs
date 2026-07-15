@@ -7,7 +7,7 @@
 /// ```
 /// use std::collections::HashMap;
 ///
-/// let new_map: HashMap<String, i32> = map![
+/// let new_map: HashMap<String, i32> = wutengine_util::map![
 ///     "a" => 1,
 ///     "b" => 2
 /// ];

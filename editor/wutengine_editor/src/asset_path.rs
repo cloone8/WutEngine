@@ -1,3 +1,5 @@
+//! Project asset directory relative paths
+
 use std::path::Path;
 use std::path::PathBuf;
 

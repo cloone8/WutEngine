@@ -3,8 +3,8 @@
 //! Usage:
 //! ```
 //! # let mut egui_ctx = egui::Context::default();
-//! # egui_ctx.begin_frame(Default::default());
-//! puffin_egui::profiler_window(&egui_ctx);
+//! egui_ctx.run_ui(egui::RawInput::default(), |ui|{});
+//! wutengine_puffin_egui::profiler_window(&egui_ctx);
 //! ```
 //!
 //! Initially forked from [puffin](https://github.com/EmbarkStudios/puffin/commit/7e08a533f9debfb7d051547263d2ab84c666314f)

@@ -1,3 +1,5 @@
+//! Asynchronous file/folder pick dialogs
+
 use std::path::PathBuf;
 
 use wutengine::runtime;
