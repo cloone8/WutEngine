@@ -98,12 +98,16 @@ impl ImportJob {
 }
 
 impl ImportJob {
-    pub(crate) fn new_from_path(path: PathBuf) -> Self {
+    pub(crate) fn new_from_path(path: PathBuf, destination_dir: Option<&Path>) -> Self {
+        let destination_dir = destination_dir
+            .and_then(|dd| dd.to_str().map(ToString::to_string))
+            .unwrap_or_default();
+
         Self {
             file_type: get_file_type_from_path(&path)
                 .map(ToString::to_string)
                 .unwrap_or_default(),
-            destination_dir: String::new(),
+            destination_dir,
             name: get_file_name_from_path(&path)
                 .map(ToString::to_string)
                 .unwrap_or_default(),
@@ -113,8 +117,27 @@ impl ImportJob {
     }
 }
 
-pub(crate) fn import_asset_prompt() -> TaskHandle<Option<Vec<PathBuf>>> {
-    filepicker::pick_files(rfd::AsyncFileDialog::new().set_title("Select the asset to import"))
+pub(crate) fn import_asset_prompt(destination_dir: Option<PathBuf>) {
+    _ = wutengine::task::spawn_async(async move {
+        let import_result = filepicker::pick_files(
+            rfd::AsyncFileDialog::new().set_title("Select the asset to import"),
+        )
+        .get_async()
+        .await;
+
+        let Some(imported_paths) = import_result else {
+            return;
+        };
+
+        let mut import_queue = IMPORT_QUEUE.lock().unwrap();
+
+        for imported_path in imported_paths {
+            import_queue.push_back(ImportJob::new_from_path(
+                imported_path,
+                destination_dir.as_deref(),
+            ));
+        }
+    });
 }
 
 /// Returns the file type from a path, if it has an extension

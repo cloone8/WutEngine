@@ -31,6 +31,7 @@ use wutengine_util::InitOnce;
 
 mod asset_cache;
 mod asset_gui;
+mod asset_path;
 mod cli_args;
 mod editorwindow_renderpass;
 mod exit;
@@ -176,19 +177,7 @@ fn add_default_menu_entries() {
     });
 
     we_menu::add_entry(&["Asset", "Import..."], 300, || {
-        wutengine::task::spawn_async(async {
-            let import_result = import_asset::import_asset_prompt().get_async().await;
-
-            let Some(imported_paths) = import_result else {
-                return;
-            };
-
-            let mut import_queue = import_asset::IMPORT_QUEUE.lock().unwrap();
-
-            for imported_path in imported_paths {
-                import_queue.push_back(import_asset::ImportJob::new_from_path(imported_path));
-            }
-        });
+        import_asset::import_asset_prompt(None);
     });
 
     we_menu::add_entry(&["Asset", "Level"], 400, || {

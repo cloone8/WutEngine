@@ -29,8 +29,8 @@ impl AssetLoader for ProjectAssetLoader {
             return Err(LoadAssetErr::NotFound(*asset_id));
         };
 
-        let asset_path = asset_manager.asset_root().join(project_asset.path());
+        let asset_path = project_asset.path();
 
-        std::fs::read(asset_path).map_err(LoadAssetErr::IO)
+        std::fs::read(asset_path.absolute()).map_err(LoadAssetErr::IO)
     }
 }
