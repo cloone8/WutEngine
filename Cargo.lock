@@ -4520,7 +4520,6 @@ dependencies = [
  "clap",
  "log",
  "simplelog",
- "uuid",
  "wutengine_asset_importers",
 ]
 

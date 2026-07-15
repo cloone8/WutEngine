@@ -1,6 +1,7 @@
 //! Asset format conversion utility
 
 use std::io::Read;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -67,6 +68,7 @@ struct OutputFormat {
     binary: bool,
 }
 
+/// Returns the input bytes from the source given by the [InputArg]
 fn get_input(input: &InputArg) -> Result<Vec<u8>, Box<dyn core::error::Error>> {
     if input.stdin {
         let mut buf = Vec::new();
@@ -106,6 +108,8 @@ fn main() -> ExitCode {
     let asset_types = wutengine_asset_importers::default_asset_types();
 
     let mut deserialized = None;
+    let mut matching_asset_type = None;
+
     for asset_type in asset_types.values() {
         if let Ok(asset) = asset_type.deserialize_text(&input) {
             log::info!(
@@ -113,6 +117,7 @@ fn main() -> ExitCode {
                 asset_type.asset_type_name()
             );
             deserialized = Some(asset);
+            matching_asset_type = Some(asset_type);
             break;
         }
         if let Ok(asset) = asset_type.deserialize_binary(&input) {
@@ -121,13 +126,51 @@ fn main() -> ExitCode {
                 asset_type.asset_type_name()
             );
             deserialized = Some(asset);
+            matching_asset_type = Some(asset_type);
             break;
         }
     }
 
-    if deserialized.is_none() {
+    let (Some(deserialized), Some(asset_type)) = (deserialized, matching_asset_type) else {
         log::error!("Failed to deserialize input as any asset type");
         return ExitCode::FAILURE;
+    };
+
+    let reserialized = if args.format.text {
+        asset_type.serialize_text(deserialized.as_ref())
+    } else if args.format.binary {
+        asset_type.serialize_binary(deserialized.as_ref())
+    } else {
+        unreachable!("One output format should be selected");
+    };
+
+    let reserialized = match reserialized {
+        Ok(rs) => rs,
+        Err(e) => {
+            log::error!("Failed to reserialize asset: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    if args.output.stdout {
+        if let Err(e) = std::io::stdout().write_all(&reserialized) {
+            log::error!("Failed to write asset to stdout: {e}");
+            return ExitCode::FAILURE;
+        }
+    } else if let Some(out_path) = args.output.output {
+        if let Some(parent_dir) = out_path.parent() {
+            if let Err(e) = std::fs::create_dir_all(parent_dir) {
+                log::error!("Failed to create output parent directory: {e}");
+                return ExitCode::FAILURE;
+            }
+
+            if let Err(e) = std::fs::write(&out_path, &reserialized) {
+                log::error!("Failed to write asset to output path: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else {
+        unreachable!("One output method must be selected");
     }
 
     ExitCode::SUCCESS

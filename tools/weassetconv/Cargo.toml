@@ -19,7 +19,6 @@ wutengine_asset_importers = { workspace = true, features = ["generic"] }
 clap = { workspace = true, features = ["derive"] }
 log.workspace = true
 simplelog.workspace = true
-uuid.workspace = true
 
 [lints]
 workspace = true
