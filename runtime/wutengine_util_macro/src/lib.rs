@@ -316,3 +316,89 @@ pub fn derive_variant_index(input: proc_macro::TokenStream) -> proc_macro::Token
 
     expanded.into()
 }
+
+/// Input for the [`wrap_uuid`] macro
+struct WrappedUuidInput {
+    /// Existing attributes to apply
+    attrs: Vec<Attribute>,
+
+    /// The visibility to assign to the generated type
+    vis: Option<Visibility>,
+
+    /// Name of the new ID type
+    name: Ident,
+}
+
+impl Parse for WrappedUuidInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let attrs = input.call(Attribute::parse_outer)?;
+        let vis: Option<Visibility> = input.parse::<Visibility>().ok();
+        let name: Ident = input.parse()?;
+
+        Ok(Self { attrs, vis, name })
+    }
+}
+
+/// Creates a newtype-style wrapper around a UUID from the `uuid` crate
+#[proc_macro]
+pub fn wrap_uuid(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as WrappedUuidInput);
+
+    let ident = input.name;
+    let attrs = input.attrs;
+    let vis = input.vis;
+
+    let ident_new_doc =
+        format!("Create a new [`{ident}`] from an existing [non-nil UUID](::uuid::NonNilUuid)");
+
+    let ident_try_new_doc = format!(
+        "Create a new [`{ident}`] from an existing [`UUID`](::uuid::Uuid), if it is not nil"
+    );
+
+    let ident_new_non_nil_doc = format!(
+        "Create a new [`{ident}`] from an existing [`UUID`](::uuid::Uuid). If the ID is nil, panics."
+    );
+
+    quote! {
+        #(#attrs)*
+        #[repr(transparent)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #vis struct #ident(::uuid::NonNilUuid);
+
+        impl ::std::fmt::Display for #ident {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                self.0.fmt(f)
+            }
+        }
+
+        impl #ident {
+            /// Get the inner raw [`UUID`](::uuid::NonNilUuid)
+            #[inline]
+            #vis const fn as_uuid(self) -> ::uuid::NonNilUuid {
+                self.0
+            }
+
+            #[doc = #ident_new_doc]
+            #[inline]
+            #vis const fn new(id: ::uuid::NonNilUuid) -> Self {
+                Self(id)
+            }
+
+            #[doc = #ident_try_new_doc]
+            #[inline]
+            #vis const fn try_new(id: ::uuid::Uuid) -> Option<Self> {
+                match ::uuid::NonNilUuid::new(id) {
+                    Some(id) => Some(Self(id)),
+                    None => None
+                }
+            }
+
+            #[doc = #ident_new_non_nil_doc]
+            #[inline]
+            #vis const fn new_non_nil(id: ::uuid::Uuid) -> Self {
+                Self::try_new(id).expect("Given UUID was nil")
+            }
+        }
+    }
+    .into()
+}
