@@ -8,6 +8,7 @@ use std::sync::Mutex;
 use wutengine::task::TaskHandle;
 use wutengine_egui::egui;
 
+use crate::asset_path::AssetPath;
 use crate::filepicker;
 use crate::project;
 use crate::project::assetmanager::ProjectAssetFormat;
@@ -17,9 +18,9 @@ pub(crate) static IMPORT_QUEUE: Mutex<VecDeque<ImportJob>> = Mutex::new(VecDeque
 pub(crate) struct ImportJob {
     pub(crate) path: PathBuf,
     pub(crate) file_type: String,
-    pub(crate) destination_dir: String,
+    pub(crate) destination_dir: AssetPath,
     pub(crate) name: String,
-    pub(crate) pick_new_dir_job: Option<TaskHandle<Option<String>>>,
+    pub(crate) pick_new_dir_job: Option<TaskHandle<Option<AssetPath>>>,
 }
 
 impl ImportJob {
@@ -43,15 +44,14 @@ impl ImportJob {
         ui.label(format!("File type: {}", self.file_type));
 
         ui.horizontal(|ui| {
-            ui.label(format!("Destination directory: /{}", self.destination_dir));
+            ui.label(format!(
+                "Destination directory: /{}",
+                self.destination_dir.relative().to_string_lossy()
+            ));
 
             if ui.button("Choose...").clicked() && self.pick_new_dir_job.is_none() {
-                let cur_destination_dir = project::asset_manager()
-                    .asset_root()
-                    .join(self.destination_dir.clone());
-
                 let picked_folder_task = filepicker::pick_folder(
-                    rfd::AsyncFileDialog::new().set_directory(cur_destination_dir),
+                    rfd::AsyncFileDialog::new().set_directory(self.destination_dir.absolute()),
                 );
 
                 self.pick_new_dir_job = Some(wutengine::task::spawn_async(async move {
@@ -64,14 +64,7 @@ impl ImportJob {
                         return None;
                     }
 
-                    let picked_path_relative = picked_folder_path
-                        .strip_prefix(project::asset_manager().asset_root())
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_string();
-
-                    Some(picked_path_relative)
+                    Some(AssetPath::new(picked_folder_path))
                 }));
             }
         });
@@ -88,7 +81,7 @@ impl ImportJob {
                 Some(self.file_type.as_str()),
                 Some(self.name.as_str()),
                 &self.path,
-                &PathBuf::from(&self.destination_dir),
+                &self.destination_dir.absolute(),
             );
             return true;
         }
@@ -98,10 +91,8 @@ impl ImportJob {
 }
 
 impl ImportJob {
-    pub(crate) fn new_from_path(path: PathBuf, destination_dir: Option<&Path>) -> Self {
-        let destination_dir = destination_dir
-            .and_then(|dd| dd.to_str().map(ToString::to_string))
-            .unwrap_or_default();
+    pub(crate) fn new_from_path(path: PathBuf, destination_dir: Option<&AssetPath>) -> Self {
+        let destination_dir = destination_dir.cloned().unwrap_or_else(AssetPath::root);
 
         Self {
             file_type: get_file_type_from_path(&path)
@@ -117,7 +108,7 @@ impl ImportJob {
     }
 }
 
-pub(crate) fn import_asset_prompt(destination_dir: Option<PathBuf>) {
+pub(crate) fn import_asset_prompt(destination_dir: Option<AssetPath>) {
     _ = wutengine::task::spawn_async(async move {
         let import_result = filepicker::pick_files(
             rfd::AsyncFileDialog::new().set_title("Select the asset to import"),
@@ -134,7 +125,7 @@ pub(crate) fn import_asset_prompt(destination_dir: Option<PathBuf>) {
         for imported_path in imported_paths {
             import_queue.push_back(ImportJob::new_from_path(
                 imported_path,
-                destination_dir.as_deref(),
+                destination_dir.as_ref(),
             ));
         }
     });

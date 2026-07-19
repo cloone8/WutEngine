@@ -5,7 +5,7 @@ use crate::import_asset;
 
 pub(super) fn dir(root: &AssetPath, ui: &mut egui::Ui) {
     if ui.button("Import here...").clicked() {
-        import_asset::import_asset_prompt(Some(root.absolute().to_path_buf()));
+        import_asset::import_asset_prompt(Some(root.clone()));
     };
 }
 
