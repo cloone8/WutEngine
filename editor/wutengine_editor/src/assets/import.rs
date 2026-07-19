@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use wutengine::task::TaskHandle;
 use wutengine_egui::egui;
 
-use crate::asset_path::AssetPath;
+use crate::assets::path::AssetPath;
 use crate::filepicker;
 use crate::project;
 use crate::project::assetmanager::ProjectAssetFormat;
@@ -81,7 +81,7 @@ impl ImportJob {
                 Some(self.file_type.as_str()),
                 Some(self.name.as_str()),
                 &self.path,
-                &self.destination_dir.absolute(),
+                self.destination_dir.absolute(),
             );
             return true;
         }

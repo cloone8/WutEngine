@@ -3,9 +3,8 @@
 use std::sync::Mutex;
 
 use wutengine_egui::egui;
-use wutengine_egui::egui::Widget;
 
-/// The global [MenuManager]
+/// The global [`MenuManager`]
 static MENU_MANAGER: MenuManager = MenuManager::new();
 
 /// The menu manager, contains the entries
@@ -44,8 +43,7 @@ impl MenuEntry {
     fn is_empty(&self) -> bool {
         match &self.content {
             MenuContent::SubMenu(items) => items.is_empty(),
-            MenuContent::Callback(_) => false,
-            MenuContent::Ui(_) => false,
+            MenuContent::Callback(_) | MenuContent::Ui(_) => false,
         }
     }
 
@@ -121,14 +119,16 @@ enum MenuContent {
 
 /// Adds a menu entry at the given path
 pub fn add_entry(path: &[&str], location: u64, callback: impl Fn() + Send + Sync + 'static) {
-    if path.is_empty() {
+    let name = if let Some(last) = path.last() {
+        last.to_string()
+    } else {
         log::error!("Cannot insert menu button with empty path");
         return;
-    }
+    };
 
     let new_entry = MenuEntry {
         location,
-        name: path.last().unwrap().to_string(),
+        name,
         content: MenuContent::Callback(Box::new(callback)),
     };
 
@@ -141,9 +141,16 @@ pub fn add_entry_ui(
     location: u64,
     callback: impl Fn(&mut egui::Ui) + Send + Sync + 'static,
 ) {
+    let name = if let Some(last) = path.last() {
+        last.to_string()
+    } else {
+        log::error!("Cannot insert menu button with empty path");
+        return;
+    };
+
     let new_entry = MenuEntry {
         location,
-        name: path.last().unwrap().to_string(),
+        name,
         content: MenuContent::Ui(Box::new(callback)),
     };
 
@@ -167,7 +174,7 @@ fn add_entry_raw(path: &[&str], new_entry: MenuEntry) {
 
 /// Formats a menu path for display
 fn format_menu_path(path: &[&str]) -> String {
-    path.join("/").to_string()
+    path.join("/").clone()
 }
 
 /// An error while inserting a menu item

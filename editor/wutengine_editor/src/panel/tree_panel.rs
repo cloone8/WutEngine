@@ -4,6 +4,7 @@ use crate::project;
 
 use super::EditorPanel;
 
+/// The panel showing the main level hierarchy tree
 #[derive(Debug)]
 pub(crate) struct TreePanel;
 

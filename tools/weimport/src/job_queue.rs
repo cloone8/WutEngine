@@ -45,7 +45,7 @@ impl JobQueue {
     }
 }
 
-/// A token to a job in a [JobQueue]. Frees up its slot in the queue once dropped
+/// A token to a job in a [`JobQueue`]. Frees up its slot in the queue once dropped
 #[derive(Debug)]
 #[repr(transparent)]
 pub(crate) struct JobToken {

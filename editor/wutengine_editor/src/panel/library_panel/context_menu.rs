@@ -1,11 +1,11 @@
 use wutengine_egui::egui;
 
-use crate::asset_path::AssetPath;
-use crate::import_asset;
+use crate::assets;
+use crate::assets::path::AssetPath;
 
 pub(super) fn dir(root: &AssetPath, ui: &mut egui::Ui) {
     if ui.button("Import here...").clicked() {
-        import_asset::import_asset_prompt(Some(root.clone()));
+        assets::import::import_asset_prompt(Some(root.clone()));
     };
 }
 

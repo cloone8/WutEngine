@@ -60,7 +60,7 @@ impl RenderPass<(Window, wgpu::Texture), hecs::World> for EditorWindowRenderPass
         let mut target_window: Option<&wutengine_egui::EguiWindow> = None;
         let mut query = drawable.query::<&EguiWindowContainer>();
 
-        for window_container in query.iter() {
+        for window_container in &mut query {
             if let Some(window_handle) = window_container.window_handle()
                 && window_handle == target.0
             {

@@ -1,7 +1,7 @@
 use wutengine_egui::egui;
 use wutengine_egui::egui::Widget;
 
-use crate::asset_path::AssetPath;
+use crate::assets::path::AssetPath;
 use crate::panel::library_panel;
 use crate::panel::library_panel::asset_tree::AssetTreeNode;
 

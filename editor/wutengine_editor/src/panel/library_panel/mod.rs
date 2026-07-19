@@ -5,7 +5,7 @@ use std::sync::Once;
 use wutengine_egui::egui;
 use wutengine_egui::egui::Widget;
 
-use crate::asset_path::AssetPath;
+use crate::assets::path::AssetPath;
 use crate::panel::library_panel::asset_tree::AssetTreeNode;
 use crate::project::asset_manager;
 use crate::project::assetmanager;
@@ -37,13 +37,13 @@ impl LibraryPanel {
         let assets = asset_manager.asset_iter();
 
         for (asset_id, asset) in assets.iter() {
-            let asset_gui = crate::asset_gui::get_asset_gui(&asset.asset_type());
+            let assets_gui = crate::assets::gui::get_asset_gui(&asset.asset_type());
 
             let asset_path = asset.path();
             let leaf = AssetTreeNode::Leaf {
                 asset_id: *asset_id,
-                icon: asset_gui.icon,
-                icon_color: asset_gui.icon_color,
+                icon: assets_gui.icon,
+                icon_color: assets_gui.icon_color,
                 path: asset_path.clone(),
                 name: asset.name().to_string(),
             };

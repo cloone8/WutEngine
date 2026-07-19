@@ -26,6 +26,7 @@ where
     })
 }
 
+/// Picks a single file using the given prompt asynchronously
 pub(crate) fn pick_file(fd: rfd::AsyncFileDialog) -> TaskHandle<Option<PathBuf>> {
     run_async(
         move || fd.pick_file(),
@@ -33,6 +34,7 @@ pub(crate) fn pick_file(fd: rfd::AsyncFileDialog) -> TaskHandle<Option<PathBuf>>
     )
 }
 
+/// Picks any number of files using the given prompt asynchronously
 pub(crate) fn pick_files(fd: rfd::AsyncFileDialog) -> TaskHandle<Option<Vec<PathBuf>>> {
     run_async(
         move || fd.pick_files(),
@@ -42,6 +44,7 @@ pub(crate) fn pick_files(fd: rfd::AsyncFileDialog) -> TaskHandle<Option<Vec<Path
     )
 }
 
+/// Picks a single folder using the given prompt asynchronously
 pub(crate) fn pick_folder(fd: rfd::AsyncFileDialog) -> TaskHandle<Option<PathBuf>> {
     run_async(
         move || fd.pick_folder(),
@@ -49,6 +52,7 @@ pub(crate) fn pick_folder(fd: rfd::AsyncFileDialog) -> TaskHandle<Option<PathBuf
     )
 }
 
+/// Picks any number of folders using the given prompt asynchronously
 pub(crate) fn pick_folders(fd: rfd::AsyncFileDialog) -> TaskHandle<Option<Vec<PathBuf>>> {
     run_async(
         move || fd.pick_folders(),

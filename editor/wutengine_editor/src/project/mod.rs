@@ -105,8 +105,10 @@ impl Project {
     }
 }
 
+/// An error while saving the project to disk
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub(crate) enum SaveErr {
+    /// Asset index could not be persisted
     #[display("Failed to save asset index to disk: {}", _0)]
     AssetIndex(assetmanager::SaveErr),
 }

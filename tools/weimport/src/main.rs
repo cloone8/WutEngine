@@ -24,6 +24,9 @@ use crate::job_queue::JobToken;
 mod input_iterator;
 mod job_queue;
 
+/// Default I/O queue size
+const DEFAULT_QUEUE_SIZE: usize = 8;
+
 /// Command line arguments
 #[derive(Debug, Parser)]
 #[command(version, about, author)]
@@ -240,8 +243,6 @@ fn main() -> ExitCode {
     } else {
         InputIterator::from_input_paths(&args.input.input)
     };
-
-    const DEFAULT_QUEUE_SIZE: usize = 8;
 
     let queue_size = if args.io_queue_size == 0 {
         DEFAULT_QUEUE_SIZE

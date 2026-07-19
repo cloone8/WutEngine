@@ -29,14 +29,11 @@ use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
-mod asset_cache;
-mod asset_gui;
-mod asset_path;
+mod assets;
 mod cli_args;
 mod editorwindow_renderpass;
 mod exit;
 mod filepicker;
-mod import_asset;
 mod logger;
 mod panel;
 mod project;
@@ -135,7 +132,7 @@ fn post_start(project: Option<PathBuf>) {
 /// Starts the editor and loads the project file at the given path
 fn start_editor(project_file_path: &Path) {
     project::load(project_file_path).expect("Failed to load project"); //TODO: Handle properly
-    asset_cache::init();
+    assets::cache::init();
 
     let initial_window_title = if let Some(proj_name) = project::name() {
         format!("{proj_name} - WutEngine Editor")
@@ -177,7 +174,7 @@ fn add_default_menu_entries() {
     });
 
     we_menu::add_entry(&["Asset", "Import..."], 300, || {
-        import_asset::import_asset_prompt(None);
+        assets::import::import_asset_prompt(None);
     });
 
     we_menu::add_entry(&["Asset", "Level"], 400, || {

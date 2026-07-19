@@ -155,12 +155,11 @@ missing_debug_implementations = "warn"
 
 [workspace.lints.clippy]
 cargo = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
 missing_assert_messages = "warn"
 missing_docs_in_private_items = "warn"
 missing_assert_message = "warn"
 allow_attributes_without_reason = "warn"
-std_instead_of_core = "warn"
-std_instead_of_alloc = "warn"
 too_many_lines = "warn"
 unused_self = "warn"
 mutex_integer = "warn"
@@ -181,3 +180,7 @@ needless_pass_by_ref_mut = "warn"
 needless_raw_strings = "warn"
 self_named_module_files = "deny"
 missing_fields_in_debug = "warn"
+
+similar_names = { level = "allow" }      # Too noisy and not that useful
+missing_panics_doc = { level = "allow" } # I won't include a panic doc for every function that locks a mutex or rwlock
+must_use_candidate = { level = "allow" } # Not actually a problem

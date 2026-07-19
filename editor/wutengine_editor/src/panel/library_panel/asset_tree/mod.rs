@@ -1,6 +1,6 @@
 use wutengine_egui::egui;
 
-use crate::asset_path::AssetPath;
+use crate::assets::path::AssetPath;
 
 mod directory_ui;
 mod tree_ui;

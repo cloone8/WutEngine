@@ -107,7 +107,7 @@ impl MainEditorWindow {
 
     fn show_modals(&mut self, ui: &mut egui::Ui) {
         // Most recent modal covers the other ones. Show modals decreasing priority
-        let mut import_queue = crate::import_asset::IMPORT_QUEUE.lock().unwrap();
+        let mut import_queue = crate::assets::import::IMPORT_QUEUE.lock().unwrap();
 
         if let Some(next_import) = import_queue.front_mut() {
             let modal = egui::Modal::new(egui::Id::new("Import Modal"))

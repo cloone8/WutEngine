@@ -11,7 +11,7 @@ use wutengine::asset::SerializedAsset;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::asset_path::AssetPath;
+use crate::assets::path::AssetPath;
 
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub(crate) enum LoadErr {

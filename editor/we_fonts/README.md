@@ -6,7 +6,7 @@ Used fonts:
 
 * DM Sans: <https://fonts.google.com/specimen/DM+Sans> - [Open Font License](https://openfontlicense.org/)
 
-* FiraCoda: <https://fonts.google.com/specimen/Fira+Code> - [Open Font License](https://openfontlicense.org/)
+* Fira Code: <https://fonts.google.com/specimen/Fira+Code> - [Open Font License](https://openfontlicense.org/)
 
 * Noto Emoji: <https://fonts.google.com/noto/specimen/Noto+Emoji> - [Open Font License](https://openfontlicense.org/)
 
