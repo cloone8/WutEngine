@@ -9,25 +9,25 @@ use wutengine_assets::FromSerializedAsset;
 use crate::ASSET_SERVER;
 use crate::AssetServer;
 
-/// Types that can return a reference to an [AssetServer]
+/// Types that can return a reference to an [`AssetServer`]
 pub trait AssetServerProvider: core::fmt::Debug + Clone {
     /// Returns a reference to the server
     fn server(&self) -> &Arc<AssetServer>;
 }
 
-/// The global [AssetServerProvider]
+/// The global [`AssetServerProvider`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Global;
 
 impl AssetServerProvider for Global {
-    #[inline(always)]
+    #[inline]
     fn server(&self) -> &Arc<AssetServer> {
         &ASSET_SERVER
     }
 }
 
 impl AssetServerProvider for Arc<AssetServer> {
-    #[inline(always)]
+    #[inline]
     fn server(&self) -> &Arc<AssetServer> {
         self
     }
@@ -42,7 +42,7 @@ pub struct AutoLoad<T, S = Global> {
 }
 
 impl<T> Default for AutoLoad<T> {
-    #[inline(always)]
+    #[inline]
     fn default() -> Self {
         Self::new_empty()
     }
@@ -107,13 +107,13 @@ impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
 
 impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
     /// Returns the asset ID that this autoloader will load
-    #[inline(always)]
+    #[inline]
     pub const fn asset_id(&self) -> Option<uuid::NonNilUuid> {
         self.serialized_asset_id
     }
 
     /// Loads and returns the referenced value. If loading fails, panics
-    #[inline(always)]
+    #[inline]
     pub fn get(&self) -> Arc<T> {
         self.try_get().expect("Failed to load asset")
     }
@@ -150,14 +150,14 @@ impl<T> From<AssetRef<T::Serialized>> for AutoLoad<T>
 where
     T: FromSerializedAsset,
 {
-    #[inline(always)]
+    #[inline]
     fn from(value: AssetRef<T::Serialized>) -> Self {
         Self::new_from_ref(value)
     }
 }
 
 impl<T> From<Arc<T>> for AutoLoad<T> {
-    #[inline(always)]
+    #[inline]
     fn from(value: Arc<T>) -> Self {
         Self::new_from_value(value)
     }
@@ -167,7 +167,7 @@ impl<T> From<Option<T>> for AutoLoad<T>
 where
     T: Into<AutoLoad<T>>,
 {
-    #[inline(always)]
+    #[inline]
     fn from(value: Option<T>) -> Self {
         match value {
             Some(val) => val.into(),

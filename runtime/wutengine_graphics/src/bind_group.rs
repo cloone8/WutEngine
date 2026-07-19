@@ -24,7 +24,7 @@ pub struct BindGroup {
     buffer_params: Vec<ShaderBufferParameter>,
     opaque_params: Vec<ShaderOpaqueParameter>,
 
-    /// The native [wgpu] bind group layout for this bind group
+    /// The native [`wgpu`] bind group layout for this bind group
     layout: wgpu::BindGroupLayout,
 
     native: Option<(Option<wgpu::Buffer>, wgpu::BindGroup)>,
@@ -36,7 +36,7 @@ enum ParamIndex {
     Opaque(u16),
 }
 
-/// An error while trying to set a [BindGroup] parameter
+/// An error while trying to set a [`BindGroup`] parameter
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum SetParamErr {
     /// Unknown parameter
@@ -140,7 +140,7 @@ impl BindGroup {
     }
 
     /// Updates the value of the given parameter to the new value.
-    /// This might require the bind-group to be recreated later using [Self::update_bind_group]
+    /// This might require the bind-group to be recreated later using [`Self::update_bind_group`]
     pub fn set_parameter(
         &mut self,
         param: &str,
@@ -291,14 +291,14 @@ impl BindGroup {
         self.native = Some((maybe_buffer, bind_group));
     }
 
-    /// Returns the native [wgpu::BindGroup]
+    /// Returns the native [`wgpu::BindGroup`]
     #[inline]
     pub fn get_bind_group(&self) -> Option<&wgpu::BindGroup> {
         self.native.as_ref().map(|native| &native.1)
     }
 
-    /// Returns the native [wgpu::BindGroupLayout]
-    #[inline(always)]
+    /// Returns the native [`wgpu::BindGroupLayout`]
+    #[inline]
     pub fn layout(&self) -> &wgpu::BindGroupLayout {
         &self.layout
     }

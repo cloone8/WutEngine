@@ -17,7 +17,7 @@ use crate::window;
 
 use super::SystemManifest;
 
-/// An error while starting the WutEngine runtime with [run]
+/// An error while starting the WutEngine runtime with [`run`]
 #[derive(Debug, derive_more::Error, derive_more::Display, derive_more::From)]
 pub enum RuntimeStartErr {
     /// Another WutEngine runtime was already started in this process
@@ -46,10 +46,10 @@ pub enum FrameFrequency {
 /// The configuration used to start the WutEngine runtime
 #[derive(Debug, Clone)]
 pub struct InitRuntimeConfig {
-    /// The path to a config file, used for population the initial values of the [crate::config] module
+    /// The path to a config file, used for population the initial values of the [`crate::config`] module
     pub config_file: Option<PathBuf>,
 
-    /// Hard-coded config overrides. Applied after reading the config file from [Self::config_file], and
+    /// Hard-coded config overrides. Applied after reading the config file from [`Self::config_file`], and
     /// thus overrides its values
     pub config_overrides: HashMap<String, crate::config::toml::Value>,
 
@@ -67,7 +67,7 @@ impl Default for InitRuntimeConfig {
     }
 }
 
-/// Data only relevant before/during application initialization in [winit::application::ApplicationHandler::resumed]
+/// Data only relevant before/during application initialization in [`winit::application::ApplicationHandler::resumed`]
 pub(super) struct InitializationData {
     pub(super) post_start_callback: Option<Box<dyn FnOnce()>>,
 }

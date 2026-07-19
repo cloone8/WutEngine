@@ -14,7 +14,7 @@ pub use toml;
 
 use wutengine_util::InitOnce;
 
-/// The global [ConfigManager]
+/// The global [`ConfigManager`]
 static CONFIG_MANAGER: InitOnce<ConfigManager> = InitOnce::new_checked();
 
 /// A config manager
@@ -30,12 +30,12 @@ pub struct ConfigValueChanged {
     /// The config key that was changed
     pub key: String,
 
-    /// The new value as a raw [toml value](toml::Value)
+    /// The new value as a raw [`toml value`](toml::Value)
     pub new_value: toml::Value,
 }
 
 impl ConfigValueChanged {
-    /// Tries to convert the new toml value into `T`. Returns [None] if `T` cannot
+    /// Tries to convert the new toml value into `T`. Returns [`None`] if `T` cannot
     /// be deserialized from the new value.
     pub fn new_value_into<'de, T: Deserialize<'de>>(&self) -> Option<T> {
         match self.new_value.clone().try_into() {
@@ -77,7 +77,7 @@ pub fn init_and_load(path: Option<&Path>) -> Vec<(log::Level, String)> {
 
 /// Loads an initial config map from a path
 ///
-/// NOTE: You cannot call macro's from [log] here because the logger
+/// NOTE: You cannot call macro's from [`log`] here because the logger
 /// hasn't been set up yet. Instead, place them in `log_messages`
 fn load_from_file(
     path: &Path,
@@ -150,7 +150,7 @@ fn validate_config_key(key: &str) -> Result<(&str, &str), ConfigKeyErr> {
 /// Returns the value of the given configuration option, if it exists.
 /// If not, returns the default value.
 ///
-/// If the default value is not desired, see [try_get]
+/// If the default value is not desired, see [`try_get`]
 #[inline]
 pub fn get<'de, T>(key: &str) -> T
 where
@@ -161,7 +161,7 @@ where
 
 /// Returns the value of the given configuration option, if it exists.
 ///
-/// If options that are not set should return their [Default], see [get]
+/// If options that are not set should return their [Default], see [`get`]
 pub fn try_get<'de, T>(key: &str) -> Option<T>
 where
     T: Deserialize<'de>,
@@ -182,9 +182,9 @@ where
     }
 }
 
-/// Returns the raw [toml::Value] of a given config key, if it exists.
+/// Returns the raw [`toml::Value`] of a given config key, if it exists.
 ///
-/// For automatic deserialization, see [try_get] or [get]
+/// For automatic deserialization, see [try_get] or [`get`]
 pub fn get_raw(key: &str) -> Option<toml::Value> {
     profiling::function_scope!(key);
 

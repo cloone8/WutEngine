@@ -219,12 +219,12 @@ impl PhysicsResultHandler {
 }
 
 impl RapierConversion<rapier2d::math::Vector> for Vec2 {
-    #[inline(always)]
+    #[inline]
     fn to_rapier(self) -> rapier2d::math::Vector {
         rapier2d::math::Vector::from_array(self.to_array())
     }
 
-    #[inline(always)]
+    #[inline]
     fn from_rapier(val: rapier2d::math::Vector) -> Self {
         Self::from_array(val.to_array())
     }

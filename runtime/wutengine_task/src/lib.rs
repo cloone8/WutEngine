@@ -194,7 +194,7 @@ fn make_thread_name(index: usize) -> String {
     format!("wutengine_worker_{index}")
 }
 
-/// Handle to an async task, spawned with [run_async].
+/// Handle to an async task, spawned with [`run_async`].
 #[derive(Debug)]
 pub struct TaskHandle<T> {
     /// Whether the task is done
@@ -213,14 +213,14 @@ impl<T> TaskHandle<T> {
     }
 
     /// Returns the output of the async task. Blocks the current thread until done.
-    /// To first check whether the results are ready, see [Self::ready]
+    /// To first check whether the results are ready, see [`Self::ready`]
     #[inline]
     pub fn get(self) -> T {
         futures::executor::block_on(self.get_async())
     }
 
     /// Returns the output of the async task. To first check whether the results are ready,
-    /// see [Self::ready]
+    /// see [`Self::ready`]
     #[inline]
     pub async fn get_async(self) -> T {
         self.recv.await.expect("Async task destroyed")
@@ -230,7 +230,7 @@ impl<T> TaskHandle<T> {
 /// Static utilities
 impl<T> TaskHandle<T> {
     /// Utility function that checks if an optional task was started and is ready.
-    #[inline(always)]
+    #[inline]
     pub fn started_and_ready(task: &Option<Self>) -> bool {
         let Some(task) = task else {
             return false;
@@ -241,7 +241,7 @@ impl<T> TaskHandle<T> {
 
     /// Utility function that returns the result of an optional task, if it was started
     /// and is now ready. Leaves the task empty if it was ready
-    #[inline(always)]
+    #[inline]
     pub fn get_if_started_and_ready(task: &mut Option<Self>) -> Option<T> {
         if !Self::started_and_ready(task) {
             return None;
@@ -250,8 +250,8 @@ impl<T> TaskHandle<T> {
         task.take().map(Self::get)
     }
 
-    /// Wraps a future and makes it notify a new [TaskHandle] when it is done. Returns
-    /// both the wrapped future and the new [TaskHandle]
+    /// Wraps a future and makes it notify a new [`TaskHandle`] when it is done. Returns
+    /// both the wrapped future and the new [`TaskHandle`]
     pub fn from_future<F>(task: F) -> (Self, Box<dyn Future<Output = ()> + Send + 'static>)
     where
         F: Future<Output = T> + Send + 'static,
@@ -274,8 +274,8 @@ impl<T> TaskHandle<T> {
         (Self { done, recv }, Box::new(fut))
     }
 
-    /// Wraps a closure and makes it notify a new [TaskHandle] when it is done. Returns
-    /// both the wrapped closure and the new [TaskHandle]
+    /// Wraps a closure and makes it notify a new [`TaskHandle`] when it is done. Returns
+    /// both the wrapped closure and the new [`TaskHandle`]
     pub fn from_closure<F>(task: F) -> (Self, Box<dyn FnOnce() + Send + 'static>)
     where
         F: FnOnce() -> T + Send + 'static,
@@ -314,7 +314,7 @@ impl<T> TaskHandle<T> {
 }
 
 /// Spawns a task on the main worker pool.
-/// For running async functions ([futures](Future)), see [spawn_async]
+/// For running async functions ([futures](Future)), see [`spawn_async`]
 pub fn spawn_on_worker<F, O>(task: F) -> TaskHandle<O>
 where
     F: FnOnce() -> O + Send + 'static,
@@ -337,7 +337,7 @@ where
     TaskHandle { done, recv }
 }
 
-/// Spawns an async task on the background thread pool. For spawning high-compute, see [spawn_on_worker]
+/// Spawns an async task on the background thread pool. For spawning high-compute, see [`spawn_on_worker`]
 pub fn spawn_async<F, O>(task: F) -> TaskHandle<O>
 where
     F: Future<Output = O> + Send + 'static,

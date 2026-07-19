@@ -7,13 +7,13 @@ use wutengine_assets::assets::sampler::WrapModeType;
 use wutengine_assets::assets::texture::TextureConfig;
 use wutengine_assets::assets::texture::TextureFormat;
 
-/// Converts a WutEngine [Vec2](wutengine_math::Vec2) to an [egui::Vec2]
+/// Converts a WutEngine [Vec2](wutengine_math::Vec2) to an [`egui::Vec2`]
 #[inline]
 pub const fn to_egui_vec2(v: wutengine_math::Vec2) -> egui::Vec2 {
     egui::Vec2 { x: v.x, y: v.y }
 }
 
-/// Converts a WutEngine [Vec2](wutengine_math::Vec2) to an [egui::Pos2]
+/// Converts a WutEngine [Vec2](wutengine_math::Vec2) to an [`egui::Pos2`]
 #[inline]
 pub const fn to_egui_pos2(v: wutengine_math::Vec2, scale_factor: f32) -> egui::Pos2 {
     egui::Pos2 {
@@ -22,7 +22,7 @@ pub const fn to_egui_pos2(v: wutengine_math::Vec2, scale_factor: f32) -> egui::P
     }
 }
 
-/// Obtains the texture configuration required for a given [egui ImageData](egui::epaint::ImageData)
+/// Obtains the texture configuration required for a given [`egui ImageData`](egui::epaint::ImageData)
 #[inline]
 pub fn tex_config_from_egui_data(delta: &egui::epaint::ImageData) -> TextureConfig {
     match delta {
@@ -34,7 +34,7 @@ pub fn tex_config_from_egui_data(delta: &egui::epaint::ImageData) -> TextureConf
     }
 }
 
-/// Returns the raw image bytes for a given [egui Image](egui::epaint::ImageData)
+/// Returns the raw image bytes for a given [`egui Image`](egui::epaint::ImageData)
 #[inline]
 pub fn egui_image_bytes(image: &egui::epaint::ImageData) -> &[u8] {
     match image {
@@ -42,7 +42,7 @@ pub fn egui_image_bytes(image: &egui::epaint::ImageData) -> &[u8] {
     }
 }
 
-/// Returns the sampler config for the [egui TextureOptions](egui::TextureOptions)
+/// Returns the sampler config for the [`egui TextureOptions`](egui::TextureOptions)
 #[inline]
 pub fn sampler_from_egui(options: &egui::TextureOptions) -> SerializedSampler {
     let filtering = filter_mode_from_egui(options.magnification);
@@ -67,7 +67,7 @@ pub fn sampler_from_egui(options: &egui::TextureOptions) -> SerializedSampler {
     }
 }
 
-/// Converts an [egui::TextureFilter] to a WutEngine [FilterMode]
+/// Converts an [egui::TextureFilter] to a WutEngine [`FilterMode`]
 #[inline]
 pub fn filter_mode_from_egui(egui_mode: egui::TextureFilter) -> FilterMode {
     match egui_mode {
@@ -76,7 +76,7 @@ pub fn filter_mode_from_egui(egui_mode: egui::TextureFilter) -> FilterMode {
     }
 }
 
-/// Converts an [egui::TextureWrapMode] to a WutEngine [WrapModeType]
+/// Converts an [egui::TextureWrapMode] to a WutEngine [`WrapModeType`]
 #[inline]
 pub fn wrap_mode_from_egui(egui_mode: egui::TextureWrapMode) -> WrapModeType {
     match egui_mode {
@@ -137,7 +137,7 @@ impl ScissorRect {
     }
 }
 
-/// Maps an [egui cursor icon](egui::CursorIcon) to a [WutEngine cursor icon](cursor_icon::CursorIcon)
+/// Maps an [egui cursor icon](egui::CursorIcon) to a [`WutEngine cursor icon`](cursor_icon::CursorIcon)
 pub const fn cursor_icon_from_egui(eg: egui::CursorIcon) -> Option<cursor_icon::CursorIcon> {
     Some(match eg {
         egui::CursorIcon::None => return None,

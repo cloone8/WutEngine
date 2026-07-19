@@ -6,7 +6,7 @@ use std::sync::OnceLock;
 
 use nohash_hasher::NoHashHasher;
 
-/// Hasher used for distributing [nohash_hasher]-based keys evenly across a [dashmap::DashMap] for minimal
+/// Hasher used for distributing [nohash_hasher]-based keys evenly across a [`dashmap::DashMap`] for minimal
 /// locking behaviour
 #[derive(Debug, Clone, Copy)]
 pub struct ShardHasher<T> {
@@ -32,7 +32,7 @@ const fn calc_shift(shard_count: usize) -> u32 {
     usize::BITS - shard_count.trailing_zeros()
 }
 
-/// Builder for [ShardHasher]
+/// Builder for [`ShardHasher`]
 #[derive(Debug, Clone, Copy)]
 pub struct BuildShardHasher<T> {
     rot: u32,
@@ -40,12 +40,12 @@ pub struct BuildShardHasher<T> {
 }
 
 impl<T> BuildShardHasher<T> {
-    /// A new defaut [BuildShardHasher]
+    /// A new defaut [`BuildShardHasher`]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// New [BuildShardHasher] for a specific shard count
+    /// New [`BuildShardHasher`] for a specific shard count
     pub fn new_for_shards(shard_count: usize) -> Self {
         Self {
             rot: calc_shift(shard_count),
@@ -53,7 +53,7 @@ impl<T> BuildShardHasher<T> {
         }
     }
 
-    /// New [BuildShardHasher] for a specific shard count
+    /// New [`BuildShardHasher`] for a specific shard count
     pub fn new_for_threads(thread_count: usize) -> Self {
         Self {
             rot: calc_shift(shard_count_threads(thread_count)),
@@ -84,72 +84,72 @@ impl<T: nohash_hasher::IsEnabled> core::hash::BuildHasher for BuildShardHasher<T
 }
 
 impl<T: nohash_hasher::IsEnabled> core::hash::Hasher for ShardHasher<T> {
-    #[inline(always)]
+    #[inline]
     fn finish(&self) -> u64 {
         self.hasher.finish().rotate_left(self.rot)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write(&mut self, bytes: &[u8]) {
         self.hasher.write(bytes);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_u8(&mut self, i: u8) {
         self.hasher.write_u8(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_u16(&mut self, i: u16) {
         self.hasher.write_u16(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_u32(&mut self, i: u32) {
         self.hasher.write_u32(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_u64(&mut self, i: u64) {
         self.hasher.write_u64(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_u128(&mut self, i: u128) {
         self.hasher.write_u128(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_usize(&mut self, i: usize) {
         self.hasher.write_usize(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_i8(&mut self, i: i8) {
         self.hasher.write_i8(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_i16(&mut self, i: i16) {
         self.hasher.write_i16(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_i32(&mut self, i: i32) {
         self.hasher.write_i32(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_i64(&mut self, i: i64) {
         self.hasher.write_i64(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_i128(&mut self, i: i128) {
         self.hasher.write_i128(i);
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_isize(&mut self, i: isize) {
         self.hasher.write_isize(i);
     }

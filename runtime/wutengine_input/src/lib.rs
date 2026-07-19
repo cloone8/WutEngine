@@ -32,20 +32,20 @@ pub struct WindowIdentifier(u64);
 
 impl WindowIdentifier {
     /// Creates a new WindowIdentifier from a raw int
-    #[inline(always)]
+    #[inline]
     pub const fn new(val: u64) -> Self {
         Self(val)
     }
 
     /// Returns the raw integer for this identifier
-    #[inline(always)]
+    #[inline]
     pub const fn raw(self) -> u64 {
         self.0
     }
 }
 
 impl From<u64> for WindowIdentifier {
-    #[inline(always)]
+    #[inline]
     fn from(value: u64) -> Self {
         Self::new(value)
     }
@@ -59,7 +59,7 @@ impl Display for WindowIdentifier {
 
 //TODO: Make input device trait?
 
-/// A set of input devices, either uniquely identifier ([Self::Identified]) or not ([Self::Unidentified])
+/// A set of input devices, either uniquely identifier ([Self::Identified]) or not ([`Self::Unidentified`])
 #[derive(Debug)]
 enum DeviceSet<K, V> {
     /// Only unidentified devices.
@@ -226,7 +226,7 @@ impl Default for InputManager {
 
 /// Private API
 impl InputManager {
-    /// Returns a new default [InputManager]
+    /// Returns a new default [`InputManager`]
     fn new() -> Self {
         Self::default()
     }
@@ -392,16 +392,16 @@ impl InputManager {
     }
 }
 
-/// The global [InputManager]
+/// The global [`InputManager`]
 pub(crate) static INPUT_MANAGER: InitOnce<InputManager, false> = InitOnce::new_checked();
 
-/// Initializes the global [InputManager]
+/// Initializes the global [`InputManager`]
 #[doc(hidden)]
 pub fn init() {
     InitOnce::init(&INPUT_MANAGER, InputManager::new());
 }
 
-/// Inserts a new raw [winit device event](winit::event::DeviceEvent) for the given [device](winit::event::DeviceId)
+/// Inserts a new raw [winit device event](winit::event::DeviceEvent) for the given [`device`](winit::event::DeviceId)
 /// into the input manager for the current frame.
 pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEvent) {
     profiling::function_scope!();
@@ -472,7 +472,7 @@ pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEven
     }
 }
 
-/// Inserts a new raw [winit window event](winit::event::WindowEvent) for the given [Window]
+/// Inserts a new raw [winit window event](winit::event::WindowEvent) for the given [`Window`]
 /// into the input manager for the current frame. Returns whether the window event was an input-related event,
 /// and has thus been handled
 pub fn insert_raw_window_event(

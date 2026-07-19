@@ -17,7 +17,7 @@ pub mod assets;
 /// A serialized asset
 pub trait SerializedAsset: Serialize + DeserializeOwned + Any + Send + Sync {
     /// Hint: To obtain one, you can generate a random V4 UUID from many websites,
-    /// and then use the [uuid macro](uuid::uuid) to embed it at compile time
+    /// and then use the [`uuid macro`](uuid::uuid) to embed it at compile time
     const ID: uuid::NonNilUuid;
 
     /// Whether to always try to serialize this asset as binary
@@ -37,7 +37,7 @@ pub struct AssetRef<T> {
 
 impl<T> AssetRef<T> {
     /// Returns the referenced ID
-    #[inline(always)]
+    #[inline]
     pub fn get_id(&self) -> Option<uuid::NonNilUuid> {
         self.asset_id
     }
@@ -53,7 +53,7 @@ impl<T> PartialEq for AssetRef<T> {
 impl<T> Eq for AssetRef<T> {}
 
 impl<T> PartialOrd for AssetRef<T> {
-    #[inline(always)]
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }

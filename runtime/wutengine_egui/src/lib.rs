@@ -37,7 +37,7 @@ pub use key_mapping::*;
 
 pub use egui;
 
-/// Information for the window we're rendering [egui] on
+/// Information for the window we're rendering [`egui`] on
 #[derive(Debug, Clone, Copy)]
 pub struct EguiWindowInfo {
     /// Window is in focus
@@ -64,7 +64,7 @@ impl Default for EguiWindowInfo {
     }
 }
 
-/// Shader for [egui]
+/// Shader for [`egui`]
 pub static EGUI_SHADER: LazyLock<Arc<Shader>> = LazyLock::new(|| {
     let descriptor = include_str!("egui.json");
     let source = include_str!("egui.wgsl");
@@ -108,7 +108,7 @@ pub struct EguiWindow {
         )>,
     >,
 
-    /// Last calculated output by [Self::run_logic]
+    /// Last calculated output by [`Self::run_logic`]
     last_output: Mutex<Option<WindowDrawable>>,
 }
 
@@ -126,7 +126,7 @@ struct WindowDrawable {
 }
 
 impl EguiWindow {
-    /// Creates a new egui window taking input from the given [WindowIdentifier] and displaying the provided UI callback, with the given
+    /// Creates a new egui window taking input from the given [`WindowIdentifier`] and displaying the provided UI callback, with the given
     /// initial size.
     pub fn new(
         input_window_identifier: WindowIdentifier,
@@ -146,7 +146,7 @@ impl EguiWindow {
         })
     }
 
-    /// Returns the input required to run [egui] for a frame
+    /// Returns the input required to run [`egui`] for a frame
     fn gather_input(&self, real_time_secs: f64) -> egui::RawInput {
         profiling::function_scope!();
 
@@ -245,7 +245,7 @@ impl EguiWindow {
 
     /// Runs the egui UI logic on the provided context, with the provided texture map.
     ///
-    /// Should be run exactly once before calling [Self::render_window]
+    /// Should be run exactly once before calling [`Self::render_window`]
     ///
     /// TODO: Combine `context` and `texture_map` into one struct
     pub fn run_logic(
@@ -289,7 +289,7 @@ impl EguiWindow {
     /// Renders the calculated UI onto the provided target texture.
     /// Writes the textures that should be freed into `to_free`
     ///
-    /// Should be run after [Self::run_logic]
+    /// Should be run after [`Self::run_logic`]
     pub fn render_window(
         &self,
         target: &wgpu::Texture,
@@ -465,7 +465,7 @@ pub struct LogicOutput {
     pub cursor_visible: bool,
 }
 
-/// A map of egui textures to WutEngine materials. Used by [EguiWindow]
+/// A map of egui textures to WutEngine materials. Used by [`EguiWindow`]
 #[derive(Debug, Default)]
 pub struct TextureMaterialMap(Mutex<HashMap<egui::TextureId, TextureMaterial>>);
 
@@ -595,20 +595,20 @@ impl TextureMaterialMap {
     }
 }
 
-/// A material for rendering one texture. All [egui] meshes use the same shader,
+/// A material for rendering one texture. All [`egui`] meshes use the same shader,
 /// so we can just create a different material per texture to reduce bindgroup updates
 #[derive(Debug)]
 struct TextureMaterial {
     /// The texture this material is for
     texture: Arc<Texture>,
 
-    /// The sampler used to sample [Self::texture]
+    /// The sampler used to sample [`Self::texture`]
     sampler: Arc<Sampler>,
 
     /// The actual material
     material: Material,
 
-    /// The last screen size set on [Self::material]
+    /// The last screen size set on [`Self::material`]
     cur_screen_size: (f32, f32),
 }
 

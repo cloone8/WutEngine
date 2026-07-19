@@ -82,7 +82,7 @@ pub(crate) fn get_asset_gui(asset_type_id: &uuid::NonNilUuid) -> AssetGuiInfo {
 }
 
 /// Trait to be implemented for all assets that can display a custom gui. After implementing the trait, the type must be registered using
-/// [add_custom_asset_gui]
+/// [``add_custom_asset_gui``]
 pub(crate) trait AssetGui: SerializedAsset {
     /// The icon string
     const ICON: &'static str = DEFAULT_ICON;

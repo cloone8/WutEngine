@@ -15,10 +15,10 @@ mod generic;
 #[cfg(feature = "generic")]
 pub use generic::*;
 
-/// An asset imported through an [AssetImporter]
+/// An asset imported through an [`AssetImporter`]
 #[derive(Debug)]
 pub struct ImportedAsset {
-    /// Corresponds to the [wutengine_assets::SerializedAsset::ID] constant
+    /// Corresponds to the [`wutengine_assets::SerializedAsset::ID`] constant
     pub asset_type_id: uuid::NonNilUuid,
 
     /// An optional asset name, if one can be determined from the asset
@@ -28,7 +28,7 @@ pub struct ImportedAsset {
     pub asset: Box<dyn Any + Send + Sync>,
 }
 
-/// Something than can import assets from an external format into a [wutengine_assets::SerializedAsset], usable by WutEngine
+/// Something than can import assets from an external format into a [`wutengine_assets::SerializedAsset`], usable by WutEngine
 pub trait AssetImporter: Send + Sync + 'static {
     /// The file types that this importer supports. Should be the on-disk extension of the file, like `png`, `jpg`, `obj`, `wav`, `mp3`, etc.
     fn supported_file_types() -> Vec<&'static str>;

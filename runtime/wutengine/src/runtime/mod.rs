@@ -48,7 +48,7 @@ static EVENT_LOOP_PROXY: InitOnce<winit::event_loop::EventLoopProxy<MainThreadEv
     InitOnce::new_checked();
 static WUTENGINE_RUNNING: AtomicBool = AtomicBool::new(false);
 
-/// Notifies the main [winit] event loop of a given event.
+/// Notifies the main [`winit`] event loop of a given event.
 ///
 /// If the loop was already closed, does nothing and logs an error
 pub(crate) fn send_to_main_thread(event: MainThreadEvent) {
@@ -65,7 +65,7 @@ pub(crate) struct Runtime {
     /// Used for frame pacing and FPS limiting
     frame_pacer: window::pacer::FramePacer,
 
-    /// Set to [None] if the `resumed` event was sent by [winit]
+    /// Set to [None] if the `resumed` event was sent by [`winit`]
     initialization_data: Option<Box<InitializationData>>,
 
     /// The entity manager. Spawns entities and components
@@ -89,7 +89,7 @@ pub(crate) struct Runtime {
     on_exit_handlers: Vec<Arc<dyn Fn() + Send + Sync + 'static>>,
 }
 
-///TODO: Combine with [ActiveCameraRenderPass] with a generic?
+///TODO: Combine with [`ActiveCameraRenderPass`] with a generic?
 #[derive(derive_more::Debug)]
 struct ActiveOverlayRenderPass {
     /// The type of the pass

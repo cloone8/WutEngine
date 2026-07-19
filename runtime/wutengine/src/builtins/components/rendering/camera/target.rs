@@ -1,9 +1,9 @@
 use crate::window::Window;
 
-/// The target surface on which a [Camera] will render its viewport
+/// The target surface on which a [`Camera`] will render its viewport
 #[derive(Debug, Clone, Copy)]
 pub enum CameraTarget {
-    /// This camera renders to the given [Window]
+    /// This camera renders to the given [`Window`]
     Window(Window),
 }
 

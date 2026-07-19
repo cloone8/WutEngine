@@ -22,7 +22,7 @@ pub(crate) fn init() {
 }
 
 /// Returns the editor logger
-#[inline(always)]
+#[inline]
 pub(crate) fn get_editor_logger() -> &'static EditorLogger {
     &EDITOR_LOGGER
 }
@@ -129,7 +129,7 @@ impl EditorLogger {
     }
 }
 
-/// A log entry, logged through the [log] macros
+/// A log entry, logged through the [`log`] macros
 #[derive(Debug, derive_more::IsVariant)]
 pub(crate) enum LogEntry {
     /// An internal (originating from WutEngine) entry

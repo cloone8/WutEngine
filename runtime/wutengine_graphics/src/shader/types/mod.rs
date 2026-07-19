@@ -15,7 +15,7 @@ use wutengine_math::Vec4;
 
 /// Alignment on the GPU of this data type.
 ///
-/// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
+/// Taken from [`the WebGPU specification`](https://www.w3.org/TR/WGSL/#alignment-and-size)
 pub const fn shader_buffer_param_align(bt: ShaderBufferParameterType) -> usize {
     match bt {
         ShaderBufferParameterType::Flt => 4,
@@ -36,7 +36,7 @@ pub const fn shader_buffer_param_align(bt: ShaderBufferParameterType) -> usize {
 
 /// Size on the GPU of this data type. Also corresponds to the size on the CPU
 ///
-/// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
+/// Taken from [`the WebGPU specification`](https://www.w3.org/TR/WGSL/#alignment-and-size)
 pub const fn shader_buffer_param_size(bt: ShaderBufferParameterType) -> usize {
     match bt {
         ShaderBufferParameterType::Flt => size_of::<f32>(),
@@ -88,7 +88,7 @@ pub fn shader_opaque_param_default_value(ot: ShaderOpaqueParameterType) -> Shade
     }
 }
 
-/// Returns the [wgpu::BindingType] corresponding to an opaque parameter
+/// Returns the [`wgpu::BindingType`] corresponding to an opaque parameter
 pub const fn shader_opaque_param_wgpu_binding_type(
     ot: ShaderOpaqueParameterType,
 ) -> wgpu::BindingType {
@@ -180,7 +180,7 @@ impl ShaderBufferParameter {
 
     /// Alignment on the GPU of this data type.
     ///
-    /// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
+    /// Taken from [`the WebGPU specification`](https://www.w3.org/TR/WGSL/#alignment-and-size)
     #[inline]
     pub const fn align(&self) -> usize {
         shader_buffer_param_align(self.get_type())
@@ -188,7 +188,7 @@ impl ShaderBufferParameter {
 
     /// Size on the GPU of this data type. Also corresponds to the size on the CPU
     ///
-    /// Taken from [the WebGPU specification](https://www.w3.org/TR/WGSL/#alignment-and-size)
+    /// Taken from [`the WebGPU specification`](https://www.w3.org/TR/WGSL/#alignment-and-size)
     #[inline]
     pub const fn size(&self) -> usize {
         shader_buffer_param_size(self.get_type())
@@ -214,8 +214,8 @@ impl ShaderBufferParameter {
         }
     }
 
-    /// Sets the value of this parameter from an external [MaterialParameter], casting
-    /// if possible. Will not change the type of this [ShaderBufferParameter]
+    /// Sets the value of this parameter from an external [`MaterialParameter`], casting
+    /// if possible. Will not change the type of this [`ShaderBufferParameter`]
     #[inline]
     #[expect(clippy::todo, reason = "Casting is a lot of work")]
     pub fn set_from(&mut self, value: MaterialParameter) -> bool {
@@ -288,7 +288,7 @@ impl ShaderBufferParameter {
 }
 
 impl<'a> From<&'a ShaderBufferParameter> for ShaderBufferParameterType {
-    #[inline(always)]
+    #[inline]
     fn from(value: &'a ShaderBufferParameter) -> Self {
         value.get_type()
     }
@@ -314,7 +314,7 @@ pub enum ShaderOpaqueParameter {
 }
 
 impl ShaderOpaqueParameter {
-    /// Updates the value of this [ShaderOpaqueParameter] from the given [MaterialParameter]
+    /// Updates the value of this [ShaderOpaqueParameter] from the given [`MaterialParameter`]
     #[inline]
     pub fn set_from(&mut self, value: MaterialParameter) -> bool {
         //TODO: Add error handling for not-yet-loaded assets?
@@ -336,7 +336,7 @@ impl ShaderOpaqueParameter {
         false
     }
 
-    /// Returns the [wgpu::BindingResource] corresponding to this parameter
+    /// Returns the [`wgpu::BindingResource`] corresponding to this parameter
     #[inline]
     pub(crate) fn to_binding_resource(&self) -> wgpu::BindingResource<'_> {
         match self {
@@ -346,7 +346,7 @@ impl ShaderOpaqueParameter {
     }
 }
 
-/// Returns the [wgpu::VertexFormat] corresponding to this [ShaderVertexAttributeType]
+/// Returns the [wgpu::VertexFormat] corresponding to this [`ShaderVertexAttributeType`]
 pub const fn shader_attr_wgpu_vertex_format(attr: ShaderVertexAttributeType) -> wgpu::VertexFormat {
     match attr {
         ShaderVertexAttributeType::Position => wgpu::VertexFormat::Float32x3,
@@ -359,7 +359,7 @@ pub const fn shader_attr_wgpu_vertex_format(attr: ShaderVertexAttributeType) -> 
 mod test {
     use super::*;
 
-    /// Test primitive sizes and alignments according to the [WebGPU spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
+    /// Test primitive sizes and alignments according to the [`WebGPU spec`](https://www.w3.org/TR/WGSL/#alignment-and-size)
     #[test]
     fn size_align_primitives() {
         assert_eq!(4, size_of::<f32>());
@@ -370,7 +370,7 @@ mod test {
         assert_eq!(4, align_of::<i32>());
     }
 
-    /// Test vector sizes and alignments according to the [WebGPU spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
+    /// Test vector sizes and alignments according to the [`WebGPU spec`](https://www.w3.org/TR/WGSL/#alignment-and-size)
     #[test]
     fn size_align_vecs() {
         assert_eq!(8, size_of::<GVec2<f32>>());
@@ -395,7 +395,7 @@ mod test {
         assert_eq!(16, GVec4::<i32>::ALIGN);
     }
 
-    /// Test matrix sizes and alignments according to the [WebGPU spec](https://www.w3.org/TR/WGSL/#alignment-and-size)
+    /// Test matrix sizes and alignments according to the [`WebGPU spec`](https://www.w3.org/TR/WGSL/#alignment-and-size)
     #[test]
     fn size_align_matrices() {
         assert_eq!(64, size_of::<GMat4x4::<f32>>());

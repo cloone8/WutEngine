@@ -6,7 +6,7 @@ use crate::logger::get_editor_logger;
 use super::EditorPanel;
 use super::EditorPanelId;
 
-/// Panel that shows the logs sent through the [log] crate
+/// Panel that shows the logs sent through the [`log`] crate
 pub(crate) struct LogPanel;
 
 impl EditorPanel for LogPanel {
@@ -70,7 +70,7 @@ impl EditorPanel for LogPanel {
 }
 
 /// Shows a series of buttons to pick a log level. The current level is highlighted.
-/// If a new level was selected, returns [Some] with that level. Otherwise, returns [None]
+/// If a new level was selected, returns [Some] with that level. Otherwise, returns [`None`]
 fn show_log_level_picker(
     cur_level: log::LevelFilter,
     min_level: log::LevelFilter,

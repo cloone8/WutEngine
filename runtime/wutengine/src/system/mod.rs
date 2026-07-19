@@ -33,7 +33,7 @@ impl SystemId {
         SystemId(NEXT_SYSTEM_ID.fetch_add(1, Ordering::AcqRel), phase)
     }
 
-    /// Returns the raw integer ID of this [SystemId]
+    /// Returns the raw integer ID of this [`SystemId`]
     #[inline]
     pub(crate) const fn id(self) -> u32 {
         self.0
@@ -47,14 +47,14 @@ impl SystemId {
 }
 
 impl PartialOrd for SystemId {
-    #[inline(always)]
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for SystemId {
-    #[inline(always)]
+    #[inline]
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.0.cmp(&other.0)
     }
@@ -69,7 +69,7 @@ pub(crate) struct SystemManager {
 }
 
 impl SystemManager {
-    /// Creates a new [SystemManager] without any systems
+    /// Creates a new [`SystemManager`] without any systems
     pub(crate) fn new() -> Self {
         Self {
             pending_systems: None,
@@ -91,7 +91,7 @@ impl SystemManager {
         }
     }
 
-    /// Updates the schedule if any systems were queued with [Self::queue_system]
+    /// Updates the schedule if any systems were queued with [`Self::queue_system`]
     pub(crate) fn update_schedule(&mut self) {
         let Some(pending) = self.pending_systems.take() else {
             return;
@@ -195,7 +195,7 @@ pub enum Phase {
     /// Called once each tick
     Update,
 
-    /// Called once each tick, after the main [Self::Update]
+    /// Called once each tick, after the main [`Self::Update`]
     LateUpdate,
 
     /// Called after all standard frame logic, right before rendering takes place
@@ -203,7 +203,7 @@ pub enum Phase {
 }
 
 impl Phase {
-    /// Returns the phase name as a static [str]
+    /// Returns the phase name as a static [`str`]
     pub(crate) const fn str(self) -> &'static str {
         match self {
             Self::FixedUpdate => "Fixed Update",

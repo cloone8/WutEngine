@@ -19,12 +19,12 @@ pub(crate) enum InputIterator {
 }
 
 impl InputIterator {
-    /// Creates a new [`InputIterator`] that reads a file of the given type from stdin
+    /// Creates a new [``InputIterator``] that reads a file of the given type from stdin
     pub(crate) fn from_stdin(file_type: String) -> Self {
         Self::Stdin(file_type)
     }
 
-    /// Creates a new [`InputIterator`] that reads the given input paths recursively. Input paths can be either
+    /// Creates a new [``InputIterator``] that reads the given input paths recursively. Input paths can be either
     /// a file path, or a directory path. Directory paths are traversed recursively, and flattened into file paths
     pub(crate) fn from_input_paths(input_paths: &[impl AsRef<Path>]) -> Self {
         let mut paths = VecDeque::new();
@@ -108,7 +108,7 @@ fn get_file_type_from_path(path: &Path) -> Option<&str> {
     ext.to_str()
 }
 
-/// An error produced by an element of an [`InputIterator`]
+/// An error produced by an element of an [``InputIterator``]
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub(crate) enum InputIteratorError {
     /// Reading input from stdin failed

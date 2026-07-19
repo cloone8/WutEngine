@@ -36,43 +36,43 @@ impl Transform {
     }
 
     /// Returns the current local-to-world matrix
-    #[inline(always)]
+    #[inline]
     pub const fn local_to_world(&self) -> Mat4 {
         self.local_to_world
     }
 
     /// Returns the current local position
-    #[inline(always)]
+    #[inline]
     pub const fn local_position(&self) -> Vec3 {
         self.translation
     }
 
     /// Returns the current local rotation
-    #[inline(always)]
+    #[inline]
     pub const fn local_rotation(&self) -> Quat {
         self.rotation
     }
 
     /// Returns the current local scale
-    #[inline(always)]
+    #[inline]
     pub const fn local_scale(&self) -> Vec3 {
         self.scale
     }
 
     /// Returns the current world position
-    #[inline(always)]
+    #[inline]
     pub const fn world_position(&self) -> Vec3 {
         self.translation
     }
 
     /// Returns the current world rotation
-    #[inline(always)]
+    #[inline]
     pub const fn world_rotation(&self) -> Quat {
         self.rotation
     }
 
     /// Set the local position
-    #[inline(always)]
+    #[inline]
     pub fn set_local_position(&mut self, local_position: Vec3) {
         self.translation = local_position;
 
@@ -80,7 +80,7 @@ impl Transform {
     }
 
     /// Set the local rotation
-    #[inline(always)]
+    #[inline]
     pub fn set_local_rotation(&mut self, local_rotation: Quat) {
         self.rotation = local_rotation;
 
@@ -88,7 +88,7 @@ impl Transform {
     }
 
     /// Set the local scale
-    #[inline(always)]
+    #[inline]
     pub fn set_local_scale(&mut self, local_scale: Vec3) {
         self.scale = local_scale;
 
@@ -96,7 +96,7 @@ impl Transform {
     }
 
     /// Set the world position
-    #[inline(always)]
+    #[inline]
     pub fn set_world_position(&mut self, world_position: Vec3) {
         self.translation = world_position;
 
@@ -104,7 +104,7 @@ impl Transform {
     }
 
     /// Set the world rotation
-    #[inline(always)]
+    #[inline]
     pub fn set_world_rotation(&mut self, world_position: Quat) {
         self.rotation = world_position;
 

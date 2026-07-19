@@ -26,7 +26,7 @@ use wutengine_util::unreachable_dbg;
 
 use super::{Shader, ShaderParameter};
 
-/// An error while compiling a [Shader] into a [CompiledShader]
+/// An error while compiling a [Shader] into a [`CompiledShader`]
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum CompileErr {
     /// Cross compiling the source WGSL into our current target language failed
@@ -287,7 +287,7 @@ fn log_shader_compilation_info(module: &wgpu::ShaderModule) {
     }
 }
 
-/// A compiled [Shader], with all keywords resolved
+/// A compiled [`Shader`], with all keywords resolved
 #[derive(Debug)]
 pub struct CompiledShader {
     /// The ID of this compiled variant

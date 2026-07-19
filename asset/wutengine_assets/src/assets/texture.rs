@@ -19,7 +19,7 @@ pub struct SerializedTexture {
     pub mips: Option<Vec<SerializedMipMap>>,
 }
 
-/// The data for a mip-map level of a [SerializedTexture]
+/// The data for a mip-map level of a [`SerializedTexture`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedMipMap {
     /// The raw decoded image data
@@ -47,7 +47,7 @@ pub struct TextureConfig {
     pub format: TextureFormat,
 }
 
-/// The format of a [SerializedTexture]
+/// The format of a [`SerializedTexture`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TextureFormat {
     /// RGBA with 8-bits per component

@@ -21,7 +21,7 @@ impl SerializedAsset for SerializedAudioClip {
         uuid::NonNilUuid::new(uuid::uuid!("d408e523-0772-48dc-a77a-ed3d11c72ca0")).unwrap();
 }
 
-/// The format of a [SerializedAudioClip]
+/// The format of a [`SerializedAudioClip`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AudioClipFormat {
     /// WAV (.wav)

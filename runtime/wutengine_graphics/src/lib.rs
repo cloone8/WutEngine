@@ -28,61 +28,61 @@ pub use init::persist_pipeline_cache;
 
 use wutengine_util::InitOnce;
 
-/// The global [wgpu::Adapter]
+/// The global [`wgpu::Adapter`]
 static GFX_ADAPTER: InitOnce<wgpu::Adapter> = InitOnce::new_checked();
 
-/// The global [wgpu::Instance]
+/// The global [`wgpu::Instance`]
 static GFX_INSTANCE: InitOnce<wgpu::Instance> = InitOnce::new_checked();
 
-/// The global [wgpu::Device]
+/// The global [`wgpu::Device`]
 static GFX_DEVICE: InitOnce<wgpu::Device> = InitOnce::new_checked();
 
-/// The global [wgpu::Queue]
+/// The global [`wgpu::Queue`]
 static GFX_QUEUE: InitOnce<wgpu::Queue> = InitOnce::new_checked();
 
-/// The global active [graphics configuration](GraphicsRuntimeConfig)
+/// The global active [`graphics configuration`](GraphicsRuntimeConfig)
 static ACTIVE_CONFIG: InitOnce<GraphicsRuntimeConfig> = InitOnce::new_checked();
 
 /// The pipeline cache, if we have one
 static PIPELINE_CACHE: InitOnce<Option<wgpu::PipelineCache>> = InitOnce::new_checked();
 
 /// Returns the global graphics adapter
-#[inline(always)]
+#[inline]
 pub fn adapter() -> &'static wgpu::Adapter {
     &GFX_ADAPTER
 }
 
 /// Returns the global graphics instance
-#[inline(always)]
+#[inline]
 pub fn instance() -> &'static wgpu::Instance {
     &GFX_INSTANCE
 }
 
 /// Returns the global graphics device
-#[inline(always)]
+#[inline]
 pub fn device() -> &'static wgpu::Device {
     &GFX_DEVICE
 }
 
 /// Returns the global graphics queue
-#[inline(always)]
+#[inline]
 pub fn queue() -> &'static wgpu::Queue {
     &GFX_QUEUE
 }
 
-/// Returns the active [graphics configuration](GraphicsRuntimeConfig)
-#[inline(always)]
+/// Returns the active [`graphics configuration`](GraphicsRuntimeConfig)
+#[inline]
 pub fn active_config() -> &'static GraphicsRuntimeConfig {
     &ACTIVE_CONFIG
 }
 
 /// Returns whether all features in `features` are currently supported
-#[inline(always)]
+#[inline]
 pub fn features_supported(features: wgpu::Features) -> bool {
     ACTIVE_CONFIG.features.contains(features)
 }
 
-/// Converts a [wutengine color](wutengine_math::Color) to a [wgpu color](wgpu::Color)
+/// Converts a [wutengine color](wutengine_math::Color) to a [`wgpu color`](wgpu::Color)
 pub const fn to_wgpu_color(color: wutengine_math::Color) -> wgpu::Color {
     wgpu::Color {
         r: color.r() as f64,
@@ -109,7 +109,7 @@ const fn unwanted_features_mask(device_type: wgpu::DeviceType) -> wgpu::Features
     mask
 }
 
-/// Creates a generic label for the [wgpu] API
+/// Creates a generic label for the [`wgpu`] API
 #[macro_export]
 #[cfg(feature = "labels")]
 macro_rules! label {
@@ -130,7 +130,7 @@ macro_rules! label {
     };
 }
 
-/// Creates a generic label for the [wgpu] API
+/// Creates a generic label for the [`wgpu`] API
 #[macro_export]
 #[cfg(not(feature = "labels"))]
 macro_rules! label {

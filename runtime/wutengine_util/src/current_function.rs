@@ -8,7 +8,7 @@
 //! [puffin_code]: https://github.com/EmbarkStudios/puffin/blob/c5276b9d5264af37a9c9fb2655990a3a0b720a0b/puffin/src/lib.rs#L178-L183
 
 #[doc(hidden)]
-#[inline(always)] // This was #[inline(never)]. Any reason?
+#[inline] // This was #[inline(never)]. Any reason?
 pub fn clean_function_name(name: &str) -> &str {
     const USELESS_SCOPE_NAME_SUFFIX: &str = "::__f";
 
@@ -20,7 +20,7 @@ pub fn clean_function_name(name: &str) -> &str {
 }
 
 #[doc(hidden)]
-#[inline(always)]
+#[inline]
 pub fn type_name_of<T>(_: T) -> &'static str {
     core::any::type_name::<T>()
 }

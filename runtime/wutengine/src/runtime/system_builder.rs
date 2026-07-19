@@ -10,14 +10,14 @@ use crate::system::{GenericSystem, Phase, Queryable, SystemId};
 /// A collection of systems, used during WutEngine runtime initialization to build a
 /// system schedule.
 ///
-/// Created with [Self::default], or [Self::empty] if the default systems are not desired
+/// Created with [Self::default], or [`Self::empty`] if the default systems are not desired
 #[derive(Debug, Clone)]
 pub struct SystemManifest {
     /// The systems added to the manifest. Not in any particular order
     pub(crate) systems: Vec<PendingSystem>,
 }
 
-/// A configuration for a system added to a [SystemManifest]
+/// A configuration for a system added to a [`SystemManifest`]
 #[derive(Debug, Default)]
 pub struct SystemConfig<'a> {
     /// Any dependencies on previously insteded systems
@@ -28,15 +28,15 @@ pub struct SystemConfig<'a> {
 }
 
 impl SystemManifest {
-    /// Returns an empty [SystemManifest].
-    #[inline(always)]
+    /// Returns an empty [`SystemManifest`].
+    #[inline]
     pub const fn empty() -> Self {
         Self {
             systems: Vec::new(),
         }
     }
 
-    /// Adds the default systems for the given component, using [crate::component::Component::insert_default_component_systems]
+    /// Adds the default systems for the given component, using [`crate::component::Component::insert_default_component_systems`]
     #[inline]
     pub fn add_default_component_systems<C: crate::component::Component>(&mut self) {
         C::insert_default_component_systems(self);

@@ -17,14 +17,14 @@ pub struct AudioClip {
 }
 
 impl AudioClip {
-    /// Creates a new decoder that stops after the clip is done. For a looping decoder, see [Self::new_looped_decoder]
+    /// Creates a new decoder that stops after the clip is done. For a looping decoder, see [`Self::new_looped_decoder`]
     pub fn new_decoder(
         &self,
     ) -> Result<rodio::Decoder<std::io::Cursor<Arc<[u8]>>>, rodio::decoder::DecoderError> {
         self.new_builder().build()
     }
 
-    /// Creates a new decoder that loops back to the start after the clip is done. For a non-looping decoder, see [Self::new_decoder]
+    /// Creates a new decoder that loops back to the start after the clip is done. For a non-looping decoder, see [`Self::new_decoder`]
     pub fn new_looped_decoder(
         &self,
     ) -> Result<

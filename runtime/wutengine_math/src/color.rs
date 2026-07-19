@@ -16,7 +16,7 @@ struct SerializedColor {
 }
 
 impl From<Color> for SerializedColor {
-    #[inline(always)]
+    #[inline]
     fn from(value: Color) -> Self {
         Self {
             r: value.r(),
@@ -28,7 +28,7 @@ impl From<Color> for SerializedColor {
 }
 
 impl From<SerializedColor> for Color {
-    #[inline(always)]
+    #[inline]
     fn from(value: SerializedColor) -> Self {
         Self::new(value.r, value.g, value.b, value.a)
     }
@@ -41,37 +41,37 @@ pub struct Color(Vec4);
 
 impl Color {
     /// Creates a new color from the given components
-    #[inline(always)]
+    #[inline]
     pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self(Vec4::new(r, g, b, a))
     }
 
     /// The red component
-    #[inline(always)]
+    #[inline]
     pub const fn r(self) -> f32 {
         self.0.to_array()[0]
     }
 
     /// The green component
-    #[inline(always)]
+    #[inline]
     pub const fn g(self) -> f32 {
         self.0.to_array()[1]
     }
 
     /// The blue component
-    #[inline(always)]
+    #[inline]
     pub const fn b(self) -> f32 {
         self.0.to_array()[2]
     }
 
     /// The alpha component
-    #[inline(always)]
+    #[inline]
     pub const fn a(self) -> f32 {
         self.0.to_array()[3]
     }
 
-    /// Returns this color as a [Vec4]
-    #[inline(always)]
+    /// Returns this color as a [`Vec4`]
+    #[inline]
     pub const fn as_vec4(self) -> Vec4 {
         self.0
     }
@@ -142,7 +142,7 @@ impl From<Vec3> for Color {
 }
 
 impl From<Vec4> for Color {
-    #[inline(always)]
+    #[inline]
     fn from(value: Vec4) -> Self {
         Self(value)
     }

@@ -27,7 +27,7 @@ pub struct VertexBuffer {
     cpu_buffer: Option<Vec<u8>>,
 }
 
-/// An error while creating a new [VertexBuffer]
+/// An error while creating a new [`VertexBuffer`]
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum NewVertexBufferErr {
     #[display("Cannot create an empty vertex buffer")]
@@ -49,7 +49,7 @@ pub enum NewVertexBufferErr {
     },
 }
 
-/// An error while updating a [VertexBuffer]
+/// An error while updating a [`VertexBuffer`]
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum UpdateVertexBufferErr {
     #[display("Cannot update a non-dynamic vertex buffer")]
@@ -309,20 +309,20 @@ impl VertexBuffer {
         Ok(())
     }
 
-    /// Returns a reference to the raw [wgpu::Buffer]
-    #[inline(always)]
+    /// Returns a reference to the raw [`wgpu::Buffer`]
+    #[inline]
     pub fn raw(&self) -> &wgpu::Buffer {
         &self.buffer
     }
 
     /// Returns the amount of elements in this buffer
-    #[inline(always)]
+    #[inline]
     pub fn len(&self) -> NonZero<u64> {
         self.count
     }
 }
 
-/// A type that is usable as the content of a [VertexBuffer]
+/// A type that is usable as the content of a [`VertexBuffer`]
 pub trait VertexDataType: Sized + Any {
     /// Casts the given slice to a byte slice
     fn as_bytes(this: &[Self]) -> &[u8];

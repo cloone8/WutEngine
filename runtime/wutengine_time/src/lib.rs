@@ -12,7 +12,7 @@ pub const NANOS_PER_SECOND: u64 = 1_000_000_000;
 /// The global time manager
 static TIME_MANAGER: InitOnce<TimeManager, false> = InitOnce::new_checked();
 
-/// Internal [TimeManager] fields
+/// Internal [`TimeManager`] fields
 /// All times are in nanoseconds, unless stated otherwise
 struct TimeManagerInternal {
     /// Previous frame start-time in real time
@@ -41,7 +41,7 @@ struct TimeManager {
     /// Internal values, meant to be accessed synchronized only
     internal: Mutex<TimeManagerInternal>,
 
-    /// The time scale used, stored as a bitcast [f64] using [f64::to_bits] and [f64::from_bits]
+    /// The time scale used, stored as a bitcast [f64] using [f64::to_bits] and [`f64::from_bits`]
     time_scale: AtomicU64,
 
     /// The amount of frames that have passed in total since application start
@@ -174,13 +174,13 @@ pub fn init() {
 }
 
 /// Returns the current time scaling factor
-#[inline(always)]
+#[inline]
 pub fn time_scale() -> f64 {
     f64::from_bits(TIME_MANAGER.time_scale.load(Ordering::Acquire))
 }
 
 /// Returns the current frame number
-#[inline(always)]
+#[inline]
 pub fn frame_num() -> usize {
     TIME_MANAGER.frame_num.load(Ordering::Acquire)
 }
@@ -188,7 +188,7 @@ pub fn frame_num() -> usize {
 /// Returns the time at the beginning of this frame, since engine startup
 ///
 /// Time is returned in nanoseconds
-#[inline(always)]
+#[inline]
 pub fn time_nanos() -> u64 {
     TIME_MANAGER.time.load(Ordering::Acquire)
 }
@@ -196,7 +196,7 @@ pub fn time_nanos() -> u64 {
 /// Returns the time at the beginning of this frame, since engine startup
 ///
 /// Time is returned in seconds, as a double
-#[inline(always)]
+#[inline]
 pub fn time64() -> f64 {
     (time_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -204,7 +204,7 @@ pub fn time64() -> f64 {
 /// Returns the time at the beginning of this frame, since engine startup
 ///
 /// Time is returned in seconds, as a float
-#[inline(always)]
+#[inline]
 pub fn time() -> f32 {
     (time_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -214,7 +214,7 @@ pub fn time() -> f32 {
 /// Use for any code that needs to be unaffected by pauses, slow-motion, etc.
 ///
 /// Time is returned in nanoseconds
-#[inline(always)]
+#[inline]
 pub fn unscaled_time_nanos() -> u64 {
     TIME_MANAGER.unscaled_time.load(Ordering::Acquire)
 }
@@ -224,7 +224,7 @@ pub fn unscaled_time_nanos() -> u64 {
 /// Use for any code that needs to be unaffected by pauses, slow-motion, etc.
 ///
 /// Time is returned in seconds, as a double
-#[inline(always)]
+#[inline]
 pub fn unscaled_time64() -> f64 {
     (unscaled_time_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -234,7 +234,7 @@ pub fn unscaled_time64() -> f64 {
 /// Use for any code that needs to be unaffected by pauses, slow-motion, etc.
 ///
 /// Time is returned in seconds, as a float
-#[inline(always)]
+#[inline]
 pub fn unscaled_time() -> f32 {
     (unscaled_time_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -242,7 +242,7 @@ pub fn unscaled_time() -> f32 {
 /// The delta time for this frame
 ///
 /// Time is returned in nanoseconds
-#[inline(always)]
+#[inline]
 pub fn delta_nanos() -> u64 {
     TIME_MANAGER.delta.load(Ordering::Acquire)
 }
@@ -250,7 +250,7 @@ pub fn delta_nanos() -> u64 {
 /// The delta time for this frame
 ///
 /// Time is returned in seconds, as a double
-#[inline(always)]
+#[inline]
 pub fn delta64() -> f64 {
     (delta_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -258,7 +258,7 @@ pub fn delta64() -> f64 {
 /// The delta time for this frame
 ///
 /// Time is returned in seconds, as a float
-#[inline(always)]
+#[inline]
 pub fn delta() -> f32 {
     (delta_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -268,7 +268,7 @@ pub fn delta() -> f32 {
 /// Use for any code that needs to be unaffected by pauses, slow-motion, etc.
 ///
 /// Time is returned in nanoseconds
-#[inline(always)]
+#[inline]
 pub fn unscaled_delta_nanos() -> u64 {
     TIME_MANAGER.unscaled_delta.load(Ordering::Acquire)
 }
@@ -278,7 +278,7 @@ pub fn unscaled_delta_nanos() -> u64 {
 /// Use for any code that needs to be unaffected by pauses, slow-motion, etc.
 ///
 /// Time is returned in seconds, as a double
-#[inline(always)]
+#[inline]
 pub fn unscaled_delta64() -> f64 {
     (unscaled_delta_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -288,7 +288,7 @@ pub fn unscaled_delta64() -> f64 {
 /// Use for any code that needs to be unaffected by pauses, slow-motion, etc.
 ///
 /// Time is returned in seconds, as a float
-#[inline(always)]
+#[inline]
 pub fn unscaled_delta() -> f32 {
     (unscaled_delta_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -296,7 +296,7 @@ pub fn unscaled_delta() -> f32 {
 /// The time at the beginning of the current fixed timestep since the start of the engine runtime
 ///
 /// Time is returned in nanoseconds
-#[inline(always)]
+#[inline]
 pub fn fixed_time_nanos() -> u64 {
     TIME_MANAGER.fixed_time.load(Ordering::Acquire)
 }
@@ -304,7 +304,7 @@ pub fn fixed_time_nanos() -> u64 {
 /// The time at the beginning of the current fixed timestep since the start of the engine runtime
 ///
 /// Time is returned in seconds, as a double
-#[inline(always)]
+#[inline]
 pub fn fixed_time64() -> f64 {
     (fixed_time_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -312,7 +312,7 @@ pub fn fixed_time64() -> f64 {
 /// The time at the beginning of the current fixed timestep since the start of the engine runtime
 ///
 /// Time is returned in seconds, as a float
-#[inline(always)]
+#[inline]
 pub fn fixed_time() -> f32 {
     (fixed_time_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -320,7 +320,7 @@ pub fn fixed_time() -> f32 {
 /// The fixed delta time for the current fixed timestep
 ///
 /// Time is returned in nanoseconds
-#[inline(always)]
+#[inline]
 pub fn fixed_delta_nanos() -> u64 {
     TIME_MANAGER.fixed_delta.load(Ordering::Acquire)
 }
@@ -328,7 +328,7 @@ pub fn fixed_delta_nanos() -> u64 {
 /// The fixed delta time for the current fixed timestep
 ///
 /// Time is returned in seconds, as a double
-#[inline(always)]
+#[inline]
 pub fn fixed_delta64() -> f64 {
     (fixed_delta_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -336,14 +336,14 @@ pub fn fixed_delta64() -> f64 {
 /// The fixed delta time for the current fixed timestep
 ///
 /// Time is returned in seconds, as a float
-#[inline(always)]
+#[inline]
 pub fn fixed_delta() -> f32 {
     (fixed_delta_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
 
 /// Updates the fixed timestep to the new value, starting next frame
 ///
-/// Value is in nanoseconds (see [NANOS_PER_SECOND])
+/// Value is in nanoseconds (see [`NANOS_PER_SECOND`])
 pub fn set_fixed_delta(fixed_delta_nanos: u64) {
     if fixed_delta_nanos == 0 {
         log::error!("Cannot set fixed delta to invalid time span {fixed_delta_nanos}");
@@ -367,7 +367,7 @@ pub fn set_time_scale(time_scale: f64) {
 
 /// Updates the target timestep to the new value, starting next frame
 ///
-/// Value is in nanoseconds (see [NANOS_PER_SECOND])
+/// Value is in nanoseconds (see [`NANOS_PER_SECOND`])
 pub fn set_target_delta(target_delta_nanos: u64) {
     if target_delta_nanos == 0 {
         log::error!("Cannot set target delta to invalid time span {target_delta_nanos}");
@@ -379,7 +379,7 @@ pub fn set_target_delta(target_delta_nanos: u64) {
 
 /// Updates the maximum frame time before clamping to the new value, starting next frame
 ///
-/// Value is in nanoseconds (see [NANOS_PER_SECOND])
+/// Value is in nanoseconds (see [`NANOS_PER_SECOND`])
 pub fn set_max_frame_time(max_frame_time_nanos: u64) {
     if max_frame_time_nanos == 0 {
         log::error!("Cannot set max frame time to invalid time span {max_frame_time_nanos}");

@@ -9,7 +9,7 @@ use crate::component::Component;
 pub struct Name(pub(crate) String);
 
 impl Name {
-    /// Create a new [Name] from the given string
+    /// Create a new [`Name`] from the given string
     #[inline]
     pub fn new(name: String) -> Self {
         Self(name)
@@ -24,7 +24,7 @@ impl Component for Name {
 impl Deref for Name {
     type Target = str;
 
-    #[inline(always)]
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.0
     }

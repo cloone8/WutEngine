@@ -184,7 +184,7 @@ fn set_axis_or_button_value(
 
 /// Gamepad buttons.
 ///
-/// Based on [gilrs 0.11.2](https://docs.rs/gilrs/0.11.2/gilrs/)
+/// Based on [`gilrs 0.11.2`](https://docs.rs/gilrs/0.11.2/gilrs/)
 #[derive(Clone, Copy, Debug, Eq, PartialEq, VariantIndex)]
 #[index_repr(u32)]
 pub enum Button {
@@ -251,7 +251,7 @@ pub enum Button {
 }
 
 impl Button {
-    /// Get this [Button] as a u64
+    /// Get this [`Button`] as a u64
     #[inline]
     pub const fn as_u64(self) -> u64 {
         let native_code = if let Self::Raw(native) = self {
@@ -293,7 +293,7 @@ impl Button {
 }
 
 impl core::hash::Hash for Button {
-    #[inline(always)]
+    #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         state.write_u64(self.as_u64());
     }
@@ -303,7 +303,7 @@ impl nohash_hasher::IsEnabled for Button {}
 
 /// Gamepad axes
 ///
-/// Based on [gilrs 0.11.2](https://docs.rs/gilrs/0.11.2/gilrs/)
+/// Based on [`gilrs 0.11.2`](https://docs.rs/gilrs/0.11.2/gilrs/)
 #[derive(Debug, Clone, Copy, Eq, PartialEq, VariantIndex)]
 #[index_repr(u8)]
 pub enum Axis {
@@ -315,7 +315,7 @@ pub enum Axis {
 }
 
 impl core::hash::Hash for Axis {
-    #[inline(always)]
+    #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         state.write_u8(self.variant_index());
     }
@@ -371,9 +371,9 @@ fn get_gamepad_and<T>(
 
 /// Returns whether the specified gamepad button was pressed this frame. If the button
 /// was already pressed last frame, this returns `false`. To check whether the button is held,
-/// even if it was already held before, see [button_held]
+/// even if it was already held before, see [`button_held`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed gamepad device.
 ///
 /// If the specified gamepad (or the latest gamepad) could not be found, returns `false`
@@ -397,9 +397,9 @@ pub fn button_pressed(device: Option<super::GamepadId>, button: Button) -> bool 
 
 /// Returns whether the specified gamepad button was being held this frame. This returns
 /// `true` in every frame the button is held. To only get `true` for new presses, see
-/// [button_pressed]
+/// [`button_pressed`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed gamepad device.
 ///
 /// If the specified gamepad (or the latest gamepad) could not be found, returns `false`
@@ -417,9 +417,9 @@ pub fn button_held(device: Option<super::GamepadId>, button: Button) -> bool {
 
 /// Returns whether the specified gamepad button was released this frame. If the button
 /// was not held down last frame, this always returns `false`. To check whether the button is held,
-/// even if it was not held before, see [button_held]
+/// even if it was not held before, see [`button_held`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed gamepad device.
 ///
 /// If the specified gamepad (or the latest gamepad) could not be found, returns `false`
@@ -443,7 +443,7 @@ pub fn button_released(device: Option<super::GamepadId>, button: Button) -> bool
 
 /// Returns the raw value for a button on the specified gamepad.
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed gamepad device.
 ///
 /// If the specified gamepad (or the latest gamepad) could not be found, returns `false`
@@ -459,7 +459,7 @@ pub fn button_value(device: Option<super::GamepadId>, button: Button) -> f32 {
 
 /// Returns the raw delta for a button on the specified gamepad.
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed gamepad device.
 ///
 /// If the specified gamepad (or the latest gamepad) could not be found, returns `false`
@@ -483,7 +483,7 @@ pub fn button_delta(device: Option<super::GamepadId>, button: Button) -> f32 {
 
 /// Returns the raw value for an axis on the specified gamepad.
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed gamepad device.
 ///
 /// If the specified gamepad (or the latest gamepad) could not be found, returns `false`
@@ -504,7 +504,7 @@ pub fn axis_value(device: Option<super::GamepadId>, axis: Axis) -> Vec2 {
 /// TODO: I don't think the gamepad delta API makes sense
 /// Returns the raw delta for an axis on the specified gamepad.
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed gamepad device.
 ///
 /// If the specified gamepad (or the latest gamepad) could not be found, returns `false`

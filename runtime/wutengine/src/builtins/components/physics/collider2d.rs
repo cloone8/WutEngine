@@ -87,7 +87,7 @@ impl Collider2D {
 }
 
 impl ColliderSet2D {
-    /// Syncs all colliders in this set to the physics world using the given [PhysicsWorldUpdater]
+    /// Syncs all colliders in this set to the physics world using the given [`PhysicsWorldUpdater`]
     pub(crate) fn sync_to_physics_world(
         &mut self,
         transform: Option<&Transform>,

@@ -29,7 +29,7 @@ pub enum GetPipelineErr {
     ShaderCompile(Box<shader::CompileErr>),
 }
 
-/// Given the set of input parameters, returns a matching [wgpu::RenderPipeline].
+/// Given the set of input parameters, returns a matching [`wgpu::RenderPipeline`].
 /// A cached copy of the pipeline is returned if possible. If not, creates a new pipeline.
 ///
 /// If a new pipeline is created, an attempt is made to get the cached copy of the compiled shader. If this

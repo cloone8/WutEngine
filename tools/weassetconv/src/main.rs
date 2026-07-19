@@ -68,7 +68,7 @@ struct OutputFormat {
     binary: bool,
 }
 
-/// Returns the input bytes from the source given by the [`InputArg`]
+/// Returns the input bytes from the source given by the [``InputArg``]
 fn get_input(input: &InputArg) -> Result<Vec<u8>, Box<dyn core::error::Error>> {
     if input.stdin {
         let mut buf = Vec::new();

@@ -64,7 +64,7 @@ impl Default for ColliderData2D {
 }
 
 impl ColliderData2D {
-    /// Create a [ColliderBuilder] from this data
+    /// Create a [`ColliderBuilder`] from this data
     pub fn create(&self, local_to_world_offset: Vec2, local_to_world_rot: f32) -> ColliderBuilder {
         let mut builder = match self.type_data {
             ColliderType2D::Cube { x, y } => ColliderBuilder::cuboid(x * 0.5, y * 0.5),

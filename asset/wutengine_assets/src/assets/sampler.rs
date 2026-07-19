@@ -25,7 +25,7 @@ impl SerializedAsset for SerializedSampler {
         uuid::NonNilUuid::new(uuid::uuid!("e39313cc-5ee5-4d8d-9ea3-51638a0dbc3e")).unwrap();
 }
 
-/// Filtering methods for a [SerializedSampler]
+/// Filtering methods for a [`SerializedSampler`]
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
 )]
@@ -38,7 +38,7 @@ pub enum FilterMode {
     Nearest,
 }
 
-/// Out-of-bounds wrapping modes for a [SerializedSampler]
+/// Out-of-bounds wrapping modes for a [`SerializedSampler`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum WrapModeType {
     /// One wrapping mode for each axis
@@ -101,7 +101,7 @@ impl WrapModeType {
     }
 }
 
-/// A wrapping more for [Sampler] out-of-bounds accesses
+/// A wrapping more for [`Sampler`] out-of-bounds accesses
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Default, derive_more::Display, Serialize, Deserialize,
 )]

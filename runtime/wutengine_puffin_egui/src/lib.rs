@@ -35,12 +35,12 @@ const HOVER_COLOR: Rgba = Rgba::from_rgb(0.8, 0.8, 0.8);
 
 // ----------------------------------------------------------------------------
 
-/// Show the puffin profiler if [`puffin::are_scopes_on`] is true,
+/// Show the puffin profiler if [``puffin::are_scopes_on``] is true,
 /// i.e. if profiling is enabled for your app.
 ///
 /// The profiler will be shown in its own viewport (native window)
 /// if the egui backend supports it (e.g. when using `eframe`);
-/// else it will be shown in a floating [`egui::Window`].
+/// else it will be shown in a floating [``egui::Window``].
 ///
 /// Closing the viewport or window will call `puffin::set_scopes_on(false)`.
 pub fn show_viewport_if_enabled(ui: &egui::Ui) {
@@ -71,9 +71,9 @@ pub fn show_viewport_if_enabled(ui: &egui::Ui) {
     );
 }
 
-/// Show an [`egui::Window`] with the profiler contents.
+/// Show an [``egui::Window``] with the profiler contents.
 ///
-/// If you want to control the window yourself, use [`profiler_ui`] instead.
+/// If you want to control the window yourself, use [``profiler_ui``] instead.
 ///
 /// Returns `false` if the user closed the profile window.
 pub fn profiler_window(ctx: &egui::Context) -> bool {
@@ -92,7 +92,7 @@ static PROFILE_UI: std::sync::LazyLock<Mutex<GlobalProfilerUi>> =
 
 /// Show the profiler.
 ///
-/// Call this from within an [`egui::Window`], or use [`profiler_window`] instead.
+/// Call this from within an [`egui::Window`], or use [``profiler_window``] instead.
 pub fn profiler_ui(ui: &mut egui::Ui) {
     let mut profile_ui = PROFILE_UI.lock().unwrap();
 
@@ -101,7 +101,7 @@ pub fn profiler_ui(ui: &mut egui::Ui) {
 
 // ----------------------------------------------------------------------------
 
-/// Show [`puffin::GlobalProfiler`], i.e. profile the app we are running in.
+/// Show [``puffin::GlobalProfiler``], i.e. profile the app we are running in.
 #[derive(derive_more::Debug, Default)]
 pub struct GlobalProfilerUi {
     /// Global frame view
@@ -113,9 +113,9 @@ pub struct GlobalProfilerUi {
 }
 
 impl GlobalProfilerUi {
-    /// Show an [`egui::Window`] with the profiler contents.
+    /// Show an [``egui::Window``] with the profiler contents.
     ///
-    /// If you want to control the window yourself, use [`Self::ui`] instead.
+    /// If you want to control the window yourself, use [``Self::ui``] instead.
     ///
     /// Returns `false` if the user closed the profile window.
     pub fn window(&mut self, ctx: &egui::Context) -> bool {
@@ -125,7 +125,7 @@ impl GlobalProfilerUi {
 
     /// Show the profiler.
     ///
-    /// Call this from within an [`egui::Window`], or use [`Self::window`] instead.
+    /// Call this from within an [`egui::Window`], or use [``Self::window``] instead.
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         let mut frame_view = self.global_frame_view.lock();
         self.profiler_ui.ui(ui, &mut frame_view);
@@ -378,9 +378,9 @@ impl ProfilerUi {
         self.paused = None;
     }
 
-    /// Show an [`egui::Window`] with the profiler contents.
+    /// Show an [``egui::Window``] with the profiler contents.
     ///
-    /// If you want to control the window yourself, use [`Self::ui`] instead.
+    /// If you want to control the window yourself, use [``Self::ui``] instead.
     ///
     /// Returns `false` if the user closed the profile window.
     pub fn window(&mut self, ctx: &egui::Context, frame_view: &mut FrameView) -> bool {
@@ -463,7 +463,7 @@ impl ProfilerUi {
 
     /// Show the profiler.
     ///
-    /// Call this from within an [`egui::Window`], or use [`Self::window`] instead.
+    /// Call this from within an [`egui::Window`], or use [``Self::window``] instead.
     pub fn ui(&mut self, ui: &mut egui::Ui, frame_view: &mut FrameView) {
         puffin::profile_function!();
 
@@ -485,7 +485,7 @@ impl ProfilerUi {
         });
     }
 
-    /// UI implementation, called from [Self::ui]
+    /// UI implementation, called from [`Self::ui`]
     fn ui_impl(&mut self, ui: &mut egui::Ui, frame_view: &mut FrameView) {
         let mut hovered_frame = None;
 

@@ -5,7 +5,7 @@ use super::winit_native_keycode_to_u32;
 
 /// A physical key. Note that these correspond to key _locations_, not actual logical inputs
 ///
-/// Taken from [winit 0.30.13](https://github.com/rust-windowing/winit/tree/v0.30.13),
+/// Taken from [`winit 0.30.13`](https://github.com/rust-windowing/winit/tree/v0.30.13),
 /// and modified to suit WutEngine APIs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, VariantIndex)]
 #[index_repr(u32)]
@@ -235,9 +235,9 @@ pub enum Key {
 
     /// <kbd>⌦</kbd>. The forward delete key.
     /// Note that on Apple keyboards, the key labelled <kbd>Delete</kbd> on the main part of
-    /// the keyboard is encoded as [`Backspace`].
+    /// the keyboard is encoded as [``Backspace``].
     ///
-    /// [`Backspace`]: Self::Backspace
+    /// [``Backspace``]: Self::Backspace
     Delete,
 
     /// <kbd>Page Down</kbd>, <kbd>End</kbd>, or <kbd>↘</kbd>
@@ -313,9 +313,9 @@ pub enum Key {
 
     /// <kbd>C</kbd> or <kbd>A</kbd> (All Clear). Also for use with numpads that have a
     /// <kbd>Clear</kbd> key that is separate from the <kbd>NumLock</kbd> key. On the Mac, the
-    /// numpad <kbd>Clear</kbd> key is encoded as [`NumLock`].
+    /// numpad <kbd>Clear</kbd> key is encoded as [``NumLock``].
     ///
-    /// [`NumLock`]: Self::NumLock
+    /// [``NumLock``]: Self::NumLock
     NumpadClear,
 
     /// <kbd>C</kbd> (Clear Entry)
@@ -604,7 +604,7 @@ pub enum Key {
 }
 
 impl Key {
-    /// Get this [Key] as a u64
+    /// Get this [`Key`] as a u64
     #[inline]
     pub const fn as_u64(self) -> u64 {
         let native_kc = if let Self::Unknown(native) = self {
@@ -620,7 +620,7 @@ impl Key {
 }
 
 impl core::hash::Hash for Key {
-    #[inline(always)]
+    #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         state.write_u64(self.as_u64());
     }

@@ -22,7 +22,7 @@ use super::FrameFrequency;
 use super::Runtime;
 use super::SystemManifest;
 
-/// An event sent to the main WutEngine [Runtime], to be handled by [winit::application::ApplicationHandler::user_event].
+/// An event sent to the main WutEngine [Runtime], to be handled by [`winit::application::ApplicationHandler::user_event`].
 ///
 /// This is meant for events that should be handled on the main thread
 #[derive(derive_more::Debug, VariantName)]
@@ -49,7 +49,7 @@ pub(crate) enum MainThreadEvent {
     /// User requested a redraw
     Wake,
 
-    /// Someone requested the exit of the runtime through [crate::runtime::exit].
+    /// Someone requested the exit of the runtime through [`crate::runtime::exit`].
     /// If the `bool` is `true`, it means the exit is forced and cannot be overridden by handlers.
     RuntimeExitRequested(bool),
 }

@@ -23,7 +23,7 @@ unique_id_type32! {
     DevOverlayWindowId
 }
 
-/// Global [DevOverlayManager]
+/// Global [`DevOverlayManager`]
 static DEV_OVERLAY: InitOnce<DevOverlayManager> = InitOnce::new_checked();
 
 #[doc(hidden)]
@@ -42,7 +42,7 @@ pub(crate) struct DevOverlayManager {
     /// The egui window
     egui_window: Mutex<Option<Box<wutengine_egui::EguiWindow>>>,
 
-    /// The [egui::Context]
+    /// The [`egui::Context`]
     egui_context: egui::Context,
 
     /// The materials for each texture
@@ -52,7 +52,7 @@ pub(crate) struct DevOverlayManager {
     windows: Mutex<Vec<DevOverlayWindow>>,
 }
 
-/// A single development overlay window, injected through [add_development_overlay_window]
+/// A single development overlay window, injected through [`add_development_overlay_window`]
 struct DevOverlayWindow {
     /// The unique ID of the window
     id: DevOverlayWindowId,
@@ -65,7 +65,7 @@ struct DevOverlayWindow {
 }
 
 impl DevOverlayManager {
-    /// A new empty [DevOverlayManager]
+    /// A new empty [`DevOverlayManager`]
     fn new(
         repaint_callback: Option<impl Fn(egui::RequestRepaintInfo) + Send + Sync + 'static>,
     ) -> Self {
@@ -86,7 +86,7 @@ impl DevOverlayManager {
     }
 }
 
-/// A WutEngine development overlay. Can be added to the engine using [crate::development_overlay::add_development_overlay_window]
+/// A WutEngine development overlay. Can be added to the engine using [`crate::development_overlay::add_development_overlay_window`]
 pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
     /// The name of the overlay
     fn name(&self) -> &str;
@@ -107,9 +107,9 @@ pub trait DevelopmentOverlayWindow: Send + Sync + 'static {
 
 /// Runs the logic to draw the dev overlay, if it is active.
 ///
-/// Returns a [std::sync::mpsc::Receiver] that will receive exactly one message when the overlay is done
-/// calculating, as that is done on a different thread. When the receiver has received its message, [render_overlay] should
-/// be called before another call to [run_overlay_logic] in order to render the calculated overlay
+/// Returns a [`std::sync::mpsc::Receiver`] that will receive exactly one message when the overlay is done
+/// calculating, as that is done on a different thread. When the receiver has received its message, [`render_overlay`] should
+/// be called before another call to [`run_overlay_logic`] in order to render the calculated overlay
 /// onto a target
 pub fn run_overlay_logic(
     input_window: wutengine_input::WindowIdentifier,
@@ -222,7 +222,7 @@ fn dev_overlay_ui(ui: &mut egui::Ui) {
         });
 }
 
-/// Renders the current development overlay. Should be preceded by a call to [run_overlay_logic], and the returned channel should
+/// Renders the current development overlay. Should be preceded by a call to [`run_overlay_logic`], and the returned channel should
 /// have been waited on.
 pub fn render_overlay_if_window_eq(
     window: &WindowIdentifier,
@@ -277,7 +277,7 @@ pub fn is_enabled() -> bool {
     DEV_OVERLAY.active.load(Ordering::Acquire)
 }
 
-/// Add a new [DevelopmentOverlayWindow] to the engine
+/// Add a new [`DevelopmentOverlayWindow`] to the engine
 pub fn add_development_overlay_window<T: DevelopmentOverlayWindow>(window: T) {
     DEV_OVERLAY.windows.lock().unwrap().push(DevOverlayWindow {
         id: DevOverlayWindowId::new(),

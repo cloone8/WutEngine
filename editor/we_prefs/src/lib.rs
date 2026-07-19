@@ -9,13 +9,13 @@ use serde_core::Serialize;
 use serde_core::de::DeserializeOwned;
 use wutengine::profiling;
 
-/// Event fired when an editor preference was changed [set]
+/// Event fired when an editor preference was changed [`set`]
 #[derive(Debug)]
 pub struct EditorPrefChanged {
     /// The key that was changed
     pub key: String,
 
-    /// The new value. [None] means the key was deleted
+    /// The new value. [`None`] means the key was deleted
     pub value: Option<serde_json::Value>,
 }
 
@@ -51,8 +51,8 @@ pub fn set<T: Serialize>(key: &str, value: T) {
     });
 }
 
-/// Returns the stored setting for the given editor preference, or returns the [Default::default].
-/// For a custom default value, see [get_or]
+/// Returns the stored setting for the given editor preference, or returns the [``Default::default``].
+/// For a custom default value, see [``get_or``]
 #[inline]
 pub fn get<T: DeserializeOwned + Default>(key: &str) -> T {
     profiling::function_scope!();
@@ -61,7 +61,7 @@ pub fn get<T: DeserializeOwned + Default>(key: &str) -> T {
 }
 
 /// Returns the stored setting for the given editor preference, or returns `default`.
-/// To return the [Default::default] instead of a custom one, see [get]
+/// To return the [`Default::default`] instead of a custom one, see [``get``]
 pub fn get_or<T: DeserializeOwned>(key: &str, default: T) -> T {
     profiling::function_scope!();
 

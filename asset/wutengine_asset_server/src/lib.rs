@@ -27,7 +27,7 @@ pub fn init(loader: Option<Box<dyn AssetLoader>>) {
 }
 
 /// Returns a reference to the global asset server
-#[inline(always)]
+#[inline]
 pub fn global_asset_server() -> &'static Arc<AssetServer> {
     &ASSET_SERVER
 }
@@ -36,7 +36,7 @@ pub fn global_asset_server() -> &'static Arc<AssetServer> {
 /// when all assets are embedded or pre-cached
 struct DummyLoader;
 
-/// Error used by [DummyLoader]
+/// Error used by [`DummyLoader`]
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("No loader was enabled")]
 struct UnsupportedErr;

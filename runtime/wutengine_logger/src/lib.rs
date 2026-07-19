@@ -8,23 +8,23 @@ use std::sync::RwLock;
 
 use wutengine_util::map;
 
-/// A clonable [logger](log::Log)
+/// A clonable [`logger`](log::Log)
 pub type LoggerImplementation = Arc<dyn log::Log>;
 
-/// Function that produces [LoggerImplementation]s
+/// Function that produces [`LoggerImplementation`]s
 pub type CreateLoggerFunction =
     dyn Fn(log::LevelFilter, &str, bool) -> LoggerImplementation + Send + Sync;
 
-/// Struct that produces per-subsytem loggers, for use in the wutengine [ModuleLogger]
+/// Struct that produces per-subsytem loggers, for use in the wutengine [`ModuleLogger`]
 #[derive(derive_more::Debug)]
 pub struct LoggerFactory {
-    /// Called by the [ModuleLogger] when either a new subsystem is encountered, or the configuration for
+    /// Called by the [`ModuleLogger`] when either a new subsystem is encountered, or the configuration for
     /// a subsystem has changed
     #[debug(skip)]
     pub create_logger: Box<CreateLoggerFunction>,
 }
 
-/// [log::Log] implementation that contains multiple loggers, one for each subsystem
+/// [`log::Log`] implementation that contains multiple loggers, one for each subsystem
 #[derive(derive_more::Debug)]
 pub struct ModuleLogger {
     /// Factory that produces the actual logger implementations
@@ -42,7 +42,7 @@ pub struct ModuleLogger {
 }
 
 impl ModuleLogger {
-    /// Create a new [ModuleLogger]
+    /// Create a new [`ModuleLogger`]
     pub fn new(
         factory: LoggerFactory,
         default_internal_level: log::LevelFilter,
@@ -68,7 +68,7 @@ impl ModuleLogger {
     /// Retrieves the specific subsystem logger for the given target. If it does not yet exist,
     /// creates it.
     ///
-    /// NOTE: [Self::per_subsystem] must be unlocked to avoid a deadlock
+    /// NOTE: [`Self::per_subsystem`] must be unlocked to avoid a deadlock
     fn with_subsys_logger<T>(&self, target: &str, cb: impl FnOnce(Arc<dyn log::Log>) -> T) -> T {
         let (is_wutengine, subsystem) = subsystem_from_target(target);
 
@@ -149,7 +149,7 @@ fn first_module(full: &str) -> &str {
     }
 }
 
-/// Given a target from a [log::Metadata], returns the subsystem string and a
+/// Given a target from a [`log::Metadata`], returns the subsystem string and a
 /// boolean denoting whether the target is internal (`true`) or external (`false`)
 pub fn subsystem_from_target(target: &str) -> (bool, &str) {
     if let Some(no_wutengine_prefix) = target.strip_prefix("wutengine::") {

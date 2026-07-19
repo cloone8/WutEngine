@@ -8,7 +8,7 @@ use wutengine_assets::FromSerializedAsset;
 use wutengine_assets::assets::shader::SerializedShader;
 use wutengine_assets::assets::shader::ShaderSource;
 
-/// Macro to automatically create a [Shader] from a descriptor and source file,
+/// Macro to automatically create a [`Shader`] from a descriptor and source file,
 /// overriding the "source" field of the shader descriptor to be inline
 macro_rules! from_descriptor_and_source {
     ($name:literal) => {{

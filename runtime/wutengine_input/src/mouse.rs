@@ -31,8 +31,8 @@ pub const BUTTON_FORWARD: u32 = 4;
 pub struct MouseId(winit::event::DeviceId);
 
 impl MouseId {
-    /// Maps a winit device to a [MouseId], if the winit device is valid
-    #[inline(always)]
+    /// Maps a winit device to a [`MouseId`], if the winit device is valid
+    #[inline]
     pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
         if device != winit::event::DeviceId::dummy() {
             Some(Self(device))
@@ -60,7 +60,7 @@ pub(crate) struct Mouse {
     pressed_buttons: IntSet<ButtonId>,
 
     /// The position of the mouse cursor relative to a window.
-    /// If [None], the cursor is not currently on any WutEngine window
+    /// If [`None`], the cursor is not currently on any WutEngine window
     window_position: Option<(WindowIdentifier, Vec2)>,
 }
 
@@ -71,7 +71,7 @@ impl Default for Mouse {
 }
 
 impl Mouse {
-    /// Create a new, empty, [Mouse]
+    /// Create a new, empty, [`Mouse`]
     pub(crate) fn new() -> Self {
         Self {
             scroll_delta: Vec2::ZERO,
@@ -119,7 +119,7 @@ impl Mouse {
         self.scroll_delta += delta;
     }
 
-    /// Sets the position of this mouse relative to a window. If [None],
+    /// Sets the position of this mouse relative to a window. If [`None`],
     /// the mouse is not currently on any window.
     pub(crate) fn set_window_position(&mut self, position: Option<(WindowIdentifier, Vec2)>) {
         self.window_position = position;
@@ -159,12 +159,12 @@ fn get_mouse_and<T>(to_query: Option<MouseId>, func: impl FnOnce(Option<&Mouse>)
 /// If the mouse is currently on any window managed by WutEngine, returns the ID of that
 /// window and the pixel position of the cursor.
 ///
-/// If you want to know the position on a specific window, see [window_pos]
+/// If you want to know the position on a specific window, see [`window_pos`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed mouse device.
 ///
-/// If the specified mouse (or the latest mouse) could not be found, returns [None]
+/// If the specified mouse (or the latest mouse) could not be found, returns [`None`]
 pub fn screen_pos(device: Option<MouseId>) -> Option<(WindowIdentifier, Vec2)> {
     get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
@@ -178,12 +178,12 @@ pub fn screen_pos(device: Option<MouseId>) -> Option<(WindowIdentifier, Vec2)> {
 /// If the mouse is currently on the given window, returns
 /// the pixel position of the cursor.
 ///
-/// If you want to know the position on any window, see [screen_pos]
+/// If you want to know the position on any window, see [`screen_pos`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed mouse device.
 ///
-/// If the specified mouse (or the latest mouse) could not be found, returns [None]
+/// If the specified mouse (or the latest mouse) could not be found, returns [`None`]
 pub fn window_pos(device: Option<MouseId>, window: WindowIdentifier) -> Option<Vec2> {
     get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
@@ -198,10 +198,10 @@ pub fn window_pos(device: Option<MouseId>, window: WindowIdentifier) -> Option<V
 
 /// Returns the raw mouse position delta.
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed mouse device.
 ///
-/// If the specified mouse (or the latest mouse) could not be found, returns [Vec2::ZERO]
+/// If the specified mouse (or the latest mouse) could not be found, returns [`Vec2::ZERO`]
 pub fn pos_delta(device: Option<MouseId>) -> Vec2 {
     get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
@@ -214,10 +214,10 @@ pub fn pos_delta(device: Option<MouseId>) -> Vec2 {
 
 /// Returns the raw mouse scroll delta.
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed mouse device.
 ///
-/// If the specified mouse (or the latest mouse) could not be found, returns [Vec2::ZERO]
+/// If the specified mouse (or the latest mouse) could not be found, returns [`Vec2::ZERO`]
 pub fn scroll_delta(device: Option<MouseId>) -> Vec2 {
     get_mouse_and(device, |mouse| {
         if let Some(mouse) = mouse {
@@ -230,9 +230,9 @@ pub fn scroll_delta(device: Option<MouseId>) -> Vec2 {
 
 /// Returns whether the specified mouse button was pressed this frame. If the button
 /// was already pressed last frame, this returns `false`. To check whether the button is held,
-/// even if it was already held before, see [button_held]
+/// even if it was already held before, see [`button_held`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed mouse device.
 ///
 /// If the specified mouse (or the latest mouse) could not be found, returns `false`
@@ -248,9 +248,9 @@ pub fn button_pressed(device: Option<MouseId>, button: u32) -> bool {
 
 /// Returns whether the specified mouse button was being held this frame. This returns
 /// `true` in every frame the button is held. To only get `true` for new presses, see
-/// [button_pressed]
+/// [`button_pressed`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed mouse device.
 ///
 /// If the specified mouse (or the latest mouse) could not be found, returns `false`
@@ -266,9 +266,9 @@ pub fn button_held(device: Option<MouseId>, button: u32) -> bool {
 
 /// Returns whether the specified mouse button was released this frame. If the button
 /// was not held down last frame, this always returns `false`. To check whether the button is held,
-/// even if it was not held before, see [button_held]
+/// even if it was not held before, see [`button_held`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed mouse device.
 ///
 /// If the specified mouse (or the latest mouse) could not be found, returns `false`

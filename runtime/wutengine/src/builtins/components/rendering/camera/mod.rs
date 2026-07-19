@@ -39,7 +39,7 @@ mod background;
 pub use background::*;
 
 unique_id_type32! {
-    /// The ID of a [Camera]. Used for filtering in draw calls
+    /// The ID of a [`Camera`]. Used for filtering in draw calls
     pub CameraId
 }
 
@@ -81,7 +81,7 @@ pub struct Camera {
     pub(crate) render_passes: Vec<ActiveCameraRenderPass>,
 }
 
-/// Container for an enabled [RenderPass]
+/// Container for an enabled [`RenderPass`]
 #[derive(derive_more::Debug)]
 pub(crate) struct ActiveCameraRenderPass {
     /// The type of the pass

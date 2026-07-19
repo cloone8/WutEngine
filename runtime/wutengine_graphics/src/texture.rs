@@ -33,7 +33,7 @@ pub(crate) static DEFAULT_TEXTURE: LazyLock<Texture> = LazyLock::new(|| {
     tex
 });
 
-/// The handle to a native [wgpu::Texture]
+/// The handle to a native [`wgpu::Texture`]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Texture {
     tex: wgpu::Texture,
@@ -119,7 +119,7 @@ impl Texture {
     /// Updates the data in this texture to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
     ///
-    /// Updates the entire texture. To update a subregion, see [Self::set_partial_data]
+    /// Updates the entire texture. To update a subregion, see [`Self::set_partial_data`]
     #[inline]
     pub fn set_data(&self, data: &[u8]) {
         self.set_data_at_mip(data, 0);
@@ -128,7 +128,7 @@ impl Texture {
     /// Updates the data in this texture at the given mip level to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
     ///
-    /// Updates the entire texture. To update a subregion, see [Self::set_partial_data_at_mip]
+    /// Updates the entire texture. To update a subregion, see [`Self::set_partial_data_at_mip`]
     pub fn set_data_at_mip(&self, data: &[u8], mip_level: u32) {
         profiling::function_scope!();
 
@@ -147,7 +147,7 @@ impl Texture {
     /// Updates a subregion of the data in this texture to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
     ///
-    /// Updates the given subregion of the texture. To update the full texture, see [Self::set_data]
+    /// Updates the given subregion of the texture. To update the full texture, see [`Self::set_data`]
     #[inline]
     pub fn set_partial_data(&self, data: &[u8], origin: wgpu::Origin3d, size: wgpu::Extent3d) {
         self.set_partial_data_at_mip(data, origin, size, 0);
@@ -156,7 +156,7 @@ impl Texture {
     /// Updates a subregion of the data in this texture at the given mip level to the provided bytes. The bytes must
     /// be in the format required by the texture format given during texture creation
     ///
-    /// Updates the given subregion of the texture. To update the full texture, see [Self::set_data_at_mip]
+    /// Updates the given subregion of the texture. To update the full texture, see [`Self::set_data_at_mip`]
     pub fn set_partial_data_at_mip(
         &self,
         data: &[u8],
@@ -200,14 +200,14 @@ impl Texture {
         );
     }
 
-    /// Returns the [wgpu::TextureView] associated with this texture
+    /// Returns the [`wgpu::TextureView`] associated with this texture
     #[inline]
     pub(crate) const fn get_view(&self) -> &wgpu::TextureView {
         &self.view
     }
 }
 
-/// Converts a [WutEngine texture format](wutengine_assets::assets::texture::TextureFormat) to a [wgpu::TextureFormat]
+/// Converts a [WutEngine texture format](wutengine_assets::assets::texture::TextureFormat) to a [`wgpu::TextureFormat`]
 pub const fn convert_texture_format(asset_format: TextureFormat) -> wgpu::TextureFormat {
     match asset_format {
         TextureFormat::Rgba8 => wgpu::TextureFormat::Rgba8Unorm,

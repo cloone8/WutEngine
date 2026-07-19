@@ -24,7 +24,7 @@ impl JobQueue {
         Self { job_budget }
     }
 
-    /// Issues a new job, returning a [token](JobToken) to it.
+    /// Issues a new job, returning a [`token`](JobToken) to it.
     /// If the resulting token is dropped, the job slot is freed again
     pub(crate) fn issue_job(&self) -> JobToken {
         // Wait for a slot to open up
@@ -45,7 +45,7 @@ impl JobQueue {
     }
 }
 
-/// A token to a job in a [`JobQueue`]. Frees up its slot in the queue once dropped
+/// A token to a job in a [``JobQueue``]. Frees up its slot in the queue once dropped
 #[derive(Debug)]
 #[repr(transparent)]
 pub(crate) struct JobToken {

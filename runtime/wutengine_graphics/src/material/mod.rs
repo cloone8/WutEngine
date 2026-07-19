@@ -18,7 +18,7 @@ use super::texture::Texture;
 use super::{BindGroup, shader};
 
 unique_id_type32! {
-    /// Globally unique identifier for a [Material]
+    /// Globally unique identifier for a [`Material`]
     pub MaterialId
 }
 
@@ -61,25 +61,25 @@ impl Material {
     }
 
     /// The unique ID for this material
-    #[inline(always)]
+    #[inline]
     pub fn id(&self) -> MaterialId {
         self.id
     }
 
     /// The raw bind group
-    #[inline(always)]
+    #[inline]
     pub fn raw_bind_group(&self) -> &BindGroup {
         &self.user_bind_group
     }
 
     /// The mutable raw bind group
-    #[inline(always)]
+    #[inline]
     pub fn raw_bind_group_mut(&mut self) -> &mut BindGroup {
         &mut self.user_bind_group
     }
 
     /// The compiled shader
-    #[inline(always)]
+    #[inline]
     pub fn compiled_shader(&self) -> &CompiledShader {
         &self.compiled_shader
     }

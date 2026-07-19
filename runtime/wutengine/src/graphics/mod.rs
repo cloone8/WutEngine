@@ -22,7 +22,7 @@ pub(crate) mod dev_overlays;
 /// A single draw command submitted to the WutEngine graphics backend.
 #[derive(Debug, Clone)]
 pub struct DrawCommand {
-    /// The camera this draw call applies to. If [None], renders on all cameras
+    /// The camera this draw call applies to. If [`None`], renders on all cameras
     pub camera: Option<CameraId>,
 
     /// The mesh to render
@@ -48,7 +48,7 @@ pub(crate) fn initialize_command_queue() -> Receiver<DrawCommand> {
 }
 
 /// Submits a raw draw command to the command queue
-#[inline(always)]
+#[inline]
 pub fn submit_raw_draw_command(command: DrawCommand) {
     DRAW_COMMAND_QUEUE.send(command).expect("Runtime stopped")
 }
@@ -64,8 +64,8 @@ pub fn render_mesh(mesh: Arc<Mesh>, material: Arc<Material>, transform: Mat4) {
     });
 }
 
-/// Metadata and info on a [RenderPass].
-/// Construct with [Self::from_pass]
+/// Metadata and info on a [`RenderPass`].
+/// Construct with [`Self::from_pass`]
 #[derive(derive_more::Debug)]
 pub struct RenderPassInfo<T, D>
 where
@@ -103,7 +103,7 @@ impl<T, D> RenderPassInfo<T, D>
 where
     D: ?Sized,
 {
-    /// Create a [RenderPassInfo] from an implementation of [RenderPass]
+    /// Create a [RenderPassInfo] from an implementation of [`RenderPass`]
     pub(crate) fn from_pass<P: RenderPass<T, D>>() -> Self {
         Self {
             type_id: TypeId::of::<P>(),

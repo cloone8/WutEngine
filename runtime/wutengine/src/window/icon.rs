@@ -18,7 +18,7 @@ pub enum Icon {
 
 impl Icon {
     /// Converts this user-provided icon into a native icon. If this fails, logs
-    /// the error and returns [None]
+    /// the error and returns [`None`]
     pub(crate) fn into_native_icon(self) -> Option<winit::window::Icon> {
         let image = match self {
             Self::File(path) => match image::open(path) {

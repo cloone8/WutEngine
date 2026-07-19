@@ -148,14 +148,14 @@ impl Sampler {
         }
     }
 
-    /// Returns the [wgpu::Sampler] matching this sampler object
+    /// Returns the [`wgpu::Sampler`] matching this sampler object
     #[inline]
     pub fn get_wgpu(&self) -> &wgpu::Sampler {
         &self.native
     }
 }
 
-/// Converts the wrapping mode to a [wgpu::AddressMode]
+/// Converts the wrapping mode to a [`wgpu::AddressMode`]
 pub const fn asset_wrap_mode_to_wgpu(asset_wrap_mode: WrapMode) -> wgpu::AddressMode {
     match asset_wrap_mode {
         WrapMode::Clamp => wgpu::AddressMode::ClampToEdge,
@@ -164,7 +164,7 @@ pub const fn asset_wrap_mode_to_wgpu(asset_wrap_mode: WrapMode) -> wgpu::Address
     }
 }
 
-/// Converts the filtering mode to a [wgpu::FilterMode]
+/// Converts the filtering mode to a [`wgpu::FilterMode`]
 pub const fn asset_filter_mode_to_wgpu_filter_mode(
     asset_filter_mode: FilterMode,
 ) -> wgpu::FilterMode {
@@ -174,7 +174,7 @@ pub const fn asset_filter_mode_to_wgpu_filter_mode(
     }
 }
 
-/// Converts the filtering mode to a [wgpu::MipmapFilterMode]
+/// Converts the filtering mode to a [`wgpu::MipmapFilterMode`]
 pub const fn asset_filter_mode_to_wgpu_mipmap_filter_mode(
     asset_filter_mode: FilterMode,
 ) -> wgpu::MipmapFilterMode {

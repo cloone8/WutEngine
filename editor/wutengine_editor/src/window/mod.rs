@@ -88,7 +88,7 @@ pub(crate) struct EguiWindowContainer {
 }
 
 impl EguiWindowContainer {
-    /// Creates a new [egui] window container, which draws onto the given window surface.
+    /// Creates a new [`egui`] window container, which draws onto the given window surface.
     /// If no handle is given, it opens a new window instead.
     pub(crate) fn new(window_handle: Option<Window>) -> Self {
         let (input_ident, size) = match window_handle {
@@ -113,7 +113,7 @@ impl EguiWindowContainer {
         self.window_handle
     }
 
-    /// Returns the inner [EguiWindow](wutengine_egui::EguiWindow)
+    /// Returns the inner [`EguiWindow`](wutengine_egui::EguiWindow)
     pub(crate) fn egui_window(&self) -> &wutengine_egui::EguiWindow {
         self.egui_window.as_ref()
     }

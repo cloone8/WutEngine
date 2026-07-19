@@ -44,7 +44,7 @@ pub(in crate::window) struct WindowInfo {
 }
 
 impl WindowInfo {
-    /// Creates a new [WindowInfo] struct, containing cached
+    /// Creates a new [`WindowInfo`] struct, containing cached
     /// window information to prevent problems with querying information
     /// on non-main threads
     pub(crate) fn new(

@@ -20,7 +20,7 @@ pub use types::*;
 pub(crate) use compile::*;
 
 unique_id_type64! {
-    /// Unique identifier for a [Shader]
+    /// Unique identifier for a [`Shader`]
     pub(crate) ShaderId
 }
 
@@ -73,13 +73,13 @@ impl FromSerializedAsset for Shader {
     }
 }
 
-/// Unique ID for a [CompiledShader]. Generated based on the source [Shader] and the active keywords
+/// Unique ID for a [CompiledShader]. Generated based on the source [`Shader`] and the active keywords
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct CompiledShaderId(pub(crate) u128);
 
 impl CompiledShaderId {
-    /// Constructs a new [CompiledShaderId] based on the hashes of the source and keywords
+    /// Constructs a new [`CompiledShaderId`] based on the hashes of the source and keywords
     #[inline]
     pub const fn from_hashes(source_shader_hash: u64, keyword_hash: u64) -> Self {
         Self(((source_shader_hash as u128) << 64) | (keyword_hash as u128))
@@ -104,7 +104,7 @@ impl Display for CompiledShaderId {
     }
 }
 
-/// Given a [ShaderId] and a set of keywords, calculates
+/// Given a [`ShaderId`] and a set of keywords, calculates
 /// the ID that the resulting compiled shader would have
 pub(crate) fn calculate_variant_id(
     shader_id: ShaderId,
@@ -136,7 +136,7 @@ fn hash_shader_keywords(keywords: &HashMap<impl AsRef<str>, u64>) -> u64 {
     twox_hash::xxhash3_64::Hasher::oneshot(joined.as_bytes())
 }
 
-/// [wutengine_shadercompiler::ShaderHasher] implementation that uses XXHash3 (from [twox_hash])
+/// [wutengine_shadercompiler::ShaderHasher] implementation that uses XXHash3 (from [`twox_hash`])
 pub(super) struct WutEngineShaderHasher;
 
 impl wutengine_shadercompiler::ShaderHasher<ShaderId> for WutEngineShaderHasher {

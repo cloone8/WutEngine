@@ -39,7 +39,7 @@ impl DisplayInfo {
     }
 }
 
-/// A video mode for [exclusive fullscreen](crate::window::FullscreenMode::Exclusive). Combines
+/// A video mode for [`exclusive fullscreen`](crate::window::FullscreenMode::Exclusive). Combines
 /// a target display, a resolution, refresh rate, and an amount of bits-per-color
 #[derive(Debug, Clone)]
 pub struct DisplayExclusiveFullscreenMode(

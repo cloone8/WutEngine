@@ -2,7 +2,7 @@
 
 use core::error::Error;
 
-/// An error returned by an [AssetLoader]
+/// An error returned by an [`AssetLoader`]
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum LoadAssetErr {
     /// The asset could not be found

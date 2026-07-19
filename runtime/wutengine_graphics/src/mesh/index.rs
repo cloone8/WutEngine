@@ -26,7 +26,7 @@ pub struct IndexBuffer {
     cpu_buffer: Option<Vec<u8>>,
 }
 
-/// An error while creating an [IndexBuffer]
+/// An error while creating an [`IndexBuffer`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 pub enum NewIndexBufferErr {
     #[display("Cannot create an empty index buffer")]
@@ -44,7 +44,7 @@ pub enum NewIndexBufferErr {
     },
 }
 
-/// An error while updating an [IndexBuffer]
+/// An error while updating an [`IndexBuffer`]
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum UpdateIndexBufferErr {
     #[display("Cannot update a non-dynamic index buffer")]
@@ -280,33 +280,33 @@ impl IndexBuffer {
         Ok(())
     }
 
-    /// Returns the configured [MeshTopology] for this buffer
-    #[inline(always)]
+    /// Returns the configured [`MeshTopology`] for this buffer
+    #[inline]
     pub fn topology(&self) -> MeshTopology {
         self.topology
     }
 
-    /// Returns a reference to the raw [wgpu::Buffer]
-    #[inline(always)]
+    /// Returns a reference to the raw [`wgpu::Buffer`]
+    #[inline]
     pub fn raw(&self) -> &wgpu::Buffer {
         &self.buffer
     }
 
     /// Returns the format of this buffer
-    #[inline(always)]
+    #[inline]
     pub fn format(&self) -> IndexFormat {
         self.format
     }
 
     /// Returns the amount of indices in this buffer
-    #[inline(always)]
+    #[inline]
     #[allow(clippy::len_without_is_empty, reason = "Index buffer is never empty")]
     pub fn len(&self) -> NonZero<u64> {
         self.count
     }
 }
 
-/// Trait implemented by types that can be used as indices in an [IndexBuffer]
+/// Trait implemented by types that can be used as indices in an [`IndexBuffer`]
 pub trait IndexDatatype: Sized {
     /// The format of this index
     const FORMAT: IndexFormat;
@@ -329,7 +329,7 @@ impl IndexDatatype for u16 {
         bytemuck::must_cast_slice(this)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_usize(&self) -> usize {
         *self as usize
     }
@@ -346,7 +346,7 @@ impl IndexDatatype for u32 {
         bytemuck::must_cast_slice(this)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_usize(&self) -> usize {
         *self as usize
     }
@@ -363,7 +363,7 @@ pub enum IndexFormat {
 }
 
 impl IndexFormat {
-    /// Converts the index format to its [wgpu::IndexFormat] equivalent
+    /// Converts the index format to its [`wgpu::IndexFormat`] equivalent
     pub const fn to_wgpu(self) -> wgpu::IndexFormat {
         match self {
             Self::U16 => wgpu::IndexFormat::Uint16,

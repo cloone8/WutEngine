@@ -239,7 +239,7 @@ pub(crate) struct ProjectAsset {
 
     format: ProjectAssetFormat,
 
-    /// Corresponds to the [SerializedAsset::ID] constant
+    /// Corresponds to the [`SerializedAsset::ID`] constant
     asset_type: uuid::NonNilUuid,
 
     #[serde(serialize_with = "to_cross_platform_path")]

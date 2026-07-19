@@ -56,7 +56,7 @@ impl<'src> ShaderFile<'src> {
     }
 }
 
-/// A single statement in a [ShaderFile]
+/// A single statement in a [`ShaderFile`]
 #[derive(Debug, Clone)]
 pub(crate) enum Statement<'a> {
     /// Normal source code
@@ -80,7 +80,7 @@ impl<'src> Statement<'src> {
     }
 }
 
-/// A preprocessor directive in a [ShaderFile]
+/// A preprocessor directive in a [`ShaderFile`]
 #[derive(Debug, Clone)]
 pub(crate) enum Directive<'a> {
     /// `if` with the condition
@@ -151,7 +151,7 @@ pub(crate) enum Condition<'a> {
 impl<'src> Condition<'src> {
     /// Parses the given source string into a condition, if possible.
     ///
-    /// Requires `source` to be pre-stripped of both the [directive leader](DIRECTIVE_LEADER) and the [Directive] (`if`, `elif`, etc.)
+    /// Requires `source` to be pre-stripped of both the [directive leader](DIRECTIVE_LEADER) and the [`Directive`] (`if`, `elif`, etc.)
     pub(crate) fn parse(source: &'src str) -> Result<Self, Box<ParseErr>> {
         let s = source.trim();
 
@@ -259,7 +259,7 @@ impl<'src> Condition<'src> {
     /// keywords.
     ///
     /// If the condition could not be fully evaluated due to a missing keyword value,
-    /// returns [Err] with the keyword that was missing
+    /// returns [`Err`] with the keyword that was missing
     pub(crate) fn eval<'a, S: AsRef<str> + Hash + Eq + Borrow<str>>(
         &'a self,
         keywords: &HashMap<S, u64>,
@@ -293,7 +293,7 @@ impl<'src> Condition<'src> {
     }
 }
 
-/// A comparator for a [Condition]
+/// A comparator for a [`Condition`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum ConditionComparator {
     /// `==`
@@ -333,7 +333,7 @@ impl ConditionComparator {
     }
 }
 
-/// An operator to chain multiple [Conditions](Condition)
+/// An operator to chain multiple [`Conditions`](Condition)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum ConditionChain {
     /// `&&`

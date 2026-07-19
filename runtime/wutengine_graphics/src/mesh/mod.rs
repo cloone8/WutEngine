@@ -135,7 +135,7 @@ impl Mesh {
     }
 }
 
-/// Error while deserializing [MeshData] into a [Mesh]
+/// Error while deserializing [MeshData] into a [`Mesh`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum MeshFromDataErr {
     /// Mesh had no vertices or no indices
@@ -187,7 +187,7 @@ fn trim_to_multiple_of<T>(data: &[T], topology: MeshTopology) -> &[T] {
     &data[..(data.len() - (data.len() % topology.indices_per_primitive()))]
 }
 
-/// Converts a WutEngine [MeshTopology] to a [wgpu::PrimitiveTopology]
+/// Converts a WutEngine [MeshTopology] to a [`wgpu::PrimitiveTopology`]
 pub const fn asset_topology_to_wgpu(asset_topology: MeshTopology) -> wgpu::PrimitiveTopology {
     match asset_topology {
         MeshTopology::Triangle => wgpu::PrimitiveTopology::TriangleList,

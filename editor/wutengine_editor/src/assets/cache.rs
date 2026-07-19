@@ -11,7 +11,7 @@ use crate::project;
 
 static PROJECT_ASSET_SERVER: InitOnce<Arc<AssetServer>> = InitOnce::new_checked();
 
-/// Initialize the project asset server, which uses the project file index as provided by [`crate::project::asset_manager`]
+/// Initialize the project asset server, which uses the project file index as provided by [``crate::project::asset_manager``]
 pub(crate) fn init() {
     InitOnce::init(
         &PROJECT_ASSET_SERVER,

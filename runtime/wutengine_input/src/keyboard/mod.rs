@@ -17,8 +17,8 @@ use super::INPUT_MANAGER;
 pub struct KeyboardId(winit::event::DeviceId);
 
 impl KeyboardId {
-    /// Maps a winit device to a [KeyboardId], if the winit device is valid
-    #[inline(always)]
+    /// Maps a winit device to a [`KeyboardId`], if the winit device is valid
+    #[inline]
     pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
         if device != winit::event::DeviceId::dummy() {
             Some(Self(device))
@@ -62,7 +62,7 @@ impl Default for Keyboard {
 }
 
 impl Keyboard {
-    /// New [Keyboard] with no keys pressed
+    /// New [`Keyboard`] with no keys pressed
     pub(crate) fn new() -> Self {
         Self {
             prev_pressed_keys: HashSet::default(),
@@ -163,9 +163,9 @@ fn get_keyboard_and<T>(
 
 /// Returns whether the specified keyboard key was pressed this frame. If the key
 /// was already pressed last frame, this returns `false`. To check whether the key is held,
-/// even if it was already held before, see [key_held]
+/// even if it was already held before, see [`key_held`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns `false`
@@ -181,9 +181,9 @@ pub fn key_pressed(device: Option<KeyboardId>, key: Key) -> bool {
 
 /// Returns whether the specified keyboard key was being held this frame. This returns
 /// `true` in every frame the key is held. To only get `true` for new presses, see
-/// [key_pressed]
+/// [`key_pressed`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns `false`
@@ -199,9 +199,9 @@ pub fn key_held(device: Option<KeyboardId>, key: Key) -> bool {
 
 /// Returns whether the specified keyboard key was released this frame. If the key
 /// was not held down last frame, this always returns `false`. To check whether the key is held,
-/// even if it was not held before, see [key_held]
+/// even if it was not held before, see [`key_held`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns `false`
@@ -217,9 +217,9 @@ pub fn key_released(device: Option<KeyboardId>, key: Key) -> bool {
 
 /// Returns all keys pressed this frame. If the key
 /// was not first pressed last frame, this always returns `false`. To get the held keys,
-/// even if it they were also held before, see [held_keys]
+/// even if it they were also held before, see [`held_keys`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns an empty set
@@ -238,9 +238,9 @@ pub fn pressed_keys(device: Option<KeyboardId>) -> HashSet<Key> {
 }
 
 /// Returns all keys held this frame. To get the keys that were first pressed
-/// this frame, see [pressed_keys]
+/// this frame, see [`pressed_keys`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns an empty set
@@ -257,9 +257,9 @@ pub fn held_keys(device: Option<KeyboardId>) -> IntSet<Key> {
 /// Returns all keys released this frame. If the key
 /// was not held down last frame, it will not be included. To get the full
 /// set of held keys (which can also be used for checking if a key was not held),
-/// see [held_keys]
+/// see [`held_keys`]
 ///
-/// If `device` is [None], returns the value
+/// If `device` is [`None`], returns the value
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns an empty set
@@ -280,7 +280,7 @@ pub fn released_keys(device: Option<KeyboardId>) -> HashSet<Key> {
 /// Returns all logical inputs that were made this frame, in order. This should
 /// mostly be used by UI code and other non-gameplay functionality.
 ///
-/// If `device` is [None], returns the values
+/// If `device` is [`None`], returns the values
 /// for the latest changed keyboard device.
 ///
 /// If the specified keyboard (or the latest keyboard) could not be found, returns an empty vector

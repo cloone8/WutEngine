@@ -7,7 +7,7 @@ use wutengine_assets::assets::sampler::WrapModeType;
 
 use super::GraphicsCache;
 
-/// Cache key for a [crate::sampler::Sampler]
+/// Cache key for a [`crate::sampler::Sampler`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct SamplerCacheKey {
     /// Texture filter mode
@@ -24,7 +24,7 @@ static SAMPLER_CACHE: LazyLock<GraphicsCache<SamplerCacheKey, wgpu::Sampler>> =
     LazyLock::new(Default::default);
 
 /// Tries to find a given sampler object in the global cache
-#[inline(always)]
+#[inline]
 pub(crate) fn find(sampler: &SamplerCacheKey) -> Option<Arc<wgpu::Sampler>> {
     SAMPLER_CACHE.find(sampler)
 }
@@ -32,7 +32,7 @@ pub(crate) fn find(sampler: &SamplerCacheKey) -> Option<Arc<wgpu::Sampler>> {
 /// Inserts a new sampler object into the global cache under the given key.
 /// If a sampler object is already present in the global cache, does not replace it and simply
 /// returns the already present object.
-#[inline(always)]
+#[inline]
 pub(crate) fn insert(
     sampler: SamplerCacheKey,
     sampler_object: wgpu::Sampler,

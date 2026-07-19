@@ -5,13 +5,13 @@ use core::ops::DerefMut;
 
 use crate::assert_main_thread;
 
-/// Type that can only be accessed from the main thread, and can thus always be marked [Send]/[Sync]
+/// Type that can only be accessed from the main thread, and can thus always be marked [Send]/[`Sync`]
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct MainThreadOnly<T>(T);
 
 impl<T> MainThreadOnly<T> {
-    /// Creates a new [MainThreadOnly]
+    /// Creates a new [`MainThreadOnly`]
     #[inline]
     pub const fn new(val: T) -> Self {
         Self(val)
@@ -45,14 +45,14 @@ impl<T> MainThreadOnly<T> {
 impl<T> Deref for MainThreadOnly<T> {
     type Target = T;
 
-    #[inline(always)]
+    #[inline]
     fn deref(&self) -> &Self::Target {
         Self::get(self)
     }
 }
 
 impl<T> DerefMut for MainThreadOnly<T> {
-    #[inline(always)]
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         Self::get_mut(self)
     }

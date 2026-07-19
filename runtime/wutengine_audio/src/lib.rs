@@ -8,7 +8,7 @@ pub use audioclip::*;
 #[doc(inline)]
 pub use rodio;
 
-/// The global [AudioManager]
+/// The global [`AudioManager`]
 static AUDIO_MANAGER: InitOnce<AudioManager> = InitOnce::new_checked();
 
 /// An audio manager. Manages global audio playback
@@ -25,7 +25,7 @@ impl Default for AudioManager {
 }
 
 impl AudioManager {
-    /// A new [AudioManager]
+    /// A new [`AudioManager`]
     fn new() -> Self {
         let sink = Self::open_audio_device();
 

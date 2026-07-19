@@ -24,7 +24,7 @@ pub fn force_exit() {
     request_exit(true);
 }
 
-/// Internal. Use [exit] or [force_exit] instead.
+/// Internal. Use [exit] or [`force_exit`] instead.
 #[inline]
 fn request_exit(force: bool) {
     if !WUTENGINE_RUNNING.load(Ordering::Acquire) {
@@ -41,7 +41,7 @@ fn request_exit(force: bool) {
     crate::runtime::send_to_main_thread(MainThreadEvent::RuntimeExitRequested(force));
 }
 
-/// Useful when a frequency setting other than [crate::runtime::FrameFrequency::Fast] was selected
+/// Useful when a frequency setting other than [`crate::runtime::FrameFrequency::Fast`] was selected
 pub fn request_frame() {
     crate::runtime::send_to_main_thread(MainThreadEvent::Wake);
 }

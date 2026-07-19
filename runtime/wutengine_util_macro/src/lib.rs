@@ -11,7 +11,7 @@ use syn::parse::Parse;
 use syn::spanned::Spanned;
 use syn::{Attribute, Ident, LitStr, Type, Visibility, parse_macro_input, parse_str};
 
-/// Input for the [unique_id_type32] and [unique_id_type64] macros
+/// Input for the [unique_id_type32] and [`unique_id_type64`] macros
 struct UniqueIdTypeInput {
     /// Existing attributes to apply
     attrs: Vec<Attribute>,
@@ -158,14 +158,14 @@ pub fn derive_variant_count(input: proc_macro::TokenStream) -> proc_macro::Token
     let expanded = if generics.is_empty() {
         quote! {
             impl #ident {
-                /// The amount of variants of [Self]
+                /// The amount of variants of [`Self`]
                 #vis const VARIANT_COUNT: usize = #len;
             }
         }
     } else {
         quote! {
             impl<#generics> #ident<#generics> {
-                /// The amount of variants of [Self]
+                /// The amount of variants of [`Self`]
                 #vis const VARIANT_COUNT: usize = #len;
             }
         }
@@ -209,7 +209,7 @@ pub fn derive_variant_name(input: proc_macro::TokenStream) -> proc_macro::TokenS
     let vis = derive_input.vis;
 
     let func_imp = quote! {
-        /// The name of the variant of [Self] as a static [str]
+        /// The name of the variant of [Self] as a static [`str`]
         #[inline]
         #vis const fn variant_name(&self) -> &'static str {
             match self {
@@ -291,7 +291,7 @@ pub fn derive_variant_index(input: proc_macro::TokenStream) -> proc_macro::Token
     let vis = derive_input.vis;
 
     let func_imp = quote! {
-        /// The index of the variant of [Self]
+        /// The index of the variant of [`Self`]
         #[inline]
         #vis const fn variant_index(&self) -> #repr_type {
             match self {

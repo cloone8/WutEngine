@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-/// The configuration for the viewport of a [Camera]
+/// The configuration for the viewport of a [`Camera`]
 #[derive(Debug, Clone, Copy)]
 pub struct CameraViewport {
     /// Location of the left side of the viewport, as expressed as a fraction of the window. From 0.0-1.0

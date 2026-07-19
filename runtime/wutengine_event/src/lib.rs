@@ -16,10 +16,10 @@ use wutengine_util_macro::unique_id_type32;
 /// Type-erased event handler function
 type GenericEventHandler = dyn Fn(&EventData) + Send + Sync;
 
-/// The global [EventManager]
+/// The global [`EventManager`]
 static EVENT_MANAGER: InitOnce<Mutex<EventManager>> = InitOnce::new_checked();
 
-/// The event queue to send events to the [EVENT_MANAGER]
+/// The event queue to send events to the [`EVENT_MANAGER`]
 static EVENT_SENDER: InitOnce<Sender<EventData>> = InitOnce::new_checked();
 
 /// Function that can be called to wake the main thread, which might cause it to
@@ -39,7 +39,7 @@ pub(crate) struct EventManager {
 }
 
 impl EventManager {
-    /// A new [EventManager] and the queue to reach it
+    /// A new [`EventManager`] and the queue to reach it
     fn new() -> (Self, Sender<EventData>) {
         let (send, recv) = std::sync::mpsc::channel();
 
@@ -89,7 +89,7 @@ impl EventManager {
 /// Generic type-erased event data
 #[derive(derive_more::Debug)]
 struct EventData {
-    /// [TypeId] of the event
+    /// [`TypeId`] of the event
     ty: TypeId,
 
     /// Type name of the event type
@@ -123,7 +123,7 @@ impl EventData {
 }
 
 unique_id_type32! {
-    /// Raw identifier of a [Subscription]
+    /// Raw identifier of a [`Subscription`]
     SubscriptionId
 }
 
@@ -137,7 +137,7 @@ struct AddSubscriber {
     /// The ID of the new subscriber
     id: SubscriptionId,
 
-    /// The [TypeId] of the event
+    /// The [`TypeId`] of the event
     ty: TypeId,
 
     /// The generic handler
@@ -178,8 +178,8 @@ pub fn publish<T: Event>(event: T) {
     WAKE_MAIN_THREAD_FN();
 }
 
-/// Subscribes to an event with the given handler. Returns a [Subscription] which can
-/// be used to [unsubscribe] later.
+/// Subscribes to an event with the given handler. Returns a [`Subscription`] which can
+/// be used to [`unsubscribe`] later.
 #[inline]
 pub fn subscribe<T: Event>(handler: impl Fn(&T) + Send + Sync + 'static) -> Subscription {
     let id = SubscriptionId::new();

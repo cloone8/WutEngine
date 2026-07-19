@@ -23,13 +23,13 @@ impl SerializedAsset for SerializedBundle {
         uuid::NonNilUuid::new(uuid::uuid!("678f0243-8d5f-4829-90f1-0caca98e2efc")).unwrap();
 }
 
-/// An entry in a [SerializedBundle]
+/// An entry in a [`SerializedBundle`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "entry_type")]
 pub enum BundleEntry {
-    /// An inline [SerializedEntity]
+    /// An inline [`SerializedEntity`]
     Entity(SerializedEntity),
 
-    /// A reference to a [SerializedBundle]
+    /// A reference to a [`SerializedBundle`]
     Bundle(AssetRef<SerializedBundle>),
 }

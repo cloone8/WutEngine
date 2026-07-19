@@ -14,28 +14,28 @@ pub(crate) fn init() {
     InitOnce::init(&WORLD, RwLock::new(World::new()));
 }
 
-/// Returns a type that dereferences to a [World].
+/// Returns a type that dereferences to a [`World`].
 /// Might be a lock guard, so drop as soon as possible
-#[inline(always)]
+#[inline]
 pub(crate) fn get_world() -> impl Deref<Target = World> {
     WORLD.read().unwrap()
 }
 
-/// Returns a type that mutably dereferences to a [World].
+/// Returns a type that mutably dereferences to a [`World`].
 /// Might be a lock guard, so drop as soon as possible
-#[inline(always)]
+#[inline]
 pub(crate) fn get_world_mut() -> impl DerefMut<Target = World> {
     WORLD.write().unwrap()
 }
 
 /// Manager of all entities and components currently living in the game engine
 pub(crate) struct World {
-    /// The raw [hecs] world
+    /// The raw [`hecs`] world
     pub(crate) ecs: hecs::World,
 }
 
 impl World {
-    /// Creates a new, empty, [World]
+    /// Creates a new, empty, [`World`]
     pub(crate) fn new() -> Self {
         Self {
             ecs: hecs::World::new(),

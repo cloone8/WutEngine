@@ -123,7 +123,7 @@ impl AssetServer {
     }
 }
 
-/// An error while loading an asset through an [AssetServer]
+/// An error while loading an asset through an [`AssetServer`]
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum GetAssetErr<E: Error> {
     /// An asset reference without ID was used

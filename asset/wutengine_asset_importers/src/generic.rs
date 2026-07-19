@@ -72,11 +72,11 @@ pub fn default_asset_types() -> &'static HashMap<uuid::NonNilUuid, SerializedAss
     &DEFAULT_ASSET_TYPES
 }
 
-/// A type-erased byte asset importer function, as used in [Importer]
+/// A type-erased byte asset importer function, as used in [`Importer`]
 type ByteImportFn =
     dyn Fn(&str, &[u8], Option<&Path>) -> Result<Vec<ImportedAsset>, Box<dyn Error>> + Send + Sync;
 
-/// A type-erased path asset importer function, as used in [Importer]
+/// A type-erased path asset importer function, as used in [`Importer`]
 type PathImportFn = dyn Fn(&str, &Path) -> Result<Vec<ImportedAsset>, Box<dyn Error>> + Send + Sync;
 
 /// A type-erased asset importer
@@ -98,7 +98,7 @@ pub struct Importer {
 }
 
 impl Importer {
-    /// Creates a new [Importer] from an [AssetImporter]
+    /// Creates a new [Importer] from an [`AssetImporter`]
     pub fn from_asset_importer<T: AssetImporter>() -> Self {
         Self {
             name: core::any::type_name::<T>(),
@@ -144,15 +144,15 @@ impl Importer {
     }
 }
 
-/// A type-erased asset serialization function, as used in [SerializedAssetType]
+/// A type-erased asset serialization function, as used in [`SerializedAssetType`]
 type SerializeFn =
     dyn Fn(&(dyn Any + Send + Sync)) -> Result<Vec<u8>, Box<dyn Error>> + Send + Sync;
 
-/// A type-erased asset serialization function, as used in [SerializedAssetType]
+/// A type-erased asset serialization function, as used in [`SerializedAssetType`]
 type DeserializeFn =
     dyn Fn(&[u8]) -> Result<Box<dyn Any + Send + Sync>, Box<dyn Error>> + Send + Sync;
 
-/// A type-erased [SerializedAsset], with pointers to its serialization functions and other config
+/// A type-erased [`SerializedAsset`], with pointers to its serialization functions and other config
 #[derive(derive_more::Debug, Clone)]
 pub struct SerializedAssetType {
     /// Asset type UUID
@@ -182,7 +182,7 @@ pub struct SerializedAssetType {
 }
 
 impl SerializedAssetType {
-    /// Create a new [SerializedAssetType] from its [SerializedAsset] trait
+    /// Create a new [SerializedAssetType] from its [`SerializedAsset`] trait
     pub fn new_from_asset<T: SerializedAsset>() -> Self {
         Self {
             id: T::ID,

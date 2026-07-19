@@ -183,4 +183,5 @@ missing_fields_in_debug = "warn"
 
 similar_names = { level = "allow" }      # Too noisy and not that useful
 missing_panics_doc = { level = "allow" } # I won't include a panic doc for every function that locks a mutex or rwlock
+missing_errors_doc = { level = "allow" } # Error types should be limited in size and have docs themselves
 must_use_candidate = { level = "allow" } # Not actually a problem

@@ -113,20 +113,20 @@ impl nohash_hasher::IsEnabled for Entity {}
 
 impl Entity {
     /// Spawns a new entity in the game world with an identity rotation and position, and position 0
-    #[inline(always)]
+    #[inline]
     pub fn spawn(name: impl Into<String>) -> Self {
         Self::spawn_impl(name.into(), Some(Transform::new()))
     }
 
     /// Spawns a new entity in the game world without a transform component, meaning
     /// it has no physical place in the world
-    #[inline(always)]
+    #[inline]
     pub fn spawn_transformless(name: impl Into<String>) -> Self {
         Self::spawn_impl(name.into(), None)
     }
 
     /// Spawns a new entity in the game world
-    #[inline(always)]
+    #[inline]
     pub fn spawn_at(name: impl Into<String>, transform: Transform) -> Self {
         Self::spawn_impl(name.into(), Some(transform))
     }

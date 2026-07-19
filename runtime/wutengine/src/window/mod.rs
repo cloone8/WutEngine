@@ -26,11 +26,11 @@ unique_id_type32! {
     pub Window
 }
 
-/// Config used to create a new window with [Window::create]
+/// Config used to create a new window with [`Window::create`]
 #[derive(Debug, Clone)]
 pub struct WindowConfig {
     /// The title of the window.
-    /// If set to [None], will use a generic title instead
+    /// If set to [`None`], will use a generic title instead
     pub title: Option<String>,
 
     /// The inner size of the window. Defaults to 720p
@@ -39,20 +39,20 @@ pub struct WindowConfig {
     /// The minimum inner size of the window. Must be at least 1x1
     pub min_size: (u32, u32),
 
-    /// The maximum inner size of the window. Defaults to [None]. If given, must be larger or equal to
-    /// [Self::min_size]
+    /// The maximum inner size of the window. Defaults to [`None`]. If given, must be larger or equal to
+    /// [`Self::min_size`]
     pub max_size: Option<(u32, u32)>,
 
     /// Whether the window is resizable. Defaults to true
     pub resizable: bool,
 
-    /// The icon. Defaults to [None]
+    /// The icon. Defaults to [`None`]
     pub icon: Option<Icon>,
 
-    /// Whether vsync is enabled. Defaults to [None], which picks whatever is configured through the config manager
+    /// Whether vsync is enabled. Defaults to [`None`], which picks whatever is configured through the config manager
     pub vsync: Option<bool>,
 
-    /// Fullscreen mode. If [None], is windowed
+    /// Fullscreen mode. If [`None`], is windowed
     pub fullscreen: Option<FullscreenMode>,
 }
 
@@ -68,7 +68,7 @@ pub enum FullscreenMode {
     Exclusive(DisplayExclusiveFullscreenMode),
 }
 
-/// Target display for [FullscreenMode::Borderless]
+/// Target display for [`FullscreenMode::Borderless`]
 #[derive(Debug, Clone, Copy)]
 pub enum BorderlessTarget {
     /// The display the window is currently (or initially) on
@@ -394,13 +394,13 @@ impl Window {
     }
 
     /// Hides the cursor
-    #[inline(always)]
+    #[inline]
     pub fn hide_cursor(self) {
         self.set_cursor_visible(false);
     }
 
     /// Shows the cursor
-    #[inline(always)]
+    #[inline]
     pub fn show_cursor(self) {
         self.set_cursor_visible(true);
     }

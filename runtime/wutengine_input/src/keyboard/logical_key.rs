@@ -29,8 +29,8 @@ pub enum UnknownLogicalKey {
 }
 
 impl LogicalKey {
-    /// Tries to map a [winit logical key](winit::keyboard::Key) to a [LogicalKey].
-    /// Returns [None] if the key could not be mapped
+    /// Tries to map a [winit logical key](winit::keyboard::Key) to a [`LogicalKey`].
+    /// Returns [`None`] if the key could not be mapped
     pub fn try_from_winit(logical: &winit::keyboard::Key) -> Option<Self> {
         match logical {
             winit::keyboard::Key::Named(named) => {
@@ -58,7 +58,7 @@ impl LogicalKey {
 
 /// A named non-character keyboard value.
 ///
-/// Taken from [winit 0.30.13](https://github.com/rust-windowing/winit/tree/v0.30.13),
+/// Taken from [`winit 0.30.13`](https://github.com/rust-windowing/winit/tree/v0.30.13),
 /// and modified to suit WutEngine APIs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LogicalNamed {
@@ -133,9 +133,9 @@ pub enum LogicalNamed {
     /// The End key, used with keyboard entry to go to the end of content (`KEYCODE_MOVE_END`).
     End,
     /// The Home key, used with keyboard entry, to go to start of content (`KEYCODE_MOVE_HOME`).
-    /// For the mobile phone `Home` key (which goes to the phone’s main screen), use [`GoHome`].
+    /// For the mobile phone `Home` key (which goes to the phone’s main screen), use [``GoHome``].
     ///
-    /// [`GoHome`]: Self::GoHome
+    /// [``GoHome``]: Self::GoHome
     Home,
     /// Scroll down or display next page of content.
     PageDown,
@@ -805,8 +805,8 @@ pub enum LogicalNamed {
 }
 
 impl LogicalNamed {
-    /// Attempts to map a [winit named key](winit::keyboard::NamedKey) to a [LogicalNamed].
-    /// If the key could not be mapped, returns [None]
+    /// Attempts to map a [winit named key](winit::keyboard::NamedKey) to a [`LogicalNamed`].
+    /// If the key could not be mapped, returns [`None`]
     #[inline]
     #[expect(clippy::too_many_lines, reason = "Big match statement")]
     pub const fn from_winit(winit: winit::keyboard::NamedKey) -> Option<Self> {

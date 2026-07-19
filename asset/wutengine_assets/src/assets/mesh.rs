@@ -18,13 +18,13 @@ pub struct SerializedMesh {
     /// The topology
     pub topology: MeshTopology,
 
-    /// The mesh index buffer. Each index should be smaller than the length of [Self::vertices]
+    /// The mesh index buffer. Each index should be smaller than the length of [`Self::vertices`]
     pub indices: MeshIndices,
 
-    /// The UV channels. Each channel should contain exactly as much elements as [Self::vertices], or be empty
+    /// The UV channels. Each channel should contain exactly as much elements as [`Self::vertices`], or be empty
     pub uvs: IntMap<u8, Vec<Vec2>>,
 
-    /// Color data. Should contain exactly as much elements as [Self::vertices], or be empty
+    /// Color data. Should contain exactly as much elements as [`Self::vertices`], or be empty
     pub colors: Vec<Color>,
 
     /// Whether the data should be kept on the CPU after the GPU side mesh is created
@@ -53,7 +53,7 @@ impl Default for MeshIndices {
     }
 }
 
-/// The topology of the indices of a [SerializedMesh]
+/// The topology of the indices of a [`SerializedMesh`]
 #[derive(
     Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, derive_more::Display,
 )]

@@ -1,6 +1,6 @@
 use crate::math::Mat4;
 
-/// The different types of possible [super::Camera] projections.
+/// The different types of possible [`super::Camera`] projections.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CameraProjection {
     /// Perspective-projecting camera.
@@ -12,7 +12,7 @@ pub enum CameraProjection {
 }
 
 impl CameraProjection {
-    /// Returns the projection matrix corresponding to this [CameraProjection] and the
+    /// Returns the projection matrix corresponding to this [`CameraProjection`] and the
     /// render target clipping planes and aspect ratio
     pub fn get_matrix(self, aspect_ratio: f32, clip_near: f32, clip_far: f32) -> Mat4 {
         match self {
@@ -39,7 +39,7 @@ impl CameraProjection {
     }
 }
 
-/// Field-of-view definition for a [CameraProjection]
+/// Field-of-view definition for a [`CameraProjection`]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FieldOfView {
     /// Vertical degrees

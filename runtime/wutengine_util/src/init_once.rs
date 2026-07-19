@@ -11,7 +11,7 @@ use crate::assert_main_thread;
 /// Makes it easier to use the various static lazy-initialized manager
 /// structs in WutEngine.
 ///
-/// Must be initialized exactly once using [Self::init]. This is checked in
+/// Must be initialized exactly once using [`Self::init`]. This is checked in
 /// debug builds but _not_ in release builds, where not initializing
 /// the manager can lead to UB
 #[derive(Debug)]
@@ -38,7 +38,7 @@ impl<T, const MAIN_THREAD_ONLY: bool> InitOnce<T, false, MAIN_THREAD_ONLY> {
         clippy::new_without_default,
         reason = "Should not usually be used except as const-initialized statics"
     )]
-    /// Creates a new, uninitialized global manager. Must be initialized at runtime with [Self::init] before use
+    /// Creates a new, uninitialized global manager. Must be initialized at runtime with [`Self::init`] before use
     pub const fn new_checked() -> Self {
         Self {
             initialized: core::sync::atomic::AtomicU8::new(InitOnceState::Uninitialized as u8),
@@ -52,11 +52,11 @@ impl<T, const MAIN_THREAD_ONLY: bool> InitOnce<T, true, MAIN_THREAD_ONLY> {
         clippy::new_without_default,
         reason = "Should not usually be used except as const-initialized statics"
     )]
-    /// Creates a new, uninitialized, unchecked global manager. Must be initialized at runtime with [Self::init] before use.
+    /// Creates a new, uninitialized, unchecked global manager. Must be initialized at runtime with [`Self::init`] before use.
     ///
     /// # Safety
     ///
-    /// MUST be initialized with [Self::init] before use to prevent UB
+    /// MUST be initialized with [`Self::init`] before use to prevent UB
     pub const unsafe fn new_unchecked() -> Self {
         Self {
             initialized: core::sync::atomic::AtomicU8::new(InitOnceState::Uninitialized as u8),
@@ -68,14 +68,14 @@ impl<T, const MAIN_THREAD_ONLY: bool> InitOnce<T, true, MAIN_THREAD_ONLY> {
 impl<T, const UNCHECKED: bool, const MAIN_THREAD_ONLY: bool>
     InitOnce<T, UNCHECKED, MAIN_THREAD_ONLY>
 {
-    /// Checks whether this [InitOnce] is initialized
-    #[inline(always)]
+    /// Checks whether this [`InitOnce`] is initialized
+    #[inline]
     pub fn is_initialized(target: &Self) -> bool {
         target.initialized.load(Ordering::Acquire) == InitOnceState::Initialized as u8
     }
 
     /// In debug builds, asserts that the value was initialized
-    #[inline(always)]
+    #[inline]
     fn assert_initialized(&self) {
         if const { UNCHECKED } && !cfg!(debug_assertions) {
             // unchecked in release builds
@@ -90,7 +90,7 @@ impl<T, const UNCHECKED: bool, const MAIN_THREAD_ONLY: bool>
         }
     }
 
-    /// Initializes the [InitOnce] to the given value.
+    /// Initializes the [`InitOnce`] to the given value.
     /// Must be called exactly once, and only once.
     /// This is checked in debug builds
     #[track_caller]
@@ -130,9 +130,9 @@ impl<T, const UNCHECKED: bool, const MAIN_THREAD_ONLY: bool>
     }
 
     /// Gets the reference to the inner manager.
-    /// Must only be called after calling [Self::init] once. This is only
+    /// Must only be called after calling [`Self::init`] once. This is only
     /// checked in debug builds.
-    #[inline(always)]
+    #[inline]
     pub fn get(target: &Self) -> &T {
         target.assert_initialized();
 
@@ -144,7 +144,7 @@ impl<T, const UNCHECKED: bool, const MAIN_THREAD_ONLY: bool>
 impl<T, const U: bool, const MT: bool> Deref for InitOnce<T, U, MT> {
     type Target = T;
 
-    #[inline(always)]
+    #[inline]
     fn deref(&self) -> &Self::Target {
         InitOnce::get(self)
     }

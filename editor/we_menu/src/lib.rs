@@ -4,7 +4,7 @@ use std::sync::Mutex;
 
 use wutengine_egui::egui;
 
-/// The global [`MenuManager`]
+/// The global [``MenuManager``]
 static MENU_MANAGER: MenuManager = MenuManager::new();
 
 /// The menu manager, contains the entries

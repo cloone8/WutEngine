@@ -14,7 +14,7 @@ use super::GraphicsCache;
 static PIPELINE_CACHE: LazyLock<GraphicsCache<PipelineCacheKey, wgpu::RenderPipeline>> =
     LazyLock::new(Default::default);
 
-/// The key identifying a [wgpu::RenderPipeline] in the pipeline cache
+/// The key identifying a [`wgpu::RenderPipeline`] in the pipeline cache
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct PipelineCacheKey {
     /// The shader the pipeline uses
@@ -28,14 +28,14 @@ pub(crate) struct PipelineCacheKey {
 }
 
 /// Tries to find a given shader variant in the global cache
-#[inline(always)]
+#[inline]
 pub(crate) fn find(key: &PipelineCacheKey) -> Option<Arc<wgpu::RenderPipeline>> {
     PIPELINE_CACHE.find(key)
 }
 
 /// Inserts the given compiled shader variant under the given key. If the variant already exists,
 /// does not insert the new variant and simply returns the already existing one
-#[inline(always)]
+#[inline]
 pub(crate) fn insert(
     key: PipelineCacheKey,
     pipeline: wgpu::RenderPipeline,

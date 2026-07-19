@@ -10,8 +10,8 @@ static ADDED_DEFAULT_COMPONENT_SYSTEMS: LazyLock<RwLock<HashSet<TypeId>>> =
     LazyLock::new(|| RwLock::new(HashSet::default()));
 
 /// Checks whether the default component systems for `C` should be inserted into the
-/// global system manager. If `true`, the caller _should_ call [Component::insert_default_component_systems]
-/// for the given component type, because no other call to [should_insert_default_component_systems] will return `true`
+/// global system manager. If `true`, the caller _should_ call [`Component::insert_default_component_systems`]
+/// for the given component type, because no other call to [`should_insert_default_component_systems`] will return `true`
 /// again
 pub(crate) fn should_insert_default_component_systems<T: Component>() -> bool {
     let ty = core::any::TypeId::of::<T>();
@@ -39,7 +39,7 @@ pub trait Component: Any + Send + Sync {
     /// other UUIDs.
     ///
     /// Hint: To obtain one, you can generate a random V4 UUID from many websites,
-    /// and then use the [uuid macro](uuid::uuid) to embed it at compile time
+    /// and then use the [`uuid macro`](uuid::uuid) to embed it at compile time
     const ID: uuid::NonNilUuid;
 
     /// Adds the systems that are always used by this component into the given manifest.

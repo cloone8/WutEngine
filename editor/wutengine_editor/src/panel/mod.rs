@@ -16,7 +16,7 @@ mod library_panel;
 pub(crate) use library_panel::*;
 
 unique_id_type32! {
-    /// Unique identifier for an active [EditorPanel]
+    /// Unique identifier for an active [`EditorPanel`]
     pub(crate) EditorPanelId
 }
 

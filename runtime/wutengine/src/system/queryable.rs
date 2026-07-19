@@ -21,7 +21,7 @@ where
     const NUM_SHARED_BORROWS: usize = 1;
     const NUM_EXCLUSIVE_BORROWS: usize = 0;
 
-    #[inline(always)]
+    #[inline]
     fn register_borrows(shared: &mut HashSet<TypeId>, _exclusive: &mut HashSet<TypeId>) {
         shared.insert(TypeId::of::<T>());
     }
@@ -34,7 +34,7 @@ where
     const NUM_SHARED_BORROWS: usize = 0;
     const NUM_EXCLUSIVE_BORROWS: usize = 1;
 
-    #[inline(always)]
+    #[inline]
     fn register_borrows(_shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
         exclusive.insert(TypeId::of::<T>());
     }
@@ -47,7 +47,7 @@ where
     const NUM_SHARED_BORROWS: usize = T::NUM_SHARED_BORROWS;
     const NUM_EXCLUSIVE_BORROWS: usize = T::NUM_EXCLUSIVE_BORROWS;
 
-    #[inline(always)]
+    #[inline]
     fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
         T::register_borrows(shared, exclusive);
     }
@@ -74,7 +74,7 @@ where
         }
     };
 
-    #[inline(always)]
+    #[inline]
     fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
         L::register_borrows(shared, exclusive);
         R::register_borrows(shared, exclusive);
@@ -88,7 +88,7 @@ where
     const NUM_SHARED_BORROWS: usize = 0;
     const NUM_EXCLUSIVE_BORROWS: usize = 0;
 
-    #[inline(always)]
+    #[inline]
     fn register_borrows(_shared: &mut HashSet<TypeId>, _exclusive: &mut HashSet<TypeId>) {}
 }
 
@@ -100,7 +100,7 @@ where
     const NUM_SHARED_BORROWS: usize = Q::NUM_SHARED_BORROWS;
     const NUM_EXCLUSIVE_BORROWS: usize = Q::NUM_EXCLUSIVE_BORROWS;
 
-    #[inline(always)]
+    #[inline]
     fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
         Q::register_borrows(shared, exclusive);
     }
@@ -114,13 +114,13 @@ where
     const NUM_SHARED_BORROWS: usize = Q::NUM_SHARED_BORROWS;
     const NUM_EXCLUSIVE_BORROWS: usize = Q::NUM_EXCLUSIVE_BORROWS;
 
-    #[inline(always)]
+    #[inline]
     fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
         Q::register_borrows(shared, exclusive);
     }
 }
 
-/// Generates tuple implementations for [Queryable]
+/// Generates tuple implementations for [`Queryable`]
 macro_rules! queryable_tuples {
     ($t:ident) => {
         impl<$t> Queryable for ($t,)
@@ -130,7 +130,7 @@ macro_rules! queryable_tuples {
             const NUM_SHARED_BORROWS: usize = $t::NUM_SHARED_BORROWS;
             const NUM_EXCLUSIVE_BORROWS: usize = $t::NUM_EXCLUSIVE_BORROWS;
 
-            #[inline(always)]
+            #[inline]
             fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
                 $t::register_borrows(shared, exclusive);
             }
@@ -146,7 +146,7 @@ macro_rules! queryable_tuples {
             const NUM_SHARED_BORROWS: usize = $t::NUM_SHARED_BORROWS  $(+ $others::NUM_SHARED_BORROWS)*;
             const NUM_EXCLUSIVE_BORROWS: usize = $t::NUM_EXCLUSIVE_BORROWS  $(+ $others::NUM_EXCLUSIVE_BORROWS)*;
 
-            #[inline(always)]
+            #[inline]
             fn register_borrows(shared: &mut HashSet<TypeId>, exclusive: &mut HashSet<TypeId>) {
                 $t::register_borrows(shared, exclusive);
                 $($others::register_borrows(shared, exclusive));*;

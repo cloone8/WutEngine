@@ -74,7 +74,7 @@ pub enum ShaderVertexAttributeType {
 }
 
 impl ShaderVertexAttributeType {
-    /// Returns this attribute as a [u16]
+    /// Returns this attribute as a [`u16`]
     #[inline]
     pub const fn as_u16(self) -> u16 {
         let channel = if let Self::Uv { channel } = self {
@@ -90,7 +90,7 @@ impl ShaderVertexAttributeType {
 }
 
 impl core::hash::Hash for ShaderVertexAttributeType {
-    #[inline(always)]
+    #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         state.write_u16(self.as_u16());
     }

@@ -25,7 +25,7 @@ mod development_overlay;
 pub(super) mod display_info;
 pub(super) mod window_info;
 
-/// The global [WindowManager]
+/// The global [`WindowManager`]
 static WINDOW_MANAGER: InitOnce<RwLock<WindowManager>> = InitOnce::new_checked();
 
 /// Initializes the global window management subsystem
@@ -81,7 +81,7 @@ pub(crate) fn new_window(
 /// Locks the window manager, and calls `map_func` with an iterator containing all open windows
 ///
 /// The window manager is locked for the duration of the callback
-#[inline(always)]
+#[inline]
 pub(super) fn get_windows_and<T>(map_func: impl FnOnce(&IntMap<Window, WindowInfo>) -> T) -> T {
     profiling::function_scope!();
 
@@ -93,7 +93,7 @@ pub(super) fn get_windows_and<T>(map_func: impl FnOnce(&IntMap<Window, WindowInf
 /// Locks the window manager, and calls `map_func` with a reference to the window info for `id`, if it exists.
 ///
 /// The window manager is locked for the duration of the callback
-#[inline(always)]
+#[inline]
 pub(super) fn get_window_and<T>(id: Window, map_func: impl FnOnce(Option<&WindowInfo>) -> T) -> T {
     profiling::function_scope!();
 
@@ -111,7 +111,7 @@ pub(crate) fn num_windows() -> usize {
     WINDOW_MANAGER.read().unwrap().windows.len()
 }
 
-/// Instructs the [WindowManager] to destroy the given window.
+/// Instructs the [`WindowManager`] to destroy the given window.
 ///
 /// If the window does not exist, does nothing.
 ///
@@ -150,7 +150,7 @@ pub(crate) fn close_window(id: crate::window::Window) -> usize {
     window_manager.windows.len()
 }
 
-/// Notifies the window manager that a native [winit] window was fully destroyed
+/// Notifies the window manager that a native [`winit`] window was fully destroyed
 pub(crate) fn winit_window_destroyed(id: winit::window::WindowId) {
     profiling::function_scope!();
 
@@ -189,8 +189,8 @@ pub(crate) fn appoint_primary_window(id: crate::window::Window) {
     }
 }
 
-/// Refreshes the cached info for the given [Window]. Should be called by the main
-/// engine runtime when a relevant [winit] event is received, or if some other window
+/// Refreshes the cached info for the given [`Window`]. Should be called by the main
+/// engine runtime when a relevant [`winit`] event is received, or if some other window
 /// attribute was changed. Also reconfigures the window surface if any attributes that influence
 /// it have changed, or when `force_reconfigure` is `true`
 ///
@@ -298,7 +298,7 @@ pub(crate) enum WindowState {
     NotFound,
 }
 
-/// For a given [winit::window::WindowId], returns the WutEngine [Window] if one can be found
+/// For a given [winit::window::WindowId], returns the WutEngine [`Window`] if one can be found
 pub(crate) fn find_id(native_id: winit::window::WindowId) -> WindowState {
     profiling::function_scope!();
 
@@ -417,7 +417,7 @@ pub(crate) fn handle_update(target: Window, event: WindowUpdateEvent) {
 /// Locks the window manager, and calls `map_func` with a reference to the display info for `id`, if it exists.
 ///
 /// The window manager is locked for the duration of the callback
-#[inline(always)]
+#[inline]
 pub(super) fn get_display_and<T>(
     id: Display,
     map_func: impl FnOnce(Option<&DisplayInfo>) -> T,
@@ -497,9 +497,9 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::S
 /// The WutEngine window manager. Owns all native windows, and allows interaction with them
 #[derive(Debug)]
 struct WindowManager {
-    /// Mapping from [winit] window IDs to WutEngine window IDs.
-    /// use the [Into::into] implementation on [winit::window::WindowId] to convert
-    /// it to a [u64] for use in this map
+    /// Mapping from [`winit`] window IDs to WutEngine window IDs.
+    /// use the [Into::into] implementation on [`winit::window::WindowId`] to convert
+    /// it to a [`u64`] for use in this map
     winit_to_engine: IntMap<u64, crate::window::Window>,
 
     /// Winit windows currently being destroyed
@@ -512,7 +512,7 @@ struct WindowManager {
 }
 
 impl WindowManager {
-    /// Creates a new default [WindowManager]
+    /// Creates a new default [`WindowManager`]
     pub(crate) fn new() -> Self {
         Self {
             winit_to_engine: IntMap::default(),

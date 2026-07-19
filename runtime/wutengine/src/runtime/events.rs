@@ -7,8 +7,8 @@ use wutengine_util::MainThreadOnly;
 
 use super::Runtime;
 
-/// Event collector for events that should be handled when only the main [Runtime] is running.
-/// Useful for when events need to alter the [Runtime] mutably
+/// Event collector for events that should be handled when only the main [`Runtime`] is running.
+/// Useful for when events need to alter the [`Runtime`] mutably
 pub(super) static MAIN_RUNTIME_EVENTS: MainThreadOnly<RefCell<Vec<Arc<dyn MainRuntimeEvent>>>> =
     MainThreadOnly::new(RefCell::new(Vec::new()));
 

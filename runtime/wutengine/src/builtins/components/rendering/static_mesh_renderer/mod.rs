@@ -17,7 +17,7 @@ pub struct StaticMeshRenderer {
 
 /// Public API
 impl StaticMeshRenderer {
-    /// Returns a new unconfigured [StaticMeshRenderer]
+    /// Returns a new unconfigured [`StaticMeshRenderer`]
     pub fn new() -> Self {
         Self::default()
     }

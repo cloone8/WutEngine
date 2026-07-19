@@ -21,11 +21,11 @@ pub struct SerializedEntity {
     pub children: Vec<EntityEntry>,
 }
 
-/// A child of a [SerializedEntity]
+/// A child of a [`SerializedEntity`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "entry_type")]
 pub enum EntityEntry {
-    /// Another [SerializedEntity]
+    /// Another [`SerializedEntity`]
     Entity(SerializedEntity),
 
     /// A reference to a bundle

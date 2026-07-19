@@ -45,7 +45,7 @@ pub trait ShaderHasher<Id> {
     fn variant_id_from_hashes(source_id_hash: u64, keyword_hash: u64) -> Self::VariantId;
 }
 
-/// Input data for a single [compile] job
+/// Input data for a single [`compile`] job
 #[derive(Debug, Clone)]
 pub struct CompInput<'a, Id> {
     /// The ID of the source shader
@@ -58,11 +58,11 @@ pub struct CompInput<'a, Id> {
     pub keywords: &'a HashMap<String, u64>,
 
     /// The list of conditions for all the shader material parameters.
-    /// The remaining parameter indices are returned in [CompOutput::remaining_params]
+    /// The remaining parameter indices are returned in [`CompOutput::remaining_params`]
     pub parameters: &'a [Option<&'a str>],
 
     /// The list of conditions for all the shader vertex attributes.
-    /// The remaining attribute indices are returned in [CompOutput::remaining_vertex_attributes]
+    /// The remaining attribute indices are returned in [`CompOutput::remaining_vertex_attributes`]
     pub vertex_attributes: &'a [Option<&'a str>],
 
     /// The per-camera code block
@@ -72,23 +72,23 @@ pub struct CompInput<'a, Id> {
     pub per_instance_block: &'a str,
 }
 
-/// Output of a single succesful [compile] job
+/// Output of a single succesful [`compile`] job
 #[derive(Debug, Clone)]
 pub struct CompOutput<VariantId> {
-    /// The translated [naga] [module](naga::Module)
+    /// The translated [naga] [`module`](naga::Module)
     pub module: Box<naga::Module>,
 
     /// The shader variant ID
     pub variant_id: VariantId,
 
-    /// Indices into [CompInput::parameters] of the parameters that have _not_ been stripped
+    /// Indices into [`CompInput::parameters`] of the parameters that have _not_ been stripped
     pub remaining_params: IntSet<usize>,
 
-    /// Indices into [CompInput::vertex_attributes] of the attributes that have _not_ been stripped
+    /// Indices into [`CompInput::vertex_attributes`] of the attributes that have _not_ been stripped
     pub remaining_vertex_attributes: IntSet<usize>,
 }
 
-/// An error while compiling a shader with [compile]
+/// An error while compiling a shader with [`compile`]
 #[derive(Debug, derive_more::From, derive_more::Display, derive_more::Error)]
 pub enum CompileErr {
     /// Input was not valid, probably due to malformed directives

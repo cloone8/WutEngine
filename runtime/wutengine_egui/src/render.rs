@@ -252,7 +252,7 @@ pub(crate) struct PrimitiveRenderState<'a> {
 }
 
 impl<'a> PrimitiveRenderState<'a> {
-    /// Renders a single [egui::ClippedPrimitive]. Primitives should be ordered according to their data in [Self::vertex_buffers] and the currently set index buffer
+    /// Renders a single [egui::ClippedPrimitive]. Primitives should be ordered according to their data in [`Self::vertex_buffers`] and the currently set index buffer
     pub(crate) fn render_primitive(
         &mut self,
         primitive: egui::ClippedPrimitive,
