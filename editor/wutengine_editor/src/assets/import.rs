@@ -13,13 +13,24 @@ use crate::filepicker;
 use crate::project;
 use crate::project::assetmanager::ProjectAssetFormat;
 
+/// The global queue of external files awaiting import
 pub(crate) static IMPORT_QUEUE: Mutex<VecDeque<ImportJob>> = Mutex::new(VecDeque::new());
 
+/// A single file to be imported
 pub(crate) struct ImportJob {
+    /// The path to the file. Probably external to the project
     pub(crate) path: PathBuf,
+
+    /// The file type
     pub(crate) file_type: String,
+
+    /// The destination directory, within the project
     pub(crate) destination_dir: AssetPath,
+
+    /// The destination name
     pub(crate) name: String,
+
+    /// The taskhandle for when the uesr is selecting a new destination
     pub(crate) pick_new_dir_job: Option<TaskHandle<Option<AssetPath>>>,
 }
 
@@ -32,6 +43,7 @@ impl ImportJob {
         }
     }
 
+    /// Shows the UI for this import job. Returns whether the job is done, and should be popped from the queue
     pub(crate) fn show(&mut self, ui: &mut egui::Ui) -> bool {
         self.check_async_tasks();
 

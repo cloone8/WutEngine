@@ -5,7 +5,7 @@ use crate::assets::path::AssetPath;
 mod directory_ui;
 mod tree_ui;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::IsVariant)]
 pub(super) enum AssetTreeNode {
     Branch {
         name: String,

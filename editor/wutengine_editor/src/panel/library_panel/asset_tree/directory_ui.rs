@@ -79,7 +79,17 @@ impl AssetTreeNode {
             if response.double_clicked() {
                 // Select and make context
                 *selected = Some(child.path().clone());
-                return Some(child.path().clone());
+
+                if child.is_branch() {
+                    // Double clicked a directory: make new context
+                    return Some(child.path().clone());
+                }
+
+                // Double clicked an asset: open it
+                log::warn!(
+                    "Clicked asset {}",
+                    child.path().relative().to_string_lossy()
+                );
             }
 
             if response.clicked() || response.secondary_clicked() {

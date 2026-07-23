@@ -29,6 +29,8 @@ use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
+use crate::assets::path::AssetPath;
+
 mod assets;
 mod cli_args;
 mod editorwindow_renderpass;
@@ -186,19 +188,8 @@ fn add_default_menu_entries() {
         assets::import::import_asset_prompt(None);
     });
 
-    we_menu::add_entry(&["Asset", "Level"], 400, || {
-        let new_id = project::asset_manager()
-            .insert_asset(
-                &SerializedLevel {
-                    name: "Test Level".to_string(),
-                    entries: vec![],
-                },
-                "Levels",
-                "Test Level",
-            )
-            .unwrap();
-
-        log::info!("New ID: {new_id}");
+    we_menu::add_entry_ui(&["Asset", "Create"], 301, |ui| {
+        assets::create::create_asset_buttons(&AssetPath::root(), ui);
     });
 }
 

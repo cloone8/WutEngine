@@ -18,15 +18,19 @@ pub(crate) use main::*;
 
 mod panel_container;
 
+/// An editor window. To show, use [`EditorWindowContainer`]
 pub(crate) trait EditorWindow: Send + Sync + 'static {
+    /// Shows the UI for this editor window
     fn show(&mut self, ui: &mut egui::Ui);
 }
 
+/// A container component for a custom [`EditorWindow`]
 pub(crate) struct EditorWindowContainer<T> {
     editor_window: T,
 }
 
 impl<T: EditorWindow> EditorWindowContainer<T> {
+    /// Creates a new container for an editor window
     pub(crate) fn new(editor_window: T) -> Self {
         Self { editor_window }
     }
@@ -81,6 +85,8 @@ impl<T: EditorWindow> Component for EditorWindowContainer<T> {
     }
 }
 
+/// A component holding an egui window. Can be either given a window handle on creation, or can spawn one automatically.
+/// Can then be used by another component that wants to render egui content.
 #[derive(Debug)]
 pub(crate) struct EguiWindowContainer {
     egui_window: Box<wutengine_egui::EguiWindow>,
@@ -119,27 +125,24 @@ impl EguiWindowContainer {
     }
 
     fn update_parameters(&mut self) {
-        let window_handle = match self.window_handle {
-            Some(wh) => wh,
-            None => {
-                log::info!("Opening new editor window");
+        let window_handle = if let Some(window_handle) = self.window_handle {
+            window_handle
+        } else {
+            log::info!("Opening new editor window");
 
-                let new_window = Window::create(WindowConfig {
-                    title: Some(self.egui_window.title.clone()),
-                    resizable: true,
-                    size: (
-                        (self.egui_window.surface_size_points.0 * self.egui_window.scale_factor)
-                            as u32,
-                        (self.egui_window.surface_size_points.1 * self.egui_window.scale_factor)
-                            as u32,
-                    ),
-                    fullscreen: None,
-                    ..Default::default()
-                });
+            let new_window = Window::create(WindowConfig {
+                title: Some(self.egui_window.title.clone()),
+                resizable: true,
+                size: (
+                    (self.egui_window.surface_size_points.0 * self.egui_window.scale_factor) as u32,
+                    (self.egui_window.surface_size_points.1 * self.egui_window.scale_factor) as u32,
+                ),
+                fullscreen: None,
+                ..Default::default()
+            });
 
-                self.window_handle = Some(new_window);
-                new_window
-            }
+            self.window_handle = Some(new_window);
+            new_window
         };
 
         if !window_handle.is_ready() {

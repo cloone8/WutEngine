@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use wutengine_egui::egui;
 
 use crate::exit;
