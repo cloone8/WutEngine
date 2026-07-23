@@ -103,7 +103,7 @@ enum ImportAssetErr {
 fn import_asset(
     file_path: Option<&Path>,
     file_type: String,
-    bytes: Vec<u8>,
+    bytes: &[u8],
 ) -> Result<Vec<(String, Vec<u8>)>, ImportAssetErr> {
     // Just used to ensure a unique name for all unnamed assets
     static ASSET_IDX: AtomicUsize = AtomicUsize::new(0);
@@ -125,7 +125,7 @@ fn import_asset(
         return Err(ImportAssetErr::NoImporter(file_type));
     };
 
-    let imported_assets = match importer.import_from_bytes(&file_type, &bytes, file_path) {
+    let imported_assets = match importer.import_from_bytes(&file_type, bytes, file_path) {
         Ok(imported) => imported,
         Err(e) => {
             return Err(ImportAssetErr::ImporterFailed {
@@ -179,13 +179,13 @@ fn import_asset(
 
 /// Thread main function for the output I/O thread
 fn write_asset_to_disk_thread(
-    output_root: Option<PathBuf>,
+    output_root: Option<&Path>,
     output_recv: Receiver<(Arc<JobToken>, String, Vec<u8>)>,
 ) {
     let mut num_imported = 0;
 
-    for (job_token, asset_file_name, content) in output_recv.iter() {
-        match &output_root {
+    for (job_token, asset_file_name, content) in output_recv {
+        match output_root {
             Some(output_root) => {
                 let complete_path = output_root.join(asset_file_name);
 
@@ -267,7 +267,7 @@ fn main() -> ExitCode {
             None
         };
 
-        std::thread::spawn(move || write_asset_to_disk_thread(output_root, recv))
+        std::thread::spawn(move || write_asset_to_disk_thread(output_root.as_deref(), recv))
     };
 
     for input in input_iter {
@@ -283,7 +283,7 @@ fn main() -> ExitCode {
         let send = send.clone();
 
         rayon::spawn(
-            move || match import_asset(file_path.as_deref(), file_type, bytes) {
+            move || match import_asset(file_path.as_deref(), file_type, &bytes) {
                 Ok(imported_assets) => {
                     let job_token_arc = Arc::new(job_token);
 
@@ -295,9 +295,10 @@ fn main() -> ExitCode {
                 Err(e) => {
                     log::error!(
                         "Failed to import asset at path \"{}\": {e}",
-                        file_path
-                            .map(|p| p.to_string_lossy().to_string())
-                            .unwrap_or_else(|| "<STDIN>".to_string())
+                        file_path.map_or_else(
+                            || "<STDIN>".to_string(),
+                            |p| p.to_string_lossy().to_string()
+                        )
                     );
                     drop(job_token);
                 }

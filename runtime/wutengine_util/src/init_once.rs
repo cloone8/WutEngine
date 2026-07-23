@@ -82,12 +82,11 @@ impl<T, const UNCHECKED: bool, const MAIN_THREAD_ONLY: bool>
             return;
         }
 
-        if self.initialized.load(Ordering::Acquire) != InitOnceState::Initialized as u8 {
-            panic!(
-                "Global manager of type {} not yet initialized!",
-                core::any::type_name::<T>()
-            );
-        }
+        assert!(
+            self.initialized.load(Ordering::Acquire) == InitOnceState::Initialized as u8,
+            "Global manager of type {} not yet initialized!",
+            core::any::type_name::<T>()
+        );
     }
 
     /// Initializes the [`InitOnce`] to the given value.

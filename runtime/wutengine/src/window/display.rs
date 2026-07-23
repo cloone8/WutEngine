@@ -49,16 +49,14 @@ impl Display {
     /// Returns the resolution in pixels of the display
     #[inline]
     pub fn resolution(self) -> (u32, u32) {
-        crate::window::manager::get_display_and(self, |disp| {
-            disp.map(|disp| disp.size).unwrap_or((0, 0))
-        })
+        crate::window::manager::get_display_and(self, |disp| disp.map_or((0, 0), |disp| disp.size))
     }
 
     /// Returns the system refresh rate for this display
     #[inline]
     pub fn refresh_rate_millihertz(self) -> u32 {
         crate::window::manager::get_display_and(self, |disp| {
-            disp.map(|disp| disp.refresh_rate_millihertz).unwrap_or(0)
+            disp.map_or(0, |disp| disp.refresh_rate_millihertz)
         })
     }
 
@@ -66,7 +64,7 @@ impl Display {
     #[inline]
     pub fn scale_factor(self) -> f64 {
         crate::window::manager::get_display_and(self, |disp| {
-            disp.map(|disp| disp.scaling_factor).unwrap_or(1.0)
+            disp.map_or(1.0, |disp| disp.scaling_factor)
         })
     }
 
@@ -74,7 +72,7 @@ impl Display {
     #[inline]
     pub fn is_primary(self) -> bool {
         crate::window::manager::get_display_and(self, |disp| {
-            disp.map(|disp| disp.is_primary).unwrap_or(false)
+            disp.is_some_and(|disp| disp.is_primary)
         })
     }
 }

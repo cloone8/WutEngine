@@ -142,23 +142,22 @@ pub fn run_overlay_logic(
 
         let egui_window: &mut Option<_> = &mut egui_window_lock;
 
-        match egui_window {
-            Some(window) => {
-                window.input_window_identifier = input_window;
-                window.window_info = window_info;
-                window.surface_size_points = sfc_points;
-                window.scale_factor = scale_factor;
-            }
-            None => {
-                let mut new_egui_window = wutengine_egui::EguiWindow::new(input_window, sfc_points);
+        if let Some(window) = egui_window {
+            // Modify the existing window
+            window.input_window_identifier = input_window;
+            window.window_info = window_info;
+            window.surface_size_points = sfc_points;
+            window.scale_factor = scale_factor;
+        } else {
+            // No window yet, lazily create a new one
+            let mut new_egui_window = wutengine_egui::EguiWindow::new(input_window, sfc_points);
 
-                new_egui_window.title = "WutEngine Development Overlay".to_string();
-                new_egui_window.window_info = window_info;
-                new_egui_window.surface_size_points = sfc_points;
-                new_egui_window.scale_factor = scale_factor;
+            new_egui_window.title = "WutEngine Development Overlay".to_string();
+            new_egui_window.window_info = window_info;
+            new_egui_window.surface_size_points = sfc_points;
+            new_egui_window.scale_factor = scale_factor;
 
-                *egui_window = Some(new_egui_window);
-            }
+            *egui_window = Some(new_egui_window);
         }
 
         let egui_window = egui_window.as_ref().unwrap();
@@ -225,7 +224,7 @@ fn dev_overlay_ui(ui: &mut egui::Ui) {
 /// Renders the current development overlay. Should be preceded by a call to [`run_overlay_logic`], and the returned channel should
 /// have been waited on.
 pub fn render_overlay_if_window_eq(
-    window: &WindowIdentifier,
+    window: WindowIdentifier,
     target: &wgpu::Texture,
     command_encoder: &mut wgpu::CommandEncoder,
 ) -> bool {
@@ -237,7 +236,7 @@ pub fn render_overlay_if_window_eq(
         return false;
     };
 
-    if *DEV_OVERLAY.last_target_window.lock().unwrap() != *window {
+    if *DEV_OVERLAY.last_target_window.lock().unwrap() != window {
         return false;
     }
 

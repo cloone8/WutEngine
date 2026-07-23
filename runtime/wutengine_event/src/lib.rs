@@ -2,7 +2,6 @@
 
 use core::any::Any;
 use core::any::TypeId;
-use core::ops::DerefMut;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
@@ -45,8 +44,8 @@ impl EventManager {
 
         (
             Self {
-                subscribers: Default::default(),
-                subscribers_by_type: Default::default(),
+                subscribers: HashMap::default(),
+                subscribers_by_type: HashMap::default(),
                 event_queue_recv: recv,
             },
             send,
@@ -205,6 +204,7 @@ pub fn subscribe<T: Event>(handler: impl Fn(&T) + Send + Sync + 'static) -> Subs
 
 /// Ubsubscribes from an event
 #[inline]
+#[expect(clippy::needless_pass_by_value, reason = "API should consume")]
 pub fn unsubscribe(subscription: Subscription) {
     log::debug!("Subscriber {} unsubscribing", subscription.0);
 
@@ -218,7 +218,7 @@ pub fn handle_events() {
     assert_main_thread!();
 
     let mut event_manager_lock = EVENT_MANAGER.lock().unwrap(); // TODO: Main thread only. RefCell enough?
-    let event_manager = event_manager_lock.deref_mut();
+    let event_manager = &mut *event_manager_lock;
 
     for event in event_manager.event_queue_recv.try_iter() {
         profiling::scope!("Handle event", event.ty_name);

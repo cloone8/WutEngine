@@ -1,4 +1,4 @@
-//! Shader compilation. The conversion of a [Shader](super::Shader) into a [CompiledShader](super::CompiledShader)
+//! Shader compilation. The conversion of a [`Shader`](super::Shader) into a [`CompiledShader`](super::CompiledShader)
 
 use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
@@ -28,7 +28,7 @@ use super::{Shader, ShaderParameter};
 
 /// An error while compiling a [Shader] into a [`CompiledShader`]
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
-pub enum CompileErr {
+pub(crate) enum CompileErr {
     /// Cross compiling the source WGSL into our current target language failed
     CrossCompile(wutengine_shadercompiler::CompileErr),
 }
@@ -136,19 +136,17 @@ fn do_cross_compile(
     shader: &Shader,
     keywords: &HashMap<String, u64>,
 ) -> Result<CompOutput<CompiledShaderId>, Box<CompileErr>> {
-    let vertex_attr_conditions: Vec<Option<&str>> = Vec::from_iter(
-        shader
-            .vertex_attributes
-            .iter()
-            .map(|p| p.condition.as_ref().map(|c| c.0.as_str())),
-    );
+    let vertex_attr_conditions: Vec<Option<&str>> = shader
+        .vertex_attributes
+        .iter()
+        .map(|p| p.condition.as_ref().map(|c| c.0.as_str()))
+        .collect::<Vec<_>>();
 
-    let user_param_conditions: Vec<Option<&str>> = Vec::from_iter(
-        shader
-            .parameters
-            .iter()
-            .map(|p| p.get_condition().map(|c| c.0.as_str())),
-    );
+    let user_param_conditions: Vec<Option<&str>> = shader
+        .parameters
+        .iter()
+        .map(|p| p.get_condition().map(|c| c.0.as_str()))
+        .collect::<Vec<_>>();
 
     let output = wutengine_shadercompiler::compile::<_, WutEngineShaderHasher>(
         wutengine_shadercompiler::CompInput {
@@ -179,6 +177,7 @@ fn sort_layouts<'a>(
     mat: Option<&'a wgpu::BindGroupLayout>,
     instance: Option<&'a wgpu::BindGroupLayout>,
 ) -> [Option<&'a wgpu::BindGroupLayout>; 3] {
+    #[expect(clippy::cast_possible_truncation, reason = "Must be const")]
     core::array::from_fn(|i| match i as u32 {
         CAMERA_PARAMS_BIND_GROUP_INDEX => cam,
         MATERIAL_PARAMS_BIND_GROUP_INDEX => mat,
@@ -221,7 +220,7 @@ fn create_user_params_bind_group_layout(
         all_entries.push(buffer_entry);
     }
 
-    let mut num_opaque = 0;
+    let mut num_opaque: u32 = 0;
     for param in params_with_filter {
         let ShaderParameter::Opaque { ty, .. } = param else {
             continue;
@@ -230,7 +229,7 @@ fn create_user_params_bind_group_layout(
         let binding = num_opaque + 1; // Buffer is at 0, so opaque params start at 1
 
         let opaque_entry = wgpu::BindGroupLayoutEntry {
-            binding: binding as u32,
+            binding,
             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
             ty: shader_opaque_param_wgpu_binding_type(*ty),
             count: None,
@@ -275,13 +274,13 @@ fn log_shader_compilation_info(module: &wgpu::ShaderModule) {
 
         match message.message_type {
             wgpu::CompilationMessageType::Error => {
-                log::error!("Shader compile log{location_string}: {}", message.message)
+                log::error!("Shader compile log{location_string}: {}", message.message);
             }
             wgpu::CompilationMessageType::Warning => {
-                log::warn!("Shader compile log{location_string}: {}", message.message)
+                log::warn!("Shader compile log{location_string}: {}", message.message);
             }
             wgpu::CompilationMessageType::Info => {
-                log::debug!("Shader compile log{location_string}: {}", message.message)
+                log::debug!("Shader compile log{location_string}: {}", message.message);
             }
         }
     }

@@ -25,8 +25,8 @@ static SAMPLER_CACHE: LazyLock<GraphicsCache<SamplerCacheKey, wgpu::Sampler>> =
 
 /// Tries to find a given sampler object in the global cache
 #[inline]
-pub(crate) fn find(sampler: &SamplerCacheKey) -> Option<Arc<wgpu::Sampler>> {
-    SAMPLER_CACHE.find(sampler)
+pub(crate) fn find(sampler: SamplerCacheKey) -> Option<Arc<wgpu::Sampler>> {
+    SAMPLER_CACHE.find(&sampler)
 }
 
 /// Inserts a new sampler object into the global cache under the given key.

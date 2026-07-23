@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+use std::collections::HashMap;
+
 use alloc::collections::BTreeMap;
 
 use nohash_hasher::IntMap;
@@ -42,10 +44,10 @@ impl Default for Gamepad {
 impl Gamepad {
     fn new() -> Self {
         Self {
-            button_values: Default::default(),
-            prev_button_values: Default::default(),
-            axis_values: Default::default(),
-            prev_axis_values: Default::default(),
+            button_values: HashMap::default(),
+            prev_button_values: HashMap::default(),
+            axis_values: HashMap::default(),
+            prev_axis_values: HashMap::default(),
         }
     }
 
@@ -84,7 +86,7 @@ pub fn poll_for_events() {
             gilrs::EventType::ButtonPressed(button, code) => {
                 set_axis_or_button_value(
                     &mut gamepads,
-                    &gamepad_id,
+                    gamepad_id,
                     AxisOrButton::Button(Button::from_gilrs(button, code)),
                     1.0,
                 );
@@ -92,7 +94,7 @@ pub fn poll_for_events() {
             gilrs::EventType::ButtonReleased(button, code) => {
                 set_axis_or_button_value(
                     &mut gamepads,
-                    &gamepad_id,
+                    gamepad_id,
                     AxisOrButton::Button(Button::from_gilrs(button, code)),
                     0.0,
                 );
@@ -100,7 +102,7 @@ pub fn poll_for_events() {
             gilrs::EventType::ButtonChanged(button, value, code) => {
                 set_axis_or_button_value(
                     &mut gamepads,
-                    &gamepad_id,
+                    gamepad_id,
                     AxisOrButton::Button(Button::from_gilrs(button, code)),
                     value,
                 );
@@ -116,7 +118,7 @@ pub fn poll_for_events() {
 
                 set_axis_or_button_value(
                     &mut gamepads,
-                    &gamepad_id,
+                    gamepad_id,
                     AxisOrButton::Axis(axis, subaxis),
                     value,
                 );
@@ -158,13 +160,13 @@ enum AxisOrButton {
 
 fn set_axis_or_button_value(
     gamepads: &mut DeviceSet<super::GamepadId, Gamepad>,
-    gamepad: &super::GamepadId,
+    gamepad: super::GamepadId,
     axis_or_button: AxisOrButton,
     value: f32,
 ) {
-    INPUT_MANAGER.set_most_recent_gamepad(*gamepad);
+    INPUT_MANAGER.set_most_recent_gamepad(gamepad);
 
-    let Some(gamepad) = gamepads.get_identified_device_mut(gamepad) else {
+    let Some(gamepad) = gamepads.get_identified_device_mut(&gamepad) else {
         log::warn!("Unknown gamepad: {gamepad}");
         return;
     };
@@ -342,27 +344,24 @@ fn get_gamepad_and<T>(
 ) -> T {
     let gamepads = INPUT_MANAGER.gamepads.read().unwrap();
 
-    let gamepad = match to_query {
-        Some(to_query) => {
-            let gamepad = gamepads.get_identified_device(&to_query);
+    let gamepad = if let Some(to_query) = to_query {
+        let gamepad = gamepads.get_identified_device(&to_query);
 
-            if gamepad.is_none() {
-                log::warn!("Gamepad {to_query:?} could not be found, returning default values");
-            }
-
-            gamepad
+        if gamepad.is_none() {
+            log::warn!("Gamepad {to_query:?} could not be found, returning default values");
         }
-        None => {
-            let most_recent_gamepad = *INPUT_MANAGER.most_recent_gamepad.read().unwrap();
 
-            if let Some(latest) = most_recent_gamepad {
-                match gamepads.get_identified_device(&latest) {
-                    Some(mouse) => Some(mouse),
-                    None => Some(gamepads.get_any_device()),
-                }
-            } else {
-                Some(gamepads.get_any_device())
+        gamepad
+    } else {
+        let most_recent_gamepad = *INPUT_MANAGER.most_recent_gamepad.read().unwrap();
+
+        if let Some(latest) = most_recent_gamepad {
+            match gamepads.get_identified_device(&latest) {
+                Some(mouse) => Some(mouse),
+                None => Some(gamepads.get_any_device()),
             }
+        } else {
+            Some(gamepads.get_any_device())
         }
     };
 
@@ -577,7 +576,7 @@ pub fn dump_state() -> Vec<GamepadDump> {
             id: id.to_string(),
             name: gamepad.name().to_string(),
             uuid: gamepad.uuid(),
-            mapping: gamepad.map_name().map(|s| s.to_string()),
+            mapping: gamepad.map_name().map(ToString::to_string),
             mapping_source: format!("{:?}", gamepad.mapping_source()),
             product_id: gamepad.product_id(),
             vendor_id: gamepad.vendor_id(),

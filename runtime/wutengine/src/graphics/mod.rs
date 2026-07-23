@@ -50,7 +50,7 @@ pub(crate) fn initialize_command_queue() -> Receiver<DrawCommand> {
 /// Submits a raw draw command to the command queue
 #[inline]
 pub fn submit_raw_draw_command(command: DrawCommand) {
-    DRAW_COMMAND_QUEUE.send(command).expect("Runtime stopped")
+    DRAW_COMMAND_QUEUE.send(command).expect("Runtime stopped");
 }
 
 /// Submit a command to render the given mesh using the given material and model transform
@@ -103,7 +103,7 @@ impl<T, D> RenderPassInfo<T, D>
 where
     D: ?Sized,
 {
-    /// Create a [RenderPassInfo] from an implementation of [`RenderPass`]
+    /// Create a [`RenderPassInfo`] from an implementation of [`RenderPass`]
     pub(crate) fn from_pass<P: RenderPass<T, D>>() -> Self {
         Self {
             type_id: TypeId::of::<P>(),

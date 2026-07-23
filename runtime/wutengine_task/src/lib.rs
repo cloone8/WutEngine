@@ -92,10 +92,7 @@ fn determine_async_thread_count(
     cpu_config: Option<&CoreConfig>,
 ) -> NonZero<usize> {
     if let Some(num_threads) = NonZero::new(config.background_threads) {
-        log::debug!(
-            "Using user configured background thread count of {}",
-            num_threads
-        );
+        log::debug!("Using user configured background thread count of {num_threads}");
         return num_threads;
     }
 
@@ -112,8 +109,7 @@ fn determine_async_thread_count(
     }
 
     log::warn!(
-        "Failed to determine async thread count, using default number of background threads ({})",
-        DEFAULT_BACKGROUND_THREADS
+        "Failed to determine async thread count, using default number of background threads ({DEFAULT_BACKGROUND_THREADS})"
     );
 
     DEFAULT_BACKGROUND_THREADS
@@ -132,7 +128,7 @@ fn init_worker_threads(config: &ThreadConfig, cpu_config: Option<&CoreConfig>) {
         .start_handler(thread_start_handler)
         .thread_name(make_thread_name)
         .build_global()
-        .expect("A global thread pool has already been initialized")
+        .expect("A global thread pool has already been initialized");
 }
 
 /// Determines the amount of worker threads based on factors such as user config
@@ -151,7 +147,7 @@ fn determine_worker_thread_count(
 
     // Next, try to get the amount of performance CPU cores on the system.
     if let Some(cpu_config) = cpu_config {
-        log::debug!("Detected core configuration: {:#?}", cpu_config);
+        log::debug!("Detected core configuration: {cpu_config:#?}");
 
         if let Some(perf_cores) = cpu_config
             .threads_by_class
@@ -165,8 +161,7 @@ fn determine_worker_thread_count(
         let num_threads = cpu_config.threads;
 
         log::debug!(
-            "Using detected logical thread count of {} because the CPU core performance class could not be determined",
-            num_threads
+            "Using detected logical thread count of {num_threads} because the CPU core performance class could not be determined"
         );
         return num_threads;
     }
@@ -231,7 +226,7 @@ impl<T> TaskHandle<T> {
 impl<T> TaskHandle<T> {
     /// Utility function that checks if an optional task was started and is ready.
     #[inline]
-    pub fn started_and_ready(task: &Option<Self>) -> bool {
+    pub fn started_and_ready(task: Option<&Self>) -> bool {
         let Some(task) = task else {
             return false;
         };
@@ -243,7 +238,7 @@ impl<T> TaskHandle<T> {
     /// and is now ready. Leaves the task empty if it was ready
     #[inline]
     pub fn get_if_started_and_ready(task: &mut Option<Self>) -> Option<T> {
-        if !Self::started_and_ready(task) {
+        if !Self::started_and_ready(task.as_ref()) {
             return None;
         }
 

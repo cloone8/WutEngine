@@ -1,4 +1,4 @@
-//! Module for the [MainThreadOnly] type
+//! Module for the [`MainThreadOnly`] type
 
 use core::ops::Deref;
 use core::ops::DerefMut;

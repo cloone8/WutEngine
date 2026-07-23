@@ -344,17 +344,8 @@ impl Camera {
 
         let blit_material = self.blit_material.as_mut().unwrap();
 
-        let blit_pipeline = match graphics::pipeline::get_pipeline(
-            blit_material,
-            MeshTopology::Triangle,
-            &color_targets,
-        ) {
-            Ok(bp) => bp,
-            Err(e) => {
-                log::error!("Failed to get camera blit pipeline. Not blitting: {e}");
-                return;
-            }
-        };
+        let blit_pipeline =
+            graphics::pipeline::get_pipeline(blit_material, MeshTopology::Triangle, &color_targets);
 
         blit_material
             .raw_bind_group_mut()
@@ -390,6 +381,7 @@ impl Camera {
         );
 
         let actual_target_size = blit_target_texture.size();
+
         render_pass.set_viewport(
             self.viewport.x * (actual_target_size.width as f32),
             self.viewport.y * (actual_target_size.height as f32),
@@ -448,8 +440,7 @@ impl Camera {
     ) -> &mut BindGroup {
         if camera_parameters.is_none() {
             *camera_parameters = Some(create_camera_bind_group(format!(
-                "Camera {} parameter bind group",
-                id
+                "Camera {id} parameter bind group"
             )));
         }
 
@@ -474,9 +465,7 @@ impl Component for Camera {
                 camera.update_render_target();
 
                 camera.update_view_projection(
-                    transform
-                        .map(|t| t.local_to_world())
-                        .unwrap_or(Mat4::IDENTITY),
+                    transform.map_or(Mat4::IDENTITY, Transform::local_to_world),
                 );
 
                 camera.update_cam_bind_group();

@@ -50,7 +50,7 @@ impl AssetTreeNode {
                 name,
                 ..
             } => {
-                let response = egui::Label::new(format!("{} {}", icon, name))
+                let response = egui::Label::new(format!("{icon} {name}"))
                     .selectable(false)
                     .sense(egui::Sense::click())
                     .ui(ui);
@@ -59,8 +59,7 @@ impl AssetTreeNode {
                     *context = path
                         .absolute()
                         .parent()
-                        .map(AssetPath::new)
-                        .unwrap_or_else(AssetPath::root);
+                        .map_or_else(AssetPath::root, AssetPath::new);
                     *selected = Some(path.clone());
                 }
 
@@ -77,7 +76,7 @@ struct CollapsingTreeItem<'a, 'b> {
     highlighted: bool,
 }
 
-impl<'a, 'b> CollapsingTreeItem<'a, 'b> {
+impl CollapsingTreeItem<'_, '_> {
     fn ui<R>(
         self,
         force_open: bool,

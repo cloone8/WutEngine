@@ -20,10 +20,10 @@ impl KeyboardId {
     /// Maps a winit device to a [`KeyboardId`], if the winit device is valid
     #[inline]
     pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
-        if device != winit::event::DeviceId::dummy() {
-            Some(Self(device))
-        } else {
+        if device == winit::event::DeviceId::dummy() {
             None
+        } else {
+            Some(Self(device))
         }
     }
 }
@@ -87,8 +87,8 @@ impl Keyboard {
     }
 
     /// Registers the given key as released
-    pub(crate) fn set_key_released(&mut self, key: &Key) {
-        let was_held = self.pressed_keys.remove(key);
+    pub(crate) fn set_key_released(&mut self, key: Key) {
+        let was_held = self.pressed_keys.remove(&key);
 
         if !was_held {
             log::trace!("Released key {key:?}, which was not pressed");
@@ -106,8 +106,8 @@ fn winit_native_keycode_to_u32(nkc: winit::keyboard::NativeKeyCode) -> Option<u3
     match nkc {
         winit::keyboard::NativeKeyCode::Unidentified => None,
         winit::keyboard::NativeKeyCode::Android(scancode) => Some(scancode),
-        winit::keyboard::NativeKeyCode::MacOS(scancode) => Some(u32::from(scancode)),
-        winit::keyboard::NativeKeyCode::Windows(scancode) => Some(u32::from(scancode)),
+        winit::keyboard::NativeKeyCode::MacOS(scancode)
+        | winit::keyboard::NativeKeyCode::Windows(scancode) => Some(u32::from(scancode)),
         winit::keyboard::NativeKeyCode::Xkb(keycode) => Some(keycode),
     }
 }
@@ -134,27 +134,24 @@ fn get_keyboard_and<T>(
 ) -> T {
     let keyboards = INPUT_MANAGER.keyboards.read().unwrap();
 
-    let keyboard = match to_query {
-        Some(to_query) => {
-            let keyboard = keyboards.get_identified_device(&to_query);
+    let keyboard = if let Some(to_query) = to_query {
+        let keyboard = keyboards.get_identified_device(&to_query);
 
-            if keyboard.is_none() {
-                log::warn!("Keyboard {to_query:?} could not be found, returning default values");
-            }
-
-            keyboard
+        if keyboard.is_none() {
+            log::warn!("Keyboard {to_query:?} could not be found, returning default values");
         }
-        None => {
-            let most_recent_keyboard = *INPUT_MANAGER.most_recent_keyboard.read().unwrap();
 
-            if let Some(latest) = most_recent_keyboard {
-                match keyboards.get_identified_device(&latest) {
-                    Some(keyboard) => Some(keyboard),
-                    None => Some(keyboards.get_any_device()),
-                }
-            } else {
-                Some(keyboards.get_any_device())
+        keyboard
+    } else {
+        let most_recent_keyboard = *INPUT_MANAGER.most_recent_keyboard.read().unwrap();
+
+        if let Some(latest) = most_recent_keyboard {
+            match keyboards.get_identified_device(&latest) {
+                Some(keyboard) => Some(keyboard),
+                None => Some(keyboards.get_any_device()),
             }
+        } else {
+            Some(keyboards.get_any_device())
         }
     };
 

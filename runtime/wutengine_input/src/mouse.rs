@@ -34,10 +34,10 @@ impl MouseId {
     /// Maps a winit device to a [`MouseId`], if the winit device is valid
     #[inline]
     pub(super) fn from_winit(device: winit::event::DeviceId) -> Option<Self> {
-        if device != winit::event::DeviceId::dummy() {
-            Some(Self(device))
-        } else {
+        if device == winit::event::DeviceId::dummy() {
             None
+        } else {
+            Some(Self(device))
         }
     }
 }
@@ -101,8 +101,8 @@ impl Mouse {
     }
 
     /// Registers the given button as released
-    pub(crate) fn set_button_released(&mut self, button: &ButtonId) {
-        let was_held = self.pressed_buttons.remove(button);
+    pub(crate) fn set_button_released(&mut self, button: ButtonId) {
+        let was_held = self.pressed_buttons.remove(&button);
 
         if !was_held {
             log::trace!("Released button {button}, which was not pressed");
@@ -129,27 +129,24 @@ impl Mouse {
 fn get_mouse_and<T>(to_query: Option<MouseId>, func: impl FnOnce(Option<&Mouse>) -> T) -> T {
     let mice = INPUT_MANAGER.mice.read().unwrap();
 
-    let mouse = match to_query {
-        Some(to_query) => {
-            let mouse = mice.get_identified_device(&to_query);
+    let mouse = if let Some(to_query) = to_query {
+        let mouse = mice.get_identified_device(&to_query);
 
-            if mouse.is_none() {
-                log::warn!("Mouse {to_query:?} could not be found, returning default values");
-            }
-
-            mouse
+        if mouse.is_none() {
+            log::warn!("Mouse {to_query:?} could not be found, returning default values");
         }
-        None => {
-            let most_recent_mouse = *INPUT_MANAGER.most_recent_mouse.read().unwrap();
 
-            if let Some(latest) = most_recent_mouse {
-                match mice.get_identified_device(&latest) {
-                    Some(mouse) => Some(mouse),
-                    None => Some(mice.get_any_device()),
-                }
-            } else {
-                Some(mice.get_any_device())
+        mouse
+    } else {
+        let most_recent_mouse = *INPUT_MANAGER.most_recent_mouse.read().unwrap();
+
+        if let Some(latest) = most_recent_mouse {
+            match mice.get_identified_device(&latest) {
+                Some(mouse) => Some(mouse),
+                None => Some(mice.get_any_device()),
             }
+        } else {
+            Some(mice.get_any_device())
         }
     };
 

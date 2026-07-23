@@ -2,7 +2,7 @@
 
 use wutengine_input::keyboard;
 
-/// Attempts to map a WutEngine [LogicalKey](keyboard::LogicalKey) to an [`egui::Key`]
+/// Attempts to map a WutEngine [`LogicalKey`](keyboard::LogicalKey) to an [`egui::Key`]
 #[inline]
 #[expect(clippy::too_many_lines, reason = "Big match")]
 pub fn wutengine_to_egui_key(key: keyboard::LogicalKey) -> Option<egui::Key> {
@@ -283,7 +283,7 @@ pub fn wutengine_to_egui_key(key: keyboard::LogicalKey) -> Option<egui::Key> {
             keyboard::LogicalNamed::ClosedCaptionToggle => None,
             keyboard::LogicalNamed::Dimmer => None,
             keyboard::LogicalNamed::DisplaySwap => None,
-            keyboard::LogicalNamed::DVR => None,
+            keyboard::LogicalNamed::Dvr => None,
             keyboard::LogicalNamed::Exit => None,
             keyboard::LogicalNamed::FavoriteClear0 => None,
             keyboard::LogicalNamed::FavoriteClear1 => None,

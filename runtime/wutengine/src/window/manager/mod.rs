@@ -1,7 +1,6 @@
 //! Module housing the window manager
 
 use alloc::sync::Arc;
-use core::sync::atomic::AtomicUsize;
 use display_info::DisplayInfo;
 use nohash_hasher::IntSet;
 use std::sync::RwLock;
@@ -182,7 +181,7 @@ pub(crate) fn appoint_primary_window(id: crate::window::Window) {
     window.is_primary = true;
 
     // Now we unset all other windows to non-primary
-    for (&win_id, window) in window_manager.windows.iter_mut() {
+    for (&win_id, window) in &mut window_manager.windows {
         if win_id != id {
             window.is_primary = false;
         }
@@ -195,7 +194,7 @@ pub(crate) fn appoint_primary_window(id: crate::window::Window) {
 /// it have changed, or when `force_reconfigure` is `true`
 ///
 /// Must be called from the main thread
-pub(crate) fn refresh_window(id: &crate::window::Window, force_reconfigure: bool) {
+pub(crate) fn refresh_window(id: crate::window::Window, force_reconfigure: bool) {
     profiling::function_scope!();
 
     assert_main_thread!();
@@ -204,7 +203,7 @@ pub(crate) fn refresh_window(id: &crate::window::Window, force_reconfigure: bool
 
     let mut window_manager = WINDOW_MANAGER.write().unwrap();
 
-    let Some(window) = window_manager.windows.get_mut(id) else {
+    let Some(window) = window_manager.windows.get_mut(&id) else {
         log::error!("Could not refresh cached info for window {id} because it could not be found");
         return;
     };
@@ -218,7 +217,7 @@ pub(crate) fn refresh_window(id: &crate::window::Window, force_reconfigure: bool
 }
 
 /// Notifies the window manager that the occlusion status of window `id` has changed
-pub(crate) fn notify_window_occluded(id: &crate::window::Window, occluded: bool) {
+pub(crate) fn notify_window_occluded(id: crate::window::Window, occluded: bool) {
     profiling::function_scope!();
 
     assert_main_thread!();
@@ -227,7 +226,7 @@ pub(crate) fn notify_window_occluded(id: &crate::window::Window, occluded: bool)
 
     let mut window_manager = WINDOW_MANAGER.write().unwrap();
 
-    let Some(window) = window_manager.windows.get_mut(id) else {
+    let Some(window) = window_manager.windows.get_mut(&id) else {
         log::error!(
             "Could not change occluded status of window {id} to {occluded} because it could not be found"
         );
@@ -275,7 +274,7 @@ fn find_existing_display_id(
     window_manager: &WindowManager,
     monitor_handle: &winit::monitor::MonitorHandle,
 ) -> Option<Display> {
-    for (id, info) in window_manager.displays.iter() {
+    for (id, info) in &window_manager.displays {
         if &info.handle == monitor_handle {
             return Some(*id);
         }
@@ -298,7 +297,7 @@ pub(crate) enum WindowState {
     NotFound,
 }
 
-/// For a given [winit::window::WindowId], returns the WutEngine [`Window`] if one can be found
+/// For a given [`winit::window::WindowId`], returns the WutEngine [`Window`] if one can be found
 pub(crate) fn find_id(native_id: winit::window::WindowId) -> WindowState {
     profiling::function_scope!();
 
@@ -327,7 +326,7 @@ pub(crate) fn get_surface_textures() -> SmallVec<[(Window, wgpu::SurfaceTexture)
 
     let mut surfaces: SmallVec<[_; 2]> = SmallVec::new_const();
 
-    for (&id, window_info) in window_manager.windows.iter() {
+    for (&id, window_info) in &window_manager.windows {
         profiling::scope!("Get surface texture", &id.to_string());
         log::trace!("Getting surface texture for window {id}");
 
@@ -498,7 +497,7 @@ fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::S
 #[derive(Debug)]
 struct WindowManager {
     /// Mapping from [`winit`] window IDs to WutEngine window IDs.
-    /// use the [Into::into] implementation on [`winit::window::WindowId`] to convert
+    /// use the [`Into::into`] implementation on [`winit::window::WindowId`] to convert
     /// it to a [`u64`] for use in this map
     winit_to_engine: IntMap<u64, crate::window::Window>,
 

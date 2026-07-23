@@ -51,7 +51,12 @@ impl Mesh {
             return None;
         }
 
-        let vtx_pos_buffer = Vec::from_iter(data.vertices.iter().copied().map(GVec3::<f32>::from));
+        let vtx_pos_buffer = data
+            .vertices
+            .iter()
+            .copied()
+            .map(GVec3::<f32>::from)
+            .collect::<Vec<_>>();
 
         let pos_buffer = VertexBuffer::new(
             &vtx_pos_buffer,
@@ -81,18 +86,14 @@ impl Mesh {
             .insert(ShaderVertexAttributeType::Position, pos_buffer);
 
         if !data.colors.is_empty() {
-            if data.colors.len() != vtx_count {
-                log::error!(
-                    "Discarding color channel because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
-                    data.colors.len()
-                );
-            } else {
-                let color_buffer = Vec::from_iter(
-                    data.colors
-                        .iter()
-                        .copied()
-                        .map(|color| GVec4::<f32>::from(color.as_vec4())),
-                );
+            if data.colors.len() == vtx_count {
+                let color_buffer = data
+                    .colors
+                    .iter()
+                    .copied()
+                    .map(|color| GVec4::<f32>::from(color.as_vec4()))
+                    .collect::<Vec<_>>();
+
                 let color_vertex_buffer = VertexBuffer::new(
                     &color_buffer,
                     ShaderVertexAttributeType::Color,
@@ -104,6 +105,11 @@ impl Mesh {
 
                 mesh.vertex_buffers
                     .insert(ShaderVertexAttributeType::Color, color_vertex_buffer);
+            } else {
+                log::error!(
+                    "Discarding color channel because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
+                    data.colors.len()
+                );
             }
         }
 
@@ -116,7 +122,11 @@ impl Mesh {
                 continue;
             }
 
-            let uv_vec = Vec::from_iter(uv_data.iter().copied().map(GVec2::<f32>::from));
+            let uv_vec = uv_data
+                .iter()
+                .copied()
+                .map(GVec2::<f32>::from)
+                .collect::<Vec<_>>();
 
             let uv_vtx_buf = VertexBuffer::new(
                 &uv_vec,
@@ -135,7 +145,7 @@ impl Mesh {
     }
 }
 
-/// Error while deserializing [MeshData] into a [`Mesh`]
+/// Error while deserializing [`SerializedMesh`] into a [`Mesh`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum MeshFromDataErr {
     /// Mesh had no vertices or no indices
@@ -187,7 +197,7 @@ fn trim_to_multiple_of<T>(data: &[T], topology: MeshTopology) -> &[T] {
     &data[..(data.len() - (data.len() % topology.indices_per_primitive()))]
 }
 
-/// Converts a WutEngine [MeshTopology] to a [`wgpu::PrimitiveTopology`]
+/// Converts a WutEngine [`MeshTopology`] to a [`wgpu::PrimitiveTopology`]
 pub const fn asset_topology_to_wgpu(asset_topology: MeshTopology) -> wgpu::PrimitiveTopology {
     match asset_topology {
         MeshTopology::Triangle => wgpu::PrimitiveTopology::TriangleList,

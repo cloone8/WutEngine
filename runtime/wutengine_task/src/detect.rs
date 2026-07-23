@@ -69,7 +69,10 @@ mod win {
         let mut buffer = vec![0u8; num_bytes as usize];
 
         let buf_ptr = buffer.as_mut_ptr();
-        let cpu_set_ptr = buf_ptr as *mut SYSTEM_CPU_SET_INFORMATION;
+
+        #[expect(clippy::cast_ptr_alignment, reason = "checked")]
+        let cpu_set_ptr = buf_ptr.cast::<SYSTEM_CPU_SET_INFORMATION>();
+        assert!(cpu_set_ptr.is_aligned(), "Invalid alignment returned");
 
         let mut valid_bytes = 0;
         let result = unsafe {
@@ -88,7 +91,7 @@ mod win {
         if let Err(e) = result {
             log::warn!("Failed to get CPU set info: {e}");
             return None;
-        };
+        }
 
         let mut cur_byte_offset = 0;
 
@@ -98,7 +101,7 @@ mod win {
 
         while cur_byte_offset < buffer.len() {
             let info_ptr = unsafe { buffer.as_ptr().byte_add(cur_byte_offset) }
-                as *const SYSTEM_CPU_SET_INFORMATION;
+                .cast::<SYSTEM_CPU_SET_INFORMATION>();
             let info = unsafe { info_ptr.as_ref() }.unwrap();
 
             assert!(

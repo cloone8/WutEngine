@@ -25,7 +25,7 @@ pub(crate) type GenericSystem = dyn Fn(&World) + Send + Sync + 'static;
 pub struct SystemId(u32, Phase);
 
 impl SystemId {
-    /// Returns a new SystemId, guaranteed to be higher than any previous ID
+    /// Returns a new [`SystemId`], guaranteed to be higher than any previous ID
     pub(crate) fn next(phase: Phase) -> Self {
         static NEXT_SYSTEM_ID: AtomicU32 = AtomicU32::new(0);
 
@@ -152,7 +152,7 @@ impl SystemManager {
     }
 
     fn find_sets_for_phase(&self, phase: Phase) -> Option<&[SystemSet]> {
-        for (set_phase, set) in self.by_phase.iter() {
+        for (set_phase, set) in &self.by_phase {
             if *set_phase == phase {
                 return Some(set.as_slice());
             }

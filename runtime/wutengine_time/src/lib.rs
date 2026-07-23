@@ -41,7 +41,7 @@ struct TimeManager {
     /// Internal values, meant to be accessed synchronized only
     internal: Mutex<TimeManagerInternal>,
 
-    /// The time scale used, stored as a bitcast [f64] using [f64::to_bits] and [`f64::from_bits`]
+    /// The time scale used, stored as a bitcast [f64] using [`f64::to_bits`] and [`f64::from_bits`]
     time_scale: AtomicU64,
 
     /// The amount of frames that have passed in total since application start
@@ -197,6 +197,7 @@ pub fn time_nanos() -> u64 {
 ///
 /// Time is returned in seconds, as a double
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn time64() -> f64 {
     (time_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -205,6 +206,7 @@ pub fn time64() -> f64 {
 ///
 /// Time is returned in seconds, as a float
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn time() -> f32 {
     (time_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -225,6 +227,7 @@ pub fn unscaled_time_nanos() -> u64 {
 ///
 /// Time is returned in seconds, as a double
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn unscaled_time64() -> f64 {
     (unscaled_time_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -235,6 +238,7 @@ pub fn unscaled_time64() -> f64 {
 ///
 /// Time is returned in seconds, as a float
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn unscaled_time() -> f32 {
     (unscaled_time_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -251,6 +255,7 @@ pub fn delta_nanos() -> u64 {
 ///
 /// Time is returned in seconds, as a double
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn delta64() -> f64 {
     (delta_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -259,6 +264,7 @@ pub fn delta64() -> f64 {
 ///
 /// Time is returned in seconds, as a float
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn delta() -> f32 {
     (delta_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -279,6 +285,7 @@ pub fn unscaled_delta_nanos() -> u64 {
 ///
 /// Time is returned in seconds, as a double
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn unscaled_delta64() -> f64 {
     (unscaled_delta_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -289,6 +296,7 @@ pub fn unscaled_delta64() -> f64 {
 ///
 /// Time is returned in seconds, as a float
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn unscaled_delta() -> f32 {
     (unscaled_delta_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -305,6 +313,7 @@ pub fn fixed_time_nanos() -> u64 {
 ///
 /// Time is returned in seconds, as a double
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn fixed_time64() -> f64 {
     (fixed_time_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -313,6 +322,7 @@ pub fn fixed_time64() -> f64 {
 ///
 /// Time is returned in seconds, as a float
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn fixed_time() -> f32 {
     (fixed_time_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -329,6 +339,7 @@ pub fn fixed_delta_nanos() -> u64 {
 ///
 /// Time is returned in seconds, as a double
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn fixed_delta64() -> f64 {
     (fixed_delta_nanos() as f64) / (NANOS_PER_SECOND as f64)
 }
@@ -337,6 +348,7 @@ pub fn fixed_delta64() -> f64 {
 ///
 /// Time is returned in seconds, as a float
 #[inline]
+#[expect(clippy::cast_precision_loss, reason = "Inherent to operation")]
 pub fn fixed_delta() -> f32 {
     (fixed_delta_nanos() as f32) / (NANOS_PER_SECOND as f32)
 }
@@ -417,6 +429,11 @@ pub fn update_frame(now: Instant) -> u64 {
     // Set new scale / delta based on the last requested values
     let (new_time_scale, new_fixed_delta) = update_time_config(&time_manager_internal);
 
+    assert!(
+        new_time_scale.is_sign_positive(),
+        "Time scale must be positive"
+    );
+
     // Update the frame counter
     TIME_MANAGER.frame_num.fetch_add(1, Ordering::AcqRel);
 
@@ -430,7 +447,7 @@ pub fn update_frame(now: Instant) -> u64 {
     // to the target delta, to make sure the simulation doesn't try to jump an insane
     // amount in one frame
     let time_since_prev_frame = if unclamped_time_delta_nanos
-        > (time_manager_internal.maximum_frame_time as u128)
+        > u128::from(time_manager_internal.maximum_frame_time)
     {
         log::warn!(
             "Clamping frame delta time ({}) to target frame time ({}) because it was longer than the maximum frame time ({}).",
@@ -442,7 +459,7 @@ pub fn update_frame(now: Instant) -> u64 {
         time_manager_internal.target_delta_time
     } else {
         // Safe cast because we know the unclamped delta is less than NANOS_PER_SECONDS, which fits in a u64
-        unclamped_time_delta_nanos as u64
+        u64::try_from(unclamped_time_delta_nanos).expect("Should fit")
     };
 
     // Calculate the deltas and the number of fixed steps this frame
@@ -454,6 +471,12 @@ pub fn update_frame(now: Instant) -> u64 {
         .unscaled_delta
         .store(unscaled_delta, Ordering::Release);
 
+    #[expect(
+        clippy::cast_precision_loss,
+        clippy::cast_sign_loss,
+        clippy::cast_possible_truncation,
+        reason = "Checked"
+    )]
     let scaled_delta = ((unscaled_delta as f64) * new_time_scale) as u64;
     let new_time = TIME_MANAGER.time.fetch_add(scaled_delta, Ordering::Release);
     TIME_MANAGER.delta.store(scaled_delta, Ordering::Release);
@@ -481,6 +504,15 @@ pub fn update_fixed() {
 
     let unscaled_delta = TIME_MANAGER.fixed_delta.load(Ordering::Acquire);
     let time_scale = f64::from_bits(TIME_MANAGER.time_scale.load(Ordering::Acquire));
+
+    assert!(time_scale.is_sign_positive(), "Time scale must be positive");
+
+    #[expect(
+        clippy::cast_precision_loss,
+        clippy::cast_sign_loss,
+        clippy::cast_possible_truncation,
+        reason = "Checked"
+    )]
     let scaled_delta = ((unscaled_delta as f64) * time_scale) as u64;
 
     TIME_MANAGER

@@ -61,6 +61,7 @@ impl LogicalKey {
 /// Taken from [`winit 0.30.13`](https://github.com/rust-windowing/winit/tree/v0.30.13),
 /// and modified to suit WutEngine APIs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[expect(clippy::doc_markdown, reason = "Too many false positives")]
 pub enum LogicalNamed {
     /// The `Alt` (Alternative) key.
     ///
@@ -580,7 +581,7 @@ pub enum LogicalNamed {
     /// Swap video sources. (`VK_DISPLAY_SWAP`)
     DisplaySwap,
     /// Select Digital Video Recorder. (`KEYCODE_DVR`)
-    DVR,
+    Dvr,
     /// Exit the current application. (`VK_EXIT`)
     Exit,
     /// Clear program or content stored as favorite 0. (`VK_CLEAR_FAVORITE_0`)
@@ -1021,7 +1022,7 @@ impl LogicalNamed {
             winit::keyboard::NamedKey::ClosedCaptionToggle => Self::ClosedCaptionToggle,
             winit::keyboard::NamedKey::Dimmer => Self::Dimmer,
             winit::keyboard::NamedKey::DisplaySwap => Self::DisplaySwap,
-            winit::keyboard::NamedKey::DVR => Self::DVR,
+            winit::keyboard::NamedKey::DVR => Self::Dvr,
             winit::keyboard::NamedKey::Exit => Self::Exit,
             winit::keyboard::NamedKey::FavoriteClear0 => Self::FavoriteClear0,
             winit::keyboard::NamedKey::FavoriteClear1 => Self::FavoriteClear1,

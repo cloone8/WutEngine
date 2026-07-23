@@ -47,6 +47,13 @@ unsafe impl bytemuck::Pod for GVec2<f32> {}
 impl From<Vec2> for GVec2<f32> {
     #[inline]
     fn from(value: Vec2) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&Vec2> for GVec2<f32> {
+    #[inline]
+    fn from(value: &Vec2) -> Self {
         Self(value.to_array())
     }
 }
@@ -91,6 +98,13 @@ unsafe impl bytemuck::Pod for GVec3<f32> {}
 impl From<Vec3> for GVec3<f32> {
     #[inline]
     fn from(value: Vec3) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&Vec3> for GVec3<f32> {
+    #[inline]
+    fn from(value: &Vec3) -> Self {
         Self(value.to_array())
     }
 }
@@ -132,10 +146,17 @@ unsafe impl bytemuck::Pod for GVec4<u32> {}
 unsafe impl bytemuck::Zeroable for GVec4<f32> {}
 unsafe impl bytemuck::Pod for GVec4<f32> {}
 
+impl From<&Vec4> for GVec4<f32> {
+    #[inline]
+    fn from(value: &Vec4) -> Self {
+        Self(value.to_array())
+    }
+}
+
 impl From<Vec4> for GVec4<f32> {
     #[inline]
     fn from(value: Vec4) -> Self {
-        Self(value.to_array())
+        Self::from(&value)
     }
 }
 
@@ -143,6 +164,13 @@ impl From<[f32; 4]> for GVec4<f32> {
     #[inline]
     fn from(value: [f32; 4]) -> Self {
         Self(value)
+    }
+}
+
+impl From<&[f32; 4]> for GVec4<f32> {
+    #[inline]
+    fn from(value: &[f32; 4]) -> Self {
+        Self::from(*value)
     }
 }
 
@@ -177,6 +205,13 @@ impl GMat4x4<f32> {
 impl From<Mat4> for GMat4x4<f32> {
     #[inline]
     fn from(value: Mat4) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&Mat4> for GMat4x4<f32> {
+    #[inline]
+    fn from(value: &Mat4) -> Self {
         let cols = value.to_cols_array_2d();
         Self([
             cols[0].into(),

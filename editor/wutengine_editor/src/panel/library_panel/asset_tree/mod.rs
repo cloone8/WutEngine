@@ -23,11 +23,10 @@ pub(super) enum AssetTreeNode {
 
 impl AssetTreeNode {
     pub(super) fn new_empty_dir(path: AssetPath) -> Self {
-        let name = path
-            .absolute()
-            .file_name()
-            .map(|file| file.to_string_lossy().to_string())
-            .unwrap_or_else(|| "<UNKNOWN NAME>".to_string());
+        let name = path.absolute().file_name().map_or_else(
+            || "<UNKNOWN NAME>".to_string(),
+            |file| file.to_string_lossy().to_string(),
+        );
 
         Self::Branch {
             name,
@@ -38,15 +37,13 @@ impl AssetTreeNode {
 
     fn name(&self) -> &str {
         match self {
-            Self::Branch { name, .. } => name.as_str(),
-            Self::Leaf { name, .. } => name.as_str(),
+            Self::Branch { name, .. } | Self::Leaf { name, .. } => name.as_str(),
         }
     }
 
     fn path(&self) -> &AssetPath {
         match self {
-            Self::Branch { path, .. } => path,
-            Self::Leaf { path, .. } => path,
+            Self::Branch { path, .. } | Self::Leaf { path, .. } => path,
         }
     }
 
@@ -82,7 +79,7 @@ impl AssetTreeNode {
             children.push(node);
             children.sort_by(|a, b| a.name().cmp(b.name()));
             return;
-        };
+        }
 
         let mut to_insert = None;
 

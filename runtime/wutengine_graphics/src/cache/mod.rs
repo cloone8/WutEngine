@@ -21,7 +21,7 @@ where
     H: Default + BuildHasher + Clone,
 {
     fn default() -> Self {
-        Self(Default::default())
+        Self(dashmap::DashMap::default())
     }
 }
 

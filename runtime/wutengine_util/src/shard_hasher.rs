@@ -1,4 +1,4 @@
-//! Contains a wrapper around a [nohash_hasher::NoHashHasher] that hashes with a stride constistent with the shard stride of a [dashmap::DashMap].
+//! Contains a wrapper around a [`nohash_hasher::NoHashHasher`] that hashes with a stride constistent with the shard stride of a [`dashmap::DashMap`].
 //! This has the advantage that consecutive integers are always in different shards, meaning lower contention when generating keys with steps of one.
 
 use core::marker::PhantomData;
@@ -6,7 +6,7 @@ use std::sync::OnceLock;
 
 use nohash_hasher::NoHashHasher;
 
-/// Hasher used for distributing [nohash_hasher]-based keys evenly across a [`dashmap::DashMap`] for minimal
+/// Hasher used for distributing [`nohash_hasher`]-based keys evenly across a [`dashmap::DashMap`] for minimal
 /// locking behaviour
 #[derive(Debug, Clone, Copy)]
 pub struct ShardHasher<T> {

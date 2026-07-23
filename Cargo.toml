@@ -181,7 +181,15 @@ needless_raw_strings = "warn"
 self_named_module_files = "deny"
 missing_fields_in_debug = "warn"
 
-similar_names = { level = "allow" }      # Too noisy and not that useful
-missing_panics_doc = { level = "allow" } # I won't include a panic doc for every function that locks a mutex or rwlock
-missing_errors_doc = { level = "allow" } # Error types should be limited in size and have docs themselves
-must_use_candidate = { level = "allow" } # Not actually a problem
+similar_names = { level = "allow" }            # Too noisy and not that useful
+missing_panics_doc = { level = "allow" }       # I won't include a panic doc for every function that locks a mutex or rwlock
+missing_errors_doc = { level = "allow" }       # Error types should be limited in size and have docs themselves
+must_use_candidate = { level = "allow" }       # Not actually a problem
+manual_assert = { level = "allow" }            # Usually for a good reason when done
+cast_ptr_alignment = { level = "allow" }       # Common to cast u8 to other types
+struct_field_names = { level = "allow" }       # Too many false positives
+match_same_arms = { level = "allow" }          # Too ugly most of the time
+struct_excessive_bools = { level = "allow" }   # Mostly unnecessary
+cast_possible_truncation = { level = "allow" } # Too noisy
+cast_precision_loss = { level = "allow" }      # Too noisy
+cast_sign_loss = { level = "allow" }           # Too noisy

@@ -9,6 +9,7 @@ use super::winit_native_keycode_to_u32;
 /// and modified to suit WutEngine APIs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, VariantIndex)]
 #[index_repr(u32)]
+#[expect(clippy::doc_markdown, reason = "Too many false positives")]
 pub enum Key {
     /// <kbd>`</kbd>
     Backquote,
@@ -636,12 +637,11 @@ impl TryFrom<winit::keyboard::PhysicalKey> for Key {
     fn try_from(value: winit::keyboard::PhysicalKey) -> Result<Self, Self::Error> {
         match value {
             winit::keyboard::PhysicalKey::Unidentified(native_key_code) => {
-                match winit_native_keycode_to_u32(native_key_code) {
-                    Some(as_int) => Ok(Self::Unknown(as_int)),
-                    None => {
-                        log::warn!("Unidentified keycode, ignoring");
-                        Err(())
-                    }
+                if let Some(as_int) = winit_native_keycode_to_u32(native_key_code) {
+                    Ok(Self::Unknown(as_int))
+                } else {
+                    log::warn!("Unidentified keycode, ignoring");
+                    Err(())
                 }
             }
             winit::keyboard::PhysicalKey::Code(kc) => match kc {

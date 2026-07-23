@@ -105,14 +105,14 @@ fn insert_system_into_set(set: &mut SystemSet, new_system: PendingSystem) {
 
 fn has_clashing_borrows(set: &SystemSet, new_system: &PendingSystem) -> bool {
     // Check if any of the new shared borrows clash with the mutable borrows of the existing set
-    for new_shared_borrow in new_system.shared_borrows.iter() {
+    for new_shared_borrow in &new_system.shared_borrows {
         if set.exclusive_borrows.contains(new_shared_borrow) {
             return true;
         }
     }
 
     // Check if any of the new exlusive borrows clash with the mutable or immutable borrows of the existing set
-    for new_exclusive_borrow in new_system.exclusive_borrows.iter() {
+    for new_exclusive_borrow in &new_system.exclusive_borrows {
         if set.shared_borrows.contains(new_exclusive_borrow)
             || set.exclusive_borrows.contains(new_exclusive_borrow)
         {

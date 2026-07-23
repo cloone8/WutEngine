@@ -128,9 +128,9 @@ impl VertexBuffer {
         Ok(Self {
             attribute,
             count,
+            dynamic,
             buffer,
             cpu_buffer,
-            dynamic,
         })
     }
 
@@ -172,9 +172,9 @@ impl VertexBuffer {
         Ok(Self {
             attribute,
             count,
+            dynamic,
             buffer,
             cpu_buffer,
-            dynamic,
         })
     }
 

@@ -27,8 +27,8 @@ pub const fn to_egui_pos2(v: wutengine_math::Vec2, scale_factor: f32) -> egui::P
 pub fn tex_config_from_egui_data(delta: &egui::epaint::ImageData) -> TextureConfig {
     match delta {
         egui::ImageData::Color(_) => TextureConfig {
-            width: delta.width() as u32,
-            height: delta.height() as u32,
+            width: u32::try_from(delta.width()).unwrap(),
+            height: u32::try_from(delta.height()).unwrap(),
             format: TextureFormat::Rgba8,
         },
     }
@@ -44,7 +44,7 @@ pub fn egui_image_bytes(image: &egui::epaint::ImageData) -> &[u8] {
 
 /// Returns the sampler config for the [`egui TextureOptions`](egui::TextureOptions)
 #[inline]
-pub fn sampler_from_egui(options: &egui::TextureOptions) -> SerializedSampler {
+pub fn sampler_from_egui(options: egui::TextureOptions) -> SerializedSampler {
     let filtering = filter_mode_from_egui(options.magnification);
 
     if options.magnification != options.minification {
@@ -67,7 +67,7 @@ pub fn sampler_from_egui(options: &egui::TextureOptions) -> SerializedSampler {
     }
 }
 
-/// Converts an [egui::TextureFilter] to a WutEngine [`FilterMode`]
+/// Converts an [`egui::TextureFilter`] to a WutEngine [`FilterMode`]
 #[inline]
 pub fn filter_mode_from_egui(egui_mode: egui::TextureFilter) -> FilterMode {
     match egui_mode {
@@ -76,7 +76,7 @@ pub fn filter_mode_from_egui(egui_mode: egui::TextureFilter) -> FilterMode {
     }
 }
 
-/// Converts an [egui::TextureWrapMode] to a WutEngine [`WrapModeType`]
+/// Converts an [`egui::TextureWrapMode`] to a WutEngine [`WrapModeType`]
 #[inline]
 pub fn wrap_mode_from_egui(egui_mode: egui::TextureWrapMode) -> WrapModeType {
     match egui_mode {
@@ -105,22 +105,28 @@ pub struct ScissorRect {
 impl ScissorRect {
     /// Creates a new scissor rect from an egui rect, and a surface configuration
     /// The resulting rect can be used directly in graphics APIs
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "Checked"
+    )]
     pub fn new(
         clip_rect: &egui::epaint::Rect,
         pixels_per_point: f32,
         target_size: (u32, u32),
     ) -> Self {
         // Transform clip rect to physical pixels:
-        let clip_min_x = pixels_per_point * clip_rect.min.x;
-        let clip_min_y = pixels_per_point * clip_rect.min.y;
-        let clip_max_x = pixels_per_point * clip_rect.max.x;
-        let clip_max_y = pixels_per_point * clip_rect.max.y;
+        let clip_min_x = (pixels_per_point * clip_rect.min.x).round();
+        let clip_min_y = (pixels_per_point * clip_rect.min.y).round();
+        let clip_max_x = (pixels_per_point * clip_rect.max.x).round();
+        let clip_max_y = (pixels_per_point * clip_rect.max.y).round();
 
         // Round to integer:
-        let clip_min_x = clip_min_x.round() as u32;
-        let clip_min_y = clip_min_y.round() as u32;
-        let clip_max_x = clip_max_x.round() as u32;
-        let clip_max_y = clip_max_y.round() as u32;
+
+        let clip_min_x = clip_min_x as u32;
+        let clip_min_y = clip_min_y as u32;
+        let clip_max_x = clip_max_x as u32;
+        let clip_max_y = clip_max_y as u32;
 
         // Clamp:
         let clip_min_x = clip_min_x.clamp(0, target_size.0);

@@ -44,7 +44,7 @@ pub(crate) struct ProjectAssetManager {
 
 /// Loading/saving
 impl ProjectAssetManager {
-    pub(super) fn load(root: PathBuf) -> Result<Self, LoadErr> {
+    pub(super) fn load(root: &Path) -> Result<Self, LoadErr> {
         let asset_index_file = root.join("assets.json");
 
         if !std::fs::exists(&asset_index_file)? {
@@ -55,7 +55,7 @@ impl ProjectAssetManager {
 
         let mut assets: HashMap<uuid::NonNilUuid, ProjectAsset> = serde_json::from_slice(&bytes)?;
 
-        for (&id, asset) in assets.iter_mut() {
+        for (&id, asset) in &mut assets {
             asset.id = Some(id);
         }
 
@@ -66,14 +66,17 @@ impl ProjectAssetManager {
         })
     }
 
+    /// Saves the project asset manager to disk
     pub(crate) fn save(&self) -> Result<(), SaveErr> {
         let assets = self.assets.read().unwrap();
 
-        let assets_serialized = serde_json::to_string_pretty(&BTreeMap::from_iter(assets.iter()))?;
+        let assets_serialized =
+            serde_json::to_string_pretty(&assets.iter().collect::<BTreeMap<_, _>>())?;
 
         Ok(std::fs::write(&self.asset_index, assets_serialized)?)
     }
 
+    /// Returns the path to the project asset root directory
     pub(crate) fn asset_root(&self) -> &Path {
         &self.asset_root
     }
@@ -172,7 +175,7 @@ impl ProjectAssetManager {
     /// they must not escape the project root
     pub(crate) fn insert_asset<A: SerializedAsset>(
         &self,
-        asset: A,
+        asset: &A,
         directory: impl AsRef<Path>,
         name: &str,
     ) -> Result<uuid::NonNilUuid, InsertAssetErr> {
@@ -232,6 +235,7 @@ impl ProjectAssetManager {
     }
 }
 
+/// Information on an asset in the project
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ProjectAsset {
     #[serde(skip)]

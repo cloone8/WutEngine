@@ -77,7 +77,7 @@ impl ModuleLogger {
         if let Some(logger) = subsystems.get(subsystem).cloned() {
             drop(subsystems);
             return cb(logger);
-        };
+        }
 
         drop(subsystems);
 
@@ -128,7 +128,7 @@ impl log::Log for ModuleLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        self.with_subsys_logger(record.metadata().target(), |logger| logger.log(record))
+        self.with_subsys_logger(record.metadata().target(), |logger| logger.log(record));
     }
 
     fn flush(&self) {

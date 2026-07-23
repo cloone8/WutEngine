@@ -184,7 +184,7 @@ where
 
 /// Returns the raw [`toml::Value`] of a given config key, if it exists.
 ///
-/// For automatic deserialization, see [try_get] or [`get`]
+/// For automatic deserialization, see [`try_get`] or [`get`]
 pub fn get_raw(key: &str) -> Option<toml::Value> {
     profiling::function_scope!(key);
 
@@ -201,18 +201,17 @@ pub fn get_raw(key: &str) -> Option<toml::Value> {
         return None;
     };
 
-    let val = match subcategory_value.as_table() {
-        Some(subcategory_table) => find_key(main_category, rest, subcategory_table),
-        None => {
-            if rest.contains('.') {
-                log::warn!(
-                    "Key '{key}' specifies a subcategory, but '{main_category}' is a main category with values only"
-                );
-                return None;
-            } else {
-                subcategory_value.get(rest)
-            }
+    let val = if let Some(subcategory_table) = subcategory_value.as_table() {
+        find_key(main_category, rest, subcategory_table)
+    } else {
+        if rest.contains('.') {
+            log::warn!(
+                "Key '{key}' specifies a subcategory, but '{main_category}' is a main category with values only"
+            );
+            return None;
         }
+
+        subcategory_value.get(rest)
     };
 
     val.cloned()

@@ -140,6 +140,8 @@ fn write_primitives_into_views(
     mut index_view: wgpu::WriteOnly<'_, [u8]>,
     primitives: &[egui::ClippedPrimitive],
 ) {
+    const MAP_0_1: f32 = 1.0 / 255.0;
+
     profiling::function_scope!();
 
     let mut vtx_offset = 0;
@@ -180,13 +182,13 @@ fn write_primitives_into_views(
             pos_staging.push(GVec3::<f32>::new(vtx.pos.x, vtx.pos.y, 0.0));
 
             let color_array = vtx.color.to_array();
-            const MAP_0_1: f32 = 1.0 / 255.0;
+
             col_staging.push(GVec4::<f32>::from(
                 Vec4::new(
-                    color_array[0] as f32,
-                    color_array[1] as f32,
-                    color_array[2] as f32,
-                    color_array[3] as f32,
+                    f32::from(color_array[0]),
+                    f32::from(color_array[1]),
+                    f32::from(color_array[2]),
+                    f32::from(color_array[3]),
                 ) * MAP_0_1,
             ));
 
@@ -251,8 +253,8 @@ pub(crate) struct PrimitiveRenderState<'a> {
     pub(crate) base_index: u64,
 }
 
-impl<'a> PrimitiveRenderState<'a> {
-    /// Renders a single [egui::ClippedPrimitive]. Primitives should be ordered according to their data in [`Self::vertex_buffers`] and the currently set index buffer
+impl PrimitiveRenderState<'_> {
+    /// Renders a single [`egui::ClippedPrimitive`]. Primitives should be ordered according to their data in [`Self::vertex_buffers`] and the currently set index buffer
     pub(crate) fn render_primitive(
         &mut self,
         primitive: egui::ClippedPrimitive,
@@ -278,8 +280,7 @@ impl<'a> PrimitiveRenderState<'a> {
                         blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
                         write_mask: wgpu::ColorWrites::all(),
                     })],
-                )
-                .unwrap();
+                );
 
                 if self.cur_pipeline.is_none() || self.cur_pipeline.as_ref().unwrap() != &pipeline {
                     pass.set_pipeline(&pipeline);
@@ -328,11 +329,9 @@ impl<'a> PrimitiveRenderState<'a> {
                     );
                 }
 
-                pass.draw_indexed(
-                    (self.base_index as u32)..((self.base_index + num_indices) as u32),
-                    0,
-                    0..1,
-                );
+                let draw_start = u32::try_from(self.base_index).unwrap();
+                let draw_end = u32::try_from(self.base_index + num_vertices).unwrap();
+                pass.draw_indexed(draw_start..draw_end, 0, 0..1);
 
                 self.base_vertex += num_vertices;
                 self.base_index += num_indices;

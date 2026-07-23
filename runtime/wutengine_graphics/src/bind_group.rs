@@ -1,4 +1,4 @@
-//! Wrapper around a [wgpu::BindGroup]
+//! Wrapper around a [`wgpu::BindGroup`]
 
 use core::num::NonZero;
 use std::collections::HashMap;
@@ -74,13 +74,13 @@ impl BindGroup {
         for param in params {
             let (name, index) = match param {
                 ShaderParameter::Buffer { ty, name, .. } => {
-                    let index = ParamIndex::Buffer(buffer_params.len() as u16);
+                    let index = ParamIndex::Buffer(u16::try_from(buffer_params.len()).unwrap());
                     buffer_params.push(shader_buffer_param_default_value(*ty));
 
                     (name, index)
                 }
                 ShaderParameter::Opaque { ty, name, .. } => {
-                    let index = ParamIndex::Opaque(opaque_params.len() as u16);
+                    let index = ParamIndex::Opaque(u16::try_from(opaque_params.len()).unwrap());
                     opaque_params.push(shader_opaque_param_default_value(*ty));
 
                     (name, index)
@@ -159,7 +159,7 @@ impl BindGroup {
             ParamIndex::Buffer(idx) => {
                 let idx = idx as usize;
 
-                let conversion_ok = self.buffer_params[idx].set_from(value);
+                let conversion_ok = self.buffer_params[idx].set_from(&value);
 
                 if !conversion_ok {
                     return Err(SetParamErr::InvalidConversion {
@@ -228,8 +228,8 @@ impl BindGroup {
         let mut maybe_buffer = None;
 
         if total_buf_size != 0 {
-            let total_buf_size =
-                total_buf_size.next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT as usize);
+            let total_buf_size = total_buf_size
+                .next_multiple_of(usize::try_from(wgpu::COPY_BUFFER_ALIGNMENT).unwrap());
 
             let buffer = device.create_buffer(&wgpu::wgt::BufferDescriptor {
                 label: label!("{} buffer", self.bind_group_name),
@@ -275,7 +275,7 @@ impl BindGroup {
 
         for (i, opaque_param) in self.opaque_params.iter().enumerate() {
             let entry = wgpu::BindGroupEntry {
-                binding: (i + 1) as u32, // Binding 0 is the buffer binding
+                binding: u32::try_from(i + 1).unwrap(), // Binding 0 is the buffer binding
                 resource: opaque_param.to_binding_resource(),
             };
 

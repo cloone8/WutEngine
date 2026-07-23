@@ -164,32 +164,31 @@ impl LogEntry {
     fn new(record: &log::Record) -> Self {
         let (is_internal, subsys) = wutengine::log::subsystem_from_target(record.target());
 
-        match is_internal {
-            true => Self::Internal {
+        if is_internal {
+            Self::Internal {
                 level: record.level(),
                 message: format!("{}", record.args()),
                 subsys: subsys.to_string(),
-            },
-            false => Self::External {
+            }
+        } else {
+            Self::External {
                 level: record.level(),
                 message: format!("{}", record.args()),
                 file: record.file().map(ToString::to_string),
                 line: record.line(),
-            },
+            }
         }
     }
 
     const fn level(&self) -> log::Level {
         match self {
-            Self::Internal { level, .. } => *level,
-            Self::External { level, .. } => *level,
+            Self::Internal { level, .. } | Self::External { level, .. } => *level,
         }
     }
 
     const fn message(&self) -> &str {
         match self {
-            Self::Internal { message, .. } => message.as_str(),
-            Self::External { message, .. } => message.as_str(),
+            Self::Internal { message, .. } | Self::External { message, .. } => message.as_str(),
         }
     }
 

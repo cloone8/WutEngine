@@ -91,6 +91,7 @@ impl ImportJob {
 }
 
 impl ImportJob {
+    /// Create a new import job from a given path to an asset to import
     pub(crate) fn new_from_path(path: PathBuf, destination_dir: Option<&AssetPath>) -> Self {
         let destination_dir = destination_dir.cloned().unwrap_or_else(AssetPath::root);
 
@@ -108,6 +109,7 @@ impl ImportJob {
     }
 }
 
+/// Prompts the user for an asset to import, and then starts an import job if a file was picked
 pub(crate) fn import_asset_prompt(destination_dir: Option<AssetPath>) {
     _ = wutengine::task::spawn_async(async move {
         let import_result = filepicker::pick_files(
@@ -233,10 +235,10 @@ pub(crate) fn import_asset(
         match serialized {
             Ok(ser) => {
                 let dest_name = imported_asset.name.unwrap_or_else(|| {
-                    name.map(|name| format!("{name}_{asset_unique_idx}"))
-                        .unwrap_or_else(|| {
-                            format!("{}_{}", target_type.asset_type_name(), asset_unique_idx)
-                        })
+                    name.map_or_else(
+                        || format!("{}_{}", target_type.asset_type_name(), asset_unique_idx),
+                        |name| format!("{name}_{asset_unique_idx}"),
+                    )
                 });
 
                 let extension = if target_type.prefers_binary() {

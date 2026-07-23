@@ -191,7 +191,7 @@ fn apply_branch_directives(
                 let active = branch_stack.last().copied().unwrap_or(true);
 
                 if active {
-                    writeln!(out, "{}", s).expect("Failed to write into string")
+                    writeln!(out, "{s}").expect("Failed to write into string");
                 }
             }
             parser::Statement::Directive(directive) => match directive {
@@ -281,31 +281,31 @@ fn strip_by_conditions(
 fn inject_keywords_as_constants(source: &mut String, keywords: &HashMap<String, u64>) {
     profiling::function_scope!();
 
-    let mut replaced = 0;
+    let mut num_replaced = 0;
 
-    replaced += inject_keyword(
+    num_replaced += inject_keyword(
         source,
         CAMERA_PARAMS_BIND_GROUP_KEYWORD,
-        CAMERA_PARAMS_BIND_GROUP_INDEX as u64,
+        u64::from(CAMERA_PARAMS_BIND_GROUP_INDEX),
     );
 
-    replaced += inject_keyword(
+    num_replaced += inject_keyword(
         source,
         MATERIAL_PARAMS_BIND_GROUP_KEYWORD,
-        MATERIAL_PARAMS_BIND_GROUP_INDEX as u64,
+        u64::from(MATERIAL_PARAMS_BIND_GROUP_INDEX),
     );
 
-    replaced += inject_keyword(
+    num_replaced += inject_keyword(
         source,
         INSTANCE_PARAMS_BIND_GROUP_KEYWORD,
-        INSTANCE_PARAMS_BIND_GROUP_INDEX as u64,
+        u64::from(INSTANCE_PARAMS_BIND_GROUP_INDEX),
     );
 
     for (keyword, &val) in keywords {
-        replaced += inject_keyword(source, keyword, val);
+        num_replaced += inject_keyword(source, keyword, val);
     }
 
-    log::debug!("Inserted {} total keyword values", replaced);
+    log::debug!("Inserted {num_replaced} total keyword values");
 }
 
 /// Injects a single keyword into the given source string, replacing

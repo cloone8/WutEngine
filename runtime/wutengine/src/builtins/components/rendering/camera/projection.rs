@@ -81,6 +81,7 @@ impl FieldOfView {
 
 #[cfg(test)]
 mod test_fov {
+    #![expect(clippy::float_cmp, reason = "Verified test code")]
     use super::FieldOfView;
 
     #[test]

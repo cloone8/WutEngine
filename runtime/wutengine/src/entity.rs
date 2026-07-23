@@ -105,7 +105,7 @@ impl Display for Entity {
 impl Hash for Entity {
     #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        state.write_u64(self.0.to_bits().get())
+        state.write_u64(self.0.to_bits().get());
     }
 }
 
@@ -163,6 +163,10 @@ impl Entity {
     /// Adds a new component to the given entity.
     /// The component is not actually inserted into the world immediately, and is instead processed
     /// right before the next frame-phase callback.
+    #[expect(
+        clippy::return_self_not_must_use,
+        reason = "Not required, just useful for chaining"
+    )]
     pub fn add_component<C: Component>(self, component: C) -> Self {
         let mut builder = hecs::EntityBuilder::new();
 

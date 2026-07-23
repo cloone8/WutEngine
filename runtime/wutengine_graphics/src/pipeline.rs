@@ -1,7 +1,5 @@
 //! Graphics pipeline functions
 
-use alloc::sync::Arc;
-
 use smallvec::SmallVec;
 use wutengine_assets::assets::mesh::MeshTopology;
 use wutengine_util_macro::unique_id_type64;
@@ -10,7 +8,6 @@ use crate::GFX_DEVICE;
 use crate::PIPELINE_CACHE;
 use crate::label;
 use crate::mesh::asset_topology_to_wgpu;
-use crate::shader;
 
 use super::cache;
 use super::cache::pipeline::PipelineCacheKey;
@@ -19,14 +16,6 @@ use super::material::Material;
 unique_id_type64! {
     /// Unique ID for a render pipeline. Mostly used for debug labels
     PipelineId
-}
-
-/// An error while trying to retrieve a render pipeline
-#[derive(Debug, derive_more::Display, derive_more::From, derive_more::Error)]
-pub enum GetPipelineErr {
-    /// Error during shader compilation
-    #[display("Error while compiling shader for pipeline: {}", _0)]
-    ShaderCompile(Box<shader::CompileErr>),
 }
 
 /// Given the set of input parameters, returns a matching [`wgpu::RenderPipeline`].
@@ -38,7 +27,9 @@ pub fn get_pipeline(
     material: &Material,
     topology: MeshTopology,
     color_targets: &[Option<wgpu::ColorTargetState>],
-) -> Result<Arc<wgpu::RenderPipeline>, GetPipelineErr> {
+) -> std::sync::Arc<wgpu::RenderPipeline> {
+    const STACK_ATTRS: usize = 8;
+
     let pipeline_cache_key = PipelineCacheKey {
         shader: material.compiled_shader.id,
         color_targets: color_targets.into(),
@@ -46,7 +37,7 @@ pub fn get_pipeline(
     };
 
     if let Some(cached_pipeline) = cache::pipeline::find(&pipeline_cache_key) {
-        return Ok(cached_pipeline);
+        return cached_pipeline;
     }
 
     profiling::scope!("Create new pipeline");
@@ -54,17 +45,13 @@ pub fn get_pipeline(
     let pipeline_id = PipelineId::new();
     let compiled_shader = material.compiled_shader.as_ref();
 
-    log::debug!(
-        "Creating new pipeline with ID {pipeline_id} for shader variant {}",
-        compiled_shader
-    );
+    log::debug!("Creating new pipeline with ID {pipeline_id} for shader variant {compiled_shader}");
 
     let pipeline_layout = &compiled_shader.pipeline_layout;
 
     let native_shader_module = &compiled_shader.module;
 
     // Create the vertex state buffer layout
-    const STACK_ATTRS: usize = 8;
 
     let mut vertex_buffer_attributes = SmallVec::<[_; STACK_ATTRS]>::new_const();
     vertex_buffer_attributes.reserve_exact(compiled_shader.vertex_attributes.len());
@@ -88,7 +75,7 @@ pub fn get_pipeline(
         vertex_state_buffers.push(Some(wgpu::VertexBufferLayout {
             array_stride: attr_info.format.size(),
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &vertex_buffer_attributes[i..i + 1],
+            attributes: &vertex_buffer_attributes[i..=i],
         }));
     }
 
@@ -104,13 +91,13 @@ pub fn get_pipeline(
         vertex: wgpu::VertexState {
             module: native_shader_module,
             entry_point: None,
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
             buffers: &vertex_state_buffers,
         },
         fragment: Some(wgpu::FragmentState {
             module: native_shader_module,
             entry_point: None,
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: color_targets,
         }),
         primitive: wgpu::PrimitiveState {
@@ -132,5 +119,5 @@ pub fn get_pipeline(
         cache: PIPELINE_CACHE.as_ref(),
     });
 
-    Ok(cache::pipeline::insert(pipeline_cache_key, pipeline))
+    cache::pipeline::insert(pipeline_cache_key, pipeline)
 }

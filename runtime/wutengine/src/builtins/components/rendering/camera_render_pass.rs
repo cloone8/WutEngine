@@ -8,12 +8,12 @@ use super::Camera;
 /// A render pass that executes draw commands for a camera.
 #[derive(Debug, Default)]
 pub struct CameraRenderPass {
-    /// The pass. See [RenderPassInfo] or [`Self::new`]
+    /// The pass. See [`RenderPassInfo`] or [`Self::new`]
     pub pass: Option<RenderPassInfo<Camera, [DrawCommand]>>,
 }
 
 impl CameraRenderPass {
-    /// Construct a new [GlobalRenderPass] component from the given [`RenderPass`]
+    /// Construct a new [`CameraRenderPass`] component from the given [`RenderPass`]
     pub fn new<T: RenderPass<Camera, [DrawCommand]>>() -> Self {
         Self {
             pass: Some(RenderPassInfo::from_pass::<T>()),

@@ -47,7 +47,7 @@ static EGUI_CONTEXT: InitOnce<egui::Context> = InitOnce::new_checked();
 static EGUI_RESOURCES: InitOnce<TextureMaterialMap> = InitOnce::new_checked();
 
 /// Base update interval of the editor
-const EDITOR_BASE_TICK_INTERVAL_SECS: f32 = 2.0;
+const EDITOR_BASE_TICK_INTERVAL_SECS: f64 = 2.0;
 
 #[cfg(windows)]
 /// Try to attach to an already open console
@@ -60,6 +60,7 @@ fn try_attach_to_console() {
     }
 }
 
+#[expect(clippy::cast_possible_truncation, reason = "const casts")]
 fn main() {
     #[cfg(windows)]
     try_attach_to_console();
@@ -83,7 +84,7 @@ fn main() {
 
     wutengine::runtime::run(
         InitRuntimeConfig {
-            frame_frequency: FrameFrequency::WaitAtMost(EDITOR_BASE_TICK_INTERVAL_SECS),
+            frame_frequency: FrameFrequency::WaitAtMost(EDITOR_BASE_TICK_INTERVAL_SECS as f32),
             config_overrides,
             ..Default::default()
         },
@@ -93,6 +94,12 @@ fn main() {
 }
 
 /// Main startup function after the engine runtime was started
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    reason = "Constant casts"
+)]
 fn post_start(project: Option<PathBuf>) {
     log::info!("Starting WutEngine Editor");
 
@@ -115,8 +122,10 @@ fn post_start(project: Option<PathBuf>) {
         wutengine::runtime::request_frame();
     });
 
-    time::set_max_frame_time((EDITOR_BASE_TICK_INTERVAL_SECS as u64 + 1) * NANOS_PER_SECOND);
-    time::set_target_delta((EDITOR_BASE_TICK_INTERVAL_SECS as u64) * NANOS_PER_SECOND);
+    time::set_max_frame_time(
+        ((EDITOR_BASE_TICK_INTERVAL_SECS + 1.0) * (NANOS_PER_SECOND as f64)) as u64,
+    );
+    time::set_target_delta(((EDITOR_BASE_TICK_INTERVAL_SECS) * (NANOS_PER_SECOND as f64)) as u64);
 
     let editor_window_renderpass_entity = Entity::spawn_transformless("Editor Window Renderpass");
     let editor_window_renderpass = OverlayRenderPass::new::<EditorWindowRenderPass>();
@@ -180,7 +189,7 @@ fn add_default_menu_entries() {
     we_menu::add_entry(&["Asset", "Level"], 400, || {
         let new_id = project::asset_manager()
             .insert_asset(
-                SerializedLevel {
+                &SerializedLevel {
                     name: "Test Level".to_string(),
                     entries: vec![],
                 },
@@ -189,7 +198,7 @@ fn add_default_menu_entries() {
             )
             .unwrap();
 
-        log::info!("New ID: {}", new_id);
+        log::info!("New ID: {new_id}");
     });
 }
 

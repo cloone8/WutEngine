@@ -60,7 +60,7 @@ macro_rules! log_once {
     }};
 }
 
-/// Shorthand for [log_once] with level [`log::Level::Trace`]
+/// Shorthand for [`log_once`] with level [`log::Level::Trace`]
 #[macro_export]
 macro_rules! trace_once {
     ($($arg:tt)*) => {
@@ -68,7 +68,7 @@ macro_rules! trace_once {
     };
 }
 
-/// Shorthand for [log_once] with level [`log::Level::Debug`]
+/// Shorthand for [`log_once`] with level [`log::Level::Debug`]
 #[macro_export]
 macro_rules! debug_once {
     ($($arg:tt)*) => {
@@ -76,7 +76,7 @@ macro_rules! debug_once {
     };
 }
 
-/// Shorthand for [log_once] with level [`log::Level::Info`]
+/// Shorthand for [`log_once`] with level [`log::Level::Info`]
 #[macro_export]
 macro_rules! info_once {
     ($($arg:tt)*) => {
@@ -84,7 +84,7 @@ macro_rules! info_once {
     };
 }
 
-/// Shorthand for [log_once] with level [`log::Level::Warn`]
+/// Shorthand for [`log_once`] with level [`log::Level::Warn`]
 #[macro_export]
 macro_rules! warn_once {
     ($($arg:tt)*) => {
@@ -92,7 +92,7 @@ macro_rules! warn_once {
     };
 }
 
-/// Shorthand for [log_once] with level [`log::Level::Error`]
+/// Shorthand for [`log_once`] with level [`log::Level::Error`]
 #[macro_export]
 macro_rules! error_once {
     ($($arg:tt)*) => {

@@ -167,17 +167,14 @@ impl IndexBuffer {
     ) -> Result<wgpu::Buffer, NewIndexBufferErr> {
         profiling::function_scope!();
 
-        log::trace!(
-            "Creating new index buffer for topology {topology} with {} elements",
-            count
-        );
+        log::trace!("Creating new index buffer for topology {topology} with {count} elements");
 
         if !count
             .get()
             .is_multiple_of(topology.indices_per_primitive() as u64)
         {
             return Err(NewIndexBufferErr::NotEnoughIndices {
-                count: count.get() as usize,
+                count: usize::try_from(count.get()).unwrap(),
                 topology,
             });
         }

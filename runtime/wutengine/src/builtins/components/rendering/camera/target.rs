@@ -9,7 +9,7 @@ pub enum CameraTarget {
 
 impl CameraTarget {
     /// Returns the size (in pixels) of this target
-    pub fn size(&self) -> (u32, u32) {
+    pub fn size(self) -> (u32, u32) {
         match self {
             Self::Window(window) => window.get_size(),
         }

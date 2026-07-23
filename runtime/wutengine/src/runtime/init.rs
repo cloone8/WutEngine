@@ -61,8 +61,8 @@ impl Default for InitRuntimeConfig {
     fn default() -> Self {
         Self {
             config_file: Some(PathBuf::from("wutengine.toml")),
-            config_overrides: Default::default(),
-            frame_frequency: Default::default(),
+            config_overrides: HashMap::default(),
+            frame_frequency: FrameFrequency::default(),
         }
     }
 }

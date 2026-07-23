@@ -1,4 +1,4 @@
-//! Implements the [winit::application::ApplicationHandler] interface for [crate::runtime::Runtime],
+//! Implements the [`winit::application::ApplicationHandler`] interface for [`crate::runtime::Runtime`],
 //! so that its execution can be driven by [winit]
 
 use core::time::Duration;
@@ -145,24 +145,24 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
             WindowEvent::Resized(_) => {
                 profiling::scope!("Resized");
 
-                window::manager::refresh_window(&id, false);
+                window::manager::refresh_window(id, false);
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 profiling::scope!("Scale factor changed");
 
                 log::debug!("Window {id} changed scale factor to: {scale_factor}");
 
-                window::manager::refresh_window(&id, false);
+                window::manager::refresh_window(id, false);
             }
             WindowEvent::Focused(_) => {
                 profiling::scope!("Focused");
 
-                window::manager::refresh_window(&id, false);
+                window::manager::refresh_window(id, false);
             }
             WindowEvent::Occluded(occluded) => {
                 profiling::scope!("Occluded");
 
-                window::manager::notify_window_occluded(&id, occluded);
+                window::manager::notify_window_occluded(id, occluded);
             }
             WindowEvent::RedrawRequested => {
                 self.run_frame();
@@ -248,7 +248,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
 
             MainThreadEvent::UpdateWindow(window_id, update_event) => {
                 window::manager::handle_update(window_id, update_event);
-                window::manager::refresh_window(&window_id, false);
+                window::manager::refresh_window(window_id, false);
             }
             MainThreadEvent::RuntimeExitRequested(force) => {
                 log::debug!("Runtime exit was requested. Force: {force}.");
@@ -272,7 +272,7 @@ impl winit::application::ApplicationHandler<MainThreadEvent> for Runtime {
                 window::manager::request_redraws();
             }
             MainThreadEvent::ForceSurfaceReconfigure(window_id) => {
-                window::manager::refresh_window(&window_id, true);
+                window::manager::refresh_window(window_id, true);
                 window::manager::request_redraws();
             }
             MainThreadEvent::AddSystem(manifest) => {

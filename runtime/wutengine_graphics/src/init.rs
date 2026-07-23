@@ -75,7 +75,7 @@ pub fn initialize_graphics_context() -> bool {
             features.push(feature);
         }
 
-        features.sort();
+        features.sort_unstable();
 
         for feature in features {
             features_string = format!("{features_string}\n\t{feature}");
@@ -125,6 +125,7 @@ pub fn initialize_graphics_context() -> bool {
     true
 }
 
+#[expect(clippy::needless_pass_by_value, reason = "WGPU API")]
 fn on_device_lost(reason: wgpu::DeviceLostReason, message: String) {
     let reason_str = match reason {
         wgpu::DeviceLostReason::Unknown => "<unknown>",
@@ -134,13 +135,14 @@ fn on_device_lost(reason: wgpu::DeviceLostReason, message: String) {
     panic!("Fatal graphics error: Graphics device lost due to {reason_str}: {message}");
 }
 
+#[expect(clippy::needless_pass_by_value, reason = "WGPU API")]
 fn on_uncaptured_error(error: wgpu::Error) {
     log::error!("Graphics error: {error}");
 
     if wutengine_config::try_get::<bool>("wutengine.graphics.exit_on_graphics_error")
         .unwrap_or(cfg!(debug_assertions))
     {
-        panic!("Fatal graphics error: {}", error);
+        panic!("Fatal graphics error: {error}");
     }
 }
 
@@ -193,7 +195,7 @@ fn gather_instance_flags(config: &GraphicsConfig) -> wgpu::InstanceFlags {
         );
     }
 
-    log::trace!("Flags: {:?}", flags);
+    log::trace!("Flags: {flags:?}");
 
     flags
 }
@@ -304,7 +306,10 @@ fn get_existing_pipeline_cache() -> Result<wgpu::PipelineCache, PipelineCacheErr
 
 /// Persists the currently active pipeline cache to disk
 pub fn persist_pipeline_cache() {
-    let Some(cache_bytes) = PIPELINE_CACHE.as_ref().and_then(|pcache| pcache.get_data()) else {
+    let Some(cache_bytes) = PIPELINE_CACHE
+        .as_ref()
+        .and_then(wgpu::PipelineCache::get_data)
+    else {
         // Nothing to cache
         return;
     };

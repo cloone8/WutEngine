@@ -176,8 +176,7 @@ fn get_best_present_mode(
     capabilities: &[wgpu::PresentMode],
 ) -> wgpu::PresentMode {
     log::trace!(
-        "Window {} supports present modes: {capabilities:?}. Vsync requested: {wants_vsync}",
-        window
+        "Window {window} supports present modes: {capabilities:?}. Vsync requested: {wants_vsync}"
     );
 
     if wants_vsync {

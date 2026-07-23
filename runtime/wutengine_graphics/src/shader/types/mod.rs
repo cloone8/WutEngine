@@ -218,23 +218,23 @@ impl ShaderBufferParameter {
     /// if possible. Will not change the type of this [`ShaderBufferParameter`]
     #[inline]
     #[expect(clippy::todo, reason = "Casting is a lot of work")]
-    pub fn set_from(&mut self, value: MaterialParameter) -> bool {
+    pub fn set_from(&mut self, value: &MaterialParameter) -> bool {
         match self {
             Self::Flt(cur) => {
                 if let MaterialParameter::Flt(f) = value {
-                    *cur = f;
+                    *cur = *f;
                     return true;
                 }
             }
             Self::Uint(cur) => {
                 if let MaterialParameter::Uint(u) = value {
-                    *cur = u;
+                    *cur = *u;
                     return true;
                 }
             }
             Self::Int(cur) => {
                 if let MaterialParameter::Int(i) = value {
-                    *cur = i;
+                    *cur = *i;
                     return true;
                 }
             }
@@ -314,7 +314,7 @@ pub enum ShaderOpaqueParameter {
 }
 
 impl ShaderOpaqueParameter {
-    /// Updates the value of this [ShaderOpaqueParameter] from the given [`MaterialParameter`]
+    /// Updates the value of this [`ShaderOpaqueParameter`] from the given [`MaterialParameter`]
     #[inline]
     pub fn set_from(&mut self, value: MaterialParameter) -> bool {
         //TODO: Add error handling for not-yet-loaded assets?
@@ -346,7 +346,7 @@ impl ShaderOpaqueParameter {
     }
 }
 
-/// Returns the [wgpu::VertexFormat] corresponding to this [`ShaderVertexAttributeType`]
+/// Returns the [`wgpu::VertexFormat`] corresponding to this [`ShaderVertexAttributeType`]
 pub const fn shader_attr_wgpu_vertex_format(attr: ShaderVertexAttributeType) -> wgpu::VertexFormat {
     match attr {
         ShaderVertexAttributeType::Position => wgpu::VertexFormat::Float32x3,

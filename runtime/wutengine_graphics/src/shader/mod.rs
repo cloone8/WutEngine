@@ -73,7 +73,7 @@ impl FromSerializedAsset for Shader {
     }
 }
 
-/// Unique ID for a [CompiledShader]. Generated based on the source [`Shader`] and the active keywords
+/// Unique ID for a [`CompiledShader`]. Generated based on the source [`Shader`] and the active keywords
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct CompiledShaderId(pub(crate) u128);
@@ -93,6 +93,7 @@ impl CompiledShaderId {
 
     /// Returns the bits corresponding to the hash of the used keywords
     #[inline]
+    #[expect(clippy::cast_possible_truncation, reason = "truncation is desired")]
     pub const fn keyword_hash(self) -> u64 {
         self.0 as u64
     }
@@ -136,7 +137,7 @@ fn hash_shader_keywords(keywords: &HashMap<impl AsRef<str>, u64>) -> u64 {
     twox_hash::xxhash3_64::Hasher::oneshot(joined.as_bytes())
 }
 
-/// [wutengine_shadercompiler::ShaderHasher] implementation that uses XXHash3 (from [`twox_hash`])
+/// [`wutengine_shadercompiler::ShaderHasher`] implementation that uses `XXHash3` (from [`twox_hash`])
 pub(super) struct WutEngineShaderHasher;
 
 impl wutengine_shadercompiler::ShaderHasher<ShaderId> for WutEngineShaderHasher {

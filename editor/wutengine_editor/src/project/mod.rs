@@ -51,7 +51,7 @@ pub(crate) fn load(project_file_path: &Path) -> Result<(), LoadProjectError> {
 
     let mut project = Project {
         name: None,
-        assets: ProjectAssetManager::load(root_dir.clone())?,
+        assets: ProjectAssetManager::load(&root_dir)?,
         root: root_dir,
         levels: RwLock::new(Vec::new()),
     };

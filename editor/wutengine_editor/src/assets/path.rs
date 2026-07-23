@@ -11,10 +11,16 @@ use crate::project::asset_manager;
 pub(crate) struct AssetPath(PathBuf);
 
 impl AssetPath {
+    /// Returns the path to the asset folder root
     pub(crate) fn root() -> Self {
         Self::new(asset_manager().asset_root())
     }
 
+    /// Creates a new asset path from the given path.
+    ///
+    /// If the path is relative, it is interpreted as relative to the project asset root.
+    ///
+    /// If the path, after conversion to absolute form, does not reside in the project asset directory, the function panics.
     pub(crate) fn new(path: impl AsRef<Path>) -> Self {
         let path = path.as_ref();
         let asset_root = asset_manager().asset_root();
@@ -44,10 +50,12 @@ impl AssetPath {
         Self(abs_path)
     }
 
+    /// Returns the asset path as an absolute native path
     pub(crate) fn absolute(&self) -> &Path {
         self.0.as_path()
     }
 
+    /// Returns the asset path as a native path relative to the project asset directory
     pub(crate) fn relative(&self) -> &Path {
         let abs = self.absolute();
 

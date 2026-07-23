@@ -148,7 +148,7 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
 
         if let Some(title) = value.title {
             attrs = attrs.with_title(title);
-        };
+        }
 
         let mut inner_size = value.size;
 
@@ -176,7 +176,7 @@ impl From<WindowConfig> for winit::window::WindowAttributes {
                 inner_size.0.min(max_size_clamped.0),
                 inner_size.1.min(max_size_clamped.1),
             );
-        };
+        }
 
         attrs = attrs.with_resizable(value.resizable);
         attrs = attrs.with_inner_size(winit::dpi::PhysicalSize::new(inner_size.0, inner_size.1));
@@ -252,28 +252,30 @@ fn try_set_borderless_fullscreen(
 
     let display_handle = match borderless_target {
         BorderlessTarget::Current => None,
-        BorderlessTarget::Primary => match crate::window::manager::primary_display() {
-            Some(disp) => Some(disp),
-            None => {
+        BorderlessTarget::Primary => {
+            if let Some(disp) = crate::window::manager::primary_display() {
+                Some(disp)
+            } else {
                 log::error!(
                     "Failed to determine primary display. Falling back to borderless mode on current display"
                 );
                 None
             }
-        },
+        }
         BorderlessTarget::Specific(display) => Some(*display),
     };
 
     let target_handle = match display_handle {
-        Some(disp) => match crate::window::manager::monitor_handle_from_display(disp) {
-            Some(handle) => Some(handle),
-            None => {
+        Some(disp) => {
+            if let Some(handle) = crate::window::manager::monitor_handle_from_display(disp) {
+                Some(handle)
+            } else {
                 log::error!(
                     "Target display {disp} does not exist anymore. Falling back to borderless mode on current display"
                 );
                 None
             }
-        },
+        }
         None => None,
     };
 
@@ -408,9 +410,7 @@ impl Window {
     /// Returns whether this window is the primary window
     #[inline]
     pub fn is_primary(self) -> bool {
-        crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.is_primary).unwrap_or(false)
-        })
+        crate::window::manager::get_window_and(self, |win| win.is_some_and(|win| win.is_primary))
     }
 
     /// Appoints this window as the "primary" window
@@ -430,9 +430,7 @@ impl Window {
     /// If the window is not yet created or is already destroyed, returns (0,0)
     #[inline]
     pub fn get_size(self) -> (u32, u32) {
-        crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.inner_size).unwrap_or((0, 0))
-        })
+        crate::window::manager::get_window_and(self, |win| win.map_or((0, 0), |win| win.inner_size))
     }
 
     /// Returns the OS scale factor of this window.
@@ -440,16 +438,14 @@ impl Window {
     #[inline]
     pub fn get_scale_factor(self) -> f64 {
         crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.os_scale_factor).unwrap_or(1.0)
+            win.map_or(1.0, |win| win.os_scale_factor)
         })
     }
 
     /// Returns whether this window is currently focused
     #[inline]
     pub fn is_focused(self) -> bool {
-        crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.focused).unwrap_or(true)
-        })
+        crate::window::manager::get_window_and(self, |win| win.is_none_or(|win| win.focused))
     }
 
     /// Returns whether this window is currently fully occluded.
@@ -457,25 +453,19 @@ impl Window {
     /// return `false`
     #[inline]
     pub fn is_occluded(self) -> bool {
-        crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.occluded).unwrap_or(false)
-        })
+        crate::window::manager::get_window_and(self, |win| win.is_some_and(|win| win.occluded))
     }
 
     /// Returns whether this window is currently (known to be) minimized
     #[inline]
     pub fn is_minimized(self) -> bool {
-        crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.minimized).unwrap_or(false)
-        })
+        crate::window::manager::get_window_and(self, |win| win.is_some_and(|win| win.minimized))
     }
 
     /// Returns whether this window is currently maximized
     #[inline]
     pub fn is_maximized(self) -> bool {
-        crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.maximized).unwrap_or(false)
-        })
+        crate::window::manager::get_window_and(self, |win| win.is_some_and(|win| win.maximized))
     }
 
     /// Returns whether this window is currently in the foreground.
@@ -484,8 +474,7 @@ impl Window {
     #[inline]
     pub fn is_foreground(self) -> bool {
         crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| !win.occluded && win.focused && !win.minimized)
-                .unwrap_or(true)
+            win.is_none_or(|win| !win.occluded && win.focused && !win.minimized)
         })
     }
 
@@ -504,7 +493,7 @@ impl Window {
     #[inline]
     pub fn title(self) -> String {
         crate::window::manager::get_window_and(self, |win| {
-            win.map(|win| win.title.clone()).unwrap_or(String::new())
+            win.map_or(String::new(), |win| win.title.clone())
         })
     }
 

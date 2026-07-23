@@ -1,2 +1,3 @@
 missing-docs-in-crate-items = true
-doc-valid-idents = ["WutEngine", ".."]
+doc-valid-idents = ["WutEngine", "MacOS", ".."]
+avoid-breaking-exported-api = false

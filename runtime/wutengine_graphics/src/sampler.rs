@@ -111,14 +111,14 @@ impl Sampler {
             wrapping,
         };
 
-        if let Some(cached) = cache::sampler::find(&cache_key) {
+        if let Some(cached) = cache::sampler::find(cache_key) {
             return Self {
                 tex_filtering,
                 mip_filtering,
                 wrapping,
                 native: cached,
             };
-        };
+        }
 
         profiling::scope!("Create new sampler");
 

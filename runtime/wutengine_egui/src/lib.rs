@@ -168,7 +168,7 @@ impl EguiWindow {
         );
 
         if !egui_events.is_empty() {
-            log::trace!("Sending events: {:#?}", egui_events);
+            log::trace!("Sending events: {egui_events:#?}");
         }
 
         egui::RawInput {
@@ -204,7 +204,7 @@ impl EguiWindow {
     }
 
     /// Handle platform output from egui
-    fn handle_platform_output(output: egui::PlatformOutput) -> LogicOutput {
+    fn handle_platform_output(output: &egui::PlatformOutput) -> LogicOutput {
         profiling::function_scope!();
 
         let mut logic_output = LogicOutput::default();
@@ -261,7 +261,7 @@ impl EguiWindow {
 
         let egui_output = context.run_ui(egui_input, ui_callback);
 
-        let logic_output = Self::handle_platform_output(egui_output.platform_output);
+        let logic_output = Self::handle_platform_output(&egui_output.platform_output);
 
         let clipped_output = context.tessellate(egui_output.shapes, egui_output.pixels_per_point);
 
@@ -317,6 +317,8 @@ impl EguiWindow {
         });
 
         let tgt_size = (target.size().width, target.size().height);
+
+        #[expect(clippy::cast_precision_loss, reason = "Expected here")]
         let tgt_points = (
             tgt_size.0 as f32 / drawable.pixels_per_point,
             tgt_size.1 as f32 / drawable.pixels_per_point,
@@ -408,10 +410,13 @@ impl EguiWindow {
 
         let recreate_buffers = match buffers {
             Some((vert_bufs, idx_buf)) => {
-                ((idx_buf.size() as usize) / size_of::<u32>()) < total_indices
-                    || (vert_bufs[&ShaderVertexAttributeType::Position].size() as usize)
-                        / size_of::<GVec3<f32>>()
-                        < total_verts
+                let idx_buf_size = usize::try_from(idx_buf.size()).unwrap();
+                let vtx_buf_size =
+                    usize::try_from(vert_bufs[&ShaderVertexAttributeType::Position].size())
+                        .unwrap();
+
+                (idx_buf_size / size_of::<u32>()) < total_indices
+                    || (vtx_buf_size / size_of::<GVec3<f32>>()) < total_verts
             }
             None => true,
         };
@@ -490,95 +495,95 @@ impl TextureMaterialMap {
             );
 
             let sampler = Arc::new(
-                Sampler::from_serialized_asset(utils::sampler_from_egui(&delta.options)).unwrap(),
+                Sampler::from_serialized_asset(utils::sampler_from_egui(delta.options)).unwrap(),
             );
 
-            match delta.pos {
-                Some(pos) => {
-                    let texmat = texture_map.get_mut(tex_id).unwrap();
+            if let Some(pos) = delta.pos {
+                // Update subregion of texture
 
-                    texmat.sampler = sampler;
+                let texmat = texture_map.get_mut(tex_id).unwrap();
 
-                    texmat
-                        .material
-                        .raw_bind_group_mut()
-                        .set_parameter(
-                            "ui_texture_sampler",
-                            MaterialParameter::Sampler(texmat.sampler.clone()),
-                            queue,
-                        )
-                        .unwrap();
+                texmat.sampler = sampler;
 
-                    texmat.set_surface_size_if_changed(surface_points, queue);
+                texmat
+                    .material
+                    .raw_bind_group_mut()
+                    .set_parameter(
+                        "ui_texture_sampler",
+                        MaterialParameter::Sampler(texmat.sampler.clone()),
+                        queue,
+                    )
+                    .unwrap();
 
-                    texmat
-                        .material
-                        .raw_bind_group_mut()
-                        .update_bind_group(device);
+                texmat.set_surface_size_if_changed(surface_points, queue);
 
-                    texmat.texture.set_partial_data(
-                        utils::egui_image_bytes(&delta.image),
-                        wgpu::Origin3d {
-                            x: pos[0] as u32,
-                            y: pos[1] as u32,
-                            z: 0,
-                        },
-                        wgpu::Extent3d {
-                            width: delta.image.width() as u32,
-                            height: delta.image.height() as u32,
-                            depth_or_array_layers: 1,
-                        },
-                    );
-                }
-                None => {
-                    let texture = Arc::new(Texture::new(
-                        &utils::tex_config_from_egui_data(&delta.image),
-                        1,
-                    ));
-                    texture.set_data(utils::egui_image_bytes(&delta.image));
+                texmat
+                    .material
+                    .raw_bind_group_mut()
+                    .update_bind_group(device);
 
-                    let mut material =
-                        Material::new(EGUI_SHADER.clone(), map!["DITHERING" => 0u64]);
+                texmat.texture.set_partial_data(
+                    utils::egui_image_bytes(&delta.image),
+                    wgpu::Origin3d {
+                        x: u32::try_from(pos[0]).unwrap(),
+                        y: u32::try_from(pos[1]).unwrap(),
+                        z: 0,
+                    },
+                    wgpu::Extent3d {
+                        width: u32::try_from(delta.image.width()).unwrap(),
+                        height: u32::try_from(delta.image.height()).unwrap(),
+                        depth_or_array_layers: 1,
+                    },
+                );
+            } else {
+                // Update entire texture
 
-                    material
-                        .raw_bind_group_mut()
-                        .set_parameter(
-                            "ui_texture_sampler",
-                            MaterialParameter::Sampler(sampler.clone()),
-                            queue,
-                        )
-                        .unwrap();
+                let texture = Arc::new(Texture::new(
+                    &utils::tex_config_from_egui_data(&delta.image),
+                    1,
+                ));
+                texture.set_data(utils::egui_image_bytes(&delta.image));
 
-                    material
-                        .raw_bind_group_mut()
-                        .set_parameter(
-                            "ui_texture",
-                            MaterialParameter::Texture2D(texture.clone()),
-                            queue,
-                        )
-                        .unwrap();
+                let mut material = Material::new(EGUI_SHADER.clone(), map!["DITHERING" => 0u64]);
 
-                    material
-                        .raw_bind_group_mut()
-                        .set_parameter(
-                            "screen_size",
-                            MaterialParameter::Vec2(vec2(surface_points.0, surface_points.1)),
-                            queue,
-                        )
-                        .unwrap();
+                material
+                    .raw_bind_group_mut()
+                    .set_parameter(
+                        "ui_texture_sampler",
+                        MaterialParameter::Sampler(sampler.clone()),
+                        queue,
+                    )
+                    .unwrap();
 
-                    material.raw_bind_group_mut().update_bind_group(device);
+                material
+                    .raw_bind_group_mut()
+                    .set_parameter(
+                        "ui_texture",
+                        MaterialParameter::Texture2D(texture.clone()),
+                        queue,
+                    )
+                    .unwrap();
 
-                    texture_map.insert(
-                        *tex_id,
-                        TextureMaterial {
-                            texture,
-                            sampler,
-                            material,
-                            cur_screen_size: surface_points,
-                        },
-                    );
-                }
+                material
+                    .raw_bind_group_mut()
+                    .set_parameter(
+                        "screen_size",
+                        MaterialParameter::Vec2(vec2(surface_points.0, surface_points.1)),
+                        queue,
+                    )
+                    .unwrap();
+
+                material.raw_bind_group_mut().update_bind_group(device);
+
+                texture_map.insert(
+                    *tex_id,
+                    TextureMaterial {
+                        texture,
+                        sampler,
+                        material,
+                        cur_screen_size: surface_points,
+                    },
+                );
             }
         }
     }

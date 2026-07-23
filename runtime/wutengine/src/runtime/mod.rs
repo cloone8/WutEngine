@@ -1,5 +1,8 @@
 //! The main WutEngine runtime, responsible for the application lifecycle
 
+use crate::builtins::components::Transform;
+use crate::builtins::components::physics::ColliderSet2D;
+use crate::builtins::components::physics::ColliderSet3D;
 use crate::builtins::components::rendering::ActiveCameraRenderPass;
 use crate::builtins::components::rendering::Camera;
 use crate::builtins::components::rendering::CameraRenderPass;
@@ -192,33 +195,36 @@ impl Runtime {
     }
 
     fn write_physics_state() {
-        use crate::builtins::components::Transform;
-        use crate::builtins::components::physics::*;
-
         profiling::function_scope!();
 
         crate::physics::update_physics_world(
             #[cfg(feature = "phys2d")]
             |updater_2d| {
+                use crate::builtins::components::Transform;
+                use crate::builtins::components::physics::ColliderSet2D;
+
                 let world = world::get_world();
 
                 let mut query = world
                     .ecs
                     .query::<(&mut ColliderSet2D, Option<&Transform>)>();
 
-                for (set2d, xform) in query.iter() {
+                for (set2d, xform) in &mut query {
                     set2d.sync_to_physics_world(xform, updater_2d);
                 }
             },
             #[cfg(feature = "phys3d")]
             |updater_3d| {
+                use crate::builtins::components::Transform;
+                use crate::builtins::components::physics::ColliderSet3D;
+
                 let world = world::get_world();
 
                 let mut query = world
                     .ecs
                     .query::<(&mut ColliderSet3D, Option<&Transform>)>();
 
-                for (set3d, xform) in query.iter() {
+                for (set3d, xform) in &mut query {
                     set3d.sync_to_physics_world(xform, updater_3d);
                 }
             },
@@ -226,9 +232,6 @@ impl Runtime {
     }
 
     fn read_physics_state() {
-        use crate::builtins::components::Transform;
-        use crate::builtins::components::physics::*;
-
         profiling::function_scope!();
 
         let mut world = world::get_world_mut();
@@ -298,7 +301,7 @@ impl Runtime {
                 profiling::scope!("Collect camera command buffer");
 
                 Self::render_camera(camera, &camera_passes, &draw_commands)
-                    .map(|encoder| encoder.finish())
+                    .map(wgpu::CommandEncoder::finish)
             })
             .collect();
 
@@ -338,7 +341,7 @@ impl Runtime {
 
         overlay_command_encoder.push_debug_group("Render overlay passes");
 
-        for overlay_pass in self.overlay_passes.iter_mut() {
+        for overlay_pass in &mut self.overlay_passes {
             for (window, surface_texture) in surfaces {
                 overlay_command_encoder.push_debug_group(
                     format!("Overlay {} window {}", overlay_pass.name, *window).as_str(),
@@ -389,7 +392,7 @@ impl Runtime {
             // Take the passes out for memory safety...
             let mut passes = core::mem::take(&mut camera.render_passes);
 
-            for pass in passes.iter_mut() {
+            for pass in &mut passes {
                 profiling::scope!(format!("Execute render pass \n{}\n", pass.name));
 
                 encoder.push_debug_group(pass.name);

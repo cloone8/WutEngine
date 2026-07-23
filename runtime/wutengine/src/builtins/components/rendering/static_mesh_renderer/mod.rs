@@ -45,11 +45,7 @@ impl Component for StaticMeshRenderer {
             Phase::PreRender,
             "StaticMeshRenderer submit draw call",
             |_, (this, transform)| {
-                this.submit_draw_call(
-                    transform
-                        .map(|xform| xform.local_to_world())
-                        .unwrap_or(Mat4::IDENTITY),
-                );
+                this.submit_draw_call(transform.map_or(Mat4::IDENTITY, Transform::local_to_world));
             },
         );
     }

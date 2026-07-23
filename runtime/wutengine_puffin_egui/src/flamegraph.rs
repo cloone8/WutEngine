@@ -1,12 +1,19 @@
 //! The main flamegraph view
 
 use alloc::vec;
+use egui::TextBuffer;
+use egui::Widget;
+use egui::emath::GuiRounding;
 
-use super::{ERROR_COLOR, HOVER_COLOR, SelectedFrames};
+use super::ERROR_COLOR;
+use super::HOVER_COLOR;
+use super::SelectedFrames;
 use crate::filter::Filter;
-use egui::{emath::GuiRounding, *};
 use indexmap::IndexMap;
-use puffin::*;
+use puffin::{
+    MergeScope, NanoSecond, Reader, Result, Scope, ScopeCollection, ScopeDetails, ScopeId,
+    ScopeRecord, Stream, ThreadInfo,
+};
 
 /// Sorting parameter
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -170,8 +177,8 @@ impl Default for Options {
 
             grid_spacing_micros: 1.,
 
-            sorting: Default::default(),
-            scope_name_filter: Default::default(),
+            sorting: Sorting::default(),
+            scope_name_filter: Filter::default(),
 
             zoom_to_relative_ns_range: None,
             flamegraph_threads: IndexMap::new(),
@@ -183,9 +190,9 @@ impl Default for Options {
 struct Info<'a> {
     ctx: egui::Context,
     /// Bounding box of canvas in points:
-    canvas: Rect,
+    canvas: egui::Rect,
     /// Interaction with the profiler canvas
-    response: Response,
+    response: egui::Response,
     painter: egui::Painter,
     text_height: f32,
     /// Time of first event
@@ -194,10 +201,10 @@ struct Info<'a> {
     stop_ns: NanoSecond,
     /// How many frames we are viewing
     num_frames: usize,
-    /// LayerId to use as parent for tooltips
-    layer_id: LayerId,
+    /// [`egui::LayerId`] to use as parent for tooltips
+    layer_id: egui::LayerId,
 
-    font_id: FontId,
+    font_id: egui::FontId,
 
     scope_collection: &'a ScopeCollection,
 }
@@ -229,17 +236,15 @@ pub(crate) fn ui(
 
     let num_frames = frames.frames.len();
 
-    {
-        // reset view if number of selected frames changes (and we are viewing all of them):
-        let num_frames_id = ui.id().with("num_frames");
-        let num_frames_last_frame =
-            ui.memory_mut(|m| m.data.get_temp::<usize>(num_frames_id).unwrap_or_default());
+    // reset view if number of selected frames changes (and we are viewing all of them):
+    let num_frames_id = ui.id().with("num_frames");
+    let num_frames_last_frame =
+        ui.memory_mut(|m| m.data.get_temp::<usize>(num_frames_id).unwrap_or_default());
 
-        if num_frames_last_frame != num_frames && !options.merge_scopes {
-            reset_view = true;
-        }
-        ui.memory_mut(|m| m.data.insert_temp(num_frames_id, num_frames));
+    if num_frames_last_frame != num_frames && !options.merge_scopes {
+        reset_view = true;
     }
+    ui.memory_mut(|m| m.data.insert_temp(num_frames_id, num_frames));
 
     ui.horizontal(|ui| {
         options.scope_name_filter.ui(ui);
@@ -247,21 +252,19 @@ pub(crate) fn ui(
         ui.menu_button("🔧 Settings", |ui| {
             ui.set_max_height(500.0);
 
-            {
-                let changed = ui
-                    .checkbox(&mut options.merge_scopes, "Merge children with same ID")
-                    .changed();
-                // If we have multiple frames selected this will toggle
-                // if we view all the frames, or an average of them,
-                // and that difference is pretty massive, so help the user:
-                if changed && num_frames > 1 {
-                    reset_view = true;
-                }
+            let changed = ui
+                .checkbox(&mut options.merge_scopes, "Merge children with same ID")
+                .changed();
+            // If we have multiple frames selected this will toggle
+            // if we view all the frames, or an average of them,
+            // and that difference is pretty massive, so help the user:
+            if changed && num_frames > 1 {
+                reset_view = true;
             }
 
             ui.horizontal(|ui| {
                 ui.label("Grid spacing:");
-                let grid_spacing_drag = DragValue::new(&mut options.grid_spacing_micros)
+                let grid_spacing_drag = egui::DragValue::new(&mut options.grid_spacing_micros)
                     .speed(0.1)
                     .range(1.0..=100.0)
                     .suffix(" µs");
@@ -296,14 +299,18 @@ pub(crate) fn ui(
         });
     });
 
-    Frame::dark_canvas(ui.style()).show(ui, |ui| {
+    egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
         ui.visuals_mut().clip_rect_margin = 0.0;
 
         let available_height = ui.max_rect().bottom() - ui.min_rect().bottom();
-        ScrollArea::vertical().show(ui, |ui| {
+        egui::ScrollArea::vertical().show(ui, |ui| {
             let mut canvas = ui.available_rect_before_wrap();
             canvas.max.y = f32::INFINITY;
-            let response = ui.interact(canvas, ui.id().with("canvas"), Sense::click_and_drag());
+            let response = ui.interact(
+                canvas,
+                ui.id().with("canvas"),
+                egui::Sense::click_and_drag(),
+            );
 
             let (min_ns, max_ns) = if options.merge_scopes {
                 frames.merged_range_ns
@@ -321,7 +328,7 @@ pub(crate) fn ui(
                 stop_ns: max_ns,
                 num_frames: frames.frames.len(),
                 layer_id: ui.layer_id(),
-                font_id: TextStyle::Body.resolve(ui.style()),
+                font_id: egui::TextStyle::Body.resolve(ui.style()),
                 scope_collection,
             };
 
@@ -334,7 +341,7 @@ pub(crate) fn ui(
 
             interact_with_canvas(options, &info.response, &info);
 
-            let where_to_put_timeline = info.painter.add(Shape::Noop);
+            let where_to_put_timeline = info.painter.add(egui::Shape::Noop);
 
             let max_y = ui_canvas(options, &info, frames, (min_ns, max_ns));
 
@@ -346,9 +353,9 @@ pub(crate) fn ui(
 
             let timeline = paint_timeline(&info, used_rect, options, min_ns);
             info.painter
-                .set(where_to_put_timeline, Shape::Vec(timeline));
+                .set(where_to_put_timeline, egui::Shape::Vec(timeline));
 
-            ui.allocate_rect(used_rect, Sense::hover());
+            ui.allocate_rect(used_rect, egui::Sense::hover());
         });
     });
 }
@@ -390,7 +397,7 @@ fn ui_canvas(
         let line_y = cursor_y;
         cursor_y += 2.0;
 
-        let text_pos = pos2(info.canvas.min.x, cursor_y);
+        let text_pos = egui::pos2(info.canvas.min.x, cursor_y);
 
         paint_thread_info(
             info,
@@ -402,10 +409,10 @@ fn ui_canvas(
         // draw on top of thread info background:
         info.painter.line_segment(
             [
-                pos2(info.canvas.min.x, line_y),
-                pos2(info.canvas.max.x, line_y),
+                egui::pos2(info.canvas.min.x, line_y),
+                egui::pos2(info.canvas.max.x, line_y),
             ],
-            Stroke::new(1.0, Rgba::from_white_alpha(0.5)),
+            egui::Stroke::new(1.0, egui::Rgba::from_white_alpha(0.5)),
         );
 
         cursor_y += info.text_height;
@@ -433,8 +440,8 @@ fn ui_canvas(
             if let Err(err) = paint_streams() {
                 let text = format!("Profiler stream error: {err:?}");
                 info.painter.text(
-                    pos2(info.canvas.min.x, cursor_y),
-                    Align2::LEFT_TOP,
+                    egui::pos2(info.canvas.min.x, cursor_y),
+                    egui::Align2::LEFT_TOP,
                     text,
                     info.font_id.clone(),
                     ERROR_COLOR,
@@ -442,6 +449,7 @@ fn ui_canvas(
             }
 
             let max_depth = frames.threads[&thread_info].max_depth;
+
             cursor_y += max_depth as f32 * (options.rect_height + options.spacing);
         }
         cursor_y += info.text_height; // Extra spacing between threads
@@ -450,7 +458,7 @@ fn ui_canvas(
     cursor_y
 }
 
-fn interact_with_canvas(options: &mut Options, response: &Response, info: &Info<'_>) {
+fn interact_with_canvas(options: &mut Options, response: &egui::Response, info: &Info<'_>) {
     if response.drag_delta().x != 0.0 {
         options.sideways_pan_in_points += response.drag_delta().x;
         options.zoom_to_relative_ns_range = None;
@@ -465,10 +473,11 @@ fn interact_with_canvas(options: &mut Options, response: &Response, info: &Info<
 
         let mut zoom_factor = info.ctx.input(|i| i.zoom_delta_2d().x);
 
-        if response.dragged_by(PointerButton::Secondary) {
+        if response.dragged_by(egui::PointerButton::Secondary) {
             zoom_factor *= (response.drag_delta().y * 0.01).exp();
         }
 
+        #[expect(clippy::float_cmp, reason = "comparison with special constant")]
         if zoom_factor != 1.0 {
             options.canvas_width_ns /= zoom_factor;
 
@@ -498,13 +507,13 @@ fn interact_with_canvas(options: &mut Options, response: &Response, info: &Info<
         let target_canvas_width_ns = (end_ns - start_ns) as f32;
         let target_pan_in_points = -canvas_width * start_ns as f32 / target_canvas_width_ns;
 
-        options.canvas_width_ns = lerp(
+        options.canvas_width_ns = egui::lerp(
             options.canvas_width_ns.recip()..=target_canvas_width_ns.recip(),
             t,
         )
         .recip();
         options.sideways_pan_in_points =
-            lerp(options.sideways_pan_in_points..=target_pan_in_points, t);
+            egui::lerp(options.sideways_pan_in_points..=target_pan_in_points, t);
 
         if t >= 1.0 {
             options.zoom_to_relative_ns_range = None;
@@ -516,7 +525,7 @@ fn interact_with_canvas(options: &mut Options, response: &Response, info: &Info<
 
 fn paint_timeline(
     info: &Info<'_>,
-    canvas: Rect,
+    canvas: egui::Rect,
     options: &Options,
     start_ns: NanoSecond,
 ) -> Vec<egui::Shape> {
@@ -542,11 +551,11 @@ fn paint_timeline(
 
     // We fade in lines as we zoom in:
     let num_tiny_lines = options.canvas_width_ns / (grid_spacing_ns as f32);
-    let zoom_factor = remap_clamp(num_tiny_lines, (0.1 * max_lines)..=max_lines, 1.0..=0.0);
+    let zoom_factor = egui::remap_clamp(num_tiny_lines, (0.1 * max_lines)..=max_lines, 1.0..=0.0);
     let zoom_factor = zoom_factor * zoom_factor;
-    let big_alpha = remap_clamp(zoom_factor, 0.0..=1.0, 0.5..=1.0);
-    let medium_alpha = remap_clamp(zoom_factor, 0.0..=1.0, 0.1..=0.5);
-    let tiny_alpha = remap_clamp(zoom_factor, 0.0..=1.0, 0.0..=0.1);
+    let big_alpha = egui::remap_clamp(zoom_factor, 0.0..=1.0, 0.5..=1.0);
+    let medium_alpha = egui::remap_clamp(zoom_factor, 0.0..=1.0, 0.1..=0.5);
+    let tiny_alpha = egui::remap_clamp(zoom_factor, 0.0..=1.0, 0.0..=0.1);
 
     let mut grid_ns = 0;
 
@@ -569,8 +578,14 @@ fn paint_timeline(
             };
 
             shapes.push(egui::Shape::line_segment(
-                [pos2(line_x, canvas.min.y), pos2(line_x, canvas.max.y)],
-                Stroke::new(1.0, Rgba::from_white_alpha(line_alpha * alpha_multiplier)),
+                [
+                    egui::pos2(line_x, canvas.min.y),
+                    egui::pos2(line_x, canvas.max.y),
+                ],
+                egui::Stroke::new(
+                    1.0,
+                    egui::Rgba::from_white_alpha(line_alpha * alpha_multiplier),
+                ),
             ));
 
             let text_alpha = if big_line {
@@ -584,14 +599,14 @@ fn paint_timeline(
             if text_alpha > 0.0 {
                 let text = grid_text(grid_ns);
                 let text_x = line_x + 4.0;
-                let text_color = Rgba::from_white_alpha((text_alpha * 2.0).min(1.0)).into();
+                let text_color = egui::Rgba::from_white_alpha((text_alpha * 2.0).min(1.0)).into();
 
                 info.painter.fonts_mut(|f| {
                     // Text at top:
                     shapes.push(egui::Shape::text(
                         f,
-                        pos2(text_x, canvas.min.y),
-                        Align2::LEFT_TOP,
+                        egui::pos2(text_x, canvas.min.y),
+                        egui::Align2::LEFT_TOP,
                         &text,
                         info.font_id.clone(),
                         text_color,
@@ -602,8 +617,8 @@ fn paint_timeline(
                     // Text at bottom:
                     shapes.push(egui::Shape::text(
                         f,
-                        pos2(text_x, canvas.max.y - info.text_height),
-                        Align2::LEFT_TOP,
+                        egui::pos2(text_x, canvas.max.y - info.text_height),
+                        egui::Align2::LEFT_TOP,
                         &text,
                         info.font_id.clone(),
                         text_color,
@@ -651,7 +666,7 @@ fn paint_record(
 
     let bottom_y = top_y + options.rect_height;
 
-    let rect = Rect::from_min_max(pos2(start_x, top_y), pos2(stop_x, bottom_y));
+    let rect = egui::Rect::from_min_max(egui::pos2(start_x, top_y), egui::pos2(stop_x, bottom_y));
 
     let is_hovered = if let Some(mouse_pos) = info.response.hover_pos() {
         rect.contains(mouse_pos)
@@ -696,7 +711,7 @@ fn paint_record(
             min_width *= 2.0; // make it more visible even when thin
         } else {
             // fade to highlight others
-            rect_color = lerp(Rgba::BLACK..=rect_color, 0.075);
+            rect_color = egui::lerp(egui::Rgba::BLACK..=rect_color, 0.075);
         }
     }
 
@@ -736,18 +751,18 @@ fn paint_record(
                 suffix
             )
         };
-        let pos = pos2(
+        let pos = egui::pos2(
             start_x + 4.0,
             top_y + 0.5 * (options.rect_height - info.text_height),
         );
         let pos = pos.round_to_pixels(painter.pixels_per_point());
-        const TEXT_COLOR: Color32 = Color32::BLACK;
+
         painter.text(
             pos,
-            Align2::LEFT_TOP,
+            egui::Align2::LEFT_TOP,
             text,
             info.font_id.clone(),
-            TEXT_COLOR,
+            egui::Color32::BLACK,
         );
     }
 
@@ -758,15 +773,15 @@ fn paint_record(
     }
 }
 
-fn color_from_duration(ns: NanoSecond) -> Rgba {
+fn color_from_duration(ns: NanoSecond) -> egui::Rgba {
     let ms = to_ms(ns) as f32;
     // Brighter = more time.
     // So we start with dark colors (blue) and later bright colors (green).
-    let b = remap_clamp(ms, 0.0..=5.0, 1.0..=0.3);
-    let r = remap_clamp(ms, 0.0..=10.0, 0.5..=0.8);
-    let g = remap_clamp(ms, 10.0..=33.0, 0.1..=0.8);
+    let b = egui::remap_clamp(ms, 0.0..=5.0, 1.0..=0.3);
+    let r = egui::remap_clamp(ms, 0.0..=10.0, 0.5..=0.8);
+    let g = egui::remap_clamp(ms, 10.0..=33.0, 0.1..=0.8);
     let a = 0.9;
-    Rgba::from_rgb(r, g, b) * a
+    egui::Rgba::from_rgb(r, g, b) * a
 }
 
 fn to_ms(ns: NanoSecond) -> f64 {
@@ -797,11 +812,11 @@ fn paint_scope(
                 log::warn!("Missing scope metadata");
                 return Ok(PaintResult::Culled);
             };
-            Tooltip::always_open(
+            egui::Tooltip::always_open(
                 info.ctx.clone(),
                 info.layer_id,
-                Id::new("puffin_profiler_tooltip"),
-                PopupAnchor::Pointer,
+                egui::Id::new("puffin_profiler_tooltip"),
+                egui::PopupAnchor::Pointer,
             )
             .show(|ui| {
                 paint_scope_details(ui, scope.id, scope.record.data, scope_details);
@@ -863,11 +878,11 @@ fn paint_merge_scope(
         }
 
         if result == PaintResult::Hovered {
-            Tooltip::always_open(
+            egui::Tooltip::always_open(
                 info.ctx.clone(),
                 info.layer_id,
-                Id::new("puffin_profiler_tooltip"),
-                PopupAnchor::Pointer,
+                egui::Id::new("puffin_profiler_tooltip"),
+                egui::PopupAnchor::Pointer,
             )
             .show(|ui| {
                 merge_scope_tooltip(ui, info.scope_collection, merge, info.num_frames);
@@ -878,7 +893,12 @@ fn paint_merge_scope(
     result
 }
 
-fn paint_scope_details(ui: &mut Ui, scope_id: ScopeId, data: &str, scope_details: &ScopeDetails) {
+fn paint_scope_details(
+    ui: &mut egui::Ui,
+    scope_id: ScopeId,
+    data: &str,
+    scope_details: &ScopeDetails,
+) {
     egui::Grid::new("scope_details_tooltip")
         .num_columns(2)
         .show(ui, |ui| {
@@ -977,7 +997,7 @@ fn merge_scope_tooltip(
     }
 }
 
-fn paint_thread_info(info: &Info<'_>, thread: &ThreadInfo, pos: Pos2, collapsed: &mut bool) {
+fn paint_thread_info(info: &Info<'_>, thread: &ThreadInfo, pos: egui::Pos2, collapsed: &mut bool) {
     puffin::profile_function!();
 
     let collapsed_symbol = if *collapsed { "⏵" } else { "⏷" };
@@ -990,7 +1010,7 @@ fn paint_thread_info(info: &Info<'_>, thread: &ThreadInfo, pos: Pos2, collapsed:
         )
     });
 
-    let rect = Rect::from_min_size(pos, galley.size());
+    let rect = egui::Rect::from_min_size(pos, galley.size());
 
     let is_hovered = if let Some(mouse_pos) = info.response.hover_pos() {
         rect.contains(mouse_pos)
@@ -999,14 +1019,14 @@ fn paint_thread_info(info: &Info<'_>, thread: &ThreadInfo, pos: Pos2, collapsed:
     };
 
     let text_color = if is_hovered {
-        Color32::WHITE
+        egui::Color32::WHITE
     } else {
-        Color32::from_white_alpha(229)
+        egui::Color32::from_white_alpha(229)
     };
     let back_color = if is_hovered {
-        Color32::from_black_alpha(100)
+        egui::Color32::from_black_alpha(100)
     } else {
-        Color32::BLACK
+        egui::Color32::BLACK
     };
 
     info.painter.rect_filled(rect.expand(2.0), 0.0, back_color);

@@ -31,7 +31,7 @@ pub mod mouse;
 pub struct WindowIdentifier(u64);
 
 impl WindowIdentifier {
-    /// Creates a new WindowIdentifier from a raw int
+    /// Creates a new [`WindowIdentifier`] from a raw int
     #[inline]
     pub const fn new(val: u64) -> Self {
         Self(val)
@@ -59,7 +59,7 @@ impl Display for WindowIdentifier {
 
 //TODO: Make input device trait?
 
-/// A set of input devices, either uniquely identifier ([Self::Identified]) or not ([`Self::Unidentified`])
+/// A set of input devices, either uniquely identifier ([`Self::Identified`]) or not ([`Self::Unidentified`])
 #[derive(Debug)]
 enum DeviceSet<K, V> {
     /// Only unidentified devices.
@@ -94,18 +94,15 @@ impl<K: Eq + core::hash::Hash + Clone, V: Default> DeviceSet<K, V> {
     /// is automatically added to the set.
     fn update_device(&mut self, device: Option<&K>, mut func: impl FnMut(&mut V)) {
         if let Self::Unidentified(unidentified_device) = self {
-            match device {
-                Some(device) => {
-                    let mut new_devices_map = HashMap::default();
+            if let Some(device) = device {
+                let mut new_devices_map = HashMap::default();
 
-                    new_devices_map.insert(device.clone(), core::mem::take(unidentified_device));
+                new_devices_map.insert(device.clone(), core::mem::take(unidentified_device));
 
-                    *self = Self::Identified(new_devices_map);
-                }
-                None => {
-                    func(unidentified_device);
-                    return;
-                }
+                *self = Self::Identified(new_devices_map);
+            } else {
+                func(unidentified_device);
+                return;
             }
         }
 
@@ -214,11 +211,11 @@ impl Default for InputManager {
 
         Self {
             gamepad_manager: gilrs,
-            most_recent_mouse: Default::default(),
-            most_recent_keyboard: Default::default(),
-            most_recent_gamepad: Default::default(),
-            mice: Default::default(),
-            keyboards: Default::default(),
+            most_recent_mouse: RwLock::default(),
+            most_recent_keyboard: RwLock::default(),
+            most_recent_gamepad: RwLock::default(),
+            mice: RwLock::default(),
+            keyboards: RwLock::default(),
             gamepads: RwLock::new(gamepads),
         }
     }
@@ -318,7 +315,7 @@ impl InputManager {
 
         mice.update_device(mouse.as_ref(), |mouse| match state {
             ElementState::Pressed => mouse.set_button_pressed(button),
-            ElementState::Released => mouse.set_button_released(&button),
+            ElementState::Released => mouse.set_button_released(button),
         });
     }
 
@@ -349,7 +346,7 @@ impl InputManager {
 
         keyboards.update_device(keyboard.as_ref(), |kbd| match state {
             ElementState::Pressed => kbd.set_key_pressed(key),
-            ElementState::Released => kbd.set_key_released(&key),
+            ElementState::Released => kbd.set_key_released(key),
         });
     }
 
@@ -357,7 +354,7 @@ impl InputManager {
     fn keyboard_logical_key(
         &self,
         keyboard: Option<KeyboardId>,
-        logical_key: keyboard::LogicalKey,
+        logical_key: &keyboard::LogicalKey,
         state: ElementState,
     ) {
         if let Some(identified_keyboard) = keyboard {
@@ -368,10 +365,10 @@ impl InputManager {
 
         keyboards.update_device(keyboard.as_ref(), |kbd| match state {
             ElementState::Pressed => {
-                kbd.add_logical_input(keyboard::LogicalInput::Pressed(logical_key.clone()))
+                kbd.add_logical_input(keyboard::LogicalInput::Pressed(logical_key.clone()));
             }
             ElementState::Released => {
-                kbd.add_logical_input(keyboard::LogicalInput::Released(logical_key.clone()))
+                kbd.add_logical_input(keyboard::LogicalInput::Released(logical_key.clone()));
             }
         });
     }
@@ -403,6 +400,10 @@ pub fn init() {
 
 /// Inserts a new raw [winit device event](winit::event::DeviceEvent) for the given [`device`](winit::event::DeviceId)
 /// into the input manager for the current frame.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "WutEngine uses less precision"
+)]
 pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEvent) {
     profiling::function_scope!();
 
@@ -475,6 +476,10 @@ pub fn insert_raw_device_event(device: DeviceId, event: winit::event::DeviceEven
 /// Inserts a new raw [winit window event](winit::event::WindowEvent) for the given [`Window`]
 /// into the input manager for the current frame. Returns whether the window event was an input-related event,
 /// and has thus been handled
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "WutEngine uses less precision"
+)]
 pub fn insert_raw_window_event(
     window: WindowIdentifier,
     event: &winit::event::WindowEvent,
@@ -502,7 +507,7 @@ pub fn insert_raw_window_event(
             }
 
             if let Some(logical_key) = keyboard::LogicalKey::try_from_winit(&event.logical_key) {
-                INPUT_MANAGER.keyboard_logical_key(keyboard_id, logical_key, event.state);
+                INPUT_MANAGER.keyboard_logical_key(keyboard_id, &logical_key, event.state);
             }
 
             if event.state.is_pressed()
@@ -567,7 +572,7 @@ pub fn insert_raw_window_event(
 
             INPUT_MANAGER.mouse_button(
                 MouseId::from_winit(*device_id),
-                logical_mouse_to_button_id(button),
+                logical_mouse_to_button_id(*button),
                 *state,
             );
         }
@@ -590,14 +595,14 @@ pub fn insert_raw_window_event(
 }
 
 /// Maps a logical winit mouse button to a raw id
-const fn logical_mouse_to_button_id(logical: &winit::event::MouseButton) -> winit::event::ButtonId {
+const fn logical_mouse_to_button_id(logical: winit::event::MouseButton) -> winit::event::ButtonId {
     match logical {
         winit::event::MouseButton::Left => mouse::BUTTON_LEFT,
         winit::event::MouseButton::Right => mouse::BUTTON_RIGHT,
         winit::event::MouseButton::Middle => mouse::BUTTON_MIDDLE,
         winit::event::MouseButton::Back => mouse::BUTTON_BACK,
         winit::event::MouseButton::Forward => mouse::BUTTON_FORWARD,
-        winit::event::MouseButton::Other(other) => *other as winit::event::ButtonId,
+        winit::event::MouseButton::Other(other) => other as winit::event::ButtonId,
     }
 }
 

@@ -95,7 +95,7 @@ impl RenderPass<Camera, [DrawCommand]> for ColorPass {
 
         let mut render_state = RenderState::default();
 
-        for draw_command in draw_commands.iter() {
+        for draw_command in draw_commands {
             if let Some(target_cam) = draw_command.camera
                 && target_cam != camera.get_id()
             {
@@ -153,17 +153,11 @@ impl RenderState {
         if material_changed || mesh_topology_changed {
             // Pipeline check is slightly more expensive, so we only retrieve a new pipeline if any
             // of the things that might change it have changed
-            let pipeline = match graphics::pipeline::get_pipeline(
+            let pipeline = graphics::pipeline::get_pipeline(
                 next_material,
                 next_mesh.topology(),
                 color_targets,
-            ) {
-                Ok(pipeline) => pipeline,
-                Err(e) => {
-                    log::error!("Failed to get pipeline for draw call: {e}");
-                    return Err(());
-                }
-            };
+            );
 
             if self.pipeline.is_none() || self.pipeline.as_ref().unwrap() != &pipeline {
                 render_pass.insert_debug_marker("Switch pipeline");
@@ -192,7 +186,7 @@ impl RenderState {
             color_targets,
         ) {
             return;
-        };
+        }
 
         let queue = graphics::queue();
         let device = graphics::device();
@@ -240,10 +234,8 @@ impl RenderState {
             draw_command.mesh.index_buffer.format().to_wgpu(),
         );
 
-        render_pass.draw_indexed(
-            0..draw_command.mesh.index_buffer.len().get() as u32,
-            0,
-            0..1,
-        );
+        let num_indices = u32::try_from(draw_command.mesh.index_buffer.len().get()).unwrap();
+
+        render_pass.draw_indexed(0..num_indices, 0, 0..1);
     }
 }

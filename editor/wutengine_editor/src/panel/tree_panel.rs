@@ -32,7 +32,7 @@ impl EditorPanel for TreePanel {
         }
 
         for level in open_levels {
-            ui.label(format!("🗄️ {}", level));
+            ui.label(format!("🗄️ {level}"));
         }
     }
 }

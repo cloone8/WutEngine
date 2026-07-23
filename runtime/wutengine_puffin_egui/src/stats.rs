@@ -1,7 +1,6 @@
 //! The main table stats view
 
 use egui::TextBuffer;
-use puffin::*;
 
 use crate::filter::Filter;
 
@@ -51,7 +50,7 @@ pub(crate) struct SortOrder {
 }
 
 impl SortOrder {
-    fn sort_scopes(&self, scopes: &mut [(&Key, ScopeStats)], scope_infos: &ScopeCollection) {
+    fn sort_scopes(self, scopes: &mut [(&Key, ScopeStats)], scope_infos: &puffin::ScopeCollection) {
         match self.key {
             SortKey::Location => {
                 scopes.sort_by_key(|(key, _scope_stats)| {
@@ -136,11 +135,11 @@ fn header_label(ui: &mut egui::Ui, name: &str, sort_key: SortKey, sort_order: &m
 pub(crate) fn ui(
     ui: &mut egui::Ui,
     options: &mut Options,
-    scope_infos: &ScopeCollection,
-    frames: &[alloc::sync::Arc<UnpackedFrameData>],
+    scope_infos: &puffin::ScopeCollection,
+    frames: &[alloc::sync::Arc<puffin::UnpackedFrameData>],
     sort_order: &mut SortOrder,
 ) {
-    let mut threads = std::collections::HashSet::<&ThreadInfo>::new();
+    let mut threads = std::collections::HashSet::<&puffin::ThreadInfo>::new();
     let mut stats = Stats::default();
 
     for frame in frames {
@@ -184,7 +183,7 @@ pub(crate) fn ui(
 fn show_scopes(
     sort_order: &mut SortOrder,
     scopes: &[(&Key, ScopeStats)],
-    scope_infos: &ScopeCollection,
+    scope_infos: &puffin::ScopeCollection,
     options: &Options,
     ui: &mut egui::Ui,
 ) {
@@ -302,7 +301,7 @@ struct Stats {
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct Key {
-    id: ScopeId,
+    id: puffin::ScopeId,
 }
 
 #[derive(Copy, Clone, Default)]
@@ -311,10 +310,10 @@ struct ScopeStats {
     bytes: usize,
     /// Time covered by all scopes, minus those covered by child scopes.
     /// A lot of time == useful scope.
-    total_self_ns: NanoSecond,
+    total_self_ns: puffin::NanoSecond,
     /// Time covered by the slowest scope, minus those covered by child scopes.
     /// A lot of time == useful scope.
-    max_ns: NanoSecond,
+    max_ns: puffin::NanoSecond,
 }
 
 fn collect_stream(stats: &mut Stats, stream: &puffin::Stream) -> puffin::Result<()> {
@@ -330,7 +329,7 @@ fn collect_scope<'s>(
     scope: &puffin::Scope<'s>,
 ) -> puffin::Result<()> {
     let mut ns_used_by_children = 0;
-    for child_scope in Reader::with_offset(stream, scope.child_begin_position)? {
+    for child_scope in puffin::Reader::with_offset(stream, scope.child_begin_position)? {
         let child_scope = &child_scope?;
         collect_scope(stats, stream, child_scope)?;
         ns_used_by_children += child_scope.record.duration_ns;

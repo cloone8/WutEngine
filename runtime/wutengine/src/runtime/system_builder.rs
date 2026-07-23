@@ -10,7 +10,7 @@ use crate::system::{GenericSystem, Phase, Queryable, SystemId};
 /// A collection of systems, used during WutEngine runtime initialization to build a
 /// system schedule.
 ///
-/// Created with [Self::default], or [`Self::empty`] if the default systems are not desired
+/// Created with [`Self::default`], or [`Self::empty`] if the default systems are not desired
 #[derive(Debug, Clone)]
 pub struct SystemManifest {
     /// The systems added to the manifest. Not in any particular order
@@ -117,11 +117,11 @@ impl SystemManifest {
                 });
             } else {
                 // If a batch size was not given, we process the batch fully on this thread
-                for (entity, query_return) in query_borrowed.iter() {
+                for (entity, query_return) in &mut query_borrowed {
                     profiling::scope!("System invocation");
                     sys(crate::entity::Entity(entity), query_return);
                 }
-            };
+            }
         });
 
         self.systems.push(PendingSystem {

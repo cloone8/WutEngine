@@ -24,7 +24,7 @@ pub(crate) struct GraphicsConfig {
 impl Default for GraphicsConfig {
     fn default() -> Self {
         Self {
-            backend: Default::default(),
+            backend: GraphicsBackend::default(),
             debug: cfg!(debug_assertions),
             validation: cfg!(debug_assertions),
             gpu_based_validation: false,

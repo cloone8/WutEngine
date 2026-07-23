@@ -9,6 +9,13 @@
 //!
 //! Initially forked from [puffin](https://github.com/EmbarkStudios/puffin/commit/7e08a533f9debfb7d051547263d2ab84c666314f)
 
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    reason = "UI code where precision isn't required"
+)]
+
 extern crate alloc;
 
 mod filter;
@@ -21,17 +28,16 @@ use alloc::sync::Arc;
 use core::fmt::Write;
 use core::iter;
 use core::time::Duration;
+use egui::NumExt;
 use egui::scroll_area::ScrollSource;
-use egui::*;
-use puffin::*;
 use std::sync::Mutex;
 use std::time::Instant;
 
 /// Error color
-const ERROR_COLOR: Color32 = Color32::RED;
+const ERROR_COLOR: egui::Color32 = egui::Color32::RED;
 
 /// On-hover color
-const HOVER_COLOR: Rgba = Rgba::from_rgb(0.8, 0.8, 0.8);
+const HOVER_COLOR: egui::Rgba = egui::Rgba::from_rgb(0.8, 0.8, 0.8);
 
 // ----------------------------------------------------------------------------
 
@@ -106,7 +112,7 @@ pub fn profiler_ui(ui: &mut egui::Ui) {
 pub struct GlobalProfilerUi {
     /// Global frame view
     #[debug(skip)]
-    global_frame_view: GlobalFrameView,
+    global_frame_view: puffin::GlobalFrameView,
 
     /// UI options and state
     pub profiler_ui: ProfilerUi,
@@ -132,7 +138,7 @@ impl GlobalProfilerUi {
     }
 
     /// The frames we are looking at.
-    pub fn global_frame_view(&self) -> &GlobalFrameView {
+    pub fn global_frame_view(&self) -> &puffin::GlobalFrameView {
         &self.global_frame_view
     }
 }
@@ -144,28 +150,28 @@ impl GlobalProfilerUi {
 pub struct AvailableFrames {
     /// Most recent frames
     #[debug(skip)]
-    pub recent: Vec<Arc<FrameData>>,
+    pub recent: Vec<Arc<puffin::FrameData>>,
 
     /// Slowest frames
     #[debug(skip)]
-    pub slowest: Vec<Arc<FrameData>>,
+    pub slowest: Vec<Arc<puffin::FrameData>>,
 
     /// Unique frames
     #[debug(skip)]
-    pub uniq: Vec<Arc<FrameData>>,
+    pub uniq: Vec<Arc<puffin::FrameData>>,
 
     /// Frame stats
-    pub stats: FrameStats,
+    pub stats: puffin::FrameStats,
 }
 
 impl AvailableFrames {
     /// Returns the latest available frames
-    fn latest(frame_view: &FrameView) -> Self {
+    fn latest(frame_view: &puffin::FrameView) -> Self {
         Self {
             recent: frame_view.recent_frames().cloned().collect(),
             slowest: frame_view.slowest_frames_chronological().cloned().collect(),
             uniq: frame_view.all_uniq().cloned().collect(),
-            stats: Default::default(),
+            stats: puffin::FrameStats::default(),
         }
     }
 }
@@ -175,10 +181,10 @@ impl AvailableFrames {
 pub struct Streams {
     /// Scope streams
     #[debug(skip)]
-    streams: Vec<Arc<StreamInfo>>,
+    streams: Vec<Arc<puffin::StreamInfo>>,
 
     /// Merged scopes
-    merged_scopes: Vec<MergeScope<'static>>,
+    merged_scopes: Vec<puffin::MergeScope<'static>>,
 
     /// Max depth
     max_depth: usize,
@@ -187,11 +193,11 @@ pub struct Streams {
 impl Streams {
     /// New streams based on the given frames
     fn new(
-        scope_collection: &ScopeCollection,
-        frames: &[Arc<UnpackedFrameData>],
-        thread_info: &ThreadInfo,
+        scope_collection: &puffin::ScopeCollection,
+        frames: &[Arc<puffin::UnpackedFrameData>],
+        thread_info: &puffin::ThreadInfo,
     ) -> Self {
-        crate::profile_function!();
+        puffin::profile_function!();
 
         let mut streams = Vec::with_capacity(frames.len());
 
@@ -205,7 +211,10 @@ impl Streams {
             puffin::profile_scope!("merge_scopes_for_thread");
             puffin::merge_scopes_for_thread(scope_collection, frames, thread_info).unwrap()
         };
-        let merges = merges.into_iter().map(|ms| ms.into_owned()).collect();
+        let merges = merges
+            .into_iter()
+            .map(puffin::MergeScope::into_owned)
+            .collect();
 
         let mut max_depth = 0;
         for stream_info in &streams {
@@ -226,23 +235,23 @@ impl Streams {
 pub struct SelectedFrames {
     /// Ordered, but not necessarily in sequence
     #[debug(skip)]
-    pub frames: Vec<Arc<UnpackedFrameData>>,
+    pub frames: Vec<Arc<puffin::UnpackedFrameData>>,
 
     /// Raw range in nanoseconds
-    pub raw_range_ns: (NanoSecond, NanoSecond),
+    pub raw_range_ns: (puffin::NanoSecond, puffin::NanoSecond),
 
     /// Merged range in nanoseconds
-    pub merged_range_ns: (NanoSecond, NanoSecond),
+    pub merged_range_ns: (puffin::NanoSecond, puffin::NanoSecond),
 
     /// Threads and their streams
-    pub threads: BTreeMap<ThreadInfo, Streams>,
+    pub threads: BTreeMap<puffin::ThreadInfo, Streams>,
 }
 
 impl SelectedFrames {
     /// Try to select frames
     fn try_from_iter(
-        scope_collection: &ScopeCollection,
-        frames: impl Iterator<Item = Arc<UnpackedFrameData>>,
+        scope_collection: &puffin::ScopeCollection,
+        frames: impl Iterator<Item = Arc<puffin::UnpackedFrameData>>,
     ) -> Option<Self> {
         let mut it = frames;
         let first = it.next()?;
@@ -254,8 +263,8 @@ impl SelectedFrames {
 
     /// Select frames from a vector. Must contain at least one frame
     fn from_vec(
-        scope_collection: &ScopeCollection,
-        mut frames: Vec<Arc<UnpackedFrameData>>,
+        scope_collection: &puffin::ScopeCollection,
+        mut frames: Vec<Arc<puffin::UnpackedFrameData>>,
     ) -> Self {
         puffin::profile_function!();
 
@@ -264,20 +273,20 @@ impl SelectedFrames {
         frames.sort_by_key(|f| f.frame_index());
         frames.dedup_by_key(|f| f.frame_index());
 
-        let mut threads: BTreeSet<ThreadInfo> = BTreeSet::new();
+        let mut threads: BTreeSet<puffin::ThreadInfo> = BTreeSet::new();
         for frame in &frames {
             for ti in frame.thread_streams.keys() {
                 threads.insert(ti.clone());
             }
         }
 
-        let threads: BTreeMap<ThreadInfo, Streams> = threads
+        let threads: BTreeMap<puffin::ThreadInfo, Streams> = threads
             .iter()
             .map(|ti| (ti.clone(), Streams::new(scope_collection, &frames, ti)))
             .collect();
 
-        let mut merged_min_ns = NanoSecond::MAX;
-        let mut merged_max_ns = NanoSecond::MIN;
+        let mut merged_min_ns = puffin::NanoSecond::MAX;
+        let mut merged_max_ns = puffin::NanoSecond::MIN;
         for stream in threads.values() {
             for scope in &stream.merged_scopes {
                 let scope_start = scope.relative_start_ns;
@@ -357,9 +366,9 @@ pub struct ProfilerUi {
 impl Default for ProfilerUi {
     fn default() -> Self {
         Self {
-            flamegraph_options: Default::default(),
-            stats_options: Default::default(),
-            view: Default::default(),
+            flamegraph_options: flamegraph::Options::default(),
+            stats_options: stats::Options::default(),
+            view: View::default(),
             paused: None,
             max_num_latest: 1,
             slowest_frame: 0.16,
@@ -383,7 +392,7 @@ impl ProfilerUi {
     /// If you want to control the window yourself, use [``Self::ui``] instead.
     ///
     /// Returns `false` if the user closed the profile window.
-    pub fn window(&mut self, ctx: &egui::Context, frame_view: &mut FrameView) -> bool {
+    pub fn window(&mut self, ctx: &egui::Context, frame_view: &mut puffin::FrameView) -> bool {
         puffin::profile_function!();
         let mut open = true;
         egui::Window::new("Profiler")
@@ -394,7 +403,7 @@ impl ProfilerUi {
     }
 
     /// The frames we can select between
-    fn frames(&self, frame_view: &FrameView) -> AvailableFrames {
+    fn frames(&self, frame_view: &puffin::FrameView) -> AvailableFrames {
         self.paused.as_ref().map_or_else(
             || {
                 let mut frames = AvailableFrames::latest(frame_view);
@@ -403,14 +412,15 @@ impl ProfilerUi {
             },
             |paused| {
                 let mut frames = paused.frames.clone();
-                frames.stats = FrameStats::from_frames(paused.frames.uniq.iter().map(Arc::as_ref));
+                frames.stats =
+                    puffin::FrameStats::from_frames(paused.frames.uniq.iter().map(Arc::as_ref));
                 frames
             },
         )
     }
 
     /// Pause on the specific frame
-    fn pause_and_select(&mut self, frame_view: &FrameView, selected: SelectedFrames) {
+    fn pause_and_select(&mut self, frame_view: &puffin::FrameView, selected: SelectedFrames) {
         if let Some(paused) = &mut self.paused {
             paused.selected = selected;
         } else {
@@ -422,7 +432,7 @@ impl ProfilerUi {
     }
 
     /// Check whether the given frame is selected in the given view
-    fn is_selected(&self, frame_view: &FrameView, frame_index: u64) -> bool {
+    fn is_selected(&self, frame_view: &puffin::FrameView, frame_index: u64) -> bool {
         if let Some(paused) = &self.paused {
             paused.selected.contains(frame_index)
         } else if let Some(latest_frame) = frame_view.latest_frame() {
@@ -435,8 +445,8 @@ impl ProfilerUi {
     /// All known frames
     fn all_known_frames<'a>(
         &'a self,
-        frame_view: &'a FrameView,
-    ) -> Box<dyn Iterator<Item = &'a Arc<FrameData>> + 'a> {
+        frame_view: &'a puffin::FrameView,
+    ) -> Box<dyn Iterator<Item = &'a Arc<puffin::FrameData>> + 'a> {
         match &self.paused {
             Some(paused) => Box::new(frame_view.all_uniq().chain(paused.frames.uniq.iter())),
             None => Box::new(frame_view.all_uniq()),
@@ -444,7 +454,7 @@ impl ProfilerUi {
     }
 
     /// Runs the pack pass if needed. Slow
-    fn run_pack_pass_if_needed(&mut self, frame_view: &FrameView) {
+    fn run_pack_pass_if_needed(&mut self, frame_view: &puffin::FrameView) {
         if !frame_view.pack_frames() {
             return;
         }
@@ -464,7 +474,7 @@ impl ProfilerUi {
     /// Show the profiler.
     ///
     /// Call this from within an [`egui::Window`], or use [``Self::window``] instead.
-    pub fn ui(&mut self, ui: &mut egui::Ui, frame_view: &mut FrameView) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, frame_view: &mut puffin::FrameView) {
         puffin::profile_function!();
 
         self.run_pack_pass_if_needed(frame_view);
@@ -477,7 +487,7 @@ impl ProfilerUi {
         if frame_view.is_empty() {
             ui.label("No profiling data");
             return;
-        };
+        }
 
         ui.scope(|ui| {
             ui.spacing_mut().item_spacing.y = 6.0;
@@ -486,7 +496,7 @@ impl ProfilerUi {
     }
 
     /// UI implementation, called from [`Self::ui`]
-    fn ui_impl(&mut self, ui: &mut egui::Ui, frame_view: &mut FrameView) {
+    fn ui_impl(&mut self, ui: &mut egui::Ui, frame_view: &mut puffin::FrameView) {
         let mut hovered_frame = None;
 
         egui::CollapsingHeader::new("Frame history")
@@ -512,14 +522,12 @@ impl ProfilerUi {
             let latest = frame_view
                 .latest_frames(self.max_num_latest)
                 .map(|frame| frame.unpacked())
-                .filter_map(|unpacked| unpacked.ok());
+                .filter_map(Result::ok);
 
             SelectedFrames::try_from_iter(frame_view.scope_collection(), latest)
         };
 
-        let frames = if let Some(frames) = frames {
-            frames
-        } else {
+        let Some(frames) = frames else {
             ui.label("No profiling data");
             return;
         };
@@ -579,11 +587,11 @@ impl ProfilerUi {
     fn play_pause_ui(
         &mut self,
         frames: &SelectedFrames,
-        frame_view: &FrameView,
+        frame_view: &puffin::FrameView,
         ui: &mut egui::Ui,
     ) {
         ui.horizontal(|ui| {
-            let play_pause_button_size = Vec2::splat(24.0);
+            let play_pause_button_size = egui::Vec2::splat(24.0);
             let space_pressed = ui.input(|i| i.key_pressed(egui::Key::Space))
                 && ui.memory(|m| m.focused().is_none());
 
@@ -628,8 +636,8 @@ impl ProfilerUi {
     fn show_frames(
         &mut self,
         ui: &mut egui::Ui,
-        frame_view: &mut FrameView,
-    ) -> Option<Arc<FrameData>> {
+        frame_view: &mut puffin::FrameView,
+    ) -> Option<Arc<puffin::FrameData>> {
         puffin::profile_function!();
 
         let frames = self.frames(frame_view);
@@ -662,7 +670,7 @@ impl ProfilerUi {
 
             ui.label("Recent:");
 
-            Frame::dark_canvas(ui.style()).show(ui, |ui| {
+            egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
                 egui::ScrollArea::horizontal()
                     .stick_to_right(true)
                     .scroll_source(ScrollSource::SCROLL_BAR | ScrollSource::MOUSE_WHEEL)
@@ -676,14 +684,15 @@ impl ProfilerUi {
                             self.slowest_frame,
                         );
                         // quickly, but smoothly, normalize frame height:
-                        self.slowest_frame = lerp(self.slowest_frame..=slowest_visible as f32, 0.2);
+                        self.slowest_frame =
+                            egui::lerp(self.slowest_frame..=slowest_visible as f32, 0.2);
                     });
             });
 
             ui.end_row();
 
             ui.vertical(|ui| {
-                ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 ui.add_space(16.0); // make it a bit more centered
                 ui.label("Slowest:");
                 if ui.button("Clear").clicked() {
@@ -692,7 +701,7 @@ impl ProfilerUi {
             });
 
             // Show as many slow frames as we fit in the view:
-            Frame::dark_canvas(ui.style()).show(ui, |ui| {
+            egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
                 let num_fit = (ui.available_size_before_wrap().x
                     / self.flamegraph_options.frame_width)
                     .floor();
@@ -722,12 +731,12 @@ impl ProfilerUi {
     fn show_frame_list(
         &mut self,
         ui: &mut egui::Ui,
-        frame_view: &FrameView,
-        frames: &[Arc<FrameData>],
+        frame_view: &puffin::FrameView,
+        frames: &[Arc<puffin::FrameData>],
         tight: bool,
-        hovered_frame: &mut Option<Arc<FrameData>>,
+        hovered_frame: &mut Option<Arc<puffin::FrameData>>,
         slowest_frame: f32,
-    ) -> NanoSecond {
+    ) -> puffin::NanoSecond {
         let frame_width_including_spacing = self.flamegraph_options.frame_width;
 
         let desired_width = if tight {
@@ -738,8 +747,9 @@ impl ProfilerUi {
             num_frames as f32 * frame_width_including_spacing
         };
 
-        let desired_size = Vec2::new(desired_width, self.flamegraph_options.frame_list_height);
-        let (response, painter) = ui.allocate_painter(desired_size, Sense::drag());
+        let desired_size =
+            egui::Vec2::new(desired_width, self.flamegraph_options.frame_list_height);
+        let (response, painter) = ui.allocate_painter(desired_size, egui::Sense::drag());
         let rect = response.rect;
 
         let frame_spacing = 2.0;
@@ -764,11 +774,11 @@ impl ProfilerUi {
                         * frame_width_including_spacing
             };
 
-            let frame_rect = Rect::from_min_max(
-                Pos2::new(x, rect.top()),
-                Pos2::new(x + frame_width, rect.bottom()),
+            let frame_rect = egui::Rect::from_min_max(
+                egui::Pos2::new(x, rect.top()),
+                egui::Pos2::new(x + frame_width, rect.bottom()),
             )
-            .expand2(vec2(0.5 * frame_spacing, 0.0));
+            .expand2(egui::vec2(0.5 * frame_spacing, 0.0));
 
             if ui.clip_rect().intersects(frame_rect) {
                 let duration = frame.duration_ns();
@@ -785,11 +795,11 @@ impl ProfilerUi {
                 // preview when hovering is really annoying when viewing multiple frames
                 if is_hovered && !is_selected && !viewing_multiple_frames {
                     *hovered_frame = Some(frame.clone());
-                    Tooltip::always_open(
+                    egui::Tooltip::always_open(
                         ui.clone(),
                         ui.layer_id(),
-                        Id::new("puffin_frame_tooltip"),
-                        PopupAnchor::Pointer,
+                        egui::Id::new("puffin_frame_tooltip"),
+                        egui::PopupAnchor::Pointer,
                     )
                     .show(|ui| {
                         ui.label(format!("{:.1} ms", frame.duration_ns() as f64 * 1e-6));
@@ -809,16 +819,16 @@ impl ProfilerUi {
                 }
 
                 let color = if is_selected {
-                    Rgba::WHITE
+                    egui::Rgba::WHITE
                 } else if is_hovered {
                     HOVER_COLOR
                 } else {
-                    Rgba::from_rgb(0.6, 0.6, 0.4)
+                    egui::Rgba::from_rgb(0.6, 0.6, 0.4)
                 };
 
                 // Shrink the rect as the visual representation of the frame rect includes empty
                 // space between each bar
-                let visual_rect = frame_rect.expand2(vec2(-0.5 * frame_spacing, 0.0));
+                let visual_rect = frame_rect.expand2(egui::vec2(-0.5 * frame_spacing, 0.0));
 
                 // Transparent, full height:
                 let alpha: f32 = if is_selected || is_hovered { 0.6 } else { 0.25 };
@@ -826,7 +836,7 @@ impl ProfilerUi {
 
                 // Opaque, height based on duration:
                 let mut short_rect = visual_rect;
-                short_rect.min.y = lerp(
+                short_rect.min.y = egui::lerp(
                     visual_rect.bottom_up_range(),
                     duration as f32 / slowest_frame,
                 );
@@ -885,10 +895,10 @@ fn frames_info_ui(ui: &mut egui::Ui, selection: &SelectedFrames) {
 }
 
 /// Format a nanosecond time
-fn format_time(nanos: NanoSecond) -> Option<String> {
+fn format_time(nanos: puffin::NanoSecond) -> Option<String> {
     let years_since_epoch = nanos / 1_000_000_000 / 60 / 60 / 24 / 365;
     if (50..=150).contains(&years_since_epoch) {
-        let datetime = jiff::Timestamp::from_nanosecond(nanos as i128)
+        let datetime = jiff::Timestamp::from_nanosecond(i128::from(nanos))
             .ok()?
             .to_zoned(jiff::tz::TimeZone::try_system().unwrap_or(jiff::tz::TimeZone::UTC));
 
@@ -901,7 +911,11 @@ fn format_time(nanos: NanoSecond) -> Option<String> {
 }
 
 /// Max frames UI
-fn max_frames_ui(ui: &mut egui::Ui, frame_view: &mut FrameView, uniq: &[Arc<FrameData>]) {
+fn max_frames_ui(
+    ui: &mut egui::Ui,
+    frame_view: &mut puffin::FrameView,
+    uniq: &[Arc<puffin::FrameData>],
+) {
     let stats = frame_view.stats();
     let bytes = stats.bytes_of_ram_used();
 

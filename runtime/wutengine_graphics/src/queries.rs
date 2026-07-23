@@ -31,7 +31,7 @@ impl QueryResolver {
 
             let query_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: label!("QueryResolver {} timestamp resolve buffer", name),
-                size: (wgpu::QUERY_SIZE * 2) as u64,
+                size: u64::from(wgpu::QUERY_SIZE * 2),
                 usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
                 mapped_at_creation: false,
             });
@@ -45,12 +45,12 @@ impl QueryResolver {
             let query_set = device.create_query_set(&wgpu::QuerySetDescriptor {
                 label: label!("QueryResolver {} statistics set", name),
                 ty: wgpu::QueryType::PipelineStatistics(wgpu::PipelineStatisticsTypes::all()),
-                count: num_statistics as u32,
+                count: u32::try_from(num_statistics).unwrap(),
             });
 
             let query_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: label!("QueryResolver {} statistics resolve buffer", name),
-                size: (wgpu::QUERY_SIZE * num_statistics as u32) as u64,
+                size: u64::from(wgpu::QUERY_SIZE * u32::try_from(num_statistics).unwrap()),
                 usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
                 mapped_at_creation: false,
             });
@@ -62,7 +62,7 @@ impl QueryResolver {
     }
 
     /// Returns the timestamp writes config for this query set
-    pub fn renderpass_timestamp_writes(&mut self) -> Option<wgpu::RenderPassTimestampWrites<'_>> {
+    pub fn renderpass_timestamp_writes(&self) -> Option<wgpu::RenderPassTimestampWrites<'_>> {
         let (query_set, _) = self.timestamp_bufs.as_ref()?;
 
         Some(wgpu::RenderPassTimestampWrites {
@@ -73,14 +73,14 @@ impl QueryResolver {
     }
 
     /// Starts recording pipeline statistics on the given pass
-    pub fn pipeline_statistics_start(&mut self, pass: &mut wgpu::RenderPass) {
+    pub fn pipeline_statistics_start(&self, pass: &mut wgpu::RenderPass) {
         if let Some((statistics_set, _)) = self.statistics_bufs.as_ref() {
             pass.begin_pipeline_statistics_query(statistics_set, 0);
         }
     }
 
     /// Stops recording pipeline statistics on the given pass
-    pub fn pipeline_statistics_end(&mut self, pass: &mut wgpu::RenderPass) {
+    pub fn pipeline_statistics_end(&self, pass: &mut wgpu::RenderPass) {
         if self.statistics_bufs.as_ref().is_some() {
             pass.end_pipeline_statistics_query();
         }
@@ -109,8 +109,8 @@ impl QueryResolver {
             timestamp_query_buf,
             0,
             target_buffer,
-            *offset_queries * (wgpu::QUERY_SIZE as u64),
-            (wgpu::QUERY_SIZE * 2) as u64,
+            *offset_queries * u64::from(wgpu::QUERY_SIZE),
+            u64::from(wgpu::QUERY_SIZE * 2),
         );
 
         *offset_queries += 2;
@@ -142,8 +142,8 @@ impl QueryResolver {
             statistics_query_buf,
             0,
             target_buffer,
-            *offset_queries * (wgpu::QUERY_SIZE as u64),
-            (wgpu::QUERY_SIZE * (num_statistics as u32)) as u64,
+            *offset_queries * u64::from(wgpu::QUERY_SIZE),
+            u64::from(wgpu::QUERY_SIZE * u32::try_from(num_statistics).unwrap()),
         );
 
         *offset_queries += num_statistics as u64;

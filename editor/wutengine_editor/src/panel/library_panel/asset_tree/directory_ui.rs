@@ -77,12 +77,14 @@ impl AssetTreeNode {
             }
 
             if response.double_clicked() {
+                // Select and make context
                 *selected = Some(child.path().clone());
                 return Some(child.path().clone());
-            } else {
-                if response.clicked() || response.secondary_clicked() {
-                    *selected = Some(child.path().clone());
-                }
+            }
+
+            if response.clicked() || response.secondary_clicked() {
+                // Select only
+                *selected = Some(child.path().clone());
             }
         }
 
