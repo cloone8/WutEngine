@@ -330,7 +330,7 @@ impl PrimitiveRenderState<'_> {
                 }
 
                 let draw_start = u32::try_from(self.base_index).unwrap();
-                let draw_end = u32::try_from(self.base_index + num_vertices).unwrap();
+                let draw_end = u32::try_from(self.base_index + num_indices).unwrap();
                 pass.draw_indexed(draw_start..draw_end, 0, 0..1);
 
                 self.base_vertex += num_vertices;

@@ -11,8 +11,8 @@ use wutengine_egui::egui;
 static EDITOR_LOGGER: InitOnce<EditorLogger, false, false> = InitOnce::new_checked();
 
 /// Initializes and sets the editor logger
-pub(crate) fn init() {
-    InitOnce::init(&EDITOR_LOGGER, EditorLogger::new());
+pub(crate) fn init(also_console: bool) {
+    InitOnce::init(&EDITOR_LOGGER, EditorLogger::new(also_console));
 
     let logger_ref: &EditorLogger = &EDITOR_LOGGER;
     let dyn_logger: &dyn log::Log = logger_ref;
@@ -33,6 +33,7 @@ pub(crate) struct EditorLogger {
     internal_level: AtomicU8,
     external_level: AtomicU8,
     max_logs: usize,
+    also_console: bool,
 
     /// The currently stored logs. Oldest at the front, newest at the back
     pub(crate) logs: Mutex<VecDeque<LogEntry>>,
@@ -42,7 +43,7 @@ impl EditorLogger {
     const INTERNAL_LOG_LEVEL_PREF: &str = "editor.internal_log_level";
     const EXTERNAL_LOG_LEVEL_PREF: &str = "editor.external_log_level";
 
-    fn new() -> Self {
+    fn new(also_console: bool) -> Self {
         let stored_internal_level =
             we_prefs::get_or(Self::INTERNAL_LOG_LEVEL_PREF, log::LevelFilter::Warn);
         let stored_external_level =
@@ -55,6 +56,7 @@ impl EditorLogger {
             internal_level: AtomicU8::new(Self::levelfilter_to_int(stored_internal_level)),
             external_level: AtomicU8::new(Self::levelfilter_to_int(stored_external_level)),
             max_logs: 1_000,
+            also_console,
             logs: Mutex::new(VecDeque::new()),
         }
     }
@@ -256,6 +258,15 @@ impl log::Log for EditorLogger {
     fn log(&self, record: &log::Record) {
         if !self.enabled(record.metadata()) {
             return;
+        }
+
+        if self.also_console {
+            eprintln!(
+                "[{}] {}: {}",
+                record.level(),
+                record.target(),
+                record.args()
+            );
         }
 
         let mut logs = self.logs.lock().unwrap();

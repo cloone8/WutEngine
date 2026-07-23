@@ -17,6 +17,10 @@ pub(crate) struct CliArgs {
     /// The renderer to use. If not given, will use the default renderer for the current platform
     #[arg(long, value_enum)]
     pub(crate) renderer: Option<CliGraphicsBackend>,
+
+    /// Also output all logs to the console
+    #[arg(long)]
+    pub(crate) log_console: bool,
 }
 
 /// The rendering backend to use

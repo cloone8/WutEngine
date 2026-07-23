@@ -67,7 +67,7 @@ fn main() {
 
     let args = CliArgs::parse();
 
-    logger::init();
+    logger::init(args.log_console);
 
     let mut config_overrides = HashMap::default();
 

@@ -105,28 +105,23 @@ pub struct ScissorRect {
 impl ScissorRect {
     /// Creates a new scissor rect from an egui rect, and a surface configuration
     /// The resulting rect can be used directly in graphics APIs
-    #[expect(
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        reason = "Checked"
-    )]
     pub fn new(
         clip_rect: &egui::epaint::Rect,
         pixels_per_point: f32,
         target_size: (u32, u32),
     ) -> Self {
         // Transform clip rect to physical pixels:
-        let clip_min_x = (pixels_per_point * clip_rect.min.x).round();
-        let clip_min_y = (pixels_per_point * clip_rect.min.y).round();
-        let clip_max_x = (pixels_per_point * clip_rect.max.x).round();
-        let clip_max_y = (pixels_per_point * clip_rect.max.y).round();
+        let clip_min_x = pixels_per_point * clip_rect.min.x;
+        let clip_min_y = pixels_per_point * clip_rect.min.y;
+        let clip_max_x = pixels_per_point * clip_rect.max.x;
+        let clip_max_y = pixels_per_point * clip_rect.max.y;
 
         // Round to integer:
 
-        let clip_min_x = clip_min_x as u32;
-        let clip_min_y = clip_min_y as u32;
-        let clip_max_x = clip_max_x as u32;
-        let clip_max_y = clip_max_y as u32;
+        let clip_min_x = clip_min_x.round() as u32;
+        let clip_min_y = clip_min_y.round() as u32;
+        let clip_max_x = clip_max_x.round() as u32;
+        let clip_max_y = clip_max_y.round() as u32;
 
         // Clamp:
         let clip_min_x = clip_min_x.clamp(0, target_size.0);
