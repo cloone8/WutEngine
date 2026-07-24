@@ -4,6 +4,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::RwLock;
 
+use wutengine::asset::SerializedAsset;
+use wutengine::asset::assets::level::SerializedLevel;
 use wutengine_util::InitOnce;
 
 pub(crate) mod assetmanager;
@@ -83,6 +85,32 @@ pub(crate) fn save() -> Result<(), SaveErr> {
 /// Returns the open scenes
 pub(crate) fn open_levels() -> Vec<uuid::NonNilUuid> {
     PROJECT.levels.read().unwrap().clone()
+}
+
+/// Opens a new level in the editor
+pub(crate) fn open_level(level: &uuid::NonNilUuid) {
+    let Some(proj_asset) = PROJECT.assets.get_project_asset(level) else {
+        log::error!("Unknown asset {level}. Cannot open as level");
+        return;
+    };
+
+    if proj_asset.asset_type() != SerializedLevel::ID {
+        log::error!(
+            "Asset {level} is not a SerializedLevel asset type, but is an asset of type {} instead",
+            proj_asset.asset_type()
+        );
+        return;
+    }
+
+    let mut levels = PROJECT.levels.write().unwrap();
+
+    if levels.contains(level) {
+        // Already loaded
+        log::info!("Level {level} already loaded");
+        return;
+    }
+
+    levels.push(*level);
 }
 
 /// The loaded project

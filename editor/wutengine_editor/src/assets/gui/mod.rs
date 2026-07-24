@@ -8,29 +8,16 @@ use std::sync::RwLock;
 use uuid::NonNilUuid;
 use wutengine::asset::AssetRef;
 use wutengine::asset::SerializedAsset;
+use wutengine::asset::assets::level::SerializedLevel;
 use wutengine::asset::assets::texture::SerializedTexture;
 use wutengine::asset_server::AutoLoad;
 
-use crate::assets::cache::Editor;
-use crate::project;
+use crate::assets::server::EditorProject;
+
+mod impls;
 
 const DEFAULT_ICON: &str = "📦";
 const DEFAULT_ICON_COLOR: wutengine_egui::egui::Color32 = wutengine_egui::egui::Color32::LIGHT_BLUE;
-
-fn default_on_open(asset_id: &uuid::NonNilUuid) {
-    let Some(project_asset) = project::asset_manager().get_project_asset(asset_id) else {
-        log::error!(
-            "Cannot open asset {asset_id}, because it could not be found within the project"
-        );
-        return;
-    };
-
-    //TODO: Open in default OS program
-    log::warn!(
-        "Opening asset at path {}",
-        project_asset.path().relative().to_string_lossy()
-    );
-}
 
 static CUSTOM_GUIS: LazyLock<RwLock<HashMap<uuid::NonNilUuid, AssetGuiInfo>>> =
     LazyLock::new(|| {
@@ -49,12 +36,7 @@ fn insert_default_custom_guis(map: &mut HashMap<uuid::NonNilUuid, AssetGuiInfo>)
     }
 
     insert_gui!(SerializedTexture);
-}
-
-impl AssetGui for SerializedTexture {
-    const ICON: &'static str = "🖼️";
-
-    const ICON_COLOR: wutengine_egui::egui::Color32 = wutengine_egui::egui::Color32::LIGHT_GREEN;
+    insert_gui!(SerializedLevel);
 }
 
 /// Registers a custom asset GUI for an asset type
@@ -84,7 +66,10 @@ impl AssetGuiInfo {
             icon: T::ICON,
             icon_color: T::ICON_COLOR,
             on_open: Arc::new(|id| {
-                T::on_open(&AutoLoad::new_from_ref_in(&AssetRef::from_id(*id), Editor));
+                T::on_open(&AutoLoad::new_from_ref_in(
+                    &AssetRef::from_id(*id),
+                    EditorProject,
+                ));
             }),
         }
     }
@@ -94,11 +79,7 @@ impl Default for AssetGuiInfo {
     fn default() -> Self {
         type OnOpenFn = dyn Fn(&NonNilUuid) + Send + Sync;
 
-        static DEFAULT_ON_OPEN: LazyLock<Arc<OnOpenFn>> = LazyLock::new(|| {
-            Arc::new(|asset_id| {
-                default_on_open(asset_id);
-            })
-        });
+        static DEFAULT_ON_OPEN: LazyLock<Arc<OnOpenFn>> = LazyLock::new(|| Arc::new(|_| {}));
 
         Self {
             icon: DEFAULT_ICON,
@@ -130,9 +111,7 @@ pub(crate) trait AssetGui: SerializedAsset {
 
     /// "Opens" this asset. Can mean many things, depending on the type of asset. Called when, for example, the asset is double-clicked
     /// in the project library panel
-    fn on_open(asset: &AutoLoad<Self, Editor>) {
-        let asset_id = asset.asset_id().expect("Asset should have an ID");
-
-        default_on_open(&asset_id);
+    fn on_open(asset: &AutoLoad<Self, EditorProject>) {
+        _ = asset;
     }
 }

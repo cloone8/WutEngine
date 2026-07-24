@@ -56,10 +56,7 @@ impl ImportJob {
         ui.label(format!("File type: {}", self.file_type));
 
         ui.horizontal(|ui| {
-            ui.label(format!(
-                "Destination directory: /{}",
-                self.destination_dir.relative().to_string_lossy()
-            ));
+            ui.label(format!("Destination directory: /{}", self.destination_dir));
 
             if ui.button("Choose...").clicked() && self.pick_new_dir_job.is_none() {
                 let picked_folder_task = filepicker::pick_folder(

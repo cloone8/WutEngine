@@ -40,7 +40,7 @@ impl LibraryPanel {
             let assets_gui = crate::assets::gui::get_asset_gui(&asset.asset_type());
 
             let asset_path = asset.path();
-            let leaf = AssetTreeNode::Leaf {
+            let leaf = AssetTreeNode::Asset {
                 asset_id: *asset_id,
                 icon: assets_gui.icon,
                 icon_color: assets_gui.icon_color,
@@ -67,7 +67,7 @@ impl LibraryPanel {
             Err(e) => {
                 log::error!(
                     "Failed to read directory structure for directory {}. Empty subdirectories below this path will not be shown: {e}",
-                    dir.absolute().to_string_lossy()
+                    dir.fmt_absolute()
                 );
                 return;
             }
@@ -79,7 +79,7 @@ impl LibraryPanel {
                 Err(e) => {
                     log::error!(
                         "Failed to read an entry in directory {}. Empty subdirectories below this path will not be shown: {e}",
-                        dir.absolute().to_string_lossy()
+                        dir.fmt_absolute()
                     );
                     continue;
                 }
@@ -220,7 +220,7 @@ impl EditorPanel for LibraryPanel {
         let asset_root = AssetPath::root();
 
         let mut lib_panel = Self {
-            file_tree: AssetTreeNode::Branch {
+            file_tree: AssetTreeNode::Dir {
                 name: "Assets".to_string(),
                 path: asset_root.clone(),
                 children: Vec::new(),

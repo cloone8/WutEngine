@@ -1,5 +1,6 @@
 //! Project asset directory relative paths
 
+use core::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -61,5 +62,21 @@ impl AssetPath {
 
         abs.strip_prefix(asset_manager().asset_root())
             .expect("AssetPath should have been valid")
+    }
+
+    /// Returns a formatter that displays this asset path as an absolute path
+    pub(crate) fn fmt_absolute(&self) -> impl core::fmt::Debug + core::fmt::Display {
+        core::fmt::from_fn(|fmt| self.absolute().to_string_lossy().fmt(fmt))
+    }
+
+    /// Returns a formatter that displays this asset path as a relative path
+    pub(crate) fn fmt_relative(&self) -> impl core::fmt::Debug + core::fmt::Display {
+        core::fmt::from_fn(|fmt| self.relative().to_string_lossy().fmt(fmt))
+    }
+}
+
+impl Display for AssetPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_relative().fmt(f)
     }
 }

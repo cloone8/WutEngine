@@ -15,7 +15,7 @@ impl AssetTreeNode {
         ui: &mut egui::Ui,
     ) {
         match self {
-            Self::Branch {
+            Self::Dir {
                 name,
                 path,
                 children,
@@ -43,7 +43,7 @@ impl AssetTreeNode {
                     library_panel::context_menu::dir(path, ui);
                 });
             }
-            Self::Leaf {
+            Self::Asset {
                 asset_id,
                 icon,
                 path,

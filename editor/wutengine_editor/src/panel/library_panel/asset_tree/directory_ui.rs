@@ -12,19 +12,19 @@ impl AssetTreeNode {
         context: &AssetPath,
         ui: &mut egui::Ui,
     ) -> Option<AssetPath> {
-        let AssetTreeNode::Branch { path, children, .. } = self else {
+        let AssetTreeNode::Dir { path, children, .. } = self else {
             panic!("Cannot show leaf as directory");
         };
 
         if path != context {
             for child in children {
                 match child {
-                    Self::Branch { path, .. } => {
+                    Self::Dir { path, .. } => {
                         if context.absolute().starts_with(path.absolute()) {
                             return child.show_as_directory(selected, context, ui);
                         }
                     }
-                    Self::Leaf { path, .. } => {
+                    Self::Asset { path, .. } => {
                         if path == context {
                             // This child is the selected context, and we're the parent. Show the UI for this node
                             break;
@@ -66,10 +66,10 @@ impl AssetTreeNode {
                 .response;
 
             match child {
-                Self::Branch { path, .. } => {
+                Self::Dir { path, .. } => {
                     response.context_menu(|ui| library_panel::context_menu::dir(path, ui));
                 }
-                Self::Leaf {
+                Self::Asset {
                     asset_id: id, path, ..
                 } => {
                     response.context_menu(|ui| library_panel::context_menu::asset(id, path, ui));
@@ -81,11 +81,11 @@ impl AssetTreeNode {
                 *selected = Some(child.path().clone());
 
                 match child {
-                    Self::Branch { path, .. } => {
+                    Self::Dir { path, .. } => {
                         // Double clicked a directory: make new context
                         return Some(path.clone());
                     }
-                    Self::Leaf {
+                    Self::Asset {
                         asset_id, on_open, ..
                     } => {
                         // Double clicked an asset: open it

@@ -137,7 +137,7 @@ fn post_start(project: Option<PathBuf>) {
 /// Starts the editor and loads the project file at the given path
 fn start_editor(project_file_path: &Path) {
     project::load(project_file_path).expect("Failed to load project"); //TODO: Handle properly
-    assets::cache::init();
+    assets::server::init();
 
     let initial_window_title = if let Some(proj_name) = project::name() {
         format!("{proj_name} - WutEngine Editor")

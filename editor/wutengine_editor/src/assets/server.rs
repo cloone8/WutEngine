@@ -1,11 +1,15 @@
 //! Asset caching for project assets
 
 use alloc::sync::Arc;
+use wutengine::asset::AssetRef;
+use wutengine::asset::FromSerializedAsset;
 use wutengine::asset_server::AssetLoader;
 use wutengine::asset_server::AssetServer;
 
 use wutengine::asset_server::AssetServerProvider;
+use wutengine::asset_server::GetAssetErr;
 use wutengine::asset_server::LoadAssetErr;
+use wutengine::task::TaskHandle;
 use wutengine_util::InitOnce;
 
 use crate::project;
@@ -18,6 +22,20 @@ pub(crate) fn init() {
         &PROJECT_ASSET_SERVER,
         AssetServer::new(Box::new(ProjectAssetLoader)),
     );
+}
+
+/// Loads a project asset by its raw ID
+pub(crate) fn load_id<T: FromSerializedAsset>(
+    id: &uuid::NonNilUuid,
+) -> TaskHandle<Result<Arc<T>, GetAssetErr<T::Error>>> {
+    PROJECT_ASSET_SERVER.get_asset(id)
+}
+
+/// Loads a project asset
+pub(crate) fn load_ref<T: FromSerializedAsset>(
+    asset: &AssetRef<T::Serialized>,
+) -> TaskHandle<Result<Arc<T>, GetAssetErr<T::Error>>> {
+    PROJECT_ASSET_SERVER.get_ref::<T>(asset)
 }
 
 struct ProjectAssetLoader;
@@ -38,9 +56,9 @@ impl AssetLoader for ProjectAssetLoader {
 
 /// [`AssetServerProvider`] that references the editor project asset server
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct Editor;
+pub(crate) struct EditorProject;
 
-impl AssetServerProvider for Editor {
+impl AssetServerProvider for EditorProject {
     fn server(&self) -> &Arc<AssetServer> {
         &PROJECT_ASSET_SERVER
     }

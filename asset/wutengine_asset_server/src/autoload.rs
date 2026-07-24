@@ -99,6 +99,13 @@ impl<T, S> AutoLoad<T, S> {
     }
 }
 
+impl<T: FromSerializedAsset, S> AutoLoad<T, S> {
+    /// Returns an [`AssetRef`] matching this autoload
+    pub fn as_asset_ref(&self) -> Option<AssetRef<T::Serialized>> {
+        self.serialized_asset_id.map(AssetRef::from_id)
+    }
+}
+
 impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
     /// Creates a new auto-loading reference from the given asset reference, in the given asset server
     #[inline]

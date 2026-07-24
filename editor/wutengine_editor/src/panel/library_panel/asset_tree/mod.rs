@@ -9,12 +9,12 @@ mod tree_ui;
 
 #[derive(derive_more::Debug, Clone, derive_more::IsVariant)]
 pub(super) enum AssetTreeNode {
-    Branch {
+    Dir {
         name: String,
         path: AssetPath,
         children: Vec<AssetTreeNode>,
     },
-    Leaf {
+    Asset {
         asset_id: uuid::NonNilUuid,
         icon: &'static str,
         icon_color: egui::Color32,
@@ -34,7 +34,7 @@ impl AssetTreeNode {
             |file| file.to_string_lossy().to_string(),
         );
 
-        Self::Branch {
+        Self::Dir {
             name,
             path,
             children: Vec::new(),
@@ -43,27 +43,27 @@ impl AssetTreeNode {
 
     fn name(&self) -> &str {
         match self {
-            Self::Branch { name, .. } | Self::Leaf { name, .. } => name.as_str(),
+            Self::Dir { name, .. } | Self::Asset { name, .. } => name.as_str(),
         }
     }
 
     fn path(&self) -> &AssetPath {
         match self {
-            Self::Branch { path, .. } | Self::Leaf { path, .. } => path,
+            Self::Dir { path, .. } | Self::Asset { path, .. } => path,
         }
     }
 
     fn icon(&self) -> egui::RichText {
         match self {
-            Self::Leaf {
+            Self::Asset {
                 icon, icon_color, ..
             } => egui::RichText::new(*icon).color(*icon_color),
-            Self::Branch { .. } => egui::RichText::new("📁").color(egui::Color32::YELLOW),
+            Self::Dir { .. } => egui::RichText::new("📁").color(egui::Color32::YELLOW),
         }
     }
 
     pub(super) fn clear(&mut self) {
-        let AssetTreeNode::Branch { children, .. } = self else {
+        let AssetTreeNode::Dir { children, .. } = self else {
             return;
         };
 
@@ -71,7 +71,7 @@ impl AssetTreeNode {
     }
 
     pub(super) fn insert_at(&mut self, node_path: &AssetPath, node: AssetTreeNode) {
-        let AssetTreeNode::Branch { path, children, .. } = self else {
+        let AssetTreeNode::Dir { path, children, .. } = self else {
             panic!("Cannot insert at leaf node");
         };
 
@@ -99,7 +99,7 @@ impl AssetTreeNode {
 
         let to_insert = to_insert.expect("Should have at least one subdirectory here");
 
-        let mut new_branch = AssetTreeNode::Branch {
+        let mut new_branch = AssetTreeNode::Dir {
             name: to_insert.file_name().unwrap().to_string_lossy().to_string(),
             path: AssetPath::new(to_insert),
             children: vec![],
