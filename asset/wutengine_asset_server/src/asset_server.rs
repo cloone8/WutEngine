@@ -112,10 +112,7 @@ impl AssetServer {
                 write_lock.insert(asset_id, CachedAsset::from_asset(converted_asset.clone()));
 
             if prev.is_some() {
-                log::warn!(
-                    "Duplicate load for asset {}. Internal engine issue",
-                    asset_id
-                );
+                log::warn!("Duplicate load for asset {asset_id}. Internal engine issue");
             }
 
             Ok(converted_asset)

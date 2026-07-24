@@ -117,7 +117,7 @@ impl AssetImporter for ImageAssetImporter {
         let file_name = path
             .and_then(|p| p.file_stem())
             .and_then(|name| name.to_str())
-            .map(|name| name.to_string());
+            .map(ToString::to_string);
 
         Ok(vec![ImportedAsset {
             asset_type_id: SerializedTexture::ID,

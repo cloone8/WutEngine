@@ -68,7 +68,7 @@ impl Display for WrapModeType {
 
 impl Default for WrapModeType {
     fn default() -> Self {
-        Self::Single(Default::default())
+        Self::Single(WrapMode::default())
     }
 }
 

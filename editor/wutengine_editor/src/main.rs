@@ -37,6 +37,7 @@ mod editorwindow_renderpass;
 mod exit;
 mod filepicker;
 mod logger;
+mod menu;
 mod panel;
 mod project;
 mod select_project;
@@ -62,7 +63,6 @@ fn try_attach_to_console() {
     }
 }
 
-#[expect(clippy::cast_possible_truncation, reason = "const casts")]
 fn main() {
     #[cfg(windows)]
     try_attach_to_console();
@@ -96,12 +96,6 @@ fn main() {
 }
 
 /// Main startup function after the engine runtime was started
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
-    reason = "Constant casts"
-)]
 fn post_start(project: Option<PathBuf>) {
     log::info!("Starting WutEngine Editor");
 
@@ -178,19 +172,23 @@ fn start_editor(project_file_path: &Path) {
 
 /// Adds the default menu entries
 fn add_default_menu_entries() {
-    we_menu::add_entry(&["File", "New Level"], 200, || {});
+    // Main menu
+    menu::add_entry(&["File", "New Level"], 200, || {});
 
-    we_menu::add_entry(&["File", "Exit"], u64::MAX, || {
+    menu::add_entry(&["File", "Exit"], u64::MAX, || {
         wutengine::runtime::exit();
     });
 
-    we_menu::add_entry(&["Asset", "Import..."], 300, || {
+    menu::add_entry(&["Asset", "Import..."], 300, || {
         assets::import::import_asset_prompt(None);
     });
 
-    we_menu::add_entry_ui(&["Asset", "Create"], 301, |ui| {
-        assets::create::create_asset_buttons(&AssetPath::root(), ui);
+    menu::add_entry_ui(&["Asset", "Create"], 301, |ui| {
+        assets::create::show_buttons(&AssetPath::root(), ui);
     });
+
+    // Create asset menu
+    assets::create::add_creatable_asset::<SerializedLevel>();
 }
 
 /// Loads the egui fonts

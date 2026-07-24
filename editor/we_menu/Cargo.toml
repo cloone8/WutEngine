@@ -13,8 +13,7 @@ license.workspace = true
 [dependencies]
 wutengine_egui.workspace = true
 
-derive_more = { workspace = true, features = ["debug"] }
-log.workspace = true
+derive_more = { workspace = true, features = ["debug", "display", "error"] }
 
 [lints]
 workspace = true

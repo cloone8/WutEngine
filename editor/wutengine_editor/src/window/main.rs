@@ -50,7 +50,7 @@ impl MainEditorWindow {
     }
 
     fn show_ui(&mut self, ui: &mut egui::Ui) {
-        self.show_modals(ui);
+        Self::show_modals(ui);
 
         egui::Panel::top("Top panel")
             .resizable(false)
@@ -60,7 +60,14 @@ impl MainEditorWindow {
                     .fill(we_style::MENU_COLOR),
             )
             .show(ui, |ui| {
-                we_menu::show(ui);
+                egui::MenuBar::new().ui(ui, |ui| {
+                    {
+                        let visuals = ui.visuals_mut();
+                        visuals.button_frame = false;
+                    }
+
+                    crate::menu::show(ui);
+                });
             });
 
         let marginless =
@@ -103,7 +110,7 @@ impl MainEditorWindow {
             });
     }
 
-    fn show_modals(&mut self, ui: &mut egui::Ui) {
+    fn show_modals(ui: &egui::Ui) {
         // Most recent modal covers the other ones. Show modals decreasing priority
         let mut import_queue = crate::assets::import::IMPORT_QUEUE.lock().unwrap();
 

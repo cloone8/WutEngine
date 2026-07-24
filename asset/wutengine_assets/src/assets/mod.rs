@@ -1,4 +1,4 @@
-//! Built-in [SerializedAssets](crate::SerializedAsset) and their nested datastructures
+//! Built-in [`SerializedAssets`](crate::SerializedAsset) and their nested datastructures
 
 pub mod audioclip;
 pub mod bundle;

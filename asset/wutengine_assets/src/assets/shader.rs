@@ -102,7 +102,7 @@ impl core::fmt::Display for ShaderVertexAttributeType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Position => "Position".fmt(f),
-            Self::Uv { channel } => write!(f, "UV{}", channel),
+            Self::Uv { channel } => write!(f, "UV{channel}"),
             Self::Color => "Color".fmt(f),
         }
     }

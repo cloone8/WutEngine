@@ -11,7 +11,7 @@ pub(super) fn dir(path: &AssetPath, ui: &mut egui::Ui) {
     }
 
     ui.menu_button("New asset", |ui| {
-        assets::create::create_asset_buttons(path, ui);
+        assets::create::show_buttons(path, ui);
     });
 
     ui.separator();

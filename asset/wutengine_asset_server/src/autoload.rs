@@ -66,7 +66,7 @@ impl<T: FromSerializedAsset> AutoLoad<T> {
     /// Creates a new auto-loading reference from the given asset reference, in the global
     /// asset server.
     #[inline]
-    pub fn new_from_ref(asset_ref: AssetRef<T::Serialized>) -> Self {
+    pub fn new_from_ref(asset_ref: &AssetRef<T::Serialized>) -> Self {
         Self::new_from_ref_in(asset_ref, Global)
     }
 }
@@ -96,7 +96,7 @@ impl<T, S: AssetServerProvider> AutoLoad<T, S> {
 impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
     /// Creates a new auto-loading reference from the given asset reference, in the given asset server
     #[inline]
-    pub fn new_from_ref_in(asset_ref: AssetRef<T::Serialized>, server_provider: S) -> Self {
+    pub fn new_from_ref_in(asset_ref: &AssetRef<T::Serialized>, server_provider: S) -> Self {
         Self {
             serialized_asset_id: asset_ref.get_id(),
             asset: OnceLock::new(),
@@ -129,7 +129,7 @@ impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
         let loaded = match self.server.server().get_asset::<T>(&asset_id).get() {
             Ok(loaded) => loaded,
             Err(e) => {
-                log::error!("Failed to load asset with ID {}: {e}", asset_id);
+                log::error!("Failed to load asset with ID {asset_id}: {e}");
                 return None;
             }
         };
@@ -146,12 +146,12 @@ impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
     }
 }
 
-impl<T> From<AssetRef<T::Serialized>> for AutoLoad<T>
+impl<T> From<&AssetRef<T::Serialized>> for AutoLoad<T>
 where
     T: FromSerializedAsset,
 {
     #[inline]
-    fn from(value: AssetRef<T::Serialized>) -> Self {
+    fn from(value: &AssetRef<T::Serialized>) -> Self {
         Self::new_from_ref(value)
     }
 }

@@ -182,7 +182,7 @@ pub struct SerializedAssetType {
 }
 
 impl SerializedAssetType {
-    /// Create a new [SerializedAssetType] from its [`SerializedAsset`] trait
+    /// Create a new [`SerializedAssetType`] from its [`SerializedAsset`] trait
     pub fn new_from_asset<T: SerializedAsset>() -> Self {
         Self {
             id: T::ID,
@@ -191,7 +191,7 @@ impl SerializedAssetType {
                 .last()
                 .unwrap()
                 .to_lowercase()
-                .to_string(),
+                .clone(),
             prefer_binary: T::PREFER_BINARY_SERIALIZATION,
             serialize_binary_fn: Arc::new(|asset| {
                 let as_typed: &T = asset.downcast_ref::<T>().expect("Invalid downcast");
