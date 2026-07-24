@@ -36,6 +36,15 @@ pub struct AssetRef<T> {
 }
 
 impl<T> AssetRef<T> {
+    /// Creates a new asset reference from a raw ID
+    #[inline]
+    pub fn from_id(id: uuid::NonNilUuid) -> Self {
+        Self {
+            asset_id: Some(id),
+            _ph: PhantomData,
+        }
+    }
+
     /// Returns the referenced ID
     #[inline]
     pub fn get_id(&self) -> Option<uuid::NonNilUuid> {

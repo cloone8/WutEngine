@@ -44,6 +44,7 @@ impl LibraryPanel {
                 asset_id: *asset_id,
                 icon: assets_gui.icon,
                 icon_color: assets_gui.icon_color,
+                on_open: assets_gui.on_open.clone(),
                 path: asset_path.clone(),
                 name: asset.name().to_string(),
             };

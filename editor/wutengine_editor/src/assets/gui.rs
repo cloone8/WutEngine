@@ -1,14 +1,36 @@
 //! Asset GUI
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::sync::LazyLock;
 use std::sync::RwLock;
 
+use uuid::NonNilUuid;
+use wutengine::asset::AssetRef;
 use wutengine::asset::SerializedAsset;
 use wutengine::asset::assets::texture::SerializedTexture;
+use wutengine::asset_server::AutoLoad;
+
+use crate::assets::cache::Editor;
+use crate::project;
 
 const DEFAULT_ICON: &str = "📦";
 const DEFAULT_ICON_COLOR: wutengine_egui::egui::Color32 = wutengine_egui::egui::Color32::LIGHT_BLUE;
+
+fn default_on_open(asset_id: &uuid::NonNilUuid) {
+    let Some(project_asset) = project::asset_manager().get_project_asset(asset_id) else {
+        log::error!(
+            "Cannot open asset {asset_id}, because it could not be found within the project"
+        );
+        return;
+    };
+
+    //TODO: Open in default OS program
+    log::warn!(
+        "Opening asset at path {}",
+        project_asset.path().relative().to_string_lossy()
+    );
+}
 
 static CUSTOM_GUIS: LazyLock<RwLock<HashMap<uuid::NonNilUuid, AssetGuiInfo>>> =
     LazyLock::new(|| {
@@ -43,13 +65,17 @@ pub(crate) fn add_custom_asset_gui<T: AssetGui>() {
 }
 
 /// The info for the custom GUI of a single asset type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(derive_more::Debug, Clone)]
 pub(crate) struct AssetGuiInfo {
     /// The icon string
     pub(crate) icon: &'static str,
 
     /// The icon color
     pub(crate) icon_color: wutengine_egui::egui::Color32,
+
+    /// The on-open callback
+    #[debug(skip)]
+    pub(crate) on_open: Arc<dyn Fn(&uuid::NonNilUuid) + Send + Sync>,
 }
 
 impl AssetGuiInfo {
@@ -57,15 +83,27 @@ impl AssetGuiInfo {
         Self {
             icon: T::ICON,
             icon_color: T::ICON_COLOR,
+            on_open: Arc::new(|id| {
+                T::on_open(&AutoLoad::new_from_ref_in(&AssetRef::from_id(*id), Editor));
+            }),
         }
     }
 }
 
 impl Default for AssetGuiInfo {
     fn default() -> Self {
+        type OnOpenFn = dyn Fn(&NonNilUuid) + Send + Sync;
+
+        static DEFAULT_ON_OPEN: LazyLock<Arc<OnOpenFn>> = LazyLock::new(|| {
+            Arc::new(|asset_id| {
+                default_on_open(asset_id);
+            })
+        });
+
         Self {
             icon: DEFAULT_ICON,
             icon_color: DEFAULT_ICON_COLOR,
+            on_open: DEFAULT_ON_OPEN.clone(),
         }
     }
 }
@@ -77,7 +115,7 @@ pub(crate) fn get_asset_gui(asset_type_id: &uuid::NonNilUuid) -> AssetGuiInfo {
         .read()
         .unwrap()
         .get(asset_type_id)
-        .copied()
+        .cloned()
         .unwrap_or_default()
 }
 
@@ -89,4 +127,12 @@ pub(crate) trait AssetGui: SerializedAsset {
 
     /// The icon color
     const ICON_COLOR: wutengine_egui::egui::Color32 = DEFAULT_ICON_COLOR;
+
+    /// "Opens" this asset. Can mean many things, depending on the type of asset. Called when, for example, the asset is double-clicked
+    /// in the project library panel
+    fn on_open(asset: &AutoLoad<Self, Editor>) {
+        let asset_id = asset.asset_id().expect("Asset should have an ID");
+
+        default_on_open(&asset_id);
+    }
 }

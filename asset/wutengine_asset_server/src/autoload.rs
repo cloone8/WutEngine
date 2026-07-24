@@ -71,7 +71,13 @@ impl<T: FromSerializedAsset> AutoLoad<T> {
     }
 }
 
-impl<T, S: AssetServerProvider> AutoLoad<T, S> {
+impl<T, S> AutoLoad<T, S> {
+    /// Returns the asset ID that this autoloader will load
+    #[inline]
+    pub const fn asset_id(&self) -> Option<uuid::NonNilUuid> {
+        self.serialized_asset_id
+    }
+
     /// Creates a new empty autoloading reference in the given server
     #[inline]
     pub const fn new_empty_in(server_provider: S) -> Self {
@@ -106,12 +112,6 @@ impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
 }
 
 impl<T: FromSerializedAsset, S: AssetServerProvider> AutoLoad<T, S> {
-    /// Returns the asset ID that this autoloader will load
-    #[inline]
-    pub const fn asset_id(&self) -> Option<uuid::NonNilUuid> {
-        self.serialized_asset_id
-    }
-
     /// Loads and returns the referenced value. If loading fails, panics
     #[inline]
     pub fn get(&self) -> Arc<T> {

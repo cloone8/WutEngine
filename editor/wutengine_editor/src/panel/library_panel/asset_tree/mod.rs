@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use wutengine_egui::egui;
 
 use crate::assets::path::AssetPath;
@@ -5,7 +7,7 @@ use crate::assets::path::AssetPath;
 mod directory_ui;
 mod tree_ui;
 
-#[derive(Debug, Clone, derive_more::IsVariant)]
+#[derive(derive_more::Debug, Clone, derive_more::IsVariant)]
 pub(super) enum AssetTreeNode {
     Branch {
         name: String,
@@ -16,6 +18,10 @@ pub(super) enum AssetTreeNode {
         asset_id: uuid::NonNilUuid,
         icon: &'static str,
         icon_color: egui::Color32,
+
+        #[debug(skip)]
+        on_open: Arc<dyn Fn(&uuid::NonNilUuid) + Send + Sync>,
+
         path: AssetPath,
         name: String,
     },

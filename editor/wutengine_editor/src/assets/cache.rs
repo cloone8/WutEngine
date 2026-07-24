@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use wutengine::asset_server::AssetLoader;
 use wutengine::asset_server::AssetServer;
 
+use wutengine::asset_server::AssetServerProvider;
 use wutengine::asset_server::LoadAssetErr;
 use wutengine_util::InitOnce;
 
@@ -32,5 +33,15 @@ impl AssetLoader for ProjectAssetLoader {
         let asset_path = project_asset.path();
 
         std::fs::read(asset_path.absolute()).map_err(LoadAssetErr::IO)
+    }
+}
+
+/// [`AssetServerProvider`] that references the editor project asset server
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct Editor;
+
+impl AssetServerProvider for Editor {
+    fn server(&self) -> &Arc<AssetServer> {
+        &PROJECT_ASSET_SERVER
     }
 }

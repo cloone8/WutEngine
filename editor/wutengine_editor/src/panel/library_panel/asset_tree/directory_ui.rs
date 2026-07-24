@@ -80,16 +80,18 @@ impl AssetTreeNode {
                 // Select and make context
                 *selected = Some(child.path().clone());
 
-                if child.is_branch() {
-                    // Double clicked a directory: make new context
-                    return Some(child.path().clone());
+                match child {
+                    Self::Branch { path, .. } => {
+                        // Double clicked a directory: make new context
+                        return Some(path.clone());
+                    }
+                    Self::Leaf {
+                        asset_id, on_open, ..
+                    } => {
+                        // Double clicked an asset: open it
+                        (on_open)(asset_id);
+                    }
                 }
-
-                // Double clicked an asset: open it
-                log::warn!(
-                    "Clicked asset {}",
-                    child.path().relative().to_string_lossy()
-                );
             }
 
             if response.clicked() || response.secondary_clicked() {
