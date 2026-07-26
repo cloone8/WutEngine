@@ -46,6 +46,58 @@ impl Color {
         Self(Vec4::new(r, g, b, a))
     }
 
+    /// Creates a new color from the given bytes. `0u8` maps to `0.0f32`, `u8::MAX` maps to `1.0f32`
+    #[inline]
+    pub const fn new_from_bytes(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self::new(
+            r as f32 / 255.0,
+            g as f32 / 255.0,
+            b as f32 / 255.0,
+            a as f32 / 255.0,
+        )
+    }
+
+    /// Creates a new color from a hex code. If the hex code is invalid, returns [`None`]
+    pub fn hex(hex: &str) -> Option<Self> {
+        if !hex.is_ascii() {
+            return None;
+        }
+
+        let hex = match hex.strip_prefix("#") {
+            Some(stripped) => stripped,
+            None => hex,
+        };
+
+        let trimmed = hex.trim();
+
+        let (num_hex_chars, hex_char_len) = match trimmed.len() {
+            3 | 4 => {
+                // Parse as short hex, one char per byte
+
+                (trimmed.len(), 1usize)
+            }
+            6 | 8 => {
+                // Parse as normal hex, two chars per byte
+
+                (trimmed.len() / 2, 2usize)
+            }
+            _ => {
+                // Invalid length
+                return None;
+            }
+        };
+
+        let mut rgba: [u8; 4] = [u8::MAX; 4];
+
+        for i in 0..num_hex_chars {
+            let hex_char = &trimmed[(i * hex_char_len)..((i + 1) * hex_char_len)];
+
+            rgba[i] = u8::from_str_radix(hex_char, 16).ok()?;
+        }
+
+        Some(Self::from(rgba))
+    }
+
     /// The red component
     #[inline]
     pub const fn r(self) -> f32 {
@@ -145,5 +197,60 @@ impl From<Vec4> for Color {
     #[inline]
     fn from(value: Vec4) -> Self {
         Self(value)
+    }
+}
+
+impl From<(f32, f32, f32, f32)> for Color {
+    #[inline]
+    fn from(value: (f32, f32, f32, f32)) -> Self {
+        Self::new(value.0, value.1, value.2, value.3)
+    }
+}
+
+impl From<(f32, f32, f32)> for Color {
+    #[inline]
+    fn from(value: (f32, f32, f32)) -> Self {
+        Self::new(value.0, value.1, value.2, 1.0)
+    }
+}
+
+impl From<&[u8; 4]> for Color {
+    #[inline]
+    fn from(value: &[u8; 4]) -> Self {
+        Self::new_from_bytes(value[0], value[1], value[2], value[3])
+    }
+}
+impl From<[u8; 4]> for Color {
+    #[inline]
+    fn from(value: [u8; 4]) -> Self {
+        Self::new_from_bytes(value[0], value[1], value[2], value[3])
+    }
+}
+
+impl From<&[u8; 3]> for Color {
+    #[inline]
+    fn from(value: &[u8; 3]) -> Self {
+        Self::new_from_bytes(value[0], value[1], value[2], u8::MAX)
+    }
+}
+
+impl From<[u8; 3]> for Color {
+    #[inline]
+    fn from(value: [u8; 3]) -> Self {
+        Self::new_from_bytes(value[0], value[1], value[2], u8::MAX)
+    }
+}
+
+impl From<(u8, u8, u8, u8)> for Color {
+    #[inline]
+    fn from(value: (u8, u8, u8, u8)) -> Self {
+        Self::new_from_bytes(value.0, value.1, value.2, value.3)
+    }
+}
+
+impl From<(u8, u8, u8)> for Color {
+    #[inline]
+    fn from(value: (u8, u8, u8)) -> Self {
+        Self::new_from_bytes(value.0, value.1, value.2, u8::MAX)
     }
 }

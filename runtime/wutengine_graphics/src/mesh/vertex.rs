@@ -340,6 +340,7 @@ impl VertexDataType for GVec4<f32> {
     fn is_compatible_with(attribute: ShaderVertexAttributeType) -> bool {
         match attribute {
             ShaderVertexAttributeType::Position => false,
+            ShaderVertexAttributeType::Normal => false,
             ShaderVertexAttributeType::Uv { .. } => false,
             ShaderVertexAttributeType::Color => true,
         }
@@ -355,6 +356,7 @@ impl VertexDataType for GVec3<f32> {
     fn is_compatible_with(attribute: ShaderVertexAttributeType) -> bool {
         match attribute {
             ShaderVertexAttributeType::Position => true,
+            ShaderVertexAttributeType::Normal => true,
             ShaderVertexAttributeType::Uv { .. } => false,
             ShaderVertexAttributeType::Color => false,
         }
@@ -370,6 +372,7 @@ impl VertexDataType for GVec2<f32> {
     fn is_compatible_with(attribute: ShaderVertexAttributeType) -> bool {
         match attribute {
             ShaderVertexAttributeType::Position => false,
+            ShaderVertexAttributeType::Normal => false,
             ShaderVertexAttributeType::Uv { .. } => true,
             ShaderVertexAttributeType::Color => false,
         }
@@ -380,6 +383,7 @@ impl VertexDataType for GVec2<f32> {
 pub const fn attr_bytes(attr: ShaderVertexAttributeType) -> usize {
     match attr {
         ShaderVertexAttributeType::Position => size_of::<GVec3<f32>>(),
+        ShaderVertexAttributeType::Normal => size_of::<GVec3<f32>>(),
         ShaderVertexAttributeType::Uv { .. } => size_of::<GVec2<f32>>(),
         ShaderVertexAttributeType::Color => size_of::<GVec4<f32>>(),
     }

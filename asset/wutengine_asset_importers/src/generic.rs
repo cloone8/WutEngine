@@ -17,14 +17,18 @@ use wutengine_assets::assets::shader::SerializedShader;
 use wutengine_assets::assets::texture::SerializedTexture;
 
 use crate::AssetImporter;
-use crate::ImageAssetImporter;
 use crate::ImportedAsset;
+use crate::image::ImageAssetImporter;
+use crate::obj::ObjAssetImporter;
 
 /// Returns all default importers
 pub fn default_importers() -> &'static HashMap<&'static str, Vec<Arc<Importer>>> {
     static DEFAULT_IMPORTERS: LazyLock<HashMap<&'static str, Vec<Arc<Importer>>>> =
         LazyLock::new(|| {
-            let known_importers = [Importer::from_asset_importer::<ImageAssetImporter>()];
+            let known_importers = [
+                Importer::from_asset_importer::<ImageAssetImporter>(),
+                Importer::from_asset_importer::<ObjAssetImporter>(),
+            ];
 
             let mut importer_map: HashMap<&str, Vec<Arc<Importer>>> = HashMap::new();
 

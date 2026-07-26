@@ -23,13 +23,13 @@ impl StaticMeshRenderer {
     }
 
     /// Sets the mesh to render to the provided mesh
-    pub fn set_mesh(&mut self, mesh: AutoLoad<Mesh>) {
-        self.mesh = mesh;
+    pub fn set_mesh(&mut self, mesh: impl Into<AutoLoad<Mesh>>) {
+        self.mesh = mesh.into();
     }
 
     /// Sets the material this renderer uses to the provided material
-    pub fn set_material(&mut self, material: AutoLoad<Material>) {
-        self.material = material;
+    pub fn set_material(&mut self, material: impl Into<AutoLoad<Material>>) {
+        self.material = material.into();
     }
 }
 

@@ -36,31 +36,17 @@ pub enum ImageImportError {
     UnsupportedPixelFormat(#[error(not(source))] image::ColorType),
 }
 
-impl AssetImporter for ImageAssetImporter {
-    fn supported_file_types() -> Vec<&'static str> {
-        let mut supported = Vec::new();
-
-        for format in image::ImageFormat::all() {
-            if !format.can_read() {
-                continue;
-            }
-
-            supported.extend_from_slice(format.extensions_str());
-        }
-
-        supported
-    }
-
-    fn from_bytes(
+impl ImageAssetImporter {
+    /// Imports an image from raw bytes, and a format string that matches the image extension ("png", "jpg", etc.)
+    pub fn import_image_bytes(
         bytes: &[u8],
-        file_type: &str,
-        path: Option<&Path>,
-    ) -> Result<Vec<crate::ImportedAsset>, Box<dyn Error>> {
+        format: &str,
+    ) -> Result<SerializedTexture, ImageImportError> {
         profiling::function_scope!();
 
-        log::info!("Importing image of type {file_type}");
+        log::info!("Importing image of type {format}");
 
-        let image_format = image::ImageFormat::from_extension(file_type)
+        let image_format = image::ImageFormat::from_extension(format)
             .expect("Passed an incompatible image format");
 
         let mut loaded = {
@@ -93,9 +79,7 @@ impl AssetImporter for ImageAssetImporter {
                 (TextureFormat::Rgba32, image_buffer.as_bytes())
             }
             other => {
-                return Err(Box::new(ImageImportError::UnsupportedPixelFormat(
-                    other.color(),
-                )));
+                return Err(ImageImportError::UnsupportedPixelFormat(other.color()));
             }
         };
 
@@ -114,6 +98,42 @@ impl AssetImporter for ImageAssetImporter {
             None
         };
 
+        Ok(SerializedTexture {
+            config: TextureConfig {
+                width,
+                height,
+                format: pixel_format,
+            },
+            data: buffer.to_vec(),
+            mips,
+        })
+    }
+}
+
+impl AssetImporter for ImageAssetImporter {
+    fn supported_file_types() -> Vec<&'static str> {
+        let mut supported = Vec::new();
+
+        for format in image::ImageFormat::all() {
+            if !format.can_read() {
+                continue;
+            }
+
+            supported.extend_from_slice(format.extensions_str());
+        }
+
+        supported
+    }
+
+    fn from_bytes(
+        bytes: &[u8],
+        file_type: &str,
+        path: Option<&Path>,
+    ) -> Result<Vec<crate::ImportedAsset>, Box<dyn Error>> {
+        profiling::function_scope!();
+
+        let asset = Self::import_image_bytes(bytes, file_type)?;
+
         let file_name = path
             .and_then(|p| p.file_stem())
             .and_then(|name| name.to_str())
@@ -122,15 +142,7 @@ impl AssetImporter for ImageAssetImporter {
         Ok(vec![ImportedAsset {
             asset_type_id: SerializedTexture::ID,
             name: file_name,
-            asset: Box::new(SerializedTexture {
-                config: TextureConfig {
-                    width,
-                    height,
-                    format: pixel_format,
-                },
-                data: buffer.to_vec(),
-                mips,
-            }),
+            asset: Box::new(asset),
         }])
     }
 }

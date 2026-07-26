@@ -36,6 +36,10 @@ pub mod log {
 #[doc(inline)]
 pub use wutengine_assets as asset;
 
+#[cfg(feature = "asset_importers")]
+#[doc(inline)]
+pub use wutengine_asset_importers as asset_importers;
+
 #[doc(inline)]
 pub use wutengine_asset_server as asset_server;
 

@@ -85,6 +85,34 @@ impl Mesh {
         mesh.vertex_buffers
             .insert(ShaderVertexAttributeType::Position, pos_buffer);
 
+        if !data.normals.is_empty() {
+            if data.normals.len() == vtx_count {
+                let normal_buffer = data
+                    .normals
+                    .iter()
+                    .copied()
+                    .map(GVec3::<f32>::from)
+                    .collect::<Vec<_>>();
+
+                let normal_vertex_buffer = VertexBuffer::new(
+                    &normal_buffer,
+                    ShaderVertexAttributeType::Normal,
+                    device,
+                    data.keep_data,
+                    false,
+                )
+                .expect("Failed to create normal buffer");
+
+                mesh.vertex_buffers
+                    .insert(ShaderVertexAttributeType::Normal, normal_vertex_buffer);
+            } else {
+                log::error!(
+                    "Discarding normal vector channel because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
+                    data.normals.len()
+                );
+            }
+        }
+
         if !data.colors.is_empty() {
             if data.colors.len() == vtx_count {
                 let color_buffer = data

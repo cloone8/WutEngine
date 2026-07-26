@@ -84,7 +84,7 @@ fn main() {
         );
     }
 
-    wutengine::runtime::run(
+    wutengine::runtime::start(
         InitRuntimeConfig {
             frame_frequency: FrameFrequency::WaitAtMost(EDITOR_BASE_TICK_INTERVAL_SECS as f32),
             config_overrides,

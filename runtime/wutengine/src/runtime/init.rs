@@ -75,7 +75,7 @@ pub(super) struct InitializationData {
 /// Starts and runs the WutEngine runtime. MUST be called from the main thread
 ///
 /// Can only be called once per process
-pub fn run(
+pub fn start(
     config: InitRuntimeConfig,
     post_start: Option<Box<dyn FnOnce()>>,
 ) -> Result<(), Box<RuntimeStartErr>> {

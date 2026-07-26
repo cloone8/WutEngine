@@ -14,6 +14,8 @@ use serde::de::DeserializeOwned;
 
 pub mod assets;
 
+pub use nohash_hasher;
+
 /// A serialized asset
 pub trait SerializedAsset: Serialize + DeserializeOwned + Any + Send + Sync {
     /// Hint: To obtain one, you can generate a random V4 UUID from many websites,

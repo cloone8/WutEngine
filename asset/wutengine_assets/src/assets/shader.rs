@@ -63,6 +63,9 @@ pub enum ShaderVertexAttributeType {
     /// Position data
     Position,
 
+    /// Normal vector data
+    Normal,
+
     /// UV data
     Uv {
         /// The UV channel
@@ -102,6 +105,7 @@ impl core::fmt::Display for ShaderVertexAttributeType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Position => "Position".fmt(f),
+            Self::Normal => "Normal".fmt(f),
             Self::Uv { channel } => write!(f, "UV{channel}"),
             Self::Color => "Color".fmt(f),
         }

@@ -47,15 +47,19 @@ impl Material {
         let compiled_shader =
             shader::compile(&shader, &keywords).expect("Failed to compile shader");
 
+        let mut user_bind_group = BindGroup::new(
+            "Material User Bind Group".to_string(),
+            compiled_shader.user_bind_group_layout.clone(),
+            &compiled_shader.parameters,
+        );
+
+        user_bind_group.update_bind_group(super::device());
+
         Self {
             id: MaterialId::new(),
             shader,
             keywords,
-            user_bind_group: BindGroup::new(
-                "Material User Bind Group".to_string(),
-                compiled_shader.user_bind_group_layout.clone(),
-                &compiled_shader.parameters,
-            ),
+            user_bind_group,
             compiled_shader,
         }
     }

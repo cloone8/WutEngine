@@ -18,7 +18,9 @@ generic = ["dep:serde_json", "dep:postcard"]
 
 [dependencies]
 wutengine_assets.workspace = true
+wutengine_math.workspace = true
 
+profiling.workspace = true
 uuid.workspace = true
 derive_more = { workspace = true, features = [
     "display",
@@ -28,7 +30,7 @@ derive_more = { workspace = true, features = [
 ] }
 log.workspace = true
 image = { workspace = true, features = ["rayon", "default-formats"] }
-profiling.workspace = true
+tobj = { workspace = true, features = ["log"] }
 
 serde_json = { workspace = true, optional = true } # Feature - generic
 postcard = { workspace = true, features = [

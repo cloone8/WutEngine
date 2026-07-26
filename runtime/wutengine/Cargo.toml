@@ -19,6 +19,7 @@ phys2d = ["wutengine_physics/phys2d"]
 phys3d = ["wutengine_physics/phys3d"]
 profiling = ["dep:wutengine_puffin_egui", "profiling/profile-with-puffin"]
 development_overlay = ["dep:wutengine_development_overlay", "dep:serde_core"]
+asset_importers = ["dep:wutengine_asset_importers"]
 
 [lints]
 workspace = true
@@ -67,3 +68,4 @@ cursor-icon = { workspace = true }
 serde_core = { workspace = true, optional = true }
 wutengine_development_overlay = { workspace = true, optional = true } # Feature - development_overlay
 wutengine_puffin_egui = { workspace = true, optional = true }         # Feature - profiling
+wutengine_asset_importers = { workspace = true, optional = true }     # Feature - asset_importers

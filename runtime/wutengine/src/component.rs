@@ -45,9 +45,10 @@ pub trait Component: Any + Send + Sync {
     /// Adds the systems that are always used by this component into the given manifest.
     ///
     /// Optional usability helper
-    fn insert_default_component_systems(_manifest: &mut crate::runtime::SystemManifest)
+    fn insert_default_component_systems(manifest: &mut crate::runtime::SystemManifest)
     where
         Self: Sized,
     {
+        _ = manifest;
     }
 }

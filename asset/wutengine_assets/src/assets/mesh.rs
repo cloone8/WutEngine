@@ -12,19 +12,22 @@ use crate::SerializedAsset;
 /// The data for a single mesh
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SerializedMesh {
-    /// The vertex positions
-    pub vertices: Vec<Vec3>,
-
     /// The topology
     pub topology: MeshTopology,
+
+    /// The vertex positions
+    pub vertices: Vec<Vec3>,
 
     /// The mesh index buffer. Each index should be smaller than the length of [`Self::vertices`]
     pub indices: MeshIndices,
 
-    /// The UV channels. Each channel should contain exactly as much elements as [`Self::vertices`], or be empty
+    /// The vertex normals. Should contain exactly as many elements as [`Self::vertices`], or be empty
+    pub normals: Vec<Vec3>,
+
+    /// The UV channels. Each channel should contain exactly as many elements as [`Self::vertices`], or be empty
     pub uvs: IntMap<u8, Vec<Vec2>>,
 
-    /// Color data. Should contain exactly as much elements as [`Self::vertices`], or be empty
+    /// Color data. Should contain exactly as many elements as [`Self::vertices`], or be empty
     pub colors: Vec<Color>,
 
     /// Whether the data should be kept on the CPU after the GPU side mesh is created
@@ -45,6 +48,24 @@ pub enum MeshIndices {
 
     /// 32-bit indices
     U32(Vec<u32>),
+}
+
+impl MeshIndices {
+    /// Returns the number of indices
+    pub const fn len(&self) -> usize {
+        match self {
+            Self::U16(items) => items.len(),
+            Self::U32(items) => items.len(),
+        }
+    }
+
+    /// Returns true if `len` is zero
+    pub const fn is_empty(&self) -> bool {
+        match self {
+            Self::U16(items) => items.is_empty(),
+            Self::U32(items) => items.is_empty(),
+        }
+    }
 }
 
 impl Default for MeshIndices {

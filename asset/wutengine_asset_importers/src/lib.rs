@@ -6,8 +6,8 @@ use core::any::Any;
 use core::error::Error;
 use std::path::Path;
 
-mod image;
-pub use image::*;
+pub mod image;
+pub mod obj;
 
 #[cfg(feature = "generic")]
 mod generic;
