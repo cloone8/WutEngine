@@ -43,7 +43,7 @@ impl RenderPass<(Window, wgpu::Texture), hecs::World> for DevOverlayPass {
         log::trace!("Running development overlay pass");
 
         crate::development_overlay::render_overlay_if_window_eq(
-            &WindowIdentifier::from(target.0),
+            WindowIdentifier::from(target.0),
             &target.1,
             cmd,
         );
