@@ -71,6 +71,18 @@ pub(crate) fn new_window(
     let native_id = window.id();
     let is_primary = window_manager.windows.is_empty(); // First window is always the primary window
 
+    if window_manager.cursor_locked {
+        window
+            .set_cursor_grab(winit::window::CursorGrabMode::Locked)
+            .unwrap();
+        window.set_cursor_visible(false);
+    } else {
+        window
+            .set_cursor_grab(winit::window::CursorGrabMode::None)
+            .unwrap();
+        window.set_cursor_visible(true);
+    }
+
     let info = WindowInfo::new(id, window.title(), is_primary, window, surface);
 
     window_manager.winit_to_engine.insert(native_id.into(), id);
@@ -458,6 +470,37 @@ pub(super) fn monitor_handle_from_display(id: Display) -> Option<winit::monitor:
         .map(|info| info.handle.clone())
 }
 
+/// Sets the lock/unlock state of the mouse cursor for all windows
+pub(crate) fn update_cursor_lock_state(state: bool) {
+    profiling::function_scope!();
+
+    assert_main_thread!();
+
+    let mut window_manager = WINDOW_MANAGER.write().unwrap();
+
+    if window_manager.cursor_locked == state {
+        return;
+    }
+
+    log::debug!("Updating cursor lock state to: {state}");
+
+    window_manager.cursor_locked = state;
+
+    let grab_mode = if state {
+        winit::window::CursorGrabMode::Locked
+    } else {
+        winit::window::CursorGrabMode::None
+    };
+
+    for window in window_manager.windows.values() {
+        window
+            .native
+            .set_cursor_grab(grab_mode)
+            .expect("Failed to set cursor grab mode");
+        window.native.set_cursor_visible(!state);
+    }
+}
+
 fn unwrap_surface_tex(surface: &wgpu::Surface, window: Window) -> Option<wgpu::SurfaceTexture> {
     match surface.get_current_texture() {
         wgpu::CurrentSurfaceTexture::Success(sfctex) => Some(sfctex),
@@ -508,6 +551,8 @@ struct WindowManager {
 
     primary_display: Option<crate::window::Display>,
     displays: IntMap<crate::window::Display, DisplayInfo>,
+
+    cursor_locked: bool,
 }
 
 impl WindowManager {
@@ -519,6 +564,7 @@ impl WindowManager {
             windows: IntMap::default(),
             primary_display: None,
             displays: IntMap::default(),
+            cursor_locked: false,
         }
     }
 }

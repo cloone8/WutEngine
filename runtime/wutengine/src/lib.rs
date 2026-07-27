@@ -6,6 +6,7 @@ extern crate alloc;
 
 pub mod builtins;
 pub mod component;
+pub mod cursor;
 pub mod entity;
 pub mod graphics;
 pub mod profiling;
