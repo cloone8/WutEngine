@@ -2,16 +2,41 @@
 
 mod primitives;
 
+use std::sync::LazyLock;
+
 pub use primitives::*;
 use wutengine_assets::assets::shader::ShaderBufferParameterType;
 use wutengine_assets::assets::shader::ShaderOpaqueParameterType;
 use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_util_macro::VariantName;
 
+use crate::label;
 use crate::material::MaterialParameter;
 use crate::sampler::DEFAULT_SAMPLER;
 use crate::texture::DEFAULT_TEXTURE;
 use wutengine_math::Vec4;
+
+static DEFAULT_UNIFORM_BUFFER: LazyLock<wgpu::Buffer> = LazyLock::new(|| {
+    crate::device().create_buffer(&wgpu::BufferDescriptor {
+        label: label!("Default empty uniform buffer"),
+        size: 0,
+        usage: wgpu::BufferUsages::UNIFORM
+            | wgpu::BufferUsages::COPY_DST
+            | wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    })
+});
+
+static DEFAULT_STORAGE_BUFFER: LazyLock<wgpu::Buffer> = LazyLock::new(|| {
+    crate::device().create_buffer(&wgpu::BufferDescriptor {
+        label: label!("Default empty storage buffer"),
+        size: 0,
+        usage: wgpu::BufferUsages::STORAGE
+            | wgpu::BufferUsages::COPY_DST
+            | wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    })
+});
 
 /// Alignment on the GPU of this data type.
 ///
@@ -85,6 +110,15 @@ pub fn shader_opaque_param_default_value(ot: ShaderOpaqueParameterType) -> Shade
         ShaderOpaqueParameterType::Texture2D => {
             ShaderOpaqueParameter::Texture2D(DEFAULT_TEXTURE.get_view().clone())
         }
+        ShaderOpaqueParameterType::UniformBuffer => {
+            ShaderOpaqueParameter::UniformBuffer(DEFAULT_UNIFORM_BUFFER.clone())
+        }
+        ShaderOpaqueParameterType::ReadStorageBuffer => {
+            ShaderOpaqueParameter::ReadStorageBuffer(DEFAULT_STORAGE_BUFFER.clone())
+        }
+        ShaderOpaqueParameterType::RWStorageBuffer => {
+            ShaderOpaqueParameter::RWStorageBuffer(DEFAULT_STORAGE_BUFFER.clone())
+        }
     }
 }
 
@@ -100,6 +134,21 @@ pub const fn shader_opaque_param_wgpu_binding_type(
             sample_type: wgpu::TextureSampleType::Float { filterable: true },
             view_dimension: wgpu::TextureViewDimension::D2,
             multisampled: false,
+        },
+        ShaderOpaqueParameterType::UniformBuffer => wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        },
+        ShaderOpaqueParameterType::ReadStorageBuffer => wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Storage { read_only: true },
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        },
+        ShaderOpaqueParameterType::RWStorageBuffer => wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Storage { read_only: false },
+            has_dynamic_offset: false,
+            min_binding_size: None,
         },
     }
 }
@@ -311,6 +360,18 @@ pub enum ShaderOpaqueParameter {
 
     /// A sampler object
     Sampler(wgpu::Sampler),
+
+    /// A uniform buffer
+    #[from(skip)]
+    UniformBuffer(wgpu::Buffer),
+
+    /// A read-only storage buffer
+    #[from(skip)]
+    ReadStorageBuffer(wgpu::Buffer),
+
+    /// A read-only storage buffer
+    #[from(skip)]
+    RWStorageBuffer(wgpu::Buffer),
 }
 
 impl ShaderOpaqueParameter {
@@ -331,6 +392,30 @@ impl ShaderOpaqueParameter {
                     return true;
                 }
             }
+            Self::UniformBuffer(cur) => {
+                if let MaterialParameter::Buffer(buf) = value
+                    && buf.usage().contains(wgpu::BufferUsages::UNIFORM)
+                {
+                    *cur = buf;
+                    return true;
+                }
+            }
+            Self::ReadStorageBuffer(cur) => {
+                if let MaterialParameter::Buffer(buf) = value
+                    && buf.usage().contains(wgpu::BufferUsages::STORAGE)
+                {
+                    *cur = buf;
+                    return true;
+                }
+            }
+            Self::RWStorageBuffer(cur) => {
+                if let MaterialParameter::Buffer(buf) = value
+                    && buf.usage().contains(wgpu::BufferUsages::STORAGE)
+                {
+                    *cur = buf;
+                    return true;
+                }
+            }
         }
 
         false
@@ -342,6 +427,21 @@ impl ShaderOpaqueParameter {
         match self {
             Self::Texture2D(texture_view) => wgpu::BindingResource::TextureView(texture_view),
             Self::Sampler(sampler) => wgpu::BindingResource::Sampler(sampler),
+            Self::UniformBuffer(buffer) => wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                buffer,
+                offset: 0,
+                size: None,
+            }),
+            Self::ReadStorageBuffer(buffer) => wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                buffer,
+                offset: 0,
+                size: None,
+            }),
+            Self::RWStorageBuffer(buffer) => wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                buffer,
+                offset: 0,
+                size: None,
+            }),
         }
     }
 }

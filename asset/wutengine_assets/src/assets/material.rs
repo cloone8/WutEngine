@@ -28,6 +28,9 @@ pub struct SerializedMaterial {
 
     /// The parameter values for this material
     pub parameters: HashMap<String, SerializedMaterialParameter>,
+
+    /// Which side of the geometry to cull
+    pub cull_mode: CullMode,
 }
 
 impl SerializedAsset for SerializedMaterial {
@@ -68,4 +71,20 @@ pub enum SerializedMaterialParameter {
 
     /// Sampler
     Sampler(AssetRef<SerializedSampler>),
+}
+
+/// Which face should be culled
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
+pub enum CullMode {
+    /// Cull front faces
+    Front,
+
+    /// Cull back faces
+    #[default]
+    Back,
+
+    /// Do not cull any side
+    None,
 }

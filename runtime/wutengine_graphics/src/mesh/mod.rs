@@ -4,11 +4,13 @@ use std::collections::HashMap;
 
 use nohash_hasher::IntMap;
 use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::material::CullMode;
 use wutengine_assets::assets::mesh::MeshIndices;
 use wutengine_assets::assets::mesh::MeshTopology;
 use wutengine_assets::assets::mesh::SerializedMesh;
 use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 
+use crate::device;
 use crate::shader::GVec4;
 
 use super::shader::{GVec2, GVec3};
@@ -85,91 +87,75 @@ impl Mesh {
         mesh.vertex_buffers
             .insert(ShaderVertexAttributeType::Position, pos_buffer);
 
-        if !data.normals.is_empty() {
-            if data.normals.len() == vtx_count {
-                let normal_buffer = data
-                    .normals
-                    .iter()
-                    .copied()
-                    .map(GVec3::<f32>::from)
-                    .collect::<Vec<_>>();
-
-                let normal_vertex_buffer = VertexBuffer::new(
-                    &normal_buffer,
-                    ShaderVertexAttributeType::Normal,
-                    device,
-                    data.keep_data,
-                    false,
-                )
-                .expect("Failed to create normal buffer");
-
-                mesh.vertex_buffers
-                    .insert(ShaderVertexAttributeType::Normal, normal_vertex_buffer);
-            } else {
-                log::error!(
-                    "Discarding normal vector channel because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
-                    data.normals.len()
-                );
-            }
+        if let Some(normal_buf) = Self::make_vtx_buf(
+            vtx_count,
+            data.keep_data,
+            ShaderVertexAttributeType::Normal,
+            &data.normals,
+            GVec3::<f32>::from,
+        )
+        .expect("Failed to create normal buffer")
+        {
+            mesh.vertex_buffers
+                .insert(ShaderVertexAttributeType::Normal, normal_buf);
         }
 
-        if !data.colors.is_empty() {
-            if data.colors.len() == vtx_count {
-                let color_buffer = data
-                    .colors
-                    .iter()
-                    .copied()
-                    .map(|color| GVec4::<f32>::from(color.as_vec4()))
-                    .collect::<Vec<_>>();
-
-                let color_vertex_buffer = VertexBuffer::new(
-                    &color_buffer,
-                    ShaderVertexAttributeType::Color,
-                    device,
-                    data.keep_data,
-                    false,
-                )
-                .expect("Failed to create color buffer");
-
-                mesh.vertex_buffers
-                    .insert(ShaderVertexAttributeType::Color, color_vertex_buffer);
-            } else {
-                log::error!(
-                    "Discarding color channel because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
-                    data.colors.len()
-                );
-            }
+        if let Some(color_buf) = Self::make_vtx_buf(
+            vtx_count,
+            data.keep_data,
+            ShaderVertexAttributeType::Color,
+            &data.colors,
+            |color| GVec4::<f32>::from(color.as_vec4()),
+        )
+        .expect("Failed to create color buffer")
+        {
+            mesh.vertex_buffers
+                .insert(ShaderVertexAttributeType::Color, color_buf);
         }
 
         for (&channel, uv_data) in &data.uvs {
-            if uv_data.len() != vtx_count {
-                log::error!(
-                    "Discarding UV channel {channel} because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
-                    uv_data.len()
-                );
-                continue;
-            }
-
-            let uv_vec = uv_data
-                .iter()
-                .copied()
-                .map(GVec2::<f32>::from)
-                .collect::<Vec<_>>();
-
-            let uv_vtx_buf = VertexBuffer::new(
-                &uv_vec,
-                ShaderVertexAttributeType::Uv { channel },
-                device,
+            if let Some(uv_buf) = Self::make_vtx_buf(
+                vtx_count,
                 data.keep_data,
-                false,
+                ShaderVertexAttributeType::Uv { channel },
+                uv_data,
+                GVec2::<f32>::from,
             )
-            .expect("Failed to create UV vertex buffer");
-
-            mesh.vertex_buffers
-                .insert(ShaderVertexAttributeType::Uv { channel }, uv_vtx_buf);
+            .expect("Failed to create UV buffer")
+            {
+                mesh.vertex_buffers
+                    .insert(ShaderVertexAttributeType::Uv { channel }, uv_buf);
+            }
         }
 
         Some(mesh)
+    }
+
+    fn make_vtx_buf<T: Copy, O: VertexDataType>(
+        vtx_count: usize,
+        keep_data: bool,
+        attr_type: ShaderVertexAttributeType,
+        data: &[T],
+        mapfn: impl Fn(T) -> O,
+    ) -> Result<Option<VertexBuffer>, NewVertexBufferErr> {
+        if data.is_empty() {
+            return Ok(None);
+        }
+
+        if data.len() != vtx_count {
+            log::error!(
+                "Discarding vertex channel of type \"{attr_type}\" because it did not have the expected number of elements ({vtx_count} vertices, {} given)",
+                data.len()
+            );
+
+            return Ok(None);
+        }
+
+        let buffer = data.iter().copied().map(mapfn).collect::<Vec<_>>();
+
+        let vtx_buf = VertexBuffer::new(&buffer, attr_type, device(), keep_data, false)?;
+
+        Ok(Some(vtx_buf))
     }
 }
 
@@ -231,5 +217,14 @@ pub const fn asset_topology_to_wgpu(asset_topology: MeshTopology) -> wgpu::Primi
         MeshTopology::Triangle => wgpu::PrimitiveTopology::TriangleList,
         MeshTopology::Line => wgpu::PrimitiveTopology::LineList,
         MeshTopology::Point => wgpu::PrimitiveTopology::PointList,
+    }
+}
+
+/// Converts a WutEngine [`CullMode`] to a [`wgpu::Face`], or [`None`]
+pub const fn asset_cull_mode_to_wgpu(asset_cull_mode: CullMode) -> Option<wgpu::Face> {
+    match asset_cull_mode {
+        CullMode::Front => Some(wgpu::Face::Front),
+        CullMode::Back => Some(wgpu::Face::Back),
+        CullMode::None => None,
     }
 }

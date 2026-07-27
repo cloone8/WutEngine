@@ -1,5 +1,7 @@
 use core::num::NonZero;
 
+use wgpu::COPY_BUFFER_ALIGNMENT;
+use wgpu::util::AlignTo;
 use wutengine_assets::assets::mesh::MeshTopology;
 
 use crate::label;
@@ -95,7 +97,9 @@ impl IndexBuffer {
 
         let data_bytes = T::as_bytes(data);
 
-        buffer_view.copy_from_slice(data_bytes);
+        buffer_view
+            .slice(..data_bytes.len())
+            .copy_from_slice(data_bytes);
 
         drop(buffer_view);
         buffer.unmap();
@@ -181,10 +185,11 @@ impl IndexBuffer {
 
         let data_format = T::FORMAT;
         let data_bytes = (data_format.stride() as u64) * count.get();
+        let data_bytes_aligned = data_bytes.next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT);
 
         Ok(device.create_buffer(&wgpu::BufferDescriptor {
             label: label!("Index buffer"),
-            size: data_bytes,
+            size: data_bytes_aligned,
             usage: wgpu::BufferUsages::INDEX
                 | (if dynamic {
                     wgpu::BufferUsages::COPY_DST

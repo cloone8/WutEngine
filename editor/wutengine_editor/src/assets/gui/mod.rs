@@ -9,6 +9,7 @@ use uuid::NonNilUuid;
 use wutengine::asset::AssetRef;
 use wutengine::asset::SerializedAsset;
 use wutengine::asset::assets::level::SerializedLevel;
+use wutengine::asset::assets::mesh::SerializedMesh;
 use wutengine::asset::assets::texture::SerializedTexture;
 use wutengine::asset_server::AutoLoad;
 
@@ -37,6 +38,7 @@ fn insert_default_custom_guis(map: &mut HashMap<uuid::NonNilUuid, AssetGuiInfo>)
 
     insert_gui!(SerializedTexture);
     insert_gui!(SerializedLevel);
+    insert_gui!(SerializedMesh);
 }
 
 /// Registers a custom asset GUI for an asset type

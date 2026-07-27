@@ -4,7 +4,7 @@ use wutengine_math::Color;
 use crate::graphics;
 
 /// The background of the [`super::Camera`] viewport
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, derive_more::IsVariant)]
 pub enum CameraBackground {
     /// No specific background. Probably contains the contents of the previous frame
     None,

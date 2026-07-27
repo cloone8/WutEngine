@@ -7,6 +7,7 @@ use wutengine_util_macro::unique_id_type64;
 use crate::GFX_DEVICE;
 use crate::PIPELINE_CACHE;
 use crate::label;
+use crate::mesh::asset_cull_mode_to_wgpu;
 use crate::mesh::asset_topology_to_wgpu;
 
 use super::cache;
@@ -27,13 +28,16 @@ pub fn get_pipeline(
     material: &Material,
     topology: MeshTopology,
     color_targets: &[Option<wgpu::ColorTargetState>],
+    depth_stencil_target: Option<wgpu::DepthStencilState>,
 ) -> std::sync::Arc<wgpu::RenderPipeline> {
     const STACK_ATTRS: usize = 8;
 
     let pipeline_cache_key = PipelineCacheKey {
         shader: material.compiled_shader.id,
         color_targets: color_targets.into(),
+        depth_stencil_target,
         mesh_topology: topology,
+        cull_mode: material.cull_mode,
     };
 
     if let Some(cached_pipeline) = cache::pipeline::find(&pipeline_cache_key) {
@@ -104,12 +108,12 @@ pub fn get_pipeline(
             topology: asset_topology_to_wgpu(topology),
             strip_index_format: None,
             front_face: wgpu::FrontFace::Ccw,
-            cull_mode: None,
+            cull_mode: asset_cull_mode_to_wgpu(material.cull_mode),
             unclipped_depth: false,
             polygon_mode: wgpu::PolygonMode::Fill,
             conservative: false,
         },
-        depth_stencil: None,
+        depth_stencil: pipeline_cache_key.depth_stencil_target.clone(),
         multisample: wgpu::MultisampleState {
             count: 1,
             mask: !0,

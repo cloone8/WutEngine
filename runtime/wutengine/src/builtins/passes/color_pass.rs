@@ -9,6 +9,7 @@ use wutengine_graphics::renderpass::RenderPass;
 use wutengine_graphics::wgpu;
 use wutengine_shadercompiler::INSTANCE_PARAMS_BIND_GROUP_INDEX;
 use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
+use wutengine_util::warn_once;
 
 use crate::builtins::components::rendering::Camera;
 use crate::graphics;
@@ -61,18 +62,27 @@ impl RenderPass<Camera, [DrawCommand]> for ColorPass {
             return;
         };
 
-        let target_view = target_tex.create_view(&wgpu::TextureViewDescriptor::default());
+        let color_target_view = target_tex
+            .color()
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let color_targets = [Some(wgpu::ColorTargetState {
-            format: target_tex.format(),
-            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-            write_mask: wgpu::ColorWrites::ALL,
-        })];
+        let depth_stencil_target_view = target_tex
+            .depth_stencil()
+            .map(|ds| ds.create_view(&wgpu::TextureViewDescriptor::default()));
+
+        let (has_depth, has_stencil) =
+            depth_stencil_target_view
+                .as_ref()
+                .map_or((false, false), |dstv| {
+                    let fmt = dstv.texture().format();
+
+                    (fmt.has_depth_aspect(), fmt.has_stencil_aspect())
+                });
 
         let mut render_pass = cmd.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: label!("Color"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &target_view,
+                view: &color_target_view,
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
@@ -80,7 +90,27 @@ impl RenderPass<Camera, [DrawCommand]> for ColorPass {
                     store: wgpu::StoreOp::Store,
                 },
             })],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: depth_stencil_target_view.as_ref().map(|dstv| {
+                wgpu::RenderPassDepthStencilAttachment {
+                    view: dstv,
+                    depth_ops: has_depth.then(|| wgpu::Operations {
+                        load: if camera.background.is_none() {
+                            wgpu::LoadOp::Load
+                        } else {
+                            wgpu::LoadOp::Clear(1.0)
+                        },
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: has_stencil.then(|| wgpu::Operations {
+                        load: if camera.background.is_none() {
+                            wgpu::LoadOp::Load
+                        } else {
+                            wgpu::LoadOp::Clear(0)
+                        },
+                        store: wgpu::StoreOp::Store,
+                    }),
+                }
+            }),
             timestamp_writes: self.query_set.renderpass_timestamp_writes(),
             occlusion_query_set: None,
             multiview_mask: None,
@@ -90,6 +120,26 @@ impl RenderPass<Camera, [DrawCommand]> for ColorPass {
             log::error!("Failed to set camera bind group: {e}");
             return;
         }
+
+        let color_targets = [Some(wgpu::ColorTargetState {
+            format: target_tex.color().format(),
+            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+            write_mask: wgpu::ColorWrites::ALL,
+        })];
+
+        let depth_stencil_target = depth_stencil_target_view.map(|dstv| wgpu::DepthStencilState {
+            format: dstv.texture().format(),
+            depth_write_enabled: Some(has_depth),
+            depth_compare: has_depth.then_some(wgpu::CompareFunction::LessEqual),
+            stencil: if has_stencil {
+                warn_once!("Stencil is not yet supported in renderer");
+
+                wgpu::StencilState::default()
+            } else {
+                wgpu::StencilState::default()
+            },
+            bias: wgpu::DepthBiasState::default(),
+        });
 
         self.query_set.pipeline_statistics_start(&mut render_pass);
 
@@ -103,7 +153,13 @@ impl RenderPass<Camera, [DrawCommand]> for ColorPass {
             }
 
             render_pass.push_debug_group("Draw command");
-            render_state.draw_single(&mut render_pass, draw_command, camera, &color_targets);
+            render_state.draw_single(
+                &mut render_pass,
+                draw_command,
+                camera,
+                &color_targets,
+                depth_stencil_target.as_ref(),
+            );
             render_pass.pop_debug_group();
         }
 
@@ -128,6 +184,7 @@ impl RenderState {
         next_material: &Material,
         next_mesh: &Mesh,
         color_targets: &[Option<wgpu::ColorTargetState>],
+        depth_stencil_target: Option<&wgpu::DepthStencilState>,
     ) -> Result<(), ()> {
         let material_changed =
             self.material.is_none() || self.material.unwrap() != next_material.id();
@@ -157,6 +214,7 @@ impl RenderState {
                 next_material,
                 next_mesh.topology(),
                 color_targets,
+                depth_stencil_target.cloned(),
             );
 
             if self.pipeline.is_none() || self.pipeline.as_ref().unwrap() != &pipeline {
@@ -175,6 +233,7 @@ impl RenderState {
         draw_command: &DrawCommand,
         camera: &Camera,
         color_targets: &[Option<wgpu::ColorTargetState>],
+        depth_stencil_target: Option<&wgpu::DepthStencilState>,
     ) {
         let this_draw_index = self.draw_index;
         self.draw_index += 1;
@@ -184,6 +243,7 @@ impl RenderState {
             &draw_command.material,
             &draw_command.mesh,
             color_targets,
+            depth_stencil_target,
         ) {
             return;
         }

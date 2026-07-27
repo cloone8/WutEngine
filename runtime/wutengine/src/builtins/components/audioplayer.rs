@@ -1,6 +1,7 @@
 use wutengine_asset_server::AutoLoad;
 use wutengine_audio::AudioClip;
 
+use crate::asset::IntoAssetParameter;
 use crate::component::Component;
 
 /// A component that plays audio
@@ -36,8 +37,8 @@ impl AudioPlayer {
     }
 
     /// Sets the clip used by this player. Will stop any current playback and reset the player back to the start
-    pub fn set_clip(&mut self, clip: impl Into<AutoLoad<AudioClip>>) {
-        self.clip = clip.into();
+    pub fn set_clip(&mut self, clip: impl IntoAssetParameter<AudioClip>) {
+        self.clip = clip.into_autoload();
         self.clip_init = false;
 
         let Some(player) = self.player.as_ref() else {

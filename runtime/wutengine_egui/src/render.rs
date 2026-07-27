@@ -280,6 +280,7 @@ impl PrimitiveRenderState<'_> {
                         blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
                         write_mask: wgpu::ColorWrites::all(),
                     })],
+                    None,
                 );
 
                 if self.cur_pipeline.is_none() || self.cur_pipeline.as_ref().unwrap() != &pipeline {

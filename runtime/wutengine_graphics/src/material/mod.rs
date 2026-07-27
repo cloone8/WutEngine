@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use core::convert::Infallible;
 use std::collections::HashMap;
 use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::material::CullMode;
 use wutengine_assets::assets::material::SerializedMaterial;
 use wutengine_assets::assets::material::SerializedMaterialParameter;
 use wutengine_math::Color;
@@ -39,6 +40,9 @@ pub struct Material {
 
     /// The bind group for the user parameters of this material
     pub(crate) user_bind_group: BindGroup,
+
+    /// The culling mode
+    pub(crate) cull_mode: CullMode,
 }
 
 impl Material {
@@ -61,6 +65,7 @@ impl Material {
             keywords,
             user_bind_group,
             compiled_shader,
+            cull_mode: CullMode::default(),
         }
     }
 
@@ -87,6 +92,18 @@ impl Material {
     pub fn compiled_shader(&self) -> &CompiledShader {
         &self.compiled_shader
     }
+
+    /// Sets the cull mode for this material
+    #[inline]
+    pub fn set_cull_mode(&mut self, cull_mode: CullMode) {
+        self.cull_mode = cull_mode;
+    }
+
+    /// Gets the cull mode for this material
+    #[inline]
+    pub fn get_cull_mode(&self) -> CullMode {
+        self.cull_mode
+    }
 }
 
 impl Clone for Material {
@@ -97,6 +114,7 @@ impl Clone for Material {
             keywords: self.keywords.clone(),
             compiled_shader: self.compiled_shader.clone(),
             user_bind_group: self.user_bind_group.clone(),
+            cull_mode: self.cull_mode,
         }
     }
 }
@@ -176,6 +194,10 @@ pub enum MaterialParameter {
 
     /// Sampler
     Sampler(Arc<Sampler>),
+
+    /// A raw [`wgpu::Buffer`]
+    #[from(skip)]
+    Buffer(wgpu::Buffer),
 }
 
 impl From<SerializedMaterialParameter> for MaterialParameter {

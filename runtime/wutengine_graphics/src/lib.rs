@@ -12,6 +12,7 @@ pub mod mesh;
 pub mod pipeline;
 pub mod queries;
 pub mod renderpass;
+pub mod rendertexture;
 pub mod sampler;
 pub mod shader;
 pub mod texture;

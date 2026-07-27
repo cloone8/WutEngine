@@ -1,7 +1,7 @@
 //! Wavefront obj importer
 
 use std::collections::HashMap;
-use std::io::BufReader;
+use std::io::Cursor;
 use std::path::PathBuf;
 
 use wutengine_assets::SerializedAsset;
@@ -71,7 +71,7 @@ impl ObjAssetImporter {
             mtllib_files.len()
         );
 
-        let mut reader = BufReader::new(obj_bytes);
+        let mut reader = Cursor::new(obj_bytes);
         let loaded = tobj::load_obj_buf(
             &mut reader,
             &tobj::LoadOptions {
@@ -85,7 +85,7 @@ impl ObjAssetImporter {
                     return Err(tobj::LoadError::OpenFileFailed);
                 };
 
-                let mut reader = BufReader::new(*mtl_bytes);
+                let mut reader = Cursor::new(*mtl_bytes);
 
                 tobj::load_mtl_buf(&mut reader)
             },
@@ -102,7 +102,10 @@ impl ObjAssetImporter {
             }
         };
 
-        let verts = models.iter().map(|m| m.mesh.positions.len()).sum::<usize>();
+        let verts = models
+            .iter()
+            .map(|m| m.mesh.positions.len() / 3)
+            .sum::<usize>();
 
         log::info!(
             "Found {} models and {} materials, total {verts} vertices",
@@ -126,7 +129,7 @@ impl ObjAssetImporter {
 
         let topology = Self::get_topology(&model_mesh)?;
         let vertices = Self::get_vertices(&model_mesh.positions);
-        let indices = Self::get_indices(model_mesh.indices);
+        let indices = Self::get_indices(topology == MeshTopology::Triangle, model_mesh.indices);
         let normals = Self::get_normals(&model_mesh.normals);
         let uvs = Self::get_uvs(&model_mesh.texcoords);
         let colors = Self::get_colors(&model_mesh.vertex_color);
@@ -183,12 +186,21 @@ impl ObjAssetImporter {
 
         vtx_chunks
             .iter()
-            .map(|vtx| Vec3::new(vtx[0], vtx[1], vtx[2]))
+            .map(|vtx| Vec3::new(vtx[0], vtx[1], vtx[2])) // Right to left handed
             .collect()
     }
 
-    fn get_indices(indices: Vec<u32>) -> MeshIndices {
+    fn get_indices(swap_triangle_order: bool, mut indices: Vec<u32>) -> MeshIndices {
         profiling::function_scope!();
+
+        if swap_triangle_order {
+            let (tris, tail) = indices.as_chunks_mut::<3>();
+            assert!(tail.is_empty(), "Too many indices. Not triangles?");
+
+            for tri in tris {
+                tri.swap(1, 2);
+            }
+        }
 
         let u16_indices = indices
             .iter()

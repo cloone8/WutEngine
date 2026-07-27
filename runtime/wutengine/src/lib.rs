@@ -33,8 +33,7 @@ pub mod log {
     pub use wutengine_logger::*;
 }
 
-#[doc(inline)]
-pub use wutengine_assets as asset;
+pub mod asset;
 
 #[cfg(feature = "asset_importers")]
 #[doc(inline)]

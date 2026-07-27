@@ -264,4 +264,13 @@ pub enum ShaderOpaqueParameterType {
     /// A 2D texture
     #[serde(rename = "texture_2d")]
     Texture2D,
+
+    /// A raw uniform buffer
+    UniformBuffer,
+
+    /// A raw read-only storage buffer
+    ReadStorageBuffer,
+
+    /// A raw read-write storage buffer
+    RWStorageBuffer,
 }

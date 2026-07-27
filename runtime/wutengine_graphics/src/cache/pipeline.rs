@@ -2,6 +2,7 @@
 
 use alloc::sync::Arc;
 use std::sync::LazyLock;
+use wutengine_assets::assets::material::CullMode;
 use wutengine_assets::assets::mesh::MeshTopology;
 
 use smallvec::SmallVec;
@@ -21,10 +22,16 @@ pub(crate) struct PipelineCacheKey {
     pub(crate) shader: CompiledShaderId,
 
     /// The color targets the pipeline supports
-    pub(crate) color_targets: SmallVec<[Option<wgpu::ColorTargetState>; 2]>,
+    pub(crate) color_targets: SmallVec<[Option<wgpu::ColorTargetState>; 1]>,
+
+    /// The depth/stencil target the pipeline supports
+    pub(crate) depth_stencil_target: Option<wgpu::DepthStencilState>,
 
     /// The topology of the mesh
     pub(crate) mesh_topology: MeshTopology,
+
+    /// The cull mode of the material
+    pub(crate) cull_mode: CullMode,
 }
 
 /// Tries to find a given shader variant in the global cache

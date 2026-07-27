@@ -7,6 +7,7 @@ use wutengine_assets::assets::sampler::WrapModeType;
 use wutengine_graphics::BindGroup;
 use wutengine_graphics::internal_bind_groups::create_camera_bind_group;
 use wutengine_graphics::label;
+use wutengine_graphics::rendertexture::RenderTexture;
 use wutengine_graphics::wgpu;
 use wutengine_math::Color;
 use wutengine_math::Mat4;
@@ -73,7 +74,7 @@ pub struct Camera {
     /// Bind group for the per-camera parameters
     camera_parameters: Option<BindGroup>,
 
-    render_target: Option<wgpu::Texture>,
+    render_target: Option<RenderTexture>,
 
     blit_material: Option<Material>,
 
@@ -140,7 +141,7 @@ impl Camera {
 
     /// Returns the current render target texture of this camera, if configured
     #[inline]
-    pub fn get_render_target(&self) -> Option<&wgpu::Texture> {
+    pub fn get_render_target(&self) -> Option<&RenderTexture> {
         self.render_target.as_ref()
     }
 
@@ -179,7 +180,7 @@ impl Camera {
 /// System implementations
 impl Camera {
     fn update_render_target(&mut self) {
-        let Some(camera_target) = self.target else {
+        let Some(camera_target) = self.target.as_ref() else {
             log::trace!("Camera has no target configured, so not updating render target");
             // If the camera has no target configured, free the render target
             if let Some(render_target) = self.render_target.take() {
@@ -202,9 +203,9 @@ impl Camera {
 
         let needs_recreation = match &self.render_target {
             Some(rt) => {
-                let cur_size = rt.size();
+                let (width, height) = rt.size();
 
-                let recreate = target_size != (cur_size.width, cur_size.height);
+                let recreate = target_size != (width, height);
 
                 if recreate {
                     rt.destroy();
@@ -225,20 +226,12 @@ impl Camera {
             target_size.1
         );
 
-        let render_target_texture = graphics::device().create_texture(&wgpu::TextureDescriptor {
-            label: label!("Camera render target texture"),
-            size: wgpu::Extent3d {
-                width: target_size.0,
-                height: target_size.1,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
+        let render_target_texture = RenderTexture::new(
+            target_size,
+            wgpu::TextureFormat::Rgba8Unorm,
+            Some(wgpu::TextureFormat::Depth24Plus),
+            label!("Camera render target texture"),
+        );
 
         if let Some(blit_material) = self.blit_material.as_mut() {
             // Also rebind the blit material here, if it already exists. Cheaper
@@ -260,7 +253,7 @@ impl Camera {
         let target_size = render_target.size();
 
         self.projection_matrix = self.projection.get_matrix(
-            target_size.width as f32 / target_size.height as f32,
+            target_size.0 as f32 / target_size.1 as f32,
             self.clipping_planes.0,
             self.clipping_planes.1,
         );
@@ -303,7 +296,7 @@ impl Camera {
     ) {
         profiling::function_scope!();
 
-        let Some(target) = self.target else {
+        let Some(target) = self.target.as_ref() else {
             // No target means nowhere to blit to
             return;
         };
@@ -313,11 +306,9 @@ impl Camera {
             return;
         }
 
-        self.set_blit_material();
-
         let blit_target_texture = match target {
             CameraTarget::Window(window) => {
-                let Some((_, surface)) = windows.iter().find(|(win, _)| *win == window) else {
+                let Some((_, surface)) = windows.iter().find(|(win, _)| win == window) else {
                     // Target window is not within the given surfaces, so we can't blit to it.
                     log::debug!(
                         "Target window {window} did not have an entry in the windows map. Not blitting"
@@ -327,7 +318,10 @@ impl Camera {
 
                 surface.texture.clone()
             }
+            CameraTarget::Texture(render_texture) => render_texture.color().clone(),
         };
+
+        self.set_blit_material();
 
         let view_format = blit_target_texture.format().add_srgb_suffix();
 
@@ -344,8 +338,12 @@ impl Camera {
 
         let blit_material = self.blit_material.as_mut().unwrap();
 
-        let blit_pipeline =
-            graphics::pipeline::get_pipeline(blit_material, MeshTopology::Triangle, &color_targets);
+        let blit_pipeline = graphics::pipeline::get_pipeline(
+            blit_material,
+            MeshTopology::Triangle,
+            &color_targets,
+            None,
+        );
 
         blit_material
             .raw_bind_group_mut()
@@ -408,10 +406,12 @@ impl Camera {
         self.blit_material = Some(mat);
     }
 
-    fn set_blit_material_params(mat: &mut Material, render_target_texture: &wgpu::Texture) {
+    fn set_blit_material_params(mat: &mut Material, render_target_texture: &RenderTexture) {
         let tex_param = MaterialParameter::Texture2D(
             Texture::new_from_existing(
-                render_target_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                render_target_texture
+                    .color()
+                    .create_view(&wgpu::TextureViewDescriptor::default()),
             )
             .into(),
         );

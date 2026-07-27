@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 use wutengine_assets::FromSerializedAsset;
+use wutengine_assets::assets::material::CullMode;
 use wutengine_graphics::label;
 use wutengine_util::error_once;
 use wutengine_util::warn_once;
@@ -545,6 +546,8 @@ impl TextureMaterialMap {
                 texture.set_data(utils::egui_image_bytes(&delta.image));
 
                 let mut material = Material::new(EGUI_SHADER.clone(), map!["DITHERING" => 0u64]);
+
+                material.set_cull_mode(CullMode::None);
 
                 material
                     .raw_bind_group_mut()

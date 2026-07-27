@@ -1,6 +1,7 @@
 use wutengine_asset_server::AutoLoad;
 use wutengine_math::Mat4;
 
+use crate::asset::IntoAssetParameter;
 use crate::builtins::components::Transform;
 use crate::component::Component;
 use crate::graphics;
@@ -23,13 +24,13 @@ impl StaticMeshRenderer {
     }
 
     /// Sets the mesh to render to the provided mesh
-    pub fn set_mesh(&mut self, mesh: impl Into<AutoLoad<Mesh>>) {
-        self.mesh = mesh.into();
+    pub fn set_mesh(&mut self, mesh: impl IntoAssetParameter<Mesh>) {
+        self.mesh = mesh.into_autoload();
     }
 
     /// Sets the material this renderer uses to the provided material
-    pub fn set_material(&mut self, material: impl Into<AutoLoad<Material>>) {
-        self.material = material.into();
+    pub fn set_material(&mut self, material: impl IntoAssetParameter<Material>) {
+        self.material = material.into_autoload();
     }
 }
 
