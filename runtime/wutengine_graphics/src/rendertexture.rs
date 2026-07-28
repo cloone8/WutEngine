@@ -19,6 +19,11 @@ impl RenderTexture {
         depth_stentil_format: Option<wgpu::TextureFormat>,
         label: Option<&str>,
     ) -> Self {
+        assert!(
+            color_format.has_color_aspect(),
+            "Given color format is not actually have a color format: {color_format:?}"
+        );
+
         let color_tex = crate::device().create_texture(&wgpu::TextureDescriptor {
             label,
             size: wgpu::Extent3d {
@@ -37,7 +42,7 @@ impl RenderTexture {
         let depth_tex = depth_stentil_format.map(|depth_stencil_format| {
             assert!(
                 depth_stencil_format.is_depth_stencil_format(),
-                "Given depth/stencil format is not actually a depth/stencil format"
+                "Given depth/stencil format is not actually a depth/stencil format: {depth_stencil_format:?}"
             );
 
             crate::device().create_texture(&wgpu::TextureDescriptor {
