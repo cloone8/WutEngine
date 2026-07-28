@@ -37,11 +37,12 @@ pub struct SerializedMesh {
 impl SerializedAsset for SerializedMesh {
     const ID: uuid::NonNilUuid =
         uuid::NonNilUuid::new(uuid::uuid!("65e51770-cd08-4ba8-97db-70456af5e10b")).unwrap();
+
+    const PREFER_BINARY_SERIALIZATION: bool = true;
 }
 
 /// Mesh indices
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "size")]
 pub enum MeshIndices {
     /// 16-bit indices
     U16(Vec<u16>),
