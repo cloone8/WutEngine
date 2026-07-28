@@ -101,10 +101,14 @@ impl LibraryPanel {
             }
 
             let entry_path = AssetPath::new(entry.path());
-            file_tree_root.insert_at(
-                &entry_path,
-                AssetTreeNode::new_empty_dir(entry_path.clone()),
-            );
+
+            if !file_tree_root.has_entry_at(&entry_path) {
+                file_tree_root.insert_at(
+                    &entry_path,
+                    AssetTreeNode::new_empty_dir(entry_path.clone()),
+                );
+            }
+
             Self::insert_empty_subdirs(file_tree_root, &entry_path);
         }
     }

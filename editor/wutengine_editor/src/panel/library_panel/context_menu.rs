@@ -20,6 +20,7 @@ pub(super) fn dir(path: &AssetPath, ui: &mut egui::Ui) {
 }
 
 pub(super) fn asset(asset_id: &uuid::NonNilUuid, path: &AssetPath, ui: &mut egui::Ui) {
+    _ = asset_id;
     shared_menu(path, ui);
 }
 

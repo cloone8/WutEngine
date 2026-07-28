@@ -1,6 +1,8 @@
 use core::convert::Infallible;
 use std::sync::Arc;
 
+use wutengine::asset::AssetRef;
+use wutengine::asset::assets::bundle::SerializedBundle;
 use wutengine::asset::assets::entity::EntityEntry;
 use wutengine::asset::assets::entity::SerializedEntity;
 use wutengine::asset::assets::level::LevelEntry;
@@ -157,14 +159,19 @@ impl EditorPanel for TreePanel {
                     ui.label(format!("{LEVEL_ICON} Loading..."));
                 }
                 OpenLevel::Ready { level, id, .. } => {
-                    egui::CollapsingHeader::new(format!("{LEVEL_ICON} {}", level.name))
-                        .default_open(true)
-                        .id_salt(*id)
-                        .show(ui, |ui| {
-                            for (i, entry) in level.entries.iter().enumerate() {
-                                show_level_entry(entry, i, ui);
-                            }
-                        });
+                    let response =
+                        egui::CollapsingHeader::new(format!("{LEVEL_ICON} {}", level.name))
+                            .default_open(true)
+                            .id_salt(*id)
+                            .show(ui, |ui| {
+                                for (i, entry) in level.entries.iter().enumerate() {
+                                    show_level_entry(entry, i, ui);
+                                }
+                            });
+
+                    response
+                        .header_response
+                        .context_menu(|ui| if ui.button("New child entity").clicked() {});
                 }
                 OpenLevel::LoadErr { err, id, .. } => {
                     ui.label(format!("{LEVEL_ICON} {id}"));
@@ -180,7 +187,9 @@ fn show_level_entry(entry: &LevelEntry, idx: usize, ui: &mut egui::Ui) {
         LevelEntry::Entity(serialized_entity) => {
             show_serialized_entity(serialized_entity, idx, ui);
         }
-        LevelEntry::Bundle(asset_ref) => todo!(),
+        LevelEntry::Bundle(asset_ref) => {
+            show_bundle_entry(asset_ref, idx, ui);
+        }
     }
 }
 
@@ -189,7 +198,9 @@ fn show_entity_entry(entry: &EntityEntry, idx: usize, ui: &mut egui::Ui) {
         EntityEntry::Entity(serialized_entity) => {
             show_serialized_entity(serialized_entity, idx, ui);
         }
-        EntityEntry::Bundle(asset_ref) => todo!(),
+        EntityEntry::Bundle(asset_ref) => {
+            show_bundle_entry(asset_ref, idx, ui);
+        }
     }
 }
 fn show_serialized_entity(entity: &SerializedEntity, idx: usize, ui: &mut egui::Ui) {
@@ -208,4 +219,6 @@ fn show_serialized_entity(entity: &SerializedEntity, idx: usize, ui: &mut egui::
         });
 }
 
-fn show_bundle_entry() {}
+fn show_bundle_entry(bundle_ref: &AssetRef<SerializedBundle>, idx: usize, ui: &mut egui::Ui) {
+    todo!()
+}

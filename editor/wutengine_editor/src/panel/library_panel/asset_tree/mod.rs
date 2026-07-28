@@ -110,4 +110,33 @@ impl AssetTreeNode {
         children.push(new_branch);
         children.sort_by(|a, b| a.name().cmp(b.name()));
     }
+
+    pub(super) fn get_node_at(&self, path: &AssetPath) -> Option<&AssetTreeNode> {
+        if self.path() == path {
+            // We're the referenced node
+            return Some(self);
+        }
+
+        let Self::Dir {
+            children,
+            path: our_path,
+            ..
+        } = self
+        else {
+            // We have no children because we're not a directory, so the path doesn't exist
+            return None;
+        };
+
+        if !our_path.is_ancestor_of(path) {
+            // We're not an ancestor, so by definition our children do not contain the requested path
+            return None;
+        }
+
+        children.iter().find_map(|child| child.get_node_at(path))
+    }
+
+    #[inline]
+    pub(super) fn has_entry_at(&self, path: &AssetPath) -> bool {
+        self.get_node_at(path).is_some()
+    }
 }

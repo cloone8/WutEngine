@@ -1,5 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![windows_subsystem = "windows"]
+#![cfg_attr(not(test), windows_subsystem = "windows")]
 
 extern crate alloc;
 
@@ -29,6 +29,7 @@ use wutengine_egui::TextureMaterialMap;
 use wutengine_egui::egui;
 use wutengine_util::InitOnce;
 
+use crate::assets::create::CreateAsset;
 use crate::assets::path::AssetPath;
 
 mod assets;
@@ -173,7 +174,15 @@ fn start_editor(project_file_path: &Path) {
 /// Adds the default menu entries
 fn add_default_menu_entries() {
     // Main menu
-    menu::add_entry(&["File", "New Level"], 200, || {});
+    menu::add_entry(&["File", "New Level"], 200, || {
+        if let Err(e) = project::asset_manager().insert_asset(
+            &SerializedLevel::create_new(),
+            AssetPath::root().absolute(),
+            "New Level",
+        ) {
+            log::error!("Could not create new level: {e}");
+        }
+    });
 
     menu::add_entry(&["File", "Exit"], u64::MAX, || {
         wutengine::runtime::exit();
