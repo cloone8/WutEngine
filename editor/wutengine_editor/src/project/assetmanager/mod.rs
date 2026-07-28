@@ -13,23 +13,30 @@ use serde::Serialize;
 
 use crate::assets::path::AssetPath;
 
+/// An error while loading the asset manager
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub(crate) enum LoadErr {
+    /// The asset index was missing
     #[display("Asset index was missing from disk")]
     MissingIndexFile,
 
+    /// Asset index was not deserializable, probably corrupt
     #[display("Failed to deserialize asset index: {}", _0)]
     Deserialize(serde_json::Error),
 
+    /// I/O error
     #[display("I/O error while loading asset index: {}", _0)]
     IO(std::io::Error),
 }
 
+/// An error while saving the asset manager to disk
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub(crate) enum SaveErr {
+    /// Serialization failed
     #[display("Failed to serialize asset index: {}", _0)]
     Serialize(serde_json::Error),
 
+    /// I/O error
     #[display("I/O error while storing asset index: {}", _0)]
     IO(std::io::Error),
 }
@@ -108,6 +115,7 @@ pub(crate) enum InsertAssetErr {
 
 /// Asset management
 impl ProjectAssetManager {
+    /// Inserts an asset that has already been serialized into the project
     pub(crate) fn insert_serialized_asset(
         &self,
         asset_content: &[u8],
@@ -163,10 +171,7 @@ impl ProjectAssetManager {
 
         drop(assets);
 
-        wutengine::event::publish(AssetCreated {
-            path: canonicalized_path,
-            id,
-        });
+        wutengine::event::publish(AssetCreated);
 
         Ok(id)
     }
@@ -230,6 +235,7 @@ impl ProjectAssetManager {
         self.assets.read().unwrap()
     }
 
+    /// Returns the project asset information for a given asset id, if it exists
     pub(crate) fn get_project_asset(&self, id: &uuid::NonNilUuid) -> Option<ProjectAsset> {
         self.assets.read().unwrap().get(id).cloned()
     }
@@ -251,14 +257,12 @@ pub(crate) struct ProjectAsset {
 }
 
 impl ProjectAsset {
-    pub(crate) fn id(&self) -> uuid::NonNilUuid {
-        self.id.expect("ID should have been filled")
-    }
-
+    /// Returns the ID of the asset type
     pub(crate) fn asset_type(&self) -> uuid::NonNilUuid {
         self.asset_type
     }
 
+    /// Returns the name of the asset
     pub(crate) fn name(&self) -> &str {
         self.path
             .file_stem()
@@ -267,23 +271,20 @@ impl ProjectAsset {
             .expect("Asset name should be UTF8")
     }
 
-    pub(crate) fn directory(&self) -> Option<&Path> {
-        self.path.parent()
-    }
-
+    /// Returns the path to the asset
     pub(crate) fn path(&self) -> AssetPath {
         AssetPath::new(super::asset_manager().asset_root.join(&self.path))
     }
-
-    pub(crate) fn format(&self) -> ProjectAssetFormat {
-        self.format
-    }
 }
 
+/// The serialization format of a project asset
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum ProjectAssetFormat {
+    /// JSON
     Json,
+
+    /// Postcard
     Postcard,
 }
 
@@ -303,8 +304,6 @@ where
     as_string.serialize(serializer)
 }
 
+/// Event emitted when a new asset was created
 #[derive(Debug, Clone)]
-pub(crate) struct AssetCreated {
-    pub(crate) id: uuid::NonNilUuid,
-    pub(crate) path: PathBuf,
-}
+pub(crate) struct AssetCreated;
