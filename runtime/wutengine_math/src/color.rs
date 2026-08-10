@@ -35,8 +35,9 @@ impl From<SerializedColor> for Color {
 }
 
 /// A 32-bit-per-color RGBA color
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, bytemuck::NoUninit)]
 #[serde(into = "SerializedColor", from = "SerializedColor")]
+#[repr(transparent)]
 pub struct Color(Vec4);
 
 impl Color {

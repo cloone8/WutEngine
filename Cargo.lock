@@ -5437,6 +5437,7 @@ dependencies = [
 name = "wutengine_math"
 version = "0.6.0"
 dependencies = [
+ "bytemuck",
  "glam 0.33.3",
  "serde",
 ]

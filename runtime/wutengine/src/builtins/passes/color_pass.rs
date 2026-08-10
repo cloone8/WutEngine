@@ -286,15 +286,15 @@ impl RenderState {
                 return;
             };
 
-            render_pass.set_vertex_buffer(attr_info.shader_location, vertex_buffer.raw().slice(..));
+            render_pass.set_vertex_buffer(attr_info.shader_location, vertex_buffer.slice(..));
         }
 
         render_pass.set_index_buffer(
-            draw_command.mesh.index_buffer.raw().slice(..),
-            draw_command.mesh.index_buffer.format().to_wgpu(),
+            draw_command.mesh.index_buffer.slice(..),
+            draw_command.mesh.index_type.to_wgpu(),
         );
 
-        let num_indices = u32::try_from(draw_command.mesh.index_buffer.len().get()).unwrap();
+        let num_indices = draw_command.mesh.index_count.get();
 
         render_pass.draw_indexed(0..num_indices, 0, 0..1);
     }

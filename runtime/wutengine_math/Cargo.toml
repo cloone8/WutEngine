@@ -19,6 +19,11 @@ std = ["glam/std"]
 [dependencies]
 glam = { workspace = true, features = ["bytemuck", "serde"] }
 serde = { workspace = true, features = ["derive"] }
+bytemuck = { workspace = true, features = [
+    "derive",
+    "must_cast",
+    "const_zeroed",
+] }
 
 [lints]
 workspace = true

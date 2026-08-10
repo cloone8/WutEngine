@@ -8,7 +8,6 @@ use wutengine_graphics::label;
 use nohash_hasher::IntMap;
 use wutengine_assets::assets::mesh::MeshTopology;
 use wutengine_assets::assets::shader::ShaderVertexAttributeType;
-use wutengine_graphics::mesh::IndexDatatype;
 use wutengine_graphics::shader::GVec2;
 use wutengine_graphics::shader::GVec3;
 use wutengine_graphics::shader::GVec4;
@@ -215,7 +214,7 @@ fn write_primitives_into_views(
 
         vtx_offset += mesh.vertices.len();
 
-        let index_bytes = <u32 as IndexDatatype>::as_bytes(&mesh.indices);
+        let index_bytes = bytemuck::must_cast_slice::<u32, u8>(&mesh.indices);
         let mut index_slice = index_view.slice(idx_offset..(idx_offset + index_bytes.len()));
         index_slice.copy_from_slice(index_bytes);
 
