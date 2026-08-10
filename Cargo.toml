@@ -82,8 +82,8 @@ clap = { version = "4" } # Leave default features on, because we don't use it ou
 dashmap = { version = "6.1", default-features = false }
 derive_more = { version = "2.1", default-features = false }
 dirs = { version = "6", default-features = false }
-egui = { version = "0.35", default-features = false }
-egui_extras = { version = "0.35", default-features = false }
+egui = { version = "0.36", default-features = false }
+egui_extras = { version = "0.36", default-features = false }
 futures = { version = "0.3", default-features = false }
 gilrs = { version = "0.11", default-features = false }
 glam = { version = "0.33", default-features = false }
@@ -100,8 +100,8 @@ postcard = { version = "1", default-features = false }
 profiling = { version = "1.0" }
 puffin = { version = "0.20" }
 quote = { version = "1.0" }
-rapier2d = { version = "0.34", default-features = false }
-rapier3d = { version = "0.34", default-features = false }
+rapier2d = { version = "0.35", default-features = false }
+rapier3d = { version = "0.35", default-features = false }
 rayon = { version = "1.11" }
 rfd = { version = "0.17" }
 rodio = { version = "0.22", default-features = false }

@@ -300,63 +300,64 @@ pub(crate) fn ui(
     });
 
     egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
-        ui.visuals_mut().clip_rect_margin = 0.0;
-
         let available_height = ui.max_rect().bottom() - ui.min_rect().bottom();
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            let mut canvas = ui.available_rect_before_wrap();
-            canvas.max.y = f32::INFINITY;
-            let response = ui.interact(
-                canvas,
-                ui.id().with("canvas"),
-                egui::Sense::click_and_drag(),
-            );
 
-            let (min_ns, max_ns) = if options.merge_scopes {
-                frames.merged_range_ns
-            } else {
-                frames.raw_range_ns
-            };
+        egui::ScrollArea::vertical()
+            .content_margin(0.0)
+            .show(ui, |ui| {
+                let mut canvas = ui.available_rect_before_wrap();
+                canvas.max.y = f32::INFINITY;
+                let response = ui.interact(
+                    canvas,
+                    ui.id().with("canvas"),
+                    egui::Sense::click_and_drag(),
+                );
 
-            let info = Info {
-                ctx: ui.clone(),
-                canvas,
-                response,
-                painter: ui.painter_at(canvas),
-                text_height: 15.0, // TODO
-                start_ns: min_ns,
-                stop_ns: max_ns,
-                num_frames: frames.frames.len(),
-                layer_id: ui.layer_id(),
-                font_id: egui::TextStyle::Body.resolve(ui.style()),
-                scope_collection,
-            };
+                let (min_ns, max_ns) = if options.merge_scopes {
+                    frames.merged_range_ns
+                } else {
+                    frames.raw_range_ns
+                };
 
-            if reset_view {
-                options.zoom_to_relative_ns_range = Some((
-                    info.ctx.input(|i| i.time),
-                    (0, info.stop_ns - info.start_ns),
-                ));
-            }
+                let info = Info {
+                    ctx: ui.clone(),
+                    canvas,
+                    response,
+                    painter: ui.painter_at(canvas),
+                    text_height: 15.0, // TODO
+                    start_ns: min_ns,
+                    stop_ns: max_ns,
+                    num_frames: frames.frames.len(),
+                    layer_id: ui.layer_id(),
+                    font_id: egui::TextStyle::Body.resolve(ui.style()),
+                    scope_collection,
+                };
 
-            interact_with_canvas(options, &info.response, &info);
+                if reset_view {
+                    options.zoom_to_relative_ns_range = Some((
+                        info.ctx.input(|i| i.time),
+                        (0, info.stop_ns - info.start_ns),
+                    ));
+                }
 
-            let where_to_put_timeline = info.painter.add(egui::Shape::Noop);
+                interact_with_canvas(options, &info.response, &info);
 
-            let max_y = ui_canvas(options, &info, frames, (min_ns, max_ns));
+                let where_to_put_timeline = info.painter.add(egui::Shape::Noop);
 
-            let mut used_rect = canvas;
-            used_rect.max.y = max_y;
+                let max_y = ui_canvas(options, &info, frames, (min_ns, max_ns));
 
-            // Fill out space that we don't use so that the `ScrollArea` doesn't collapse in height:
-            used_rect.max.y = used_rect.max.y.max(used_rect.min.y + available_height);
+                let mut used_rect = canvas;
+                used_rect.max.y = max_y;
 
-            let timeline = paint_timeline(&info, used_rect, options, min_ns);
-            info.painter
-                .set(where_to_put_timeline, egui::Shape::Vec(timeline));
+                // Fill out space that we don't use so that the `ScrollArea` doesn't collapse in height:
+                used_rect.max.y = used_rect.max.y.max(used_rect.min.y + available_height);
 
-            ui.allocate_rect(used_rect, egui::Sense::hover());
-        });
+                let timeline = paint_timeline(&info, used_rect, options, min_ns);
+                info.painter
+                    .set(where_to_put_timeline, egui::Shape::Vec(timeline));
+
+                ui.allocate_rect(used_rect, egui::Sense::hover());
+            });
     });
 }
 
