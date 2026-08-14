@@ -64,7 +64,7 @@ fn show_in_explorer(path: &Path) {
             path_string.push(path.as_os_str());
             path_string.push("']");
 
-            std::process::Command::new("gdbus")
+            let status = std::process::Command::new("gdbus")
                 .arg("call")
                 .arg("--session")
                 .arg("--dest")
@@ -74,10 +74,17 @@ fn show_in_explorer(path: &Path) {
                 .arg("--method")
                 .arg("org.freedesktop.FileManager1.ShowItems")
                 .arg(path_string)
+                .arg("0")
+                .stderr(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
                 .spawn()
                 .unwrap()
                 .wait()
                 .unwrap();
+
+            if !status.success() {
+                log::error!("Failed to open in file explorer. {status}");
+            }
         }
         _ => {
             unimplemented!("Not yet implemented for current platform")
