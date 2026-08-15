@@ -30,6 +30,9 @@ pub(super) fn try_detect_core_config() -> Option<CoreConfig> {
         target_os = "macos" => {
             macos::try_detect_core_config()
         }
+        target_os = "linux" => {
+            linux::try_detect_core_config()
+        }
         _ => {
             log::debug!("Core count detection not available on current platform");
             None
@@ -238,5 +241,142 @@ mod macos {
             threads,
             threads_by_class: by_class,
         })
+    }
+}
+
+#[cfg(target_os = "linux")]
+mod linux {
+    use alloc::collections::BTreeMap;
+
+    use crate::CoreConfig;
+    use core::num::NonZero;
+    use std::collections::HashSet;
+    use std::str::FromStr;
+
+    #[derive(Debug)]
+    struct Cpu {
+        cpu_id: u64,
+        core_id: String,
+        capacity: Option<u64>,
+    }
+
+    pub(super) fn try_detect_core_config() -> Option<CoreConfig> {
+        let cpu_count = unsafe { libc::sysconf(libc::_SC_NPROCESSORS_CONF) };
+
+        if cpu_count.is_negative() {
+            log::warn!("NPROCESSORS_CONF is not supported on this system");
+            return None;
+        }
+
+        let cpu_count = cpu_count as u64;
+
+        let mut cpus: Vec<Cpu> = Vec::with_capacity(cpu_count as usize);
+
+        for cpu_id in 0..cpu_count {
+            if !cpu_online(cpu_id) {
+                continue;
+            }
+
+            let capacity = get_capacity(cpu_id);
+            let Some(core_id) = get_core(cpu_id) else {
+                log::warn!(
+                    "Failed to determine physical core ID for cpu {cpu_id}, cannot determine core config"
+                );
+                return None;
+            };
+
+            cpus.push(Cpu {
+                cpu_id,
+                core_id,
+                capacity,
+            });
+        }
+
+        if cpus.is_empty() {
+            log::warn!("No online cores detected. Error?");
+            return None;
+        }
+
+        let num_threads = cpus.len();
+        let num_cores = cpus
+            .iter()
+            .map(|cpu| cpu.core_id.clone())
+            .collect::<HashSet<_>>()
+            .len();
+
+        let mut config = CoreConfig {
+            cores: NonZero::new(num_cores).expect("Should have at least one core"),
+            threads: NonZero::new(num_threads).unwrap(),
+            threads_by_class: smallvec::smallvec![num_threads], // By default we assume all cores are equally fast
+        };
+
+        // Order by capacity, e.g. fastest last
+        let mut by_class: BTreeMap<u64, usize> = BTreeMap::new();
+
+        for cpu in cpus {
+            let Some(capacity) = cpu.capacity else {
+                log::warn!(
+                    "Could not determine CPU capacity for CPU {}, assuming all threads are equally fast",
+                    cpu.cpu_id
+                );
+                return Some(config);
+            };
+
+            *(by_class.entry(capacity).or_default()) += 1;
+        }
+
+        config.threads_by_class = by_class.into_values().collect();
+
+        Some(config)
+    }
+
+    fn cpu_online(cpu: u64) -> bool {
+        if cpu == 0 {
+            // CPU 0 is always online
+            return true;
+        }
+
+        let Ok(online_state) = read_sysfs_cpu_u64(cpu, "online") else {
+            // Assume online
+            return true;
+        };
+
+        online_state == 1
+    }
+
+    fn get_capacity(cpu: u64) -> Option<u64> {
+        read_sysfs_cpu_u64(cpu, "cpu_capacity").ok()
+    }
+
+    fn get_core(cpu: u64) -> Option<String> {
+        read_sysfs_cpu_string(cpu, "topology/core_cpus_list").ok()
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum SysfsErr {
+        Read,
+        Parse,
+    }
+
+    fn read_sysfs_cpu_string(cpu: u64, path: &str) -> Result<String, SysfsErr> {
+        let Ok(data_str) =
+            std::fs::read_to_string(format!("/sys/devices/system/cpu/cpu{cpu}/{path}"))
+        else {
+            log::warn!("Failed to read sysfs {path} for cpu {cpu}");
+            return Err(SysfsErr::Read);
+        };
+
+        Ok(data_str)
+    }
+
+    fn read_sysfs_cpu_u64(cpu: u64, path: &str) -> Result<u64, SysfsErr> {
+        let data_str = read_sysfs_cpu_string(cpu, path)?;
+
+        let Ok(data) = u64::from_str(data_str.trim()) else {
+            log::warn!("Failed to parse sysfs {path} output for cpu {cpu}: {data_str}");
+            return Err(SysfsErr::Parse);
+        };
+
+        Ok(data)
     }
 }
