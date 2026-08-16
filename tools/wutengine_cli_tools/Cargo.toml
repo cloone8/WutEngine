@@ -1,6 +1,6 @@
 [package]
-name = "weassetconv"
-description = "WutEngine asset conversion utility"
+name = "wutengine_cli_tools"
+description = "Shared tools and utilities for WutEngine CLI tools"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,15 +11,10 @@ license.workspace = true
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = true
+publish.workspace = true
 
 [dependencies]
-wutengine_asset_importers = { workspace = true, features = ["generic"] }
-wutengine_cli_tools.workspace = true
-
-clap = { workspace = true, features = ["derive"] }
-log.workspace = true
-simplelog.workspace = true
+clap.workspace = true
 
 [lints]
 workspace = true

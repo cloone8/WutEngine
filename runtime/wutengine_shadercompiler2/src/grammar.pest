@@ -1,0 +1,45 @@
+// Full shader file
+shader_file = { SOI ~ ((directive | source_line) ~ NEWLINE)* ~ EOI }
+
+// Any non-directive lines. Actual shader source code
+source_line = { (!(NEWLINE) ~ ANY)* }
+
+// Directives
+directive = { !(NEWLINE) ~ "#" ~ directive_content }
+
+// Content of a directive
+directive_content = _{ keyword_directive | if_directive | else_directive | endif_directive }
+
+// A keyword definition. An ident, followed by an inclusive range
+keyword_directive = { "keyword" ~ ident ~ range? }
+if_directive      = { "if" ~ expr }
+else_directive    = { "else" }
+endif_directive   = { "endif" }
+
+expr = {
+    ("(" ~ expr ~ ")")
+  | (monop ~ expr)
+  | (atom ~ binop ~ atom)
+}
+
+atom = _{
+    ident
+  | number
+}
+
+monop = { "!" }
+binop = { "&&" | "||" | "==" | "!=" }
+
+ident = @{ !(ASCII_DIGIT) ~ (ASCII_ALPHA_UPPER | "_" | ASCII_DIGIT)+ }
+
+range           = ${ range_inclusive | range_exclusive }
+range_inclusive = ${ number ~ "..=" ~ number }
+range_exclusive = ${ number ~ ".." ~ number }
+
+number = @{ hexadecimal_number | binary_number | decimal_number }
+
+decimal_number     = @{ ASCII_DIGIT+ }
+hexadecimal_number = @{ ("0x" | "0X") ~ ASCII_HEX_DIGIT+ }
+binary_number      = @{ ("0b" | "0B") ~ ("0" | "1")+ }
+
+WHITESPACE = _{ " " | "\t" }

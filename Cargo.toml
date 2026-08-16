@@ -22,10 +22,13 @@ members = [
     "runtime/wutengine_physics",
     "runtime/wutengine_puffin_egui",
     "runtime/wutengine_shadercompiler",
+    "runtime/wutengine_shadercompiler2",
     "runtime/wutengine_task",
     "runtime/wutengine_time",
-    "tools/weimport",
     "tools/weassetconv",
+    "tools/weimport",
+    "tools/weshc",
+    "tools/wutengine_cli_tools",
     "util/wutengine_util",
     "util/wutengine_util_macro",
 ]
@@ -59,8 +62,10 @@ wutengine_math = { path = "runtime/wutengine_math", version = "0.6.0" }
 wutengine_physics = { path = "runtime/wutengine_physics", version = "0.6.0" }
 wutengine_puffin_egui = { path = "runtime/wutengine_puffin_egui", version = "0.6.0" }
 wutengine_shadercompiler = { path = "runtime/wutengine_shadercompiler", version = "0.6.0" }
+wutengine_shadercompiler2 = { path = "runtime/wutengine_shadercompiler2", version = "0.6.0" }
 wutengine_task = { path = "runtime/wutengine_task", version = "0.6.0" }
 wutengine_time = { path = "runtime/wutengine_time", version = "0.6.0" }
+wutengine_cli_tools = { path = "tools/wutengine_cli_tools", version = "0.6.0" }
 wutengine_util = { path = "util/wutengine_util", version = "0.6.0" }
 wutengine_util_macro = { path = "util/wutengine_util_macro", version = "0.6.0" }
 
@@ -95,6 +100,8 @@ libc = { version = "0.2" }
 log = { version = "0.4" }
 naga = { version = "30", default-features = false }
 nohash-hasher = { version = "0.2" }
+pest = { version = "2", default-features = false }
+pest_derive = { version = "2", default-features = false }
 pollster = { version = "1", default-features = false }
 postcard = { version = "1", default-features = false }
 profiling = { version = "1.0" }

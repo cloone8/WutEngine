@@ -10,7 +10,7 @@ use clap::Parser;
 
 /// Command line arguments
 #[derive(Debug, Parser)]
-#[command(version, about, author)]
+#[command(version, about, author, styles = wutengine_cli_tools::clap::STYLING)]
 struct CliArgs {
     /// Input sources
     #[command(flatten)]

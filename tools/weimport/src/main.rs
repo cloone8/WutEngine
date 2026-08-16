@@ -29,7 +29,7 @@ const DEFAULT_QUEUE_SIZE: usize = 8;
 
 /// Command line arguments
 #[derive(Debug, Parser)]
-#[command(version, about, author)]
+#[command(version, about, author, styles = wutengine_cli_tools::clap::STYLING)]
 struct CliArgs {
     /// Input sources
     #[command(flatten)]

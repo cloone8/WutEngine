@@ -1,6 +1,6 @@
 [package]
-name = "weassetconv"
-description = "WutEngine asset conversion utility"
+name = "wutengine_shadercompiler2"
+description = "Shader compiler and cross compiler for WutEngine shaders"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -14,12 +14,11 @@ categories.workspace = true
 publish = true
 
 [dependencies]
-wutengine_asset_importers = { workspace = true, features = ["generic"] }
-wutengine_cli_tools.workspace = true
-
-clap = { workspace = true, features = ["derive"] }
+naga = { workspace = true, features = ["wgsl-in"] }
+derive_more = { workspace = true, features = ["error", "display", "from"] }
 log.workspace = true
-simplelog.workspace = true
+pest = { workspace = true, features = ["std", "memchr"] }
+pest_derive = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true
