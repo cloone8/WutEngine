@@ -18,7 +18,7 @@ naga = { workspace = true, features = ["wgsl-in"] }
 derive_more = { workspace = true, features = ["error", "display", "from"] }
 log.workspace = true
 pest = { workspace = true, features = ["std", "memchr"] }
-pest_derive = { workspace = true, features = ["std"] }
+pest_derive = { workspace = true, features = ["std", "grammar-extras"] }
 
 [lints]
 workspace = true

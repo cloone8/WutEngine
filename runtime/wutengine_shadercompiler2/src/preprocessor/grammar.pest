@@ -1,0 +1,51 @@
+directive = _{ SOI ~ directive_content ~ EOI }
+
+directive_content = _{
+    directive_name
+  | directive_decl
+  | directive_import
+  | directive_if
+  | directive_else
+  | directive_endif
+}
+
+directive_name   = { "name" ~ str }
+directive_decl   = { "keyword" ~ ident ~ range? }
+directive_import = { "import" ~ str }
+directive_if     = { "if" ~ expr }
+directive_else   = { "else" }
+directive_endif  = { "endif" }
+
+expr = { prefix? ~ atom ~ (infix ~ prefix? ~ atom)* }
+
+infix         = _{ and | or | equal | not_equal | greater_equal | lesser_equal | greater_than | lesser_than }
+and           =  { "&&" }
+or            =  { "||" }
+equal         =  { "==" }
+not_equal     =  { "!=" }
+greater_than  =  { ">" }
+greater_equal =  { ">=" }
+lesser_than   =  { "<" }
+lesser_equal  =  { "<=" }
+
+prefix = _{ not }
+not    =  { "!" }
+
+atom = _{ ident | number | ("(" ~ expr ~ ")") }
+
+ident       = @{ !(ASCII_DIGIT) ~ (ASCII_ALPHA_UPPER | "_" | ASCII_DIGIT)+ }
+str         = ${ quote ~ #content = str_content ~ quote }
+str_content =  { (!quote ~ ANY)* }
+quote       = _{ "\"" }
+
+range           = ${ range_inclusive | range_exclusive }
+range_inclusive = ${ number ~ "..=" ~ number }
+range_exclusive = ${ number ~ ".." ~ number }
+
+number = @{ hexadecimal_number | binary_number | decimal_number }
+
+decimal_number     = @{ ASCII_DIGIT+ }
+hexadecimal_number = @{ ("0x" | "0X") ~ ASCII_HEX_DIGIT+ }
+binary_number      = @{ ("0b" | "0B") ~ ("0" | "1")+ }
+
+WHITESPACE = _{ " " | "\t" }

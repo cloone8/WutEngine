@@ -1,25 +1,89 @@
 #![doc = include_str!("../README.md")]
 
-use pest::Parser;
-use pest_derive::Parser;
+use core::error::Error;
+use std::collections::HashMap;
 
+use crate::preprocessor::PreprocessErr;
+
+pub mod preprocessor;
+
+/// An error while compiling a shader
 #[derive(Debug, derive_more::Error, derive_more::Display, derive_more::From)]
 pub enum CompileErr {
+    /// Preprocessing failed
+    #[display("Error during preprocessing: {_0}")]
+    Preprocess(PreprocessErr),
+
+    /// Failed to parse WGSL
     #[display("Failed to parse WGSL: {_0}")]
     CompileIR(Box<naga::front::wgsl::ParseError>),
+
+    /// Failed to parse parameters
+    #[display("Failed to parse parameters in shader: {_0}")]
+    Parameters(FindParametersErr),
 }
 
+/// Output of a compile job
 #[derive(Debug)]
 pub struct CompileOutput {
+    /// The compiled module
     pub compiled_module: naga::Module,
+
+    /// The parameters the shader has
+    pub parameters: HashMap<ParameterBinding, Parameter>,
 }
 
-pub fn compile(input: &str) -> Result<Box<CompileOutput>, CompileErr> {
+/// The binding for a [`Parameter`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ParameterBinding {
+    /// Buffer binding. A parameter within a buffer
+    Buffer {
+        /// The group
+        group: u32,
+
+        /// The binding
+        binding: u32,
+    },
+
+    /// Opaque binding. A parameter that should be bound directly
+    Opaque {
+        /// The group
+        group: u32,
+        /// The binding
+        binding: u32,
+    },
+}
+
+/// Information on an exposed parameter in a shader
+#[derive(Debug, Clone)]
+pub struct Parameter {}
+
+/// A compilation job configuration
+#[derive(Debug)]
+pub struct Config {
+    /// Enabled keyword values
+    pub keywords: HashMap<String, u64>,
+
+    /// The [`ShaderResolver`] to use
+    pub shader_resolver: Option<Box<dyn ShaderResolver>>,
+}
+
+/// Compiles the given input using the provided config
+pub fn compile(input: &str, config: &Config) -> Result<Box<CompileOutput>, CompileErr> {
     log::info!("Compiling input");
 
-    // preproc
-    let input = preprocess(input);
-    // compile
+    let preprocessed_source = preprocessor::preprocess(
+        input,
+        config.keywords.clone(),
+        config
+            .shader_resolver
+            .as_deref()
+            .unwrap_or(&UnsupportedResolver),
+    )?;
+
+    log::info!("Preprocessing result:\n{preprocessed_source}");
+
+    log::debug!("Parsing WGSL to Naga IR");
 
     let mut naga_frontend =
         naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
@@ -27,63 +91,55 @@ pub fn compile(input: &str) -> Result<Box<CompileOutput>, CompileErr> {
             capabilities: naga::valid::Capabilities::default(),
         });
 
-    let module = naga_frontend.parse(&input).map_err(Box::new)?;
+    let module = naga_frontend
+        .parse(&preprocessed_source)
+        .map_err(Box::new)?;
 
-    // dbg!(&module);
-
-    // for entry_point in &module.entry_points {
-    //     log::info!("Entrypoint: {} ({:?})", entry_point.name, entry_point.stage);
-    //     dump_func(&module, &entry_point.function);
-    // }
-
-    // for (_, function) in module.functions.iter() {
-    //     dump_func(&module, function);
-    // }
-
-    // for (_, global_var) in module.global_variables.iter() {
-    //     log::info!("Global Variable {:?}", global_var.name);
-
-    //     log::info!("{:#?}", global_var.binding);
-    //     log::info!("{:#?}", global_var.space);
-    //     log::info!("{:#?}", module.types[global_var.ty]);
-    // }
+    let parameters = find_parameters(&module)?;
 
     Ok(Box::new(CompileOutput {
         compiled_module: module,
+        parameters,
     }))
 }
 
-fn dump_func(module: &naga::ir::Module, f: &naga::ir::Function) {
-    log::info!("Function: {:?}", f.name);
+/// An error while resolving parameters with [`find_parameters`]
+#[derive(Debug, derive_more::Error, derive_more::Display)]
+pub enum FindParametersErr {}
 
-    for arg in &f.arguments {
-        log::info!(
-            "Arg {:#?}: {:#?} {:?}",
-            arg.name,
-            module.types[arg.ty],
-            arg.binding
-        );
+/// Find the exposed parameters in a [`naga::Module`]
+pub fn find_parameters(
+    module: &naga::Module,
+) -> Result<HashMap<ParameterBinding, Parameter>, FindParametersErr> {
+    log::debug!("Finding parameters for module");
+
+    let mut params = HashMap::new();
+
+    for (_, global) in module.global_variables.iter() {
+        log::info!("{:?}", global.name);
     }
 
-    log::info!("Return: {:#?}", f.result);
+    Ok(params)
 }
 
-#[derive(Parser)]
-#[grammar = "grammar.pest"]
-struct WutEngineShaderParser;
+/// A type that can resolve shader source by name
+pub trait ShaderResolver: core::fmt::Debug + Send + Sync {
+    /// For a given shader name, returns the source code.
+    fn find_by_name(&self, shader_name: &str) -> Result<String, Box<dyn Error>>;
+}
 
-fn preprocess(input: &str) -> String {
-    pest::set_error_detail(true);
+/// Simple internal shader resolver that always errors
+#[derive(Debug)]
+struct UnsupportedResolver;
 
-    let a = match WutEngineShaderParser::parse(Rule::shader_file, input) {
-        Ok(a) => a,
-        Err(e) => {
-            log::error!("{e}");
-            panic!();
-        }
-    };
+impl ShaderResolver for UnsupportedResolver {
+    fn find_by_name(&self, shader_name: &str) -> Result<String, Box<dyn Error>> {
+        #[derive(Debug, derive_more::Error, derive_more::Display)]
+        #[display("No resolver was given")]
+        struct Unsupported;
 
-    dbg!(a);
+        _ = shader_name;
 
-    input.to_string()
+        Err(Box::new(Unsupported))
+    }
 }

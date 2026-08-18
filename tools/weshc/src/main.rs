@@ -1,5 +1,6 @@
 //! Freestanding shader compiler for WutEngine
 
+use core::error::Error;
 use std::io::BufReader;
 use std::io::Read;
 use std::path::PathBuf;
@@ -15,6 +16,10 @@ struct CliArgs {
     /// The input source.
     #[command(flatten)]
     input: InputArg,
+
+    /// Keywords. If an explicit value is not given, `1` is used
+    #[arg(short, long, value_name = "KEY{=VALUE}", value_parser = parse_keyword)]
+    keyword: Vec<(String, u64)>,
 
     /// The log level used
     #[arg(short, long, default_value_t = if cfg!(debug_assertions) { log::LevelFilter::Debug } else { log::LevelFilter::Info })]
@@ -32,6 +37,15 @@ struct InputArg {
     /// Read the input shader from the given file
     #[arg(value_hint = clap::ValueHint::FilePath)]
     file: Option<PathBuf>,
+}
+
+/// Parse a single key-value pair.
+fn parse_keyword(s: &str) -> Result<(String, u64), Box<dyn Error + Send + Sync + 'static>> {
+    let Some(pos) = s.find('=') else {
+        return Ok((s.to_string(), 1));
+    };
+
+    Ok((s[..pos].to_string(), s[pos + 1..].parse()?))
 }
 
 /// An error while reading shader input
@@ -86,13 +100,21 @@ fn main() -> ExitCode {
 
     log::debug!("Input shader:\n{input}");
 
-    let output = match wutengine_shadercompiler2::compile(&input) {
+    let output = match wutengine_shadercompiler2::compile(
+        &input,
+        &wutengine_shadercompiler2::Config {
+            keywords: args.keyword.into_iter().collect(),
+            shader_resolver: None,
+        },
+    ) {
         Ok(o) => o,
         Err(e) => {
             log::error!("Failed to compile shader: {e}");
             return ExitCode::FAILURE;
         }
     };
+
+    // dbg!(output);
 
     ExitCode::SUCCESS
 }
