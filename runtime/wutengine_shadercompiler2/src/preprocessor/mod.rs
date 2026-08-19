@@ -1,6 +1,7 @@
 //! Shader preprocessing
 
 use core::error::Error;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -49,7 +50,7 @@ where
             if !line.trim().starts_with(DIRECTIVE_START) {
                 // Source line
                 if Self::branch_stack_active(&branch_stack) {
-                    output.push_str(line);
+                    output.push_str(&self.substitute_keywords(line));
                     output.push('\n');
                 }
                 continue;
@@ -159,6 +160,25 @@ where
                 }
             },
         }
+    }
+
+    /// Searches for keyword definitions inside the given source code line, and replaces
+    /// them with the current value of the keyword
+    fn substitute_keywords<'a>(&self, line: &'a str) -> Cow<'a, str> {
+        let mut ret = Cow::Borrowed(line);
+
+        for (keyword, value) in &self.keywords {
+            let keyword_str = keyword.as_str();
+
+            if let Some(start_index) = ret.find(keyword_str) {
+                let keyword_byte_range = start_index..(start_index + keyword_str.len());
+
+                Cow::to_mut(&mut ret)
+                    .replace_range(keyword_byte_range, format!("{value}").as_str());
+            }
+        }
+
+        ret
     }
 }
 

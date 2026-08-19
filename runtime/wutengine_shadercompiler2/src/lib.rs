@@ -3,8 +3,10 @@
 use core::error::Error;
 use std::collections::HashMap;
 
+use crate::parameters::Parameter;
 use crate::preprocessor::PreprocessErr;
 
+pub mod parameters;
 pub mod preprocessor;
 
 /// An error while compiling a shader
@@ -17,10 +19,6 @@ pub enum CompileErr {
     /// Failed to parse WGSL
     #[display("Failed to parse WGSL: {_0}")]
     CompileIR(Box<naga::front::wgsl::ParseError>),
-
-    /// Failed to parse parameters
-    #[display("Failed to parse parameters in shader: {_0}")]
-    Parameters(FindParametersErr),
 }
 
 /// Output of a compile job
@@ -30,33 +28,8 @@ pub struct CompileOutput {
     pub compiled_module: naga::Module,
 
     /// The parameters the shader has
-    pub parameters: HashMap<ParameterBinding, Parameter>,
+    pub parameters: Vec<Parameter>,
 }
-
-/// The binding for a [`Parameter`]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ParameterBinding {
-    /// Buffer binding. A parameter within a buffer
-    Buffer {
-        /// The group
-        group: u32,
-
-        /// The binding
-        binding: u32,
-    },
-
-    /// Opaque binding. A parameter that should be bound directly
-    Opaque {
-        /// The group
-        group: u32,
-        /// The binding
-        binding: u32,
-    },
-}
-
-/// Information on an exposed parameter in a shader
-#[derive(Debug, Clone)]
-pub struct Parameter {}
 
 /// A compilation job configuration
 #[derive(Debug)]
@@ -95,31 +68,12 @@ pub fn compile(input: &str, config: &Config) -> Result<Box<CompileOutput>, Compi
         .parse(&preprocessed_source)
         .map_err(Box::new)?;
 
-    let parameters = find_parameters(&module)?;
+    let parameters = parameters::find_parameters(&module);
 
     Ok(Box::new(CompileOutput {
         compiled_module: module,
         parameters,
     }))
-}
-
-/// An error while resolving parameters with [`find_parameters`]
-#[derive(Debug, derive_more::Error, derive_more::Display)]
-pub enum FindParametersErr {}
-
-/// Find the exposed parameters in a [`naga::Module`]
-pub fn find_parameters(
-    module: &naga::Module,
-) -> Result<HashMap<ParameterBinding, Parameter>, FindParametersErr> {
-    log::debug!("Finding parameters for module");
-
-    let mut params = HashMap::new();
-
-    for (_, global) in module.global_variables.iter() {
-        log::info!("{:?}", global.name);
-    }
-
-    Ok(params)
 }
 
 /// A type that can resolve shader source by name

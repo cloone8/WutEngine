@@ -349,6 +349,9 @@ name = "bitflags"
 version = "2.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
+dependencies = [
+ "serde_core",
+]
 
 [[package]]
 name = "bitstream-io"
@@ -1521,6 +1524,7 @@ dependencies = [
  "cfg-if",
  "crunchy",
  "num-traits",
+ "serde",
  "zerocopy",
 ]
 
@@ -1569,6 +1573,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 dependencies = [
  "foldhash",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -1658,6 +1664,8 @@ checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
 dependencies = [
  "equivalent",
  "hashbrown 0.17.1",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -2080,6 +2088,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "rustc-hash",
+ "serde",
  "spirv",
  "thiserror 2.0.20",
  "unicode-ident",
@@ -2094,6 +2103,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
  "rustc-hash",
+ "serde",
  "thiserror 2.0.20",
 ]
 
@@ -4735,6 +4745,7 @@ dependencies = [
  "clap",
  "derive_more",
  "log",
+ "serde_json",
  "simplelog",
  "wutengine_cli_tools",
  "wutengine_shadercompiler2",
@@ -5561,6 +5572,7 @@ dependencies = [
  "naga",
  "pest",
  "pest_derive",
+ "serde",
 ]
 
 [[package]]

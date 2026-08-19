@@ -114,7 +114,11 @@ fn main() -> ExitCode {
         }
     };
 
-    // dbg!(output);
+    let serialized_module = serde_json::to_string_pretty(&output.compiled_module).unwrap();
+    let serialized_parameters = serde_json::to_string_pretty(&output.parameters).unwrap();
+
+    println!("{serialized_module}");
+    println!("{serialized_parameters}");
 
     ExitCode::SUCCESS
 }

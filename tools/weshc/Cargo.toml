@@ -14,12 +14,13 @@ publish.workspace = true
 
 [dependencies]
 wutengine_cli_tools.workspace = true
-wutengine_shadercompiler2.workspace = true
+wutengine_shadercompiler2 = { workspace = true, features = ["serde"] }
 
 clap = { workspace = true, features = ["derive"] }
 log.workspace = true
 simplelog.workspace = true
 derive_more = { workspace = true, features = ["error", "display", "from"] }
+serde_json = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true
