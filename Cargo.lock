@@ -4745,6 +4745,7 @@ dependencies = [
  "clap",
  "derive_more",
  "log",
+ "postcard",
  "serde_json",
  "simplelog",
  "wutengine_cli_tools",
@@ -5343,6 +5344,7 @@ name = "wutengine_assets"
 version = "0.6.0"
 dependencies = [
  "derive_more",
+ "naga",
  "nohash-hasher",
  "serde",
  "serde_bytes",
@@ -5572,7 +5574,8 @@ dependencies = [
  "naga",
  "pest",
  "pest_derive",
- "serde",
+ "profiling",
+ "wutengine_assets",
 ]
 
 [[package]]

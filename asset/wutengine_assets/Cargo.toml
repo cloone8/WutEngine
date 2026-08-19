@@ -21,6 +21,7 @@ serde_bytes.workspace = true
 nohash-hasher.workspace = true
 uuid = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["from", "display"] }
+naga = { workspace = true, features = ["serialize", "deserialize"] }
 
 [lints]
 workspace = true

@@ -274,3 +274,143 @@ pub enum ShaderOpaqueParameterType {
     /// A raw read-write storage buffer
     RWStorageBuffer,
 }
+
+/// The data for a shader
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrecompiledShader {
+    /// The raw parsed module
+    pub module: Box<naga::Module>,
+
+    /// The parameters
+    pub parameters: Vec<Parameter>,
+}
+
+impl SerializedAsset for PrecompiledShader {
+    const ID: uuid::NonNilUuid =
+        uuid::NonNilUuid::new(uuid::uuid!("a7caf7c7-59b4-4b91-b3aa-61f32944a8ac")).unwrap();
+
+    const PREFER_BINARY_SERIALIZATION: bool = true;
+}
+
+/// Information on an exposed parameter in a shader
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Parameter {
+    /// An opaque parameter, requiring a resource binding
+    Opaque {
+        /// The name of the parameter
+        name: String,
+
+        /// The parameter group
+        group: u32,
+        /// The parameter binding
+        binding: u32,
+
+        /// The base type
+        base_type: OpaqueBaseType,
+    },
+
+    /// An in-buffer parameter, residing within a location in a buffer
+    BufferMember {
+        /// The name of the parameter
+        name: String,
+
+        /// The parameter group
+        group: u32,
+        /// The parameter binding
+        binding: u32,
+
+        /// The base type
+        base_type: BufferBaseType,
+
+        /// The size in bytes of the base type
+        base_size: u32,
+
+        /// If an array, the array length
+        array_length: u32,
+
+        /// The offset within the buffer (in bytes)
+        offset: u32,
+
+        /// The size of the member in the buffer (in bytes)
+        size: u32,
+    },
+}
+
+/// Base types for opaque parameters
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OpaqueBaseType {
+    /// A sampler
+    Sampler,
+
+    /// An image
+    Image,
+}
+
+/// Base types for buffer parameters
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BufferBaseType {
+    /// A complex, unsupported type
+    Complex = 0,
+
+    /// Float
+    Float,
+
+    /// Signed integer
+    Sint,
+
+    /// Unsigned integer
+    Uint,
+
+    /// Boolean
+    Bool,
+
+    /// 2-component float vector
+    Vec2f,
+    /// 2-component float vector
+    Vec3f,
+    /// 4-component float vector
+    Vec4f,
+
+    /// 2-component signed int vector
+    Vec2i,
+    /// 3-component signed int vector
+    Vec3i,
+    /// 4-component signed int vector
+    Vec4i,
+
+    /// 2-component unsigned int vector
+    Vec2u,
+    /// 3-component unsigned int vector
+    Vec3u,
+    /// 4-component unsigned int vector
+    Vec4u,
+
+    /// 2-component bool vector
+    Vec2b,
+    /// 3-component bool vector
+    Vec3b,
+    /// 4-component bool vector
+    Vec4b,
+
+    /// 2x2 float vector
+    Mat2x2,
+    /// 2x3 float vector
+    Mat2x3,
+    /// 2x4 float vector
+    Mat2x4,
+    /// 3x2 float vector
+    Mat3x2,
+    /// 3x3 float vector
+    Mat3x3,
+    /// 3x4 float vector
+    Mat3x4,
+    /// 4x2 float vector
+    Mat4x2,
+    /// 4x3 float vector
+    Mat4x3,
+    /// 4x4 float vector
+    Mat4x4,
+}

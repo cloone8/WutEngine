@@ -3,19 +3,27 @@
 use core::error::Error;
 use std::io::BufReader;
 use std::io::Read;
+use std::io::Write;
+use std::io::stdout;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Args;
 use clap::Parser;
+use wutengine_cli_tools::clap::OutputFormat;
+use wutengine_cli_tools::clap::OutputFormatArg;
 
-/// Command line arguments
+/// Freestanding WutEngine shader compiler for compiling raw WutEngine WGSL shaders into pre-compiled shader assets
 #[derive(Debug, Parser)]
 #[command(version, about, author, styles = wutengine_cli_tools::clap::STYLING)]
 struct CliArgs {
     /// The input source.
     #[command(flatten)]
     input: InputArg,
+
+    /// If `true`, the shader is formatted as text instead of binary
+    #[command(flatten)]
+    format: OutputFormatArg,
 
     /// Keywords. If an explicit value is not given, `1` is used
     #[arg(short, long, value_name = "KEY{=VALUE}", value_parser = parse_keyword)]
@@ -114,11 +122,33 @@ fn main() -> ExitCode {
         }
     };
 
-    let serialized_module = serde_json::to_string_pretty(&output.compiled_module).unwrap();
-    let serialized_parameters = serde_json::to_string_pretty(&output.parameters).unwrap();
+    let mut out_stream = stdout();
 
-    println!("{serialized_module}");
-    println!("{serialized_parameters}");
+    let format = args
+        .format
+        .determine_format(Some(&out_stream))
+        .unwrap_or(OutputFormat::Binary);
+
+    let serialize_result = match format {
+        OutputFormat::Binary => {
+            postcard::to_allocvec(&output).map_err(|e| Box::new(e) as Box<dyn Error>)
+        }
+        OutputFormat::Text => serde_json::to_string_pretty(&output)
+            .map(String::into_bytes)
+            .map_err(|e| Box::new(e) as Box<dyn Error>),
+    };
+
+    let serialized = match serialize_result {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            log::error!("Failed to serialize compiled shader: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    out_stream
+        .write_all(&serialized)
+        .expect("Failed to write to output stream");
 
     ExitCode::SUCCESS
 }

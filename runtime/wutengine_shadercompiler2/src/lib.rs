@@ -3,7 +3,8 @@
 use core::error::Error;
 use std::collections::HashMap;
 
-use crate::parameters::Parameter;
+use wutengine_assets::assets::shader::PrecompiledShader;
+
 use crate::preprocessor::PreprocessErr;
 
 pub mod parameters;
@@ -21,16 +22,6 @@ pub enum CompileErr {
     CompileIR(Box<naga::front::wgsl::ParseError>),
 }
 
-/// Output of a compile job
-#[derive(Debug)]
-pub struct CompileOutput {
-    /// The compiled module
-    pub compiled_module: naga::Module,
-
-    /// The parameters the shader has
-    pub parameters: Vec<Parameter>,
-}
-
 /// A compilation job configuration
 #[derive(Debug)]
 pub struct Config {
@@ -42,7 +33,9 @@ pub struct Config {
 }
 
 /// Compiles the given input using the provided config
-pub fn compile(input: &str, config: &Config) -> Result<Box<CompileOutput>, CompileErr> {
+pub fn compile(input: &str, config: &Config) -> Result<PrecompiledShader, CompileErr> {
+    profiling::function_scope!();
+
     log::info!("Compiling input");
 
     let preprocessed_source = preprocessor::preprocess(
@@ -58,22 +51,24 @@ pub fn compile(input: &str, config: &Config) -> Result<Box<CompileOutput>, Compi
 
     log::debug!("Parsing WGSL to Naga IR");
 
-    let mut naga_frontend =
-        naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
-            parse_doc_comments: true,
-            capabilities: naga::valid::Capabilities::default(),
-        });
+    let module = {
+        profiling::scope!("Naga parse");
 
-    let module = naga_frontend
-        .parse(&preprocessed_source)
-        .map_err(Box::new)?;
+        let mut naga_frontend =
+            naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
+                parse_doc_comments: true,
+                capabilities: naga::valid::Capabilities::default(),
+            });
+
+        naga_frontend
+            .parse(&preprocessed_source)
+            .map_err(Box::new)
+            .map(Box::new)?
+    };
 
     let parameters = parameters::find_parameters(&module);
 
-    Ok(Box::new(CompileOutput {
-        compiled_module: module,
-        parameters,
-    }))
+    Ok(PrecompiledShader { module, parameters })
 }
 
 /// A type that can resolve shader source by name
