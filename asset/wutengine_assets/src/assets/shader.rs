@@ -3,13 +3,11 @@
 use core::fmt::Display;
 use core::num::ParseIntError;
 use core::ops::RangeInclusive;
-use core::str::FromStr;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 use serde::Deserialize;
 use serde::Serialize;
-use serde::de::DeserializeOwned;
 use wutengine_util_macro::VariantIndex;
 
 use crate::SerializedAsset;
@@ -282,6 +280,7 @@ pub enum ShaderOpaqueParameterType {
 /// The data for a shader
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrecompiledShader {
+    /// The hash of this shader
     pub hash: ShaderHash,
 
     /// The raw parsed module
