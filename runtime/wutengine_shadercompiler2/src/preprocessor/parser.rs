@@ -80,7 +80,11 @@ pub(super) fn parse_directive(input: &str) -> Result<Directive<'_>, pest::error:
     let pair = pairs.next().unwrap();
 
     Ok(match pair.as_rule() {
-        Rule::directive_name => Directive::Name(pair.as_str()),
+        Rule::directive_name => {
+            let inner = pair.into_inner();
+
+            Directive::Name(inner.find_first_tagged("content").unwrap().as_str())
+        }
         Rule::directive_if => Directive::If(parse_expr(pair.into_inner())),
         Rule::directive_else => Directive::Else,
         Rule::directive_endif => Directive::Endif,

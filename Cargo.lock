@@ -4736,6 +4736,7 @@ dependencies = [
  "uuid",
  "wutengine_asset_importers",
  "wutengine_cli_tools",
+ "wutengine_util",
 ]
 
 [[package]]
@@ -4748,6 +4749,7 @@ dependencies = [
  "postcard",
  "serde_json",
  "simplelog",
+ "wutengine_assets",
  "wutengine_cli_tools",
  "wutengine_shadercompiler2",
 ]
@@ -5575,7 +5577,10 @@ dependencies = [
  "pest",
  "pest_derive",
  "profiling",
+ "rayon",
+ "twox-hash",
  "wutengine_assets",
+ "wutengine_util",
 ]
 
 [[package]]

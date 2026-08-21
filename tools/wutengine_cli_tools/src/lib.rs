@@ -42,33 +42,35 @@ pub mod clap {
     }
 
     impl OutputFormatArg {
+        /// Determine the output format based on the flags set in this [`OutputFormatArg`]. If no flags are set, returns [`None`]
+        pub fn determine_format(self) -> Option<OutputFormat> {
+            if self.text {
+                Some(OutputFormat::Text)
+            } else if self.binary {
+                Some(OutputFormat::Binary)
+            } else {
+                None
+            }
+        }
+
         /// Determine the output format based on the flags set in this [`OutputFormatArg`], and whether the output
         /// is a terminal or not.
-        pub fn determine_format(
-            self,
-            output_stream: Option<&impl IsTerminal>,
-        ) -> Option<OutputFormat> {
+        pub fn determine_format_with_stream(self, output_stream: &impl IsTerminal) -> OutputFormat {
             debug_assert!(
                 !(self.text && self.binary),
                 "Both text and binary are set. This is invalid"
             );
 
-            if self.text {
-                // Text explicitly selected
-                Some(OutputFormat::Text)
-            } else if self.binary {
-                // Binary explicitly selected
-                Some(OutputFormat::Binary)
+            if let Some(format) = self.determine_format() {
+                return format;
+            }
+
+            if output_stream.is_terminal() {
+                // An output stream was given. Use text if terminal because the user is probably reading it. Binary otherwise
+                OutputFormat::Text
             } else {
-                output_stream.map(|output_stream| {
-                    if output_stream.is_terminal() {
-                        // An output stream was given. Use text if terminal because the user is probably reading it. Binary otherwise
-                        OutputFormat::Text
-                    } else {
-                        // Binary for files and other non-terminal stream
-                        OutputFormat::Binary
-                    }
-                })
+                // Binary for files and other non-terminal stream
+                OutputFormat::Binary
             }
         }
     }

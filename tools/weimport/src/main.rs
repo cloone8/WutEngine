@@ -13,16 +13,15 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
+use wutengine_util::JobQueue;
+use wutengine_util::JobToken;
 
 use clap::Args;
 use clap::Parser;
 
 use crate::input_iterator::InputIterator;
-use crate::job_queue::JobQueue;
-use crate::job_queue::JobToken;
 
 mod input_iterator;
-mod job_queue;
 
 /// Default I/O queue size
 const DEFAULT_QUEUE_SIZE: usize = 8;
@@ -276,7 +275,10 @@ fn main() -> ExitCode {
             continue;
         }
 
-        let job_token = job_queue.issue_job();
+        let Ok(job_token) = job_queue.issue_job() else {
+            log::error!("The job queue was canceled");
+            return ExitCode::FAILURE;
+        };
 
         let (file_path, file_type, bytes) = input.unwrap();
 

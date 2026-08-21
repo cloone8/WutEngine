@@ -1,15 +1,16 @@
 //! Freestanding shader compiler for WutEngine
 
 use core::error::Error;
+use core::num::NonZero;
+use core::range::Range;
 use std::io::BufReader;
 use std::io::Read;
-use std::io::Write;
-use std::io::stdout;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Args;
 use clap::Parser;
+use wutengine_assets::assets::shader::PrecompiledShader;
 use wutengine_cli_tools::clap::OutputFormat;
 use wutengine_cli_tools::clap::OutputFormatArg;
 
@@ -21,13 +22,21 @@ struct CliArgs {
     #[command(flatten)]
     input: InputArg,
 
+    /// The output source
+    #[command(flatten)]
+    output: OutputArg,
+
     /// If `true`, the shader is formatted as text instead of binary
     #[command(flatten)]
     format: OutputFormatArg,
 
+    /// How many shaders will be compiled at once until the compiler throttles itself
+    #[arg(long, default_value_t = NonZero::new(32usize).unwrap())]
+    buffer_size: NonZero<usize>,
+
     /// Keywords. If an explicit value is not given, `1` is used
-    #[arg(short, long, value_name = "KEY{=VALUE}", value_parser = parse_keyword)]
-    keyword: Vec<(String, u64)>,
+    #[arg(short, long, value_name = "KEY{=VALUE} or KEY{=START..END}", value_parser = parse_keyword)]
+    keyword: Vec<(String, Range<u64>)>,
 
     /// The log level used
     #[arg(short, long, default_value_t = if cfg!(debug_assertions) { log::LevelFilter::Debug } else { log::LevelFilter::Info })]
@@ -47,13 +56,47 @@ struct InputArg {
     file: Option<PathBuf>,
 }
 
+/// Output arguments
+#[derive(Debug, Args)]
+#[group(required = true, multiple = false)]
+struct OutputArg {
+    /// Write the compiled shaders to stdout.
+    /// Each compiled shader is seperated by an empty line.
+    /// If stdout is selected, the output format is forced to text.
+    #[arg(long)]
+    stdout: bool,
+
+    /// Write the compiled shaders to a directory as assets
+    #[arg(short, long, value_hint = clap::ValueHint::DirPath)]
+    output: Option<PathBuf>,
+}
+
 /// Parse a single key-value pair.
-fn parse_keyword(s: &str) -> Result<(String, u64), Box<dyn Error + Send + Sync + 'static>> {
+fn parse_keyword(s: &str) -> Result<(String, Range<u64>), Box<dyn Error + Send + Sync + 'static>> {
     let Some(pos) = s.find('=') else {
-        return Ok((s.to_string(), 1));
+        return Ok((s.to_string(), Range { start: 1, end: 2 }));
     };
 
-    Ok((s[..pos].to_string(), s[pos + 1..].parse()?))
+    let name = s[..pos].to_string();
+
+    let value = &s[pos + 1..];
+
+    if let Some((start, end)) = value.split_once("..") {
+        let start: u64 = start.parse()?;
+        let end: u64 = end.parse()?;
+
+        Ok((name, Range { start, end }))
+    } else {
+        let single_value: u64 = value.parse()?;
+
+        Ok((
+            name,
+            Range {
+                start: single_value,
+                end: single_value + 1,
+            },
+        ))
+    }
 }
 
 /// An error while reading shader input
@@ -108,47 +151,95 @@ fn main() -> ExitCode {
 
     log::debug!("Input shader:\n{input}");
 
-    let output = match wutengine_shadercompiler2::compile(
+    let output_formatter = if args.output.stdout {
+        OutputFormatter::Stdout
+    } else {
+        let Some(out_dir) = &args.output.output else {
+            unreachable!()
+        };
+
+        if let Err(e) = std::fs::create_dir_all(out_dir) {
+            log::error!("Failed to create output directory: {e}");
+            return ExitCode::FAILURE;
+        }
+
+        OutputFormatter::Dir(
+            args.format
+                .determine_format()
+                .unwrap_or(OutputFormat::Binary),
+            out_dir.clone(),
+        )
+    };
+
+    let output_channel = wutengine_shadercompiler2::compile_multiple(
         &input,
-        &wutengine_shadercompiler2::Config {
+        wutengine_shadercompiler2::MultiConfig {
+            buf_size: args.buffer_size,
             keywords: args.keyword.into_iter().collect(),
             shader_resolver: None,
         },
-    ) {
-        Ok(o) => o,
-        Err(e) => {
-            log::error!("Failed to compile shader: {e}");
-            return ExitCode::FAILURE;
+    );
+
+    for result in output_channel {
+        match result {
+            Ok(compiled) => {
+                if let Err(e) = output_formatter.write(&compiled) {
+                    log::error!("Failed to write shader to output: {e}");
+                    return ExitCode::FAILURE;
+                }
+            }
+            Err(e) => {
+                log::error!("Error while compiling one shader: {e}");
+                return ExitCode::FAILURE;
+            }
         }
-    };
-
-    let mut out_stream = stdout();
-
-    let format = args
-        .format
-        .determine_format(Some(&out_stream))
-        .unwrap_or(OutputFormat::Binary);
-
-    let serialize_result = match format {
-        OutputFormat::Binary => {
-            postcard::to_allocvec(&output).map_err(|e| Box::new(e) as Box<dyn Error>)
-        }
-        OutputFormat::Text => serde_json::to_string_pretty(&output)
-            .map(String::into_bytes)
-            .map_err(|e| Box::new(e) as Box<dyn Error>),
-    };
-
-    let serialized = match serialize_result {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log::error!("Failed to serialize compiled shader: {e}");
-            return ExitCode::FAILURE;
-        }
-    };
-
-    out_stream
-        .write_all(&serialized)
-        .expect("Failed to write to output stream");
+    }
 
     ExitCode::SUCCESS
+}
+
+/// Simple abstraction for formatting a shader into the correct format, and writing it to the requested sink
+enum OutputFormatter {
+    /// Write as text to stdout
+    Stdout,
+
+    /// Write according to the given format and into the given directory
+    Dir(OutputFormat, PathBuf),
+}
+
+impl OutputFormatter {
+    /// Write a shader to this formatter
+    fn write(&self, shader: &PrecompiledShader) -> Result<(), Box<dyn Error>> {
+        match self {
+            Self::Stdout => {
+                let serialized = serde_json::to_string_pretty(&shader).map_err(Box::new)?;
+
+                println!("{serialized}\n");
+
+                Ok(())
+            }
+            Self::Dir(output_format, output_dir) => {
+                let serialized = match output_format {
+                    OutputFormat::Binary => postcard::to_allocvec(&shader).map_err(Box::new)?,
+                    OutputFormat::Text => serde_json::to_string_pretty(&shader)
+                        .map_err(Box::new)?
+                        .into_bytes(),
+                };
+
+                let name = shader.hash;
+                let extension = match output_format {
+                    OutputFormat::Binary => ".we-binasset",
+                    OutputFormat::Text => ".we-txtasset",
+                };
+
+                let file_name = format!("{name}{extension}");
+
+                let path = output_dir.join(file_name);
+
+                std::fs::write(path, serialized).map_err(Box::new)?;
+
+                Ok(())
+            }
+        }
+    }
 }

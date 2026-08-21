@@ -4,6 +4,7 @@ use core::error::Error;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use crate::ShaderResolver;
 use crate::preprocessor::parser::Expr;
@@ -20,26 +21,35 @@ pub enum PreprocessErr {
     /// Resolver failed
     #[display("Shader resolver returned an error: {_0}")]
     #[from(skip)]
-    Resolver(Box<dyn Error>),
+    Resolver(Box<dyn Error + Send>),
 
     /// Directive could not be parsed
     #[display("Error parsing a directive: {_0}")]
     DirectiveParser(Box<pest::error::Error<Rule>>),
+
+    /// No name directive was found
+    #[display("No name directive was found")]
+    MissingName,
+
+    /// Name directive was not first
+    #[display("The first directive must be a name directive")]
+    NameNotFirst,
 
     /// Branch mismatch
     #[display("if/else mismatch")]
     BranchMismatch,
 }
 
-struct PreprocessorState<'a, S> {
-    keywords: HashMap<String, u64, S>,
+struct PreprocessorState<'a, B> {
+    found_name: Option<String>,
+    keywords: HashMap<Arc<str>, u64, B>,
     included_files: HashSet<String>,
     resolver: &'a dyn ShaderResolver,
 }
 
-impl<S> PreprocessorState<'_, S>
+impl<B> PreprocessorState<'_, B>
 where
-    S: ::core::hash::BuildHasher,
+    B: ::core::hash::BuildHasher,
 {
     fn preprocess(&mut self, input: &str) -> Result<String, PreprocessErr> {
         let mut output = String::new();
@@ -59,9 +69,15 @@ where
             let directive = parser::parse_directive(line)
                 .map_err(|e| PreprocessErr::DirectiveParser(Box::new(e)))?;
 
+            if !matches!(directive, parser::Directive::Name(_)) && self.found_name.is_none() {
+                return Err(PreprocessErr::NameNotFirst);
+            }
+
             match directive {
-                parser::Directive::Name(_) => {
-                    // Not relevant here
+                parser::Directive::Name(name) => {
+                    if self.found_name.is_none() {
+                        self.found_name = Some(name.to_string());
+                    }
                 }
                 parser::Directive::KeywordDecl { .. } => {
                     // Not relevant here
@@ -168,7 +184,7 @@ where
         let mut ret = Cow::Borrowed(line);
 
         for (keyword, value) in &self.keywords {
-            let keyword_str = keyword.as_str();
+            let keyword_str = keyword.as_ref();
 
             if let Some(start_index) = ret.find(keyword_str) {
                 let keyword_byte_range = start_index..(start_index + keyword_str.len());
@@ -182,19 +198,39 @@ where
     }
 }
 
+/// The output of [`preprocess`]
+#[derive(Debug, Clone, PartialEq)]
+pub struct PreprocessOutput {
+    /// The found name
+    pub name: String,
+
+    /// The source code
+    pub source: String,
+}
+
 /// Preprocesses the shader source using the provided keyword values and shader resolver
-pub fn preprocess<S: ::core::hash::BuildHasher>(
+pub fn preprocess<B: ::core::hash::BuildHasher>(
     input: &str,
-    keywords: HashMap<String, u64, S>,
+    keywords: HashMap<Arc<str>, u64, B>,
     shader_resolver: &dyn ShaderResolver,
-) -> Result<String, PreprocessErr> {
+) -> Result<PreprocessOutput, PreprocessErr> {
     log::debug!("Preprocessing shader");
 
     let mut state = PreprocessorState {
+        found_name: None,
         keywords,
         included_files: HashSet::new(),
         resolver: shader_resolver,
     };
 
-    state.preprocess(input)
+    let output_source = state.preprocess(input)?;
+
+    let Some(shader_name) = state.found_name else {
+        return Err(PreprocessErr::MissingName);
+    };
+
+    Ok(PreprocessOutput {
+        name: shader_name,
+        source: output_source,
+    })
 }

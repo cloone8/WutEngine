@@ -1,11 +1,15 @@
 //! Shader asset
 
+use core::fmt::Display;
+use core::num::ParseIntError;
 use core::ops::RangeInclusive;
+use core::str::FromStr;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use wutengine_util_macro::VariantIndex;
 
 use crate::SerializedAsset;
@@ -278,11 +282,78 @@ pub enum ShaderOpaqueParameterType {
 /// The data for a shader
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrecompiledShader {
+    pub hash: ShaderHash,
+
     /// The raw parsed module
     pub module: Box<naga::Module>,
 
     /// The parameters
     pub parameters: Vec<Parameter>,
+}
+
+/// Thin wrapper over a 128-bit shader hash
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct ShaderHash(pub u128);
+
+impl ShaderHash {
+    /// Returns the hash as an integer
+    #[inline]
+    pub const fn as_int(self) -> u128 {
+        self.0
+    }
+}
+
+impl Display for ShaderHash {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:032x}", self.0)
+    }
+}
+
+impl From<u128> for ShaderHash {
+    #[inline]
+    fn from(value: u128) -> Self {
+        Self(value)
+    }
+}
+
+impl TryFrom<&str> for ShaderHash {
+    type Error = ParseIntError;
+
+    #[inline]
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        u128::from_str_radix(value, 16).map(Self)
+    }
+}
+
+impl Serialize for ShaderHash {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        if serializer.is_human_readable() {
+            serializer.serialize_str(&self.to_string())
+        } else {
+            serializer.serialize_u128(self.0)
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ShaderHash {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        if deserializer.is_human_readable() {
+            u128::from_str_radix(<&str as Deserialize>::deserialize(deserializer)?, 16)
+                .map_err(|e| serde::de::Error::custom(format!("Failed to parse u128: {e}")))
+                .map(Self)
+        } else {
+            u128::deserialize(deserializer).map(Self)
+        }
+    }
 }
 
 impl SerializedAsset for PrecompiledShader {
