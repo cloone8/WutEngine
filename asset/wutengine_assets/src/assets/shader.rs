@@ -6,6 +6,7 @@ use core::ops::RangeInclusive;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use nohash_hasher::IntMap;
 use serde::Deserialize;
 use serde::Serialize;
 use wutengine_util_macro::VariantIndex;
@@ -283,11 +284,14 @@ pub struct PrecompiledShader {
     /// The hash of this shader
     pub hash: ShaderHash,
 
-    /// The raw parsed module
-    pub module: Box<naga::Module>,
+    /// The vertex-stage inputs
+    pub vertex_inputs: IntMap<u32, VertexInput>,
 
     /// The parameters
     pub parameters: Vec<Parameter>,
+
+    /// The raw parsed module
+    pub module: Box<naga::Module>,
 }
 
 /// Thin wrapper over a 128-bit shader hash
@@ -483,4 +487,11 @@ pub enum BufferBaseType {
     Mat4x3,
     /// 4x4 float vector
     Mat4x4,
+}
+
+/// Input for the vertex stage of the shager
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VertexInput {
+    /// The attribute
+    pub attribute: ShaderVertexAttributeType,
 }

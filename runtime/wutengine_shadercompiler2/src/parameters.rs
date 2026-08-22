@@ -1,19 +1,47 @@
 //! Shader parameter mapping
 
+use naga::GlobalVariable;
+use naga::TypeInner;
 use wutengine_assets::assets::shader::BufferBaseType;
 use wutengine_assets::assets::shader::OpaqueBaseType;
 use wutengine_assets::assets::shader::Parameter;
 
+/// An error while trying to find shader parameters with [`find_parameters`]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum FindParametersErr {
+    /// Nameless global
+    #[display("Found a global without a name: {_0:#?}")]
+    Nameless(#[error(not(source))] Box<GlobalVariable>),
+
+    /// Global without bindinng
+    #[display("Found a global without a binding: {_0:#?}")]
+    MissingBinding(#[error(not(source))] Box<GlobalVariable>),
+
+    /// Unsupported type
+    #[display("Parameter type not yet supported: {_0:#?}")]
+    UnsupportedType(#[error(not(source))] Box<TypeInner>),
+
+    /// Non-concrete array size
+    #[display("Array has an unknown/non-concrete size: {_0}")]
+    UnknownArraySize(#[error(not(source))] String),
+}
+
 /// Find the exposed parameters in a [`naga::Module`]
-pub fn find_parameters(module: &naga::Module) -> Vec<Parameter> {
+pub fn find_parameters(module: &naga::Module) -> Result<Vec<Parameter>, FindParametersErr> {
     profiling::function_scope!();
     log::debug!("Finding parameters for module");
 
     let mut params = Vec::new();
 
     for (_, global) in module.global_variables.iter() {
-        let name = global.name.clone().expect("No name found");
-        let res_binding = global.binding.expect("No binding found");
+        let name = global
+            .name
+            .clone()
+            .ok_or_else(|| FindParametersErr::Nameless(Box::new(global.clone())))?;
+
+        let res_binding = global
+            .binding
+            .ok_or_else(|| FindParametersErr::MissingBinding(Box::new(global.clone())))?;
 
         let typ = &module.types[global.ty];
 
@@ -22,7 +50,7 @@ pub fn find_parameters(module: &naga::Module) -> Vec<Parameter> {
                 // We flatten structs one level
 
                 for member in members {
-                    params.push(map_struct_member(module, member, res_binding));
+                    params.push(map_struct_member(module, member, res_binding)?);
                 }
             }
             naga::TypeInner::Sampler { .. } => {
@@ -41,11 +69,13 @@ pub fn find_parameters(module: &naga::Module) -> Vec<Parameter> {
                     binding: res_binding.binding,
                 });
             }
-            other => unimplemented!("{other:?}"),
+            other => {
+                return Err(FindParametersErr::UnsupportedType(Box::new(other.clone())));
+            }
         }
     }
 
-    params
+    Ok(params)
 }
 
 /// Maps a struct member to a parameter type
@@ -53,7 +83,7 @@ fn map_struct_member(
     module: &naga::Module,
     member: &naga::StructMember,
     res_binding: naga::ResourceBinding,
-) -> Parameter {
+) -> Result<Parameter, FindParametersErr> {
     let name = member.name.clone().expect("No member name");
     let offset = member.offset;
     let mut member_type = &module.types[member.ty].inner;
@@ -66,7 +96,8 @@ fn map_struct_member(
     if let naga::TypeInner::Array { base, size, .. } = member_type {
         member_type = &module.types[*base].inner;
 
-        array_length = get_concrete_size(*size).expect("No concrete array size");
+        array_length = get_concrete_size(*size)
+            .ok_or_else(|| FindParametersErr::UnknownArraySize(name.clone()))?;
     }
 
     let (base_type, base_size) = match member_type {
@@ -80,11 +111,10 @@ fn map_struct_member(
         ),
         naga::TypeInner::Array { size, stride, .. } => {
             // As we've already removed one layer of array indirection, we now see this inner type as "complex"
+            let array_size = get_concrete_size(*size)
+                .ok_or_else(|| FindParametersErr::UnknownArraySize(name.clone()))?;
 
-            (
-                BufferBaseType::Complex,
-                *stride * get_concrete_size(*size).expect("No concrete array size"),
-            )
+            (BufferBaseType::Complex, *stride * array_size)
         }
         naga::TypeInner::Scalar(scalar) => {
             (base_type_from_scalar(*scalar), u32::from(scalar.width))
@@ -93,10 +123,12 @@ fn map_struct_member(
             base_type_from_vector(*scalar, *size),
             u32::from(scalar.width),
         ),
-        other => unimplemented!("{:#?}", other),
+        other => {
+            return Err(FindParametersErr::UnsupportedType(Box::new(other.clone())));
+        }
     };
 
-    Parameter::BufferMember {
+    Ok(Parameter::BufferMember {
         name,
         group: res_binding.group,
         binding: res_binding.binding,
@@ -105,7 +137,7 @@ fn map_struct_member(
         array_length,
         offset,
         size,
-    }
+    })
 }
 
 const fn get_concrete_size(size: naga::ArraySize) -> Option<u32> {

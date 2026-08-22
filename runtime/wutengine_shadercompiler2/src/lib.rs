@@ -11,10 +11,13 @@ use wutengine_assets::assets::shader::PrecompiledShader;
 use wutengine_assets::assets::shader::ShaderHash;
 use wutengine_util::JobQueue;
 
+use crate::parameters::FindParametersErr;
 use crate::preprocessor::PreprocessErr;
+use crate::vertex_inputs::FindVertexInputsErr;
 
 pub mod parameters;
 pub mod preprocessor;
+pub mod vertex_inputs;
 
 /// An error while compiling a shader
 #[derive(Debug, derive_more::Error, derive_more::Display, derive_more::From)]
@@ -26,6 +29,14 @@ pub enum CompileErr {
     /// Failed to parse WGSL
     #[display("Failed to parse WGSL: {_0}")]
     CompileIR(Box<naga::front::wgsl::ParseError>),
+
+    /// Failed to find shader params
+    #[display("Failed to find shader parameters: {_0}")]
+    FindParameters(FindParametersErr),
+
+    /// Failed to find vertex inputs
+    #[display("Failed to find shader vertex inputs: {_0}")]
+    FindVertexInputs(FindVertexInputsErr),
 }
 
 /// A compilation job configuration
@@ -82,12 +93,19 @@ pub fn compile<R: ShaderResolver>(
             .map(Box::new)?
     };
 
-    let parameters = parameters::find_parameters(&module);
+    let (parameters, vertex_inputs) = rayon::join(
+        || parameters::find_parameters(&module),
+        || vertex_inputs::find_vertex_inputs(&module),
+    );
+
+    let parameters = parameters?;
+    let vertex_inputs = vertex_inputs?;
 
     Ok(PrecompiledShader {
         hash,
         module,
         parameters,
+        vertex_inputs,
     })
 }
 
