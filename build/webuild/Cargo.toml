@@ -1,6 +1,5 @@
 [package]
-name = "wutengine_cli_tools"
-description = "Shared tools and utilities for WutEngine CLI tools"
+name = "webuild"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,12 +7,16 @@ authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
 license.workspace = true
+readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 publish.workspace = true
 
+
 [dependencies]
-clap = { workspace = true, features = ["derive"] }
+log.workspace = true
+simplelog.workspace = true
+cargo_metadata = { workspace = true, features = [] }
 
 [lints]
 workspace = true

@@ -4,6 +4,7 @@ members = [
     "asset/wutengine_assets",
     "asset/wutengine_asset_importers",
     "asset/wutengine_asset_server",
+    "build/webuild",
     "editor/wutengine_editor",
     "editor/we_fonts",
     "editor/we_menu",
@@ -83,6 +84,7 @@ we_style = { path = "editor/we_style" }
 ### External dependencies ###
 bytemuck = { version = "1.25", default-features = false }
 cursor-icon = { version = "1", default-features = false }
+cargo_metadata = { version = "0.23", default-features = false }
 clap = { version = "4" } # Leave default features on, because we don't use it outside std environments anyway
 dashmap = { version = "6.1", default-features = false }
 derive_more = { version = "2.1", default-features = false }
@@ -143,11 +145,21 @@ opt-level = 1
 debug = "full"
 debug-assertions = true
 
+[profile.build-tool]
+inherits = "dev"
+opt-level = 0
+debug = 0
+strip = "none"
+lto = false
+codegen-units = 256
+incremental = true
+
 [profile.release]
 strip = true
 lto = true
 codegen-units = 1
 panic = "abort"
+
 
 [workspace.lints.rust]
 # Groups
