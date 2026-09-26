@@ -1,9 +1,6 @@
 ---
 name: rust-review
 description: Use when about to report Rust changes as done, before handing a Rust diff back to the user or to a parent agent, or when asked to review Rust code in this repository for its conventions.
-paths:
-  - "**/*.rs"
-  - "**/Cargo.toml"
 ---
 
 # Rust review
