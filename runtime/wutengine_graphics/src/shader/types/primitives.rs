@@ -1,4 +1,7 @@
-use wutengine_math::{Mat4, Vec2, Vec3, Vec4};
+use wutengine_math::Mat4;
+use wutengine_math::Vec2;
+use wutengine_math::Vec3;
+use wutengine_math::Vec4;
 
 /// A padding struct used for padding the graphics types in [this module][`super::primitives`]
 #[repr(C)]

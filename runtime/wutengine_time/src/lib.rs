@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 
-use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::AtomicUsize;
+use core::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::time::Instant;
 

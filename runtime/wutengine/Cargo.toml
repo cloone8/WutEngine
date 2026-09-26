@@ -28,7 +28,6 @@ workspace = true
 wutengine_graphics.workspace = true
 wutengine_util.workspace = true
 wutengine_util_macro.workspace = true
-wutengine_shadercompiler.workspace = true
 wutengine_assets.workspace = true
 wutengine_asset_server.workspace = true
 wutengine_input.workspace = true
@@ -59,7 +58,6 @@ image.workspace = true
 profiling.workspace = true
 smallvec.workspace = true
 rayon.workspace = true
-serde_json.workspace = true
 spin_sleep = { workspace = true }
 uuid = { workspace = true }
 cursor-icon = { workspace = true }

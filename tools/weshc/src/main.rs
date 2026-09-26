@@ -171,9 +171,9 @@ fn main() -> ExitCode {
         )
     };
 
-    let output_channel = wutengine_shadercompiler2::compile_multiple(
+    let output_channel = wutengine_shadercompiler::compile_multiple(
         &input,
-        wutengine_shadercompiler2::MultiConfig {
+        wutengine_shadercompiler::MultiConfig {
             buf_size: args.buffer_size,
             keywords: args.keyword.into_iter().collect(),
             shader_resolver: None,

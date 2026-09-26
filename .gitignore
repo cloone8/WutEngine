@@ -17,3 +17,7 @@ dist/
 
 # Docs
 docs/book
+
+# Claude Code: working notes and personal settings
+.claude/notes/
+.claude/settings.local.json

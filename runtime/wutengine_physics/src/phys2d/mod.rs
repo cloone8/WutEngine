@@ -56,6 +56,7 @@ impl<'a> PhysicsWorldUpdater<'a> {
             handle,
             &mut self.manager.island_manager,
             &mut self.manager.rigidbody_set,
+            &mut self.manager.soft_body_set,
             true,
         );
 
@@ -112,6 +113,9 @@ pub(crate) struct PhysicsManager {
     /// All multibody joints
     multibody_joint_set: MultibodyJointSet,
 
+    /// All soft bodies
+    soft_body_set: SoftBodySet,
+
     /// CCD solver
     ccd_solver: CCDSolver,
 }
@@ -131,6 +135,7 @@ impl PhysicsManager {
             narrow_phase: NarrowPhase::new(),
             impulse_joint_set: ImpulseJointSet::new(),
             multibody_joint_set: MultibodyJointSet::new(),
+            soft_body_set: SoftBodySet::new(),
             ccd_solver: CCDSolver::new(),
         }
     }
@@ -145,7 +150,10 @@ impl PhysicsManager {
 
         let (collision_send, collision_recv) = std::sync::mpsc::channel();
         let (contact_force_send, contact_force_recv) = std::sync::mpsc::channel();
-        let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
+        // The engine can't create soft bodies yet, so tear events are dropped with this receiver
+        let (soft_body_tear_send, _) = std::sync::mpsc::channel();
+        let event_handler =
+            ChannelEventCollector::new(collision_send, contact_force_send, soft_body_tear_send);
 
         self.physics_pipeline.step(
             self.gravity.to_rapier(),
@@ -157,6 +165,7 @@ impl PhysicsManager {
             &mut self.collider_set,
             &mut self.impulse_joint_set,
             &mut self.multibody_joint_set,
+            &mut self.soft_body_set,
             &mut self.ccd_solver,
             &(),
             &event_handler,

@@ -5,7 +5,10 @@ use std::collections::HashSet;
 
 use rayon::prelude::*;
 
-use crate::system::{GenericSystem, Phase, Queryable, SystemId};
+use crate::system::GenericSystem;
+use crate::system::Phase;
+use crate::system::Queryable;
+use crate::system::SystemId;
 
 /// A collection of systems, used during WutEngine runtime initialization to build a
 /// system schedule.

@@ -7,9 +7,15 @@
 use proc_macro::Span;
 use quote::quote;
 use quote::quote_spanned;
+use syn::Attribute;
+use syn::Ident;
+use syn::LitStr;
+use syn::Type;
+use syn::Visibility;
 use syn::parse::Parse;
+use syn::parse_macro_input;
+use syn::parse_str;
 use syn::spanned::Spanned;
-use syn::{Attribute, Ident, LitStr, Type, Visibility, parse_macro_input, parse_str};
 
 /// Input for the [`unique_id_type32`] and [`unique_id_type64`] macros
 struct UniqueIdTypeInput {

@@ -2,9 +2,6 @@
 
 use core::fmt::Display;
 use core::num::ParseIntError;
-use core::ops::RangeInclusive;
-use std::collections::HashMap;
-use std::path::PathBuf;
 
 use nohash_hasher::IntMap;
 use serde::Deserialize;
@@ -13,46 +10,16 @@ use wutengine_util_macro::VariantIndex;
 
 use crate::SerializedAsset;
 
-/// The data for a shader
+/// The source of a shader, in the WutEngine shader format (WGSL plus `#` directives)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedShader {
-    /// Human-readible name of the shader
-    pub name: String,
-
-    /// Vertex attributes required by the shader
-    pub vertex_attributes: Vec<ShaderVertexAttribute>,
-
-    /// Which default parameters the shader uses
-    #[serde(default)]
-    pub default_parameters: ShaderDefaultParameters,
-
-    /// What keywords can be set, and their allowed values
-    pub keywords: HashMap<String, ShaderKeyword>,
-
-    /// What parameters the shader exposes
-    pub parameters: Vec<ShaderParameter>,
-
-    /// The source code for the shader
-    pub source: ShaderSource,
+    /// The shader source code
+    pub source: String,
 }
 
 impl SerializedAsset for SerializedShader {
     const ID: uuid::NonNilUuid =
         uuid::NonNilUuid::new(uuid::uuid!("32868890-f1de-427b-82f3-6bbb4508484e")).unwrap();
-}
-
-/// A vertex attribute used by a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShaderVertexAttribute {
-    /// The type of the attribute
-    #[serde(flatten)]
-    pub ty: ShaderVertexAttributeType,
-
-    /// The binding location in the shader used by the attribute
-    pub location: u32,
-
-    /// Any conditions that need to be true for this attribute to exist
-    pub condition: Option<ShaderParameterCondition>,
 }
 
 /// The type of a shader vertex attribute
@@ -115,180 +82,20 @@ impl core::fmt::Display for ShaderVertexAttributeType {
     }
 }
 
-/// A configurable keyword for a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShaderKeyword {
-    /// The default value
-    default: u64,
-
-    /// The range of allowed values
-    allowed: RangeInclusive<u64>,
-}
-
-/// An exposed parameter for a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderParameter {
-    /// A buffer parameter. This includes all data types that have a concrete bit-value
-    Buffer {
-        /// The type of the parameter
-        #[serde(rename = "type")]
-        ty: ShaderBufferParameterType,
-
-        /// The name of the parameter
-        name: String,
-
-        /// What condition needs to be true for this parameter to exist
-        condition: Option<ShaderParameterCondition>,
-    },
-
-    /// An opaque parameter. This includes all data types that represent opaque handles, like textures, samplers,
-    /// etc.
-    Opaque {
-        /// The type of the parameter
-        #[serde(rename = "type")]
-        ty: ShaderOpaqueParameterType,
-
-        /// The name of the parameter
-        name: String,
-
-        /// What condition needs to be true for this parameter to exist
-        condition: Option<ShaderParameterCondition>,
-    },
-}
-
-impl ShaderParameter {
-    /// Returns the condition for this parameter
-    pub fn get_condition(&self) -> Option<&ShaderParameterCondition> {
-        match self {
-            Self::Buffer { condition, .. } => condition.as_ref(),
-            Self::Opaque { condition, .. } => condition.as_ref(),
-        }
-    }
-}
-
-/// The source code of a shader
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderSource {
-    /// Inline source
-    Inline {
-        /// The shader WGSL code
-        content: String,
-    },
-
-    /// Source in another file
-    File {
-        /// The path to the shader WGSL source file
-        path: PathBuf,
-    },
-}
-
-/// The condition string for a shader parameter
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[repr(transparent)]
-#[serde(transparent)]
-pub struct ShaderParameterCondition(pub String);
-
-/// The set of shader default parameters
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ShaderDefaultParameters {
-    /// Uses the per-camera parameter block
-    #[serde(default)]
-    pub camera: bool,
-
-    /// Uses the per-instance parameter block
-    #[serde(default)]
-    pub instance: bool,
-}
-
-impl Default for ShaderDefaultParameters {
-    fn default() -> Self {
-        Self {
-            camera: true,
-            instance: true,
-        }
-    }
-}
-
-/// The type of a shader buffer parameter
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderBufferParameterType {
-    /// 32-bit float
-    Flt,
-
-    /// 32-bit uint
-    Uint,
-
-    /// 32-bit int
-    Int,
-
-    /// 2-float vector
-    Vec2f,
-
-    /// 3-float vector
-    Vec3f,
-
-    /// 4-float vector
-    Vec4f,
-
-    /// 2-uint32 vector
-    Vec2u,
-
-    /// 3-uint32 vector
-    Vec3u,
-
-    /// 4-uint32 vector
-    Vec4u,
-
-    /// 2-int32 vector
-    Vec2i,
-
-    /// 3-int32 vector
-    Vec3i,
-
-    /// 4-int32 vector
-    Vec4i,
-
-    /// 4x4 float matrix
-    Mat4x4,
-}
-
-/// The type of an opaque shader parameter
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ShaderOpaqueParameterType {
-    /// A texture sampler
-    Sampler,
-
-    /// A 2D texture
-    #[serde(rename = "texture_2d")]
-    Texture2D,
-
-    /// A raw uniform buffer
-    UniformBuffer,
-
-    /// A raw read-only storage buffer
-    ReadStorageBuffer,
-
-    /// A raw read-write storage buffer
-    RWStorageBuffer,
-}
-
-/// The data for a shader
+/// A single compiled variant of a shader
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrecompiledShader {
-    /// The hash of this shader
+    /// The hash identifying this variant
     pub hash: ShaderHash,
 
-    /// The vertex-stage inputs
+    /// The shader name, from its `#name` directive
+    pub name: String,
+
+    /// The vertex-stage inputs, by location
     pub vertex_inputs: IntMap<u32, VertexInput>,
 
-    /// The parameters
-    pub parameters: Vec<Parameter>,
+    /// The resource bindings
+    pub bindings: Vec<Binding>,
 
     /// The raw parsed module
     pub module: Box<naga::Module>,
@@ -366,60 +173,120 @@ impl SerializedAsset for PrecompiledShader {
     const PREFER_BINARY_SERIALIZATION: bool = true;
 }
 
-/// Information on an exposed parameter in a shader
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A resource binding of a shader
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Binding {
+    /// The name of the global variable
+    pub name: String,
+
+    /// The bind group index
+    pub group: u32,
+
+    /// The binding index within the group
+    pub binding: u32,
+
+    /// What is bound
+    pub kind: BindingKind,
+}
+
+/// The kind of resource in a [`Binding`]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Parameter {
-    /// An opaque parameter, requiring a resource binding
-    Opaque {
-        /// The name of the parameter
-        name: String,
+pub enum BindingKind {
+    /// A uniform or storage buffer
+    Buffer {
+        /// Uniform or storage
+        space: BufferSpace,
 
-        /// The parameter group
-        group: u32,
-        /// The parameter binding
-        binding: u32,
+        /// The size of the bound type in bytes
+        size: u32,
 
-        /// The base type
-        base_type: OpaqueBaseType,
+        /// The members of the buffer. A struct is flattened one level, any other type is a single member at
+        /// offset 0 named after the binding
+        members: Vec<BufferMember>,
     },
 
-    /// An in-buffer parameter, residing within a location in a buffer
-    BufferMember {
-        /// The name of the parameter
-        name: String,
+    /// A sampler
+    Sampler {
+        /// Whether this is a comparison sampler
+        comparison: bool,
+    },
 
-        /// The parameter group
-        group: u32,
-        /// The parameter binding
-        binding: u32,
+    /// A sampled texture
+    Texture {
+        /// The texture dimension
+        dimension: TextureDimension,
 
-        /// The base type
-        base_type: BufferBaseType,
+        /// Whether this is a texture array
+        arrayed: bool,
 
-        /// The size in bytes of the base type
-        base_size: u32,
+        /// The type of the sampled texels
+        sample_type: TextureSampleType,
 
-        /// If an array, the array length
-        array_length: u32,
-
-        /// The offset within the buffer (in bytes)
-        offset: u32,
-
-        /// The size of the member in the buffer (in bytes)
-        size: u32,
+        /// Whether the texture is multisampled
+        multisampled: bool,
     },
 }
 
-/// Base types for opaque parameters
+/// The address space of a buffer binding
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum OpaqueBaseType {
-    /// A sampler
-    Sampler,
+pub enum BufferSpace {
+    /// A uniform buffer
+    Uniform,
 
-    /// An image
-    Image,
+    /// A storage buffer
+    Storage {
+        /// Whether the shader can write to it
+        writable: bool,
+    },
+}
+
+/// A value within a buffer binding
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct BufferMember {
+    /// The name of the member
+    pub name: String,
+
+    /// The base type
+    pub base_type: BufferBaseType,
+
+    /// If an array, the array length. 1 otherwise
+    pub array_length: u32,
+
+    /// The offset within the buffer (in bytes)
+    pub offset: u32,
+
+    /// The size of the member in the buffer (in bytes)
+    pub size: u32,
+}
+
+/// The dimension of a texture binding
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TextureDimension {
+    /// 1D
+    D1,
+    /// 2D
+    D2,
+    /// 3D
+    D3,
+    /// Cube map
+    Cube,
+}
+
+/// The type of the texels sampled from a texture binding
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TextureSampleType {
+    /// Floating point
+    Float,
+    /// Signed integer
+    Sint,
+    /// Unsigned integer
+    Uint,
+    /// Depth
+    Depth,
 }
 
 /// Base types for buffer parameters
@@ -490,7 +357,7 @@ pub enum BufferBaseType {
 }
 
 /// Input for the vertex stage of the shager
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct VertexInput {
     /// The attribute
     pub attribute: ShaderVertexAttributeType,

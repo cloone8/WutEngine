@@ -1,154 +1,216 @@
 #![doc = include_str!("../README.md")]
 
-use std::collections::HashMap;
-use std::collections::HashSet;
-
-use core::fmt::Display;
+use core::error::Error;
 use core::fmt::Write;
-use nohash_hasher::IntSet;
-use parser::Condition;
-use parser::ParseErr;
-use parser::ShaderFile;
-use smallvec::SmallVec;
+use core::num::NonZero;
+use core::range::Range;
+use core::range::RangeInclusive;
+use core::str::FromStr;
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::mpsc::Receiver;
 
-mod parser;
+use wutengine_assets::assets::shader::PrecompiledShader;
+use wutengine_assets::assets::shader::ShaderHash;
+use wutengine_util::JobQueue;
 
-/// Group index of the camera bind group
-pub const CAMERA_PARAMS_BIND_GROUP_INDEX: u32 = 0;
-/// Group index constant name of the camera bind group
-pub const CAMERA_PARAMS_BIND_GROUP_KEYWORD: &str = "WUTENGINE_CAMERA_GROUP";
+use crate::bindings::FindBindingsErr;
+use crate::engine::LayoutErr;
+use crate::preprocessor::Declarations;
+use crate::preprocessor::KeywordDecl;
+use crate::preprocessor::PreprocessErr;
+use crate::vertex_inputs::FindVertexInputsErr;
 
-/// Group index of the material bind group
-pub const MATERIAL_PARAMS_BIND_GROUP_INDEX: u32 = 1;
+pub mod bindings;
+pub mod engine;
+pub mod preprocessor;
+pub mod vertex_inputs;
 
-/// Group index constant name of the material bind group
-pub const MATERIAL_PARAMS_BIND_GROUP_KEYWORD: &str = "WUTENGINE_MATERIAL_GROUP";
-
-/// Group index of the per-instance bind group
-pub const INSTANCE_PARAMS_BIND_GROUP_INDEX: u32 = 2;
-
-/// Group index constant name of the per-instance bind group
-pub const INSTANCE_PARAMS_BIND_GROUP_KEYWORD: &str = "WUTENGINE_INSTANCE_GROUP";
-
-/// An implementation that provides deterministic hashes for a shader compilation
-pub trait ShaderHasher<Id> {
-    /// The type of the shader variant ID that this hasher produces
-    type VariantId: Display;
-
-    /// Converts the string ID of a shader to a hash value
-    fn hash_source_id(id: Id) -> u64;
-
-    /// Converts a map of keyword names and value to a single hash value
-    fn hash_keywords<S: AsRef<str>>(keywords: &HashMap<S, u64>) -> u64;
-
-    /// Given the two hash values, create a variant ID
-    fn variant_id_from_hashes(source_id_hash: u64, keyword_hash: u64) -> Self::VariantId;
-}
-
-/// Input data for a single [`compile`] job
-#[derive(Debug, Clone)]
-pub struct CompInput<'a, Id> {
-    /// The ID of the source shader
-    pub id: Id,
-
-    /// The source shader content
-    pub source: &'a str,
-
-    /// The keywords to set
-    pub keywords: &'a HashMap<String, u64>,
-
-    /// The list of conditions for all the shader material parameters.
-    /// The remaining parameter indices are returned in [`CompOutput::remaining_params`]
-    pub parameters: &'a [Option<&'a str>],
-
-    /// The list of conditions for all the shader vertex attributes.
-    /// The remaining attribute indices are returned in [`CompOutput::remaining_vertex_attributes`]
-    pub vertex_attributes: &'a [Option<&'a str>],
-
-    /// The per-camera code block
-    pub per_camera_block: &'a str,
-
-    /// The per-instance code block
-    pub per_instance_block: &'a str,
-}
-
-/// Output of a single succesful [`compile`] job
-#[derive(Debug, Clone)]
-pub struct CompOutput<VariantId> {
-    /// The translated [naga] [`module`](naga::Module)
-    pub module: Box<naga::Module>,
-
-    /// The shader variant ID
-    pub variant_id: VariantId,
-
-    /// Indices into [`CompInput::parameters`] of the parameters that have _not_ been stripped
-    pub remaining_params: IntSet<usize>,
-
-    /// Indices into [`CompInput::vertex_attributes`] of the attributes that have _not_ been stripped
-    pub remaining_vertex_attributes: IntSet<usize>,
-}
-
-/// An error while compiling a shader with [`compile`]
-#[derive(Debug, derive_more::From, derive_more::Display, derive_more::Error)]
+/// An error while compiling a shader
+#[derive(Debug, derive_more::Error, derive_more::Display, derive_more::From)]
 pub enum CompileErr {
-    /// Input was not valid, probably due to malformed directives
-    #[display("Failed to parse input shader: {}", _0)]
-    Parse(Box<ParseErr>),
+    /// Preprocessing failed
+    #[display("Error during preprocessing: {_0}")]
+    Preprocess(PreprocessErr),
 
-    /// A directive that needs to be matched with another, wasn't
-    #[display("Directive mismatch: {}", _0)]
-    DirectiveMismatch(#[error(not(source))] &'static str),
+    /// The keyword values don't fit the declared keywords
+    #[display("Invalid keywords: {_0}")]
+    Keywords(KeywordErr),
 
-    /// The WGSL after preprocessing was not valid
-    #[display("Failed to compile preprocessed WGSL into a module: {}", _0)]
-    CompileWgsl(Box<naga::front::wgsl::ParseError>),
+    /// Failed to parse WGSL. Holds the rendered diagnostic, with source locations
+    #[display("Failed to parse WGSL:\n{_0}")]
+    #[from(skip)]
+    Parse(#[error(not(source))] String),
 
-    /// A keyword mentioned in a condition was not present
-    #[display("Missing value for keyword \"{}\"", _0)]
-    MissingKeywordValue(#[error(not(source))] String),
+    /// The parsed module is invalid. Holds the rendered diagnostic, with source locations
+    #[display("Invalid shader:\n{_0}")]
+    #[from(skip)]
+    Validate(#[error(not(source))] String),
+
+    /// Failed to find shader bindings
+    #[display("Failed to find shader bindings: {_0}")]
+    FindBindings(FindBindingsErr),
+
+    /// Failed to find vertex inputs
+    #[display("Failed to find shader vertex inputs: {_0}")]
+    FindVertexInputs(FindVertexInputsErr),
+
+    /// The bindings don't fit the engine's bind group layout
+    #[display("{_0}")]
+    Layout(LayoutErr),
 }
 
-/// Compiles a single shader variant based on the input data provided by `input`.
-///
-/// Uses the hashing algorithm provided by `H`
-pub fn compile<Id, H: ShaderHasher<Id>>(
-    input: CompInput<'_, Id>,
-) -> Result<CompOutput<H::VariantId>, CompileErr> {
-    let source_id_hash = H::hash_source_id(input.id);
-    let keyword_hash = H::hash_keywords(input.keywords);
-    let variant_id = H::variant_id_from_hashes(source_id_hash, keyword_hash);
-    let variant_id_string = variant_id.to_string();
+/// Keyword values that don't fit a shader's `#keyword` declarations
+#[derive(Debug, derive_more::Error, derive_more::Display)]
+pub enum KeywordErr {
+    /// The keyword isn't declared by the shader
+    #[display("Keyword `{_0}` is not declared by the shader")]
+    Undeclared(#[error(not(source))] String),
 
-    profiling::function_scope!(variant_id_string.as_str());
+    /// The value is outside the declared range
+    #[display("Value {value} of keyword `{keyword}` is outside its allowed range {allowed:?}")]
+    OutOfRange {
+        /// The keyword
+        keyword: String,
 
-    log::info!("Compiling shader variant {variant_id_string}");
+        /// The given value
+        value: u64,
 
-    // First we parse the raw text into a set of source lines and compiler directives
-    let parsed = ShaderFile::parse(input.source)?;
+        /// The declared range
+        allowed: RangeInclusive<u64>,
+    },
+}
 
-    // Then we apply the compiler directives, ending up with a new source file
-    let mut applied = apply_branch_directives(parsed, input.keywords)?;
+/// The variant-independent information of a shader source: its name, declared keywords and source hash
+#[derive(Debug, Clone)]
+pub struct ShaderInfo {
+    /// The `#name` and `#keyword` directives
+    declarations: Declarations,
 
-    // We prepend the per-camera and per-instance source blocks
-    applied = format!(
-        "{}\n{}\n{}",
-        input.per_camera_block, input.per_instance_block, applied
-    );
+    /// Hash of the full source text
+    source_hash: u128,
+}
 
-    // Replace all keyword references with their values
-    inject_keywords_as_constants(&mut applied, input.keywords);
+impl FromStr for ShaderInfo {
+    type Err = PreprocessErr;
 
-    // Find the set of remaining parameters based on the input parameter conditions
-    log::debug!("Stripping shader parameters");
-    let remaining_params = strip_by_conditions(input.parameters, input.keywords)?;
+    /// Reads the declarations of a shader source
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        Ok(Self {
+            declarations: preprocessor::declarations(source)?,
+            source_hash: twox_hash::xxhash3_128::Hasher::oneshot(source.as_bytes()),
+        })
+    }
+}
 
-    log::debug!("Stripping shader vertex attributes");
-    let remaining_vertex_attributes = strip_by_conditions(input.vertex_attributes, input.keywords)?;
+impl ShaderInfo {
+    /// The shader name
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.declarations.name
+    }
 
-    // Compile into a naga module
+    /// The declared keywords
+    #[inline]
+    pub fn keywords(&self) -> &BTreeMap<Arc<str>, KeywordDecl> {
+        &self.declarations.keywords
+    }
+
+    /// Returns the variant for the given keyword values. Keywords that aren't given get their default value.
+    pub fn variant<K: AsRef<str>>(
+        &self,
+        keywords: impl IntoIterator<Item = (K, u64)>,
+    ) -> Result<Variant, KeywordErr> {
+        let declared = &self.declarations.keywords;
+
+        let mut values: BTreeMap<Arc<str>, u64> = declared
+            .iter()
+            .map(|(name, decl)| (name.clone(), decl.default))
+            .collect();
+
+        for (keyword, value) in keywords {
+            let keyword = keyword.as_ref();
+
+            let (name, decl) = declared
+                .get_key_value(keyword)
+                .ok_or_else(|| KeywordErr::Undeclared(keyword.to_owned()))?;
+
+            if !decl.allowed.contains(&value) {
+                return Err(KeywordErr::OutOfRange {
+                    keyword: keyword.to_owned(),
+                    value,
+                    allowed: decl.allowed,
+                });
+            }
+
+            values.insert(name.clone(), value);
+        }
+
+        let mut hash_input = format!("{:032x}", self.source_hash);
+
+        for (keyword, value) in &values {
+            write!(hash_input, ";{keyword}:{value}").expect("Writing to a String can't fail");
+        }
+
+        Ok(Variant {
+            name: self.declarations.name.clone(),
+            // TODO: Imported sources are not part of the hash, so editing an import doesn't invalidate precompiled
+            // variants. Hash the resolved imports once the resolver can report them.
+            hash: ShaderHash(twox_hash::xxhash3_128::Hasher::oneshot_with_seed(
+                0x0299_450944,
+                hash_input.as_bytes(),
+            )),
+            keywords: values,
+        })
+    }
+}
+
+/// One variant of a shader: a value for every declared keyword. Created with [`ShaderInfo::variant`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Variant {
+    /// The shader name
+    name: String,
+
+    /// The hash identifying this variant
+    hash: ShaderHash,
+
+    /// The value of every declared keyword
+    keywords: BTreeMap<Arc<str>, u64>,
+}
+
+impl Variant {
+    /// The hash identifying this variant
+    #[inline]
+    pub fn hash(&self) -> ShaderHash {
+        self.hash
+    }
+
+    /// The value of every declared keyword
+    #[inline]
+    pub fn keywords(&self) -> &BTreeMap<Arc<str>, u64> {
+        &self.keywords
+    }
+}
+
+/// Compiles one variant of `source`. `variant` must come from the [`ShaderInfo`] of this same source. Imports
+/// other than the built-in [`engine::IMPORT_NAME`] are resolved with `shader_resolver`.
+pub fn compile(
+    source: &str,
+    variant: &Variant,
+    shader_resolver: Option<&dyn ShaderResolver>,
+) -> Result<PrecompiledShader, CompileErr> {
+    profiling::function_scope!();
+
+    log::info!("Compiling `{}` ({})", variant.name, variant.hash);
+
+    let preprocessed =
+        preprocessor::preprocess(source, &variant.keywords, &EngineResolver(shader_resolver))?;
+
+    log::debug!("Preprocessing result:\n{preprocessed}");
+
     let module = {
-        profiling::scope!("Naga cross-compile");
-        log::debug!("Compiling WGSL to Naga IR");
+        profiling::scope!("Naga parse");
 
         let mut naga_frontend =
             naga::front::wgsl::Frontend::new_with_options(naga::front::wgsl::Options {
@@ -156,170 +218,324 @@ pub fn compile<Id, H: ShaderHasher<Id>>(
                 capabilities: naga::valid::Capabilities::default(),
             });
 
-        Box::new(naga_frontend.parse(&applied).map_err(Box::new)?)
+        naga_frontend
+            .parse(&preprocessed)
+            .map_err(|e| CompileErr::Parse(e.emit_to_string(&preprocessed)))?
     };
 
-    log::info!("Compiled shader variant {variant_id_string}");
+    let module_info = {
+        profiling::scope!("Naga validate");
 
-    Ok(CompOutput {
-        module,
-        variant_id: H::variant_id_from_hashes(source_id_hash, keyword_hash),
-        remaining_params,
-        remaining_vertex_attributes,
+        // All capabilities: the device the shader runs on is unknown here, and wgpu validates against its actual
+        // capabilities when creating the shader module.
+        naga::valid::Validator::new(
+            naga::valid::ValidationFlags::all(),
+            naga::valid::Capabilities::all(),
+        )
+        .validate(&module)
+        .map_err(|e| CompileErr::Validate(e.emit_to_string(&preprocessed)))?
+    };
+
+    // Only used bindings, so an import like the engine's doesn't add bind groups the shader never touches
+    let is_used = |global: naga::Handle<naga::GlobalVariable>| {
+        (0..module.entry_points.len()).any(|i| !module_info.get_entry_point(i)[global].is_empty())
+    };
+
+    let (bindings, vertex_inputs) = rayon::join(
+        || bindings::find_bindings(&module, is_used),
+        || vertex_inputs::find_vertex_inputs(&module),
+    );
+
+    let bindings = bindings?;
+    let vertex_inputs = vertex_inputs?;
+
+    engine::check_layout(&bindings)?;
+
+    Ok(PrecompiledShader {
+        hash: variant.hash,
+        name: variant.name.clone(),
+        module: Box::new(module),
+        bindings,
+        vertex_inputs,
     })
 }
 
-/// Applies all branch directives contained in `file`, based on the conditions
-/// evaluated from `keywords`
-fn apply_branch_directives(
-    file: ShaderFile,
-    keywords: &HashMap<String, u64>,
-) -> Result<String, CompileErr> {
-    profiling::function_scope!();
+/// Configuration for a [multi-compile job](compile_multiple)
+#[derive(Debug)]
+pub struct MultiConfig {
+    /// The compiled buffer size. Will buffer a maximum of this amount of compiled shaders, before waiting on the receiving channel to read some output
+    pub buf_size: NonZero<usize>,
 
-    log::debug!("Applying branch directives");
+    /// The keyword ranges to compile
+    pub keywords: HashMap<String, Range<u64>>,
 
-    let mut out = String::new();
-
-    let mut branch_stack: SmallVec<[bool; 32]> = SmallVec::new();
-
-    for stmt in file.0 {
-        match stmt {
-            parser::Statement::Source(s) => {
-                // Try to pop the state of the current #if/#else/#elif directive, if any.
-                // If no directive is active, we're not in a branch so we can just write the source
-                let active = branch_stack.last().copied().unwrap_or(true);
-
-                if active {
-                    writeln!(out, "{s}").expect("Failed to write into string");
-                }
-            }
-            parser::Statement::Directive(directive) => match directive {
-                parser::Directive::If(condition) => {
-                    let branch_active = condition
-                        .eval(keywords)
-                        .map_err(|e| CompileErr::MissingKeywordValue(e.to_owned()))?;
-
-                    branch_stack.push(branch_active);
-                }
-                parser::Directive::Elif(condition) => {
-                    let was_active = branch_stack
-                        .pop()
-                        .ok_or(CompileErr::DirectiveMismatch("\"elif\" without \"if\""))?;
-
-                    if was_active {
-                        branch_stack.push(false);
-                    } else {
-                        branch_stack.push(
-                            condition
-                                .eval(keywords)
-                                .map_err(|e| CompileErr::MissingKeywordValue(e.to_owned()))?,
-                        );
-                    }
-                }
-                parser::Directive::Else => {
-                    let was_active = branch_stack
-                        .pop()
-                        .ok_or(CompileErr::DirectiveMismatch("\"else\" without \"if\""))?;
-
-                    branch_stack.push(!was_active);
-                }
-                parser::Directive::Endif => {
-                    _ = branch_stack
-                        .pop()
-                        .ok_or(CompileErr::DirectiveMismatch("\"endif\" without \"if\""))?;
-                }
-            },
-        }
-    }
-
-    if !branch_stack.is_empty() {
-        return Err(CompileErr::DirectiveMismatch("\"if\" without \"endif\""));
-    }
-
-    Ok(out)
+    /// The [`ShaderResolver`] to use
+    pub shader_resolver: Option<Arc<dyn ShaderResolver>>,
 }
 
-/// Evaluates a list of input conditions based on the provided keywords. Returns the set of indices into `condition_values`
-/// that have _not_ been stripped.
-fn strip_by_conditions(
-    condition_values: &[Option<&str>],
-    keywords: &HashMap<String, u64>,
-) -> Result<IntSet<usize>, CompileErr> {
-    profiling::function_scope!();
+/// Compiles multiple permutations of the input source. All compilation results are sent to a channel,
+/// for which the receiving end is returned
+pub fn compile_multiple(
+    input: &str,
+    config: MultiConfig,
+) -> Receiver<Result<PrecompiledShader, CompileErr>> {
+    log::info!("Starting multi-compile job");
 
-    let mut set = HashSet::default();
+    let (send, recv) = std::sync::mpsc::sync_channel(config.buf_size.get());
 
-    for (i, &maybe_condition_string) in condition_values.iter().enumerate() {
-        let Some(condition_string) = maybe_condition_string else {
-            set.insert(i); // No condition means always active
-            continue;
+    let input: Arc<str> = Arc::from(input);
+    let keywords: Vec<(Arc<str>, Range<u64>)> = config
+        .keywords
+        .iter()
+        .map(|(k, v)| (Arc::from(k.as_str()), *v))
+        .collect();
+
+    let resolver = config.shader_resolver;
+
+    rayon::spawn(move || {
+        let info = match input.parse::<ShaderInfo>() {
+            Ok(info) => Arc::new(info),
+            Err(e) => {
+                _ = send.send(Err(e.into()));
+                return;
+            }
         };
 
-        let condition = Condition::parse(condition_string)?;
+        let queue = JobQueue::new(config.buf_size);
 
-        let active = condition
-            .eval(keywords)
-            .map_err(|e| CompileErr::MissingKeywordValue(e.to_owned()))?;
+        for combination in KeywordCombinations::new(&keywords) {
+            let Ok(token) = queue.issue_job() else {
+                return;
+            };
 
-        if active {
-            set.insert(i);
+            let input = input.clone();
+            let info = info.clone();
+            let resolver = resolver.clone();
+            let send = send.clone();
+
+            rayon::spawn(move || {
+                log::debug!("Compiling with keywords: {combination:#?}");
+
+                let result = info
+                    .variant(combination)
+                    .map_err(CompileErr::from)
+                    .and_then(|variant| {
+                        compile(&input, &variant, resolver.as_deref().map(|r| r as _))
+                    });
+
+                let Ok(()) = send.send(result) else {
+                    log::error!("Shader result channel closed?");
+                    token.cancel_job_queue();
+                    return;
+                };
+
+                drop(token);
+            });
+        }
+    });
+
+    recv
+}
+
+/// Iterator that returns all combinations of a set of keywords and ranges
+struct KeywordCombinations<'a> {
+    /// The ranges to go through
+    ranges: &'a [(Arc<str>, Range<u64>)],
+
+    /// The current value
+    current: Vec<u64>,
+
+    /// Whether we're done
+    finished: bool,
+}
+
+impl<'a> KeywordCombinations<'a> {
+    /// A new combinations iterator
+    fn new(ranges: &'a [(Arc<str>, Range<u64>)]) -> Self {
+        let current = ranges.iter().map(|(_, range)| range.start).collect();
+
+        Self {
+            ranges,
+            current,
+            finished: ranges.iter().any(|(_, range)| range.is_empty()),
         }
     }
-
-    log::debug!(
-        "Stripped {} out of {} values",
-        condition_values.len() - set.len(),
-        condition_values.len()
-    );
-
-    Ok(set)
 }
 
-/// Looks for occurences of each keyword in the input string, and replaces them
-/// with the concrete values given in `keywords`. Does not detect missing keywords
-fn inject_keywords_as_constants(source: &mut String, keywords: &HashMap<String, u64>) {
-    profiling::function_scope!();
+impl Iterator for KeywordCombinations<'_> {
+    type Item = HashMap<Arc<str>, u64>;
 
-    let mut num_replaced = 0;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
 
-    num_replaced += inject_keyword(
-        source,
-        CAMERA_PARAMS_BIND_GROUP_KEYWORD,
-        u64::from(CAMERA_PARAMS_BIND_GROUP_INDEX),
-    );
+        // Construct the next combination.
+        let result = self
+            .ranges
+            .iter()
+            .zip(&self.current)
+            .map(|((name, _), &value)| (name.clone(), value))
+            .collect();
 
-    num_replaced += inject_keyword(
-        source,
-        MATERIAL_PARAMS_BIND_GROUP_KEYWORD,
-        u64::from(MATERIAL_PARAMS_BIND_GROUP_INDEX),
-    );
+        // Increment the "odometer", starting at the last range.
+        for i in (0..self.ranges.len()).rev() {
+            let range = &self.ranges[i].1;
 
-    num_replaced += inject_keyword(
-        source,
-        INSTANCE_PARAMS_BIND_GROUP_KEYWORD,
-        u64::from(INSTANCE_PARAMS_BIND_GROUP_INDEX),
-    );
+            self.current[i] += 1;
 
-    for (keyword, &val) in keywords {
-        num_replaced += inject_keyword(source, keyword, val);
+            if self.current[i] < range.end {
+                // No carry needed.
+                return Some(result);
+            }
+
+            // This position overflowed, so reset it and carry.
+            self.current[i] = range.start;
+        }
+
+        // Everything overflowed, so we're done.
+        self.finished = true;
+
+        Some(result)
     }
-
-    log::debug!("Inserted {num_replaced} total keyword values");
 }
 
-/// Injects a single keyword into the given source string, replacing
-/// it with `val`. Returns the amount of replaced keywords
-fn inject_keyword(source: &mut String, keyword: &str, val: u64) -> usize {
-    let kw_byte_len = keyword.len();
-    let val_string = val.to_string();
+/// A type that can resolve shader source by name
+pub trait ShaderResolver: core::fmt::Debug + Send + Sync {
+    /// For a given shader name, returns the source code.
+    fn find_by_name(&self, shader_name: &str) -> Result<String, Box<dyn Error + Send>>;
+}
 
-    let mut replaced = 0;
+/// Resolves the built-in engine import, and passes everything else to the wrapped resolver
+#[derive(Debug)]
+struct EngineResolver<'a>(Option<&'a dyn ShaderResolver>);
 
-    while let Some(start) = source.find(keyword) {
-        source.replace_range(start..(start + kw_byte_len), &val_string);
-        replaced += 1;
+impl ShaderResolver for EngineResolver<'_> {
+    fn find_by_name(&self, shader_name: &str) -> Result<String, Box<dyn Error + Send>> {
+        if shader_name == engine::IMPORT_NAME {
+            return Ok(engine::import_source().to_owned());
+        }
+
+        self.0
+            .unwrap_or(&UnsupportedResolver)
+            .find_by_name(shader_name)
+    }
+}
+
+/// Simple internal shader resolver that always errors
+#[derive(Debug)]
+struct UnsupportedResolver;
+
+impl ShaderResolver for UnsupportedResolver {
+    fn find_by_name(&self, shader_name: &str) -> Result<String, Box<dyn Error + Send>> {
+        #[derive(Debug, derive_more::Error, derive_more::Display)]
+        #[display("No resolver was given")]
+        struct Unsupported;
+
+        _ = shader_name;
+
+        Err(Box::new(Unsupported))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    const SOURCE: &str = "#name \"Test\"\n#keyword A 0..3\n#keyword B\n";
+
+    /// Tests that omitted keywords hash like their defaults, to prevent a precompiled variant from being missed
+    /// when a material leaves a keyword unset
+    #[test]
+    fn variant_defaults() {
+        let info = SOURCE.parse::<ShaderInfo>().unwrap();
+
+        let implicit = info.variant::<&str>([]).unwrap();
+        let explicit = info.variant([("A", 0), ("B", 0)]).unwrap();
+        let other = info.variant([("A", 2)]).unwrap();
+
+        assert_eq!(implicit, explicit);
+        assert_ne!(implicit.hash(), other.hash());
     }
 
-    replaced
+    /// Tests that the hash covers the source, to prevent an edited shader from matching stale precompiled variants
+    #[test]
+    fn variant_hash_includes_source() {
+        let a = SOURCE
+            .parse::<ShaderInfo>()
+            .unwrap()
+            .variant::<&str>([])
+            .unwrap();
+        let b = format!("{SOURCE}fn f() {{}}")
+            .parse::<ShaderInfo>()
+            .unwrap()
+            .variant::<&str>([])
+            .unwrap();
+
+        assert_ne!(a.hash(), b.hash());
+    }
+
+    /// Tests keyword validation, to prevent typos and out-of-range values from compiling a wrong variant
+    #[test]
+    fn variant_errors() {
+        let info = SOURCE.parse::<ShaderInfo>().unwrap();
+
+        assert!(matches!(
+            info.variant([("C", 0)]),
+            Err(KeywordErr::Undeclared(_))
+        ));
+        assert!(matches!(
+            info.variant([("A", 3)]),
+            Err(KeywordErr::OutOfRange { .. })
+        ));
+    }
+
+    /// Tests that every combination is produced once, to prevent the multi-compile from skipping variants
+    #[test]
+    fn keyword_combinations() {
+        let ranges = [
+            (Arc::from("A"), Range { start: 0, end: 2 }),
+            (Arc::from("B"), Range { start: 5, end: 8 }),
+        ];
+
+        let all: Vec<_> = KeywordCombinations::new(&ranges).collect();
+
+        assert_eq!(6, all.len());
+        assert!(all.iter().any(|c| c["A"] == 1 && c["B"] == 7));
+        assert_eq!(
+            0,
+            KeywordCombinations::new(&[(Arc::from("A"), Range { start: 1, end: 1 })]).count()
+        );
+    }
+
+    /// Tests a full compile against the engine import, to prevent regressions in used-binding filtering and the
+    /// reserved group check
+    #[test]
+    fn compile_engine_layout() {
+        let source = "#name \"T\"\n#import \"wutengine\"\n\
+            @group(WUTENGINE_MATERIAL_GROUP) @binding(0) var<uniform> tint: vec4f;\n\
+            @group(WUTENGINE_MATERIAL_GROUP) @binding(1) var<uniform> unused: vec4f;\n\
+            fn get_tint() -> vec4f { return tint; }\n\
+            @vertex fn vs(@location(0) position: vec3f) -> @builtin(position) vec4f {\n\
+                return instance_params.mvp * vec4f(position, 1.0) * get_tint();\n\
+            }\n";
+
+        let info = source.parse::<ShaderInfo>().unwrap();
+        let compiled = compile(source, &info.variant::<&str>([]).unwrap(), None).unwrap();
+
+        let names: Vec<&str> = compiled.bindings.iter().map(|b| b.name.as_str()).collect();
+
+        // Used through a helper function, unused, and only used by the engine import
+        assert!(names.contains(&"tint"));
+        assert!(!names.contains(&"unused"));
+        assert!(!names.contains(&"camera_params"));
+
+        let bad = source.replace("WUTENGINE_MATERIAL_GROUP", "WUTENGINE_CAMERA_GROUP");
+        let info = bad.parse::<ShaderInfo>().unwrap();
+
+        assert!(matches!(
+            compile(&bad, &info.variant::<&str>([]).unwrap(), None),
+            Err(CompileErr::Layout(LayoutErr::Reserved(_)))
+        ));
+    }
 }

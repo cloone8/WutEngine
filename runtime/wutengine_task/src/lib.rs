@@ -53,14 +53,11 @@ pub fn init_thread_pool() {
         panic!("Thread pool already initialized");
     }
 
-    let thread_config = cfg_select! {
-        feature = "config" => {
-            wutengine_config::get::<ThreadConfig>("wutengine.thread")
-        }
-        _ => {
-            ThreadConfig::default()
-        }
-    };
+    let thread_config =
+        cfg_select! {
+            feature = "config" => wutengine_config::get::<ThreadConfig>("wutengine.thread"),
+            _ => ThreadConfig::default(),
+        };
     let cpu_config = detect::try_detect_core_config();
 
     init_worker_threads(&thread_config, cpu_config.as_ref());

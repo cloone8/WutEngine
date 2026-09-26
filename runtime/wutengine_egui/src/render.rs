@@ -11,9 +11,9 @@ use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_graphics::shader::GVec2;
 use wutengine_graphics::shader::GVec3;
 use wutengine_graphics::shader::GVec4;
+use wutengine_graphics::shader::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_graphics::wgpu;
 use wutengine_math::Vec4;
-use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 
 use crate::TextureMaterial;
 use crate::utils;

@@ -10,13 +10,18 @@ use wutengine_assets::assets::material::SerializedMaterialParameter;
 use wutengine_math::Color;
 use wutengine_util_macro::unique_id_type32;
 
-use wutengine_math::{Mat4, Vec2, Vec3, Vec4};
+use wutengine_math::Mat4;
+use wutengine_math::Vec2;
+use wutengine_math::Vec3;
+use wutengine_math::Vec4;
 use wutengine_util_macro::VariantName;
 
+use super::BindGroup;
 use super::sampler::Sampler;
-use super::shader::{CompiledShader, Shader};
+use super::shader;
+use super::shader::CompiledShader;
+use super::shader::Shader;
 use super::texture::Texture;
-use super::{BindGroup, shader};
 
 unique_id_type32! {
     /// Globally unique identifier for a [`Material`]
@@ -53,8 +58,7 @@ impl Material {
 
         let mut user_bind_group = BindGroup::new(
             "Material User Bind Group".to_string(),
-            compiled_shader.user_bind_group_layout.clone(),
-            &compiled_shader.parameters,
+            &compiled_shader.user_bind_group_layout,
         );
 
         user_bind_group.update_bind_group(super::device());
@@ -194,10 +198,6 @@ pub enum MaterialParameter {
 
     /// Sampler
     Sampler(Arc<Sampler>),
-
-    /// A raw [`wgpu::Buffer`]
-    #[from(skip)]
-    Buffer(wgpu::Buffer),
 }
 
 impl From<SerializedMaterialParameter> for MaterialParameter {

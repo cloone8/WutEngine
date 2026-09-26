@@ -1,10 +1,14 @@
 //! Color related types and functions
 
-use core::fmt::{Debug, Display};
+use core::fmt::Debug;
+use core::fmt::Display;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{Vec3, Vec3A, Vec4};
+use crate::Vec3;
+use crate::Vec3A;
+use crate::Vec4;
 
 #[derive(Clone, Copy, Serialize, Deserialize, Default)]
 #[serde(default)]

@@ -56,7 +56,8 @@ const EDITOR_BASE_TICK_INTERVAL_SECS: f64 = 2.0;
 #[cfg(windows)]
 /// Try to attach to an already open console
 fn try_attach_to_console() {
-    use windows::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole};
+    use windows::Win32::System::Console::ATTACH_PARENT_PROCESS;
+    use windows::Win32::System::Console::AttachConsole;
 
     // We can't log here because the logger is not yet initialized
     unsafe {

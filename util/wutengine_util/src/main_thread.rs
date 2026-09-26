@@ -1,7 +1,8 @@
 //! Functions for checking and asserting that we are running on the main thread
 
 use super::InitOnce;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::AtomicBool;
+use core::sync::atomic::Ordering;
 use std::thread::ThreadId;
 
 /// The ID of the main thread, used by [`on_main_thread`] and initialized right before the runtime

@@ -20,10 +20,8 @@ pub(crate) fn change_scope_active_status() {
     #[cfg(feature = "profiling")]
     {
         let overlay_active = cfg_select! {
-            feature = "development_overlay" => {
-                internal::dev_overlay_open()
-            }
-            _ => false
+            feature = "development_overlay" => internal::dev_overlay_open(),
+            _ => false,
         };
 
         puffin::set_scopes_on(overlay_active);

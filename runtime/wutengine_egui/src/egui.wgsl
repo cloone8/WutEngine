@@ -1,3 +1,7 @@
+#name "egui"
+#keyword DITHERING
+#import "wutengine"
+
 struct UserParams {
     screen_size: vec2f
 }
@@ -40,8 +44,7 @@ fn vs(
 
     return vs_output;
 }
-
-//# if DITHERING != 0
+#if DITHERING != 0
 
 // -----------------------------------------------
 // Adapted from
@@ -63,17 +66,15 @@ fn dither_interleaved(rgb: vec3<f32>, levels: f32, frag_coord: vec4<f32>) -> vec
     noise = (noise - 0.5) * 0.95;
     return rgb + noise / (levels - 1.0);
 }
-
-//# endif
+#endif
 
 @fragment
 fn fs(fs_input: VSOutput) -> @location(0) vec4f {
     let tex_srgb = textureSample(ui_texture, ui_texture_sampler, fs_input.uv);
-
-    //# if DITHERING != 0
+#if DITHERING != 0
         let out_color = fs_input.color * tex_srgb;
         return vec4f(dither_interleaved(out_color.rgb, 256.0, fs_input.position), out_color.a);
-    //# else
+#else
         return fs_input.color * tex_srgb;
-    //# endif
+#endif
 }

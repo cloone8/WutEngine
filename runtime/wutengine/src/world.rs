@@ -1,6 +1,7 @@
 //! World management for the WutEngine runtime
 
-use core::ops::{Deref, DerefMut};
+use core::ops::Deref;
+use core::ops::DerefMut;
 use std::sync::RwLock;
 
 use wutengine_util::InitOnce;

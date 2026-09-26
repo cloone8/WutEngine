@@ -13,7 +13,7 @@ publish.workspace = true
 
 [dependencies]
 wutengine_cli_tools.workspace = true
-wutengine_shadercompiler2.workspace = true
+wutengine_shadercompiler.workspace = true
 wutengine_assets.workspace = true
 
 clap = { workspace = true, features = ["derive"] }

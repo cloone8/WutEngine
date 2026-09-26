@@ -15,8 +15,6 @@ use wutengine_util::error_once;
 use wutengine_util::warn_once;
 
 use nohash_hasher::IntMap;
-use wutengine_assets::assets::shader::SerializedShader;
-use wutengine_assets::assets::shader::ShaderSource;
 use wutengine_assets::assets::shader::ShaderVertexAttributeType;
 use wutengine_graphics::material::Material;
 use wutengine_graphics::material::MaterialParameter;
@@ -67,17 +65,11 @@ impl Default for EguiWindowInfo {
 
 /// Shader for [`egui`]
 pub static EGUI_SHADER: LazyLock<Arc<Shader>> = LazyLock::new(|| {
-    let descriptor = include_str!("egui.json");
-    let source = include_str!("egui.wgsl");
-
-    let mut shader =
-        serde_json::from_str::<SerializedShader>(descriptor).expect("Could not get egui shader");
-
-    shader.source = ShaderSource::Inline {
-        content: source.to_owned(),
-    };
-
-    Arc::new(Shader::from_serialized_asset(shader).unwrap())
+    Arc::new(
+        include_str!("egui.wgsl")
+            .parse::<Shader>()
+            .expect("Invalid egui shader"),
+    )
 });
 
 /// Information on a single egui viewport

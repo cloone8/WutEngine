@@ -24,15 +24,9 @@ pub(super) fn try_detect_core_config() -> Option<CoreConfig> {
     profiling::function_scope!();
 
     cfg_select! {
-        windows => {
-            win::try_detect_core_config()
-        }
-        target_os = "macos" => {
-            macos::try_detect_core_config()
-        }
-        target_os = "linux" => {
-            linux::try_detect_core_config()
-        }
+        windows => win::try_detect_core_config(),
+        target_os = "macos" => macos::try_detect_core_config(),
+        target_os = "linux" => linux::try_detect_core_config(),
         _ => {
             log::debug!("Core count detection not available on current platform");
             None

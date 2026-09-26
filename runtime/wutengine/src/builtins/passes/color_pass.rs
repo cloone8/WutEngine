@@ -6,9 +6,9 @@ use wutengine_graphics::material::Material;
 use wutengine_graphics::material::MaterialId;
 use wutengine_graphics::mesh::Mesh;
 use wutengine_graphics::renderpass::RenderPass;
+use wutengine_graphics::shader::INSTANCE_PARAMS_BIND_GROUP_INDEX;
+use wutengine_graphics::shader::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_graphics::wgpu;
-use wutengine_shadercompiler::INSTANCE_PARAMS_BIND_GROUP_INDEX;
-use wutengine_shadercompiler::MATERIAL_PARAMS_BIND_GROUP_INDEX;
 use wutengine_util::warn_once;
 
 use crate::builtins::components::rendering::Camera;

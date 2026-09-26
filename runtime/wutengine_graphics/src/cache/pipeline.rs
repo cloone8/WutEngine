@@ -7,7 +7,7 @@ use wutengine_assets::assets::mesh::MeshTopology;
 
 use smallvec::SmallVec;
 
-use crate::shader::CompiledShaderId;
+use wutengine_assets::assets::shader::ShaderHash;
 
 use super::GraphicsCache;
 
@@ -19,7 +19,7 @@ static PIPELINE_CACHE: LazyLock<GraphicsCache<PipelineCacheKey, wgpu::RenderPipe
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct PipelineCacheKey {
     /// The shader the pipeline uses
-    pub(crate) shader: CompiledShaderId,
+    pub(crate) shader: ShaderHash,
 
     /// The color targets the pipeline supports
     pub(crate) color_targets: SmallVec<[Option<wgpu::ColorTargetState>; 1]>,

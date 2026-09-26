@@ -2,7 +2,9 @@
 
 use core::fmt::Display;
 use core::hash::Hash;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::channel;
 
 use crate::builtins::components::Name;
 use crate::builtins::components::Transform;

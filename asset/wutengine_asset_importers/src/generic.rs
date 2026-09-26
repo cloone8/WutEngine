@@ -13,6 +13,7 @@ use wutengine_assets::assets::level::SerializedLevel;
 use wutengine_assets::assets::material::SerializedMaterial;
 use wutengine_assets::assets::mesh::SerializedMesh;
 use wutengine_assets::assets::sampler::SerializedSampler;
+use wutengine_assets::assets::shader::PrecompiledShader;
 use wutengine_assets::assets::shader::SerializedShader;
 use wutengine_assets::assets::texture::SerializedTexture;
 
@@ -62,6 +63,7 @@ pub fn default_asset_types() -> &'static HashMap<uuid::NonNilUuid, SerializedAss
                 SerializedAssetType::new_from_asset::<SerializedMesh>(),
                 SerializedAssetType::new_from_asset::<SerializedSampler>(),
                 SerializedAssetType::new_from_asset::<SerializedShader>(),
+                SerializedAssetType::new_from_asset::<PrecompiledShader>(),
             ];
 
             let mut asset_type_map = HashMap::new();

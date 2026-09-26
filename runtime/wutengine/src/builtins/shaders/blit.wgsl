@@ -1,4 +1,7 @@
-//! Simple fullscreen blit shader
+#name "Blit"
+#import "wutengine"
+
+// Simple fullscreen blit shader
 
 struct VSOutput {
     @builtin(position) position: vec4f,

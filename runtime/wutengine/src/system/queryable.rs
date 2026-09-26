@@ -164,7 +164,10 @@ mod test {
     use core::any::TypeId;
     use std::collections::HashSet;
 
-    use hecs::{Or, Satisfies, With, Without};
+    use hecs::Or;
+    use hecs::Satisfies;
+    use hecs::With;
+    use hecs::Without;
 
     use super::Queryable;
 
