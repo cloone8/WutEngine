@@ -209,7 +209,7 @@ impl Mesh {
         let vertex_buffer_bytes = bytemuck::must_cast_slice::<T, u8>(data);
 
         let vertex_buffer_size_aligned =
-            (data.len() as u64).next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT);
+            (vertex_buffer_bytes.len() as u64).next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT);
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label,
