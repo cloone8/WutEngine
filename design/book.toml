@@ -1,0 +1,5 @@
+[book]
+title = "WutEngine design"
+authors = ["Wouter de Bruijn"]
+language = "en"
+src = "src"
