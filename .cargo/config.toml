@@ -1,2 +1,0 @@
-[alias]
-webuild = "run --package webuild --profile=build-tool --"

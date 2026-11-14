@@ -1,4 +1,0 @@
-# Unstable options: format with `cargo +nightly fmt`. Stable rustfmt skips them with only a warning.
-imports_granularity = "Item"
-# Vendored fork, kept close to upstream.
-ignore = ["runtime/wutengine_puffin_egui"]
