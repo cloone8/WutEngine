@@ -1,0 +1,20 @@
+[package]
+name = "wutengine"
+description = "A modern game engine"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+publish = true
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

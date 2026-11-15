@@ -1,13 +1,20 @@
 [workspace]
 resolver = "3"
 # Placeholder: no crates yet. Each member opts into the lints below with `[lints] workspace = true`.
-members = []
+members = ["runtime/wutengine"]
 
 [workspace.package]
 version = "0.7.0"
+authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 edition = "2024"
 license = "MPL-2.0"
 rust-version = "1.100"
+homepage = "https://github.com/cloone8/WutEngine"
+repository = "https://github.com/cloone8/WutEngine"
+readme = "README.md"
+keywords = ["2D", "3D", "game", "engine"]
+categories = ["game-engines"]
+publish = false
 
 [workspace.lints.rust]
 # Groups
