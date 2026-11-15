@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["demos/hello", "runtime/wutengine", "xtask"]
+members = ["demos/hello", "runtime/wutengine", "runtime/wutengine_log", "xtask"]
 
 [workspace.package]
 version = "0.7.0"
@@ -16,11 +16,15 @@ publish = false
 
 [workspace.dependencies]
 # Crates in the workspace
+wutengine = { version = "0.7.0", path = "runtime/wutengine" }
+wutengine_log = { version = "0.7.0", path = "runtime/wutengine_log" }
 
 # External crates
 log = { version = "0.4", default-features = false }
 clap = { version = "4.6", default-features = false }
 derive_more = { version = "2.1", default-features = false }
+profiling = { version = "1.0", default-features = false }
+dirs = { version = "7", default-features = false }
 
 
 [workspace.lints.rust]

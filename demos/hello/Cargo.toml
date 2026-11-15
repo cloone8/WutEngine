@@ -12,6 +12,7 @@ categories.workspace = true
 publish.workspace = true
 
 [dependencies]
+wutengine.workspace = true
 
 [lints]
 workspace = true

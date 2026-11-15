@@ -1,0 +1,19 @@
+[package]
+name = "wutengine_log"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
+
+[dependencies]
+log = { workspace = true }
+dirs = { workspace = true }
+
+[lints]
+workspace = true

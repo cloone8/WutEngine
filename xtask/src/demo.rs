@@ -15,6 +15,10 @@ pub(crate) struct DemoCommand {
     /// The name of the demo folder in the
     name: String,
 
+    /// Serve the demo for the web
+    #[arg(long)]
+    web: bool,
+
     /// Arguments to pass to the demo
     #[arg(last = true)]
     args: Vec<String>,
