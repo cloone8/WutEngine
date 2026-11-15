@@ -1,4 +1,10 @@
 {
     // rustfmt.toml uses unstable options, which stable rustfmt skips
-    "rust-analyzer.rustfmt.extraArgs": ["+nightly"]
+    "rust-analyzer.rustfmt.extraArgs": ["+nightly"],
+
+    // Analyse and check code behind every feature, so `#[cfg(feature = ...)]` code isn't greyed out or skipped
+    "rust-analyzer.cargo.features": "all",
+
+    // Run clippy instead of `cargo check` on save, with the features above
+    "rust-analyzer.check.command": "clippy"
 }

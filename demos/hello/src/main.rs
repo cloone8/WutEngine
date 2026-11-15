@@ -5,9 +5,16 @@ use std::process::ExitCode;
 
 use wutengine::log;
 use wutengine::profiling;
+use wutengine::runtime;
+use wutengine::runtime::StartupOptions;
 
 fn main() -> ExitCode {
     profiling::function_scope!();
+
+    runtime::start(&StartupOptions {
+        org_name: "wutengine",
+        app_name: "demo_hello",
+    });
 
     log::info!("Hello, world!");
 

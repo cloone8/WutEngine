@@ -52,6 +52,35 @@ within.
   parallelize (batch operations, data in arrays; per-object callbacks only where the engine can spread them).
   Why: results must not differ between desktop and the web.
 
+## Cargo features
+
+Games and tools turn runtime features on and off for what they use; the editor is built with one configuration.
+Why: smaller and faster-compiling game and tool builds, and a smaller web download. Existing features: headless
+([Lifecycle and memory](../core/lifecycle.md)), asset and audio formats ([Assets and project files](../world/assets.md),
+[Audio](../systems/audio.md)), `f64_positions` ([Game size and precision](game_size.md)), allocator tagging, and
+dictionary word breaking ([In-game UI and text](../systems/ui_text.md)).
+
+- **A subsystem's feature is an optional dependency on its crate.** The `wutengine` facade crate exposes the features
+  (physics, audio, scripting, UI, ...), each turning on one subsystem crate, so turning a feature off drops a crate
+  and code needs few `#[cfg]`s. Why: crate boundaries are already where subsystems separate.
+- **Features gate heavy dependencies, not small modules.** Most of the saving is in dependency trees (rapier, boa,
+  the text stack, audio decoders, gilrs, format readers); a feature around a little of the engine's own code saves
+  little and adds a combination to keep compiling.
+- **Features only add.** A feature adds code and never changes or removes behaviour, since Cargo unifies features
+  across a build. The exception is `f64_positions`: a whole-build switch, where f32 code still compiles.
+- **Internal crates depend on each other with `default-features = false`,** declared that way in the workspace
+  dependencies; only the facade and the binaries choose features. Why: any crate depending on another with default
+  features turns them back on, silently.
+- **Without a feature, a subsystem's API is either absent or present and inert, decided per subsystem.** Absent for
+  subsystems a game opts into (physics, scripting, UI): calling them without the feature is a compile error. Present
+  and inert for backends (window, rendering, audio output in a headless build): the API compiles and does nothing or
+  returns `None`, so game code compiles the same either way ([Lifecycle and memory](../core/lifecycle.md)).
+- **Data for a disabled feature is an error, not dropped.** A scene holding components whose feature is off in the
+  build fails to load with an error naming the scene, the entity and the missing feature. Why: dropping them silently
+  would change the game without a trace.
+- **Checked combinations are bounded:** all features, no default features, and each feature on its own. Why: every
+  combination grows exponentially; these catch code that only compiles because another feature happens to be on.
+
 ## Version 0 stays flexible
 
 - **No project-file compatibility at all while the engine is at major version 0.** Why: the design can still change

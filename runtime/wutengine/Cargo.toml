@@ -14,9 +14,11 @@ publish.workspace = true
 
 readme = "README.md"
 
+[features]
+default = []
+
 [dependencies]
-wutengine_log = { workspace = true }
-log = { workspace = true }
+wutengine_log = { workspace = true, features = ["terminal_output", "file_output"] }
 profiling = { workspace = true }
 
 [lints]

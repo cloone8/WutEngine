@@ -8,4 +8,7 @@ absolute-paths-max-segments = 2
 disallowed-methods = [
     { path = "std::panic::catch_unwind", reason = "no `catch_unwind`: panics abort" },
     { path = "std::sync::PoisonError::into_inner", reason = "never reach inside a poisoned mutex" },
+    { path = "std::sync::Mutex::lock", reason = "use `wutengine_sync`'s `Mutex`: locks can't be poisoned with `panic = \"abort\"`" },
+    { path = "std::sync::RwLock::read", reason = "use `wutengine_sync`'s `RwLock`: locks can't be poisoned with `panic = \"abort\"`" },
+    { path = "std::sync::RwLock::write", reason = "use `wutengine_sync`'s `RwLock`: locks can't be poisoned with `panic = \"abort\"`" },
 ]

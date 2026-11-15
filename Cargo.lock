@@ -343,7 +343,6 @@ dependencies = [
 name = "wutengine"
 version = "0.7.0"
 dependencies = [
- "log",
  "profiling",
  "wutengine_log",
 ]
@@ -352,9 +351,15 @@ dependencies = [
 name = "wutengine_log"
 version = "0.7.0"
 dependencies = [
+ "derive_more",
  "dirs",
  "log",
+ "wutengine_sync",
 ]
+
+[[package]]
+name = "wutengine_sync"
+version = "0.7.0"
 
 [[package]]
 name = "xtask"

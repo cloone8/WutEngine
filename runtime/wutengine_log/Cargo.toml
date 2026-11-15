@@ -1,5 +1,6 @@
 [package]
 name = "wutengine_log"
+description = "Logging implementation for WutEngine"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -11,9 +12,23 @@ keywords.workspace = true
 categories.workspace = true
 publish.workspace = true
 
+readme = "README.md"
+
+[features]
+# Enables the terminal output logger
+terminal_output = []
+
+# Enables the file output logger
+file_output = ["dep:dirs"]
+
 [dependencies]
+wutengine_sync = { workspace = true }
+
 log = { workspace = true }
-dirs = { workspace = true }
+derive_more = { workspace = true, features = ["debug"] }
+
+# Optional dependencies
+dirs = { workspace = true, optional = true } # Only for filesystem logging
 
 [lints]
 workspace = true
