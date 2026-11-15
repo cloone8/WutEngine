@@ -26,10 +26,10 @@ impl<T> Mutex<T> {
         reason = "Disallowed because this is the only place that can use it"
     )]
     pub fn lock(&self) -> MutexGuard<'_, T> {
-        self.0.lock().expect("Lock poisoned")
+        self.0.lock().expect("Panic should abort")
     }
 
-    /// Same as [`StdMutex::try_lock`]
+    /// Same as [`StdMutex::try_lock`], but panics on poison
     #[inline]
     pub fn try_lock(&self) -> Option<MutexGuard<'_, T>> {
         match self.0.try_lock() {
@@ -61,7 +61,17 @@ impl<T> RwLock<T> {
         reason = "Disallowed because this is the only place that can use it"
     )]
     pub fn read(&self) -> RwLockReadGuard<'_, T> {
-        self.0.read().expect("Lock poisoned")
+        self.0.read().expect("Panic should abort")
+    }
+
+    /// Same as [`StdRwLock::try_read`], but panics on poison
+    #[inline]
+    pub fn try_read(&self) -> Option<RwLockReadGuard<'_, T>> {
+        match self.0.try_read() {
+            Ok(rg) => Some(rg),
+            Err(TryLockError::WouldBlock) => None,
+            Err(TryLockError::Poisoned(_)) => unreachable!("Panic should abort"),
+        }
     }
 
     /// Same as [`StdRwLock::write`], but panics on poison
@@ -72,5 +82,15 @@ impl<T> RwLock<T> {
     )]
     pub fn write(&self) -> RwLockWriteGuard<'_, T> {
         self.0.write().expect("Lock poisoned")
+    }
+
+    /// Same as [`StdRwLock::try_write`], but panics on poison
+    #[inline]
+    pub fn try_write(&self) -> Option<RwLockWriteGuard<'_, T>> {
+        match self.0.try_write() {
+            Ok(wg) => Some(wg),
+            Err(TryLockError::WouldBlock) => None,
+            Err(TryLockError::Poisoned(_)) => unreachable!("Panic should abort"),
+        }
     }
 }

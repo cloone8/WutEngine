@@ -57,5 +57,5 @@ fn post_startup() {
         runtime::quit(1);
     }
 
-    log::info!("Program succesful");
+    log::info!("Program successful");
 }

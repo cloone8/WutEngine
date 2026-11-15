@@ -21,7 +21,7 @@ pub struct FileLogger {
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum CreateFileLoggerErr {
     /// The file name contains a parent directory
-    #[display("File name contains a path seperator")]
+    #[display("File name contains a path separator")]
     PathSep,
 
     /// No `data_local_dir` is known for this platform
@@ -70,10 +70,6 @@ impl FileLogger {
 
         // Move <file> to <file>_prev
         if fs::exists(&log_file_path)? {
-            if fs::exists(&prev_log_file_path)? {
-                fs::remove_file(&prev_log_file_path)?;
-            }
-
             fs::rename(&log_file_path, prev_log_file_path)?;
         }
 

@@ -94,7 +94,7 @@ impl ColorMode {
 }
 
 impl TerminalLogger {
-    /// Create a new [`Terminal`]
+    /// Create a new [`TerminalLogger`]
     #[must_use]
     pub fn new(output: OutputMode, color: ColorMode) -> Self {
         let writer = TerminalOutput::from_mode(output);
@@ -112,9 +112,9 @@ impl LoggerOutput for TerminalLogger {
         let time = duration_since_logger_start(&entry.time).as_secs_f64();
 
         let level = fmt::from_fn(|fmt| {
-            if self.color {
-                let level_color = level_color(entry.level);
-
+            if self.color
+                && let Some(level_color) = level_color(entry.level)
+            {
                 write!(fmt, "{level_color}{}{level_color:#}", entry.level)
             } else {
                 write!(fmt, "{}", entry.level)
@@ -133,14 +133,16 @@ impl LoggerOutput for TerminalLogger {
     }
 }
 
-fn level_color(level: Level) -> Style {
-    match level {
+const fn level_color(level: Level) -> Option<Style> {
+    Some(match level {
         Level::Error => AnsiColor::Red.on_default(),
         Level::Warn => AnsiColor::Yellow.on_default(),
         Level::Info => AnsiColor::Blue.on_default(),
         Level::Debug => AnsiColor::Cyan.on_default(),
-        Level::Trace => AnsiColor::White.on_default(),
-    }
+        Level::Trace => {
+            return None;
+        }
+    })
 }
 
 /// Checks common color environment variables for color to be forced on/off, and if none are found,

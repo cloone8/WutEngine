@@ -90,6 +90,19 @@ impl LogSettings {
             categories: Vec::new(),
         }
     }
+
+    /// Returns the highest possible level configured
+    #[must_use]
+    #[inline]
+    pub fn highest_level(&self) -> LevelFilter {
+        self.default_level.max(
+            self.categories
+                .iter()
+                .map(|(_, filter)| *filter)
+                .max()
+                .unwrap_or(LevelFilter::Off),
+        )
+    }
 }
 
 impl Default for LogSettings {
@@ -132,10 +145,7 @@ impl WutEngineLogger {
 impl Log for WutEngineLogger {
     #[inline]
     fn enabled(&self, metadata: &Metadata) -> bool {
-        // Each category is interested in another level. Checking each category requires
-        // taking a lock and iterating over the fields, so usually not worth it. We'll check against
-        // the static max level instead
-        metadata.level() <= ::log::STATIC_MAX_LEVEL
+        metadata.level() <= ::log::STATIC_MAX_LEVEL && metadata.level() <= ::log::max_level()
     }
 
     fn log(&self, record: &Record) {
@@ -198,6 +208,8 @@ pub fn init(settings: LogSettings, outputs: Vec<Box<dyn LoggerOutput>>) {
         .set(Instant::now())
         .expect("Init time already set");
 
+    let highest_level = settings.highest_level();
+
     *LOGGER.settings.write() = settings;
     *LOGGER.outputs.write() = outputs;
 
@@ -207,7 +219,7 @@ pub fn init(settings: LogSettings, outputs: Vec<Box<dyn LoggerOutput>>) {
         return;
     }
 
-    ::log::set_max_level(::log::STATIC_MAX_LEVEL);
+    ::log::set_max_level(highest_level);
 }
 
 /// Adds another output to the logging system
@@ -217,7 +229,11 @@ pub fn add_output(output: Box<dyn LoggerOutput>) {
 
 /// Replaces the current logging settings
 pub fn set_settings(settings: LogSettings) {
+    let highest_level = settings.highest_level();
+
     *LOGGER.settings.write() = settings;
+
+    ::log::set_max_level(highest_level);
 }
 
 /// Flush all log outputs
@@ -230,7 +246,11 @@ pub fn flush() {
 /// Flush all log outputs during a panic. Might not be able to flush all outputs,
 /// so only use during a panic (usually from the panic hook). For normal flushing, see [`flush`]
 pub fn flush_on_panic() {
-    for output in &*LOGGER.outputs.read() {
+    let Some(outputs) = LOGGER.outputs.try_read() else {
+        return;
+    };
+
+    for output in &*outputs {
         output.flush_on_panic();
     }
 }
