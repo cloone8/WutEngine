@@ -33,3 +33,7 @@ setting names) are fine. This matters a lot to the user.
 ## Git
 
 The user commits and pushes; agents don't. Leave changes uncommitted and unstaged.
+
+## Further instructions
+
+This repo does not have extensive agent-specific instructions. **Instead, read the `README.md` files for the current directory and parent directories, recursively.** You can also read the general manual in `/docs`, and the Rust per-module documentation.
