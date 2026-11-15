@@ -14,3 +14,6 @@ pub use terminal::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web_console;
+
+#[cfg(target_arch = "wasm32")]
+pub use web_console::*;

@@ -31,5 +31,9 @@ derive_more = { workspace = true, features = ["debug", "error", "from", "display
 anstyle = { workspace = true, optional = true } # Only for terminal logging
 dirs = { workspace = true, optional = true }    # Only for filesystem logging
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["console"] }
+web-time = { workspace = true }
+
 [lints]
 workspace = true

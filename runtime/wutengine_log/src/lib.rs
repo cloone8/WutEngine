@@ -4,7 +4,6 @@ use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use core::time::Duration;
 use std::sync::OnceLock;
-use std::time::Instant;
 
 pub use ::log::Level;
 pub use ::log::LevelFilter;
@@ -17,6 +16,16 @@ pub use ::log::log;
 pub use ::log::trace;
 pub use ::log::warn;
 use log::Log;
+
+cfg_select! {
+    target_arch = "wasm32" => {
+        use web_time::Instant;
+    }
+    _ => {
+        use std::time::Instant;
+    }
+}
+
 use wutengine_sync::RwLock;
 
 mod outputs;

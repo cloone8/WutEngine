@@ -8,6 +8,7 @@ use clap::Subcommand;
 use crate::demo::DemoCommand;
 use crate::logger::XTaskLogger;
 
+mod check;
 mod demo;
 mod errs;
 mod logger;
@@ -32,6 +33,9 @@ struct Args {
 enum Commands {
     /// Run a demo
     Demo(DemoCommand),
+
+    /// Check formatting, and run clippy for native and wasm
+    Check,
 }
 
 fn main() -> ExitCode {
@@ -43,6 +47,11 @@ fn main() -> ExitCode {
         Commands::Demo(cmd) => {
             if let Err(e) = demo::run_demo(&cmd) {
                 log::error!("Failed to run demo: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+        Commands::Check => {
+            if !check::run_checks() {
                 return ExitCode::FAILURE;
             }
         }

@@ -2,12 +2,8 @@
 
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
-use std::process;
 
-use wutengine_log::ColorMode;
 use wutengine_log::FileLogger;
-use wutengine_log::OutputMode;
-use wutengine_log::TerminalLogger;
 
 use crate::log;
 
@@ -29,18 +25,24 @@ pub fn start(options: &StartupOptions, post_startup: impl FnOnce() + 'static) ->
         panic!("Runtime already initialized")
     }
 
-    log::init(
-        log::LogSettings::new(),
-        vec![Box::new(TerminalLogger::new(
-            OutputMode::Stdout,
-            ColorMode::Auto,
-        ))],
-    );
+    let basic_logger = cfg_select! {
+        target_arch = "wasm32" => {{ Box::new(wutengine_log::BrowserConsoleLogger::new()) }}
+        _ => {{
+            Box::new(wutengine_log::TerminalLogger::new(
+                wutengine_log::OutputMode::Stdout,
+                wutengine_log::ColorMode::Auto,
+            ))
+        }}
+    };
 
-    match FileLogger::new(options.org_name, options.app_name, "engine") {
-        Ok(fl) => log::add_output(Box::new(fl)),
-        Err(e) => {
-            log::error!("Failed to create file logger: {e}");
+    log::init(log::LogSettings::new(), vec![basic_logger]);
+
+    if !cfg!(target_arch = "wasm32") {
+        match FileLogger::new(options.org_name, options.app_name, "engine") {
+            Ok(fl) => log::add_output(Box::new(fl)),
+            Err(e) => {
+                log::error!("Failed to create file logger: {e}");
+            }
         }
     }
 
@@ -58,5 +60,25 @@ pub fn start(options: &StartupOptions, post_startup: impl FnOnce() + 'static) ->
 pub fn quit(code: i32) {
     //TODO: This will probably be handled more neatly by the runtime later, with hooks and stuff
     log::flush();
-    process::exit(code);
+
+    cfg_select! {
+        target_arch = "wasm32" => {{
+            // On the web we throw a custom exception, because `process::exit` does not work there
+            use js_sys::Reflect;
+            use wasm_bindgen::JsValue;
+
+            let err = js_sys::Error::new(format!("WutEngine quit with exit code {code}").as_str());
+
+            err.set_name("WutEngineQuit");
+            Reflect::set(&err, &JsValue::from_str("exitCode"), &JsValue::from(code))
+                .expect("Failed to set exitcode");
+
+            wasm_bindgen::throw_val(err.into());
+        }}
+        _ => {{
+            use std::process;
+
+            process::exit(code);
+        }}
+    }
 }

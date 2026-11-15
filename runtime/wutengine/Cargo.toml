@@ -21,5 +21,9 @@ default = []
 wutengine_log = { workspace = true, features = ["terminal_output", "file_output"] }
 profiling = { workspace = true }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+
 [lints]
 workspace = true
