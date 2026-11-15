@@ -44,11 +44,13 @@ less fun.
   and clippy configuration, `.gitignore`, and `cargo xtask` as the internal build tool ([Principles and
   constraints](goals/principles.md), [Building and shipping](editor/shipping.md)).
 - `cargo xtask` commands to run a demo on desktop and to build and serve it for a browser.
-- Logging and profiling scopes (puffin) from the first crate.
+- Logging, and profiling scopes in the code from the first crate. The scopes record nothing yet: collecting them
+  (puffin) and viewing them come with the frame loop and the overlay in step 3. Why: a profiler shows time over
+  frames, and nothing runs frames before step 3.
 
 Demos:
-1. `hello` writes log lines at each level inside a profiler scope: to the terminal and the log file on desktop, to
-   the browser console on the web.
+1. `hello` writes log lines at each level: to the terminal and the log file on desktop, to the browser console on
+   the web. Its profiler scopes compile on both targets.
 
 Done when an empty engine crate builds for desktop and `wasm32-unknown-unknown`, clippy is clean, and `hello` runs on
 both.
@@ -97,10 +99,10 @@ Done when windows open and close cleanly on desktop and in a browser, configured
 - Frame pacing: simulation once per frame and every window rendered, vsync, acquiring each surface at the end of the
   frame, the frame limiter ([Time and the frame](core/frame.md)).
 - Memory attribution by logical counters ([Lifecycle and memory](core/lifecycle.md)).
-- The development overlay with the puffin flamegraph and stats, the development console over settings, and pause,
-  step and time scale from it ([Profiling and debugging tools](editor/debug_tools.md),
-  [Configuration](core/configuration.md)). The overlay takes raw keyboard and mouse events from the window, since
-  input comes in step 7.
+- The puffin backend for the profiling scopes, finishing a profiler frame each frame, and the development overlay
+  with the puffin flamegraph and stats, the development console over settings, and pause, step and time scale from
+  it ([Profiling and debugging tools](editor/debug_tools.md), [Configuration](core/configuration.md)). The overlay
+  takes raw keyboard and mouse events from the window, since input comes in step 7.
 
 Demos:
 1. Each window's colour pulses with `time()`; a log line each second shows the frame rate and the fixed steps (about
