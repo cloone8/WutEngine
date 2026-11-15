@@ -1,0 +1,82 @@
+[workspace]
+resolver = "3"
+# Placeholder: no crates yet. Each member opts into the lints below with `[lints] workspace = true`.
+members = []
+
+[workspace.package]
+version = "0.7.0"
+edition = "2024"
+license = "MPL-2.0"
+rust-version = "1.100"
+
+[workspace.lints.rust]
+# Groups
+future_incompatible = { level = "warn", priority = -1 }
+nonstandard_style = { level = "warn", priority = -1 }
+
+# Individual lints
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unreachable_pub = "warn"
+missing_debug_implementations = "warn"
+missing_copy_implementations = "warn"
+ambiguous_negative_literals = "warn"
+redundant_imports = "warn"
+redundant_lifetimes = "warn"
+unused_lifetimes = "warn"
+
+[workspace.lints.cargo]
+unused_dependencies = "deny"
+unused_workspace_dependencies = "deny"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+missing_docs_in_private_items = "warn"
+missing_assert_message = "warn"
+allow_attributes_without_reason = "warn"
+too_many_lines = "warn"
+unused_self = "warn"
+mutex_integer = "warn"
+large_stack_arrays = "warn"
+large_types_passed_by_value = "warn"
+borrow_as_ptr = "warn"
+doc_broken_link = "warn"
+empty_drop = "warn"
+fallible_impl_from = "warn"
+fn_params_excessive_bools = "warn"
+infinite_loop = "warn"
+verbose_file_reads = "warn"
+unneeded_field_pattern = "warn"
+unimplemented = "warn"
+todo = "warn"
+suspicious_operation_groupings = "warn"
+needless_collect = "warn"
+needless_pass_by_ref_mut = "warn"
+needless_raw_strings = "warn"
+self_named_module_files = "deny"
+missing_fields_in_debug = "warn"
+as_pointer_underscore = "warn"
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+fn_to_numeric_cast_any = "warn"
+renamed_function_params = "warn"
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+unnecessary_safety_doc = "warn"
+unused_result_ok = "warn"
+string_add = "warn"             # Join more than two strings with `format!`/`write!`, not `+`
+unwrap_used = "warn"            # `expect("why")` over `unwrap()` outside tests
+absolute_paths = "warn"         # Import an item with `use` instead of spelling out its path
+
+similar_names = { level = "allow" }            # Too noisy and not that useful
+missing_panics_doc = { level = "allow" }       # `# Panics` on everything that asserts would be noise
+missing_errors_doc = { level = "allow" }       # Error types should be limited in size and have docs themselves
+manual_assert = { level = "allow" }            # An `if` + `panic!` is sometimes clearer (debug-only branches, inside `const`)
+cast_ptr_alignment = { level = "allow" }       # Common to cast u8 to other types
+struct_field_names = { level = "allow" }       # Too many false positives
+match_same_arms = { level = "allow" }          # Too ugly most of the time
+struct_excessive_bools = { level = "allow" }   # Mostly unnecessary
+cast_possible_truncation = { level = "allow" } # Too noisy
+cast_precision_loss = { level = "allow" }      # Too noisy
+cast_sign_loss = { level = "allow" }           # Too noisy
+assert_is_empty = { level = "allow" }          # Printing the value only helps some asserts; those use `assert_eq!(x, [])`

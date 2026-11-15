@@ -1,0 +1,11 @@
+missing-docs-in-crate-items = true
+too-many-lines-threshold = 50
+check-private-items = true
+avoid-breaking-exported-api = false
+doc-valid-idents = ["WutEngine", ".."]
+allow-unwrap-in-tests = true
+absolute-paths-max-segments = 2
+disallowed-methods = [
+    { path = "std::panic::catch_unwind", reason = "no `catch_unwind`: panics abort" },
+    { path = "std::sync::PoisonError::into_inner", reason = "never reach inside a poisoned mutex" },
+]

@@ -1,0 +1,4 @@
+{
+    // rustfmt.toml uses unstable options, which stable rustfmt skips
+    "rust-analyzer.rustfmt.extraArgs": ["+nightly"]
+}
