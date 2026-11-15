@@ -10,8 +10,8 @@ homepage.workspace = true
 repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
+publish.workspace = true
 
-publish = true
 readme = "README.md"
 
 [dependencies]

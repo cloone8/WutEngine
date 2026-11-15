@@ -1,7 +1,6 @@
 [workspace]
 resolver = "3"
-# Placeholder: no crates yet. Each member opts into the lints below with `[lints] workspace = true`.
-members = ["runtime/wutengine"]
+members = ["demos/hello", "runtime/wutengine", "xtask"]
 
 [workspace.package]
 version = "0.7.0"
@@ -9,12 +8,20 @@ authors = ["Wouter de Bruijn <wouter@wutru.io>"]
 edition = "2024"
 license = "MPL-2.0"
 rust-version = "1.100"
-homepage = "https://github.com/cloone8/WutEngine"
+homepage = "https://wutengine.com"
 repository = "https://github.com/cloone8/WutEngine"
-readme = "README.md"
 keywords = ["2D", "3D", "game", "engine"]
 categories = ["game-engines"]
 publish = false
+
+[workspace.dependencies]
+# Crates in the workspace
+
+# External crates
+log = { version = "0.4", default-features = false }
+clap = { version = "4.6", default-features = false }
+derive_more = { version = "2.1", default-features = false }
+
 
 [workspace.lints.rust]
 # Groups
@@ -33,8 +40,8 @@ redundant_lifetimes = "warn"
 unused_lifetimes = "warn"
 
 [workspace.lints.cargo]
-unused_dependencies = "deny"
-unused_workspace_dependencies = "deny"
+unused_dependencies = "warn"
+unused_workspace_dependencies = "warn"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
@@ -71,9 +78,9 @@ undocumented_unsafe_blocks = "warn"
 unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 unused_result_ok = "warn"
-string_add = "warn"             # Join more than two strings with `format!`/`write!`, not `+`
-unwrap_used = "warn"            # `expect("why")` over `unwrap()` outside tests
-absolute_paths = "warn"         # Import an item with `use` instead of spelling out its path
+string_add = "warn"                          # Join more than two strings with `format!`/`write!`, not `+`
+unwrap_used = "warn"                         # `expect("why")` over `unwrap()` outside tests
+absolute_paths = "warn"                      # Import an item with `use` instead of spelling out its path
 
 similar_names = { level = "allow" }            # Too noisy and not that useful
 missing_panics_doc = { level = "allow" }       # `# Panics` on everything that asserts would be noise
@@ -87,3 +94,31 @@ cast_possible_truncation = { level = "allow" } # Too noisy
 cast_precision_loss = { level = "allow" }      # Too noisy
 cast_sign_loss = { level = "allow" }           # Too noisy
 assert_is_empty = { level = "allow" }          # Printing the value only helps some asserts; those use `assert_eq!(x, [])`
+
+[profile.dev]
+panic = "abort"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "debuginfo"
+panic = "abort"
+debug = false
+incremental = false
+
+[profile.xtask]
+inherits = "dev"
+debug = 0
+opt-level = 0
+strip = "none"
+lto = false
+codegen-units = 256
+incremental = true
+
+[profile.xtask.package."*"]
+opt-level = 0 # Overrides the optimized dependencies inherited from `dev`
+debug = false

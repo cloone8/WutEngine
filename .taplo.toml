@@ -1,0 +1,4 @@
+# Formatting for TOML files (taplo, as used by the Even Better TOML extension)
+
+[formatting]
+column_width = 120 # Taplo's default of 80 crashes on longer `key = "value" # comment` lines
