@@ -351,6 +351,7 @@ dependencies = [
 name = "wutengine_log"
 version = "0.7.0"
 dependencies = [
+ "anstyle",
  "derive_more",
  "dirs",
  "log",

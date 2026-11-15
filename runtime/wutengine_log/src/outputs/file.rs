@@ -17,6 +17,22 @@ pub struct FileLogger {
     file: Mutex<BufWriter<File>>,
 }
 
+/// An error in [`FileLogger::new`]
+#[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
+pub enum CreateFileLoggerErr {
+    /// The file name contains a parent directory
+    #[display("File name contains a path seperator")]
+    PathSep,
+
+    /// No `data_local_dir` is known for this platform
+    #[display("No data_local_dir is known for this platform")]
+    UnknownDir,
+
+    /// I/O error
+    #[display("I/O error: {_0}")]
+    Io(io::Error),
+}
+
 impl FileLogger {
     /// Creates a new [`FileLogger`] that logs to the given file, in the organization and app directory.
     /// Creates the directories recursively, if it does not already exist.
@@ -26,19 +42,26 @@ impl FileLogger {
         org_name: &str,
         app_name: &str,
         file_name: impl AsRef<Path>,
-    ) -> Result<Self, io::Error> {
+    ) -> Result<Self, CreateFileLoggerErr> {
         let org_name = org_name.trim();
         let app_name = app_name.trim();
+
         assert!(!org_name.is_empty(), "Org name must not be empty");
         assert!(!app_name.is_empty(), "App name must not be empty");
 
-        //TODO: Handle properly
-        let base_log_dir = dirs::data_local_dir().expect("No data_local_dir");
+        let file_name = file_name.as_ref();
+
+        if file_name.parent().is_some_and(|parent| !parent.is_empty()) {
+            return Err(CreateFileLoggerErr::PathSep);
+        }
+
+        let Some(base_log_dir) = dirs::data_local_dir() else {
+            return Err(CreateFileLoggerErr::UnknownDir);
+        };
+
         let dir = base_log_dir.join(org_name).join(app_name).join("logs");
 
         fs::create_dir_all(&dir)?;
-
-        let file_name = file_name.as_ref();
 
         let (file_name, file_name_prev) = get_log_file_names(file_name);
 
@@ -106,5 +129,33 @@ fn get_log_file_names(file_name: &Path) -> (PathBuf, PathBuf) {
 
 #[cfg(test)]
 mod test {
-    //TODO: Test log file name formatting and resolution
+    use std::path::Path;
+
+    use super::get_log_file_names;
+
+    /// A plain name gets `.log`, and the previous file gets `_prev` before the extension
+    #[test]
+    fn plain_name() {
+        let (current, prev) = get_log_file_names(Path::new("engine"));
+
+        assert_eq!(current, Path::new("engine.log"), "current log file name");
+        assert_eq!(prev, Path::new("engine_prev.log"), "previous log file name");
+    }
+
+    /// A name that already has an extension keeps it, and `.log` is added after it
+    #[test]
+    fn name_with_extension() {
+        let (current, prev) = get_log_file_names(Path::new("engine.render"));
+
+        assert_eq!(
+            current,
+            Path::new("engine.render.log"),
+            "current log file name"
+        );
+        assert_eq!(
+            prev,
+            Path::new("engine.render_prev.log"),
+            "previous log file name"
+        );
+    }
 }

@@ -11,10 +11,18 @@ use wutengine::runtime::StartupOptions;
 fn main() -> ExitCode {
     profiling::function_scope!();
 
-    runtime::start(&StartupOptions {
-        org_name: "wutengine",
-        app_name: "demo_hello",
-    });
+    runtime::start(
+        &StartupOptions {
+            org_name: "wutengine",
+            app_name: "demo_hello",
+        },
+        post_startup,
+    );
+}
+
+/// Post-startup function that runs after WutEngine initialized
+fn post_startup() {
+    profiling::function_scope!();
 
     log::info!("Hello, world!");
 
@@ -22,7 +30,7 @@ fn main() -> ExitCode {
     let mut do_err = false;
     let mut num_args = 0;
 
-    for arg in env::args() {
+    for arg in env::args().skip(1) {
         log::trace!("Checking arg: {arg}");
 
         num_args += 1;
@@ -46,9 +54,8 @@ fn main() -> ExitCode {
 
     if do_err {
         log::error!("Error requested, returning failure exit code");
-        ExitCode::FAILURE
-    } else {
-        log::info!("Program succesful");
-        ExitCode::SUCCESS
+        runtime::quit(1);
     }
+
+    log::info!("Program succesful");
 }

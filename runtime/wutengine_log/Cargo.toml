@@ -16,7 +16,7 @@ readme = "README.md"
 
 [features]
 # Enables the terminal output logger
-terminal_output = []
+terminal_output = ["dep:anstyle"]
 
 # Enables the file output logger
 file_output = ["dep:dirs"]
@@ -25,10 +25,11 @@ file_output = ["dep:dirs"]
 wutengine_sync = { workspace = true }
 
 log = { workspace = true }
-derive_more = { workspace = true, features = ["debug"] }
+derive_more = { workspace = true, features = ["debug", "error", "from", "display"] }
 
 # Optional dependencies
-dirs = { workspace = true, optional = true } # Only for filesystem logging
+anstyle = { workspace = true, optional = true } # Only for terminal logging
+dirs = { workspace = true, optional = true }    # Only for filesystem logging
 
 [lints]
 workspace = true
