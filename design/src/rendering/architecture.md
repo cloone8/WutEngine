@@ -127,6 +127,12 @@ every Rust project.
      noise would spoil exact pixel art;
   6. UI drawn after the last camera, **blended in the encoded (sRGB) values,** as image editors and browsers blend. A
      UI screen ordered before a camera draws into the linear buffer and is part of the scene.
+- **Surfaces never use an sRGB format:** the output pass encodes in the shader, so dithering controls the
+  quantization and UI blends in encoded values, and the web's canvas offers no sRGB format anyway. The format, bit
+  depth included, follows the output mode and isn't fixed to 8 bits: SDR now picks one of the surface's non-sRGB
+  formats; HDR output later picks its own (a float format with its colour space). If a surface offers only sRGB
+  formats, a non-sRGB view of it is used where wgpu supports surface view formats; otherwise the shader writes linear
+  values for the hardware to encode, still dithered, and a warning is logged once that UI blends differently there.
 - **A target that only UI draws to** (in-world UI: a terminal screen, a sign) is an sRGB-encoded 8-bit texture, its UI
   blended as on a window; materials sample it as an ordinary sRGB colour texture, so it is linear in the world, lit or
   unlit, and tonemapped with the scene. UI drawn straight into the 3D scene (damage numbers, name tags) is transparent

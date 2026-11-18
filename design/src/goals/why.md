@@ -78,6 +78,7 @@ Exceptions and crates in use:
 
 | Crate | Status |
 |---|---|
+| `winit` (windows and events) | Kept, on 0.31 while it is a beta, pinned to an exact beta. egui gets the engine's own winit integration, since egui-winit still requires 0.30 |
 | `glam` (math), `image` (image decoding), `naga` (shader translation), `egui` (editor and overlay UI), `puffin` (profiler) | Kept |
 | `hecs` (the ECS under the object model) | Kept, behind WutEngine's own API ([Object model](../world/object_model.md)) |
 | `rapier` (`rapier3d`, `rapier3d-f64`, later `rapier2d`) | Kept, assumed permanent, behind the engine's own physics API ([Physics](../systems/physics.md)) |

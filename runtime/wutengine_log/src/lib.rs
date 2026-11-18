@@ -13,6 +13,7 @@ pub use ::log::debug;
 pub use ::log::error;
 pub use ::log::info;
 pub use ::log::log;
+pub use ::log::log_enabled;
 pub use ::log::trace;
 pub use ::log::warn;
 use log::Log;

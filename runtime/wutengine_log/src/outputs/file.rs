@@ -93,7 +93,11 @@ impl LoggerOutput for FileLogger {
 
         let mut writer = self.file.lock();
 
-        _ = writeln!(writer, "({time:.3}s) [{}] {}", entry.level, entry.message);
+        _ = writeln!(
+            writer,
+            "{time:.3}s [{}] ({}) {}",
+            entry.level, entry.category, entry.message
+        );
     }
 
     fn flush(&self) {

@@ -1,27 +1,14 @@
 //! Hello: A tiny demo that starts the logger and writes a log at each level, inside a profiler scope
 
 use std::env;
-use std::process::ExitCode;
 
 use wutengine::log;
 use wutengine::profiling;
 use wutengine::runtime;
 use wutengine::runtime::StartupOptions;
 
-fn main() -> ExitCode {
-    profiling::function_scope!();
-
-    runtime::start(
-        &StartupOptions {
-            org_name: "wutengine",
-            app_name: "demo_hello",
-        },
-        post_startup,
-    );
-}
-
-/// Post-startup function that runs after WutEngine initialized
-fn post_startup() {
+#[wutengine::main(org = "wutengine", app = "demo_hello")]
+fn main() {
     profiling::function_scope!();
 
     log::info!("Hello, world!");
@@ -58,4 +45,5 @@ fn post_startup() {
     }
 
     log::info!("Program successful");
+    runtime::quit(0);
 }

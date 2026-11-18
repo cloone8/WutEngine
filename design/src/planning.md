@@ -4,6 +4,8 @@ The order to build the engine in, from an empty workspace to jam-ready and beyon
 says what to build, which chapters it implements, the demos that show it working, and when it is done. A step may
 start before the previous one is complete when it doesn't depend on it.
 
+Each step lists the [open questions](open.md) to settle in it, so they're decided when they become relevant.
+
 Some orderings are decided and marked **Fixed**. The rest is a proposed order around them: change it freely, as with
 any decision in this book.
 
@@ -55,67 +57,90 @@ Demos:
 Done when an empty engine crate builds for desktop and `wasm32-unknown-unknown`, clippy is clean, and `hello` runs on
 both.
 
-## 2. Start-up, windows, shut-down
+## 2. Start-up, a window, shut-down
 
-- Start-up as one `async` function, a static per service, the winit event loop; on the web, a canvas and the loader
-  library's start function ([Lifecycle and memory](core/lifecycle.md), [Building and shipping](editor/shipping.md)).
-- **Windows, not a window, from the start,** proposed: the main window from the configuration, `window::main()` and
-  `window::create`, the `Window` handle, close requests per window (closing the main window quits, closing another
-  doesn't), and a surface per window following `resumed` and `suspended`. On the web the canvas is the only window
-  and a second `create` returns an error ([Windowing and display](systems/windowing.md)). Why: one window or several
-  changes how events are routed, how surfaces are held and how a frame renders, so single-window code isn't written
-  first.
+The first pixels: kept small on purpose. Configuration, more windows and the crash paths come in step 3, next to the
+frame loop and the settings that use them.
+
+- Start-up as a synchronous part, the main window, then one `async` function; a static per service; the winit 0.31
+  event loop; on the web, a canvas and the loader library's start function ([Lifecycle and
+  memory](core/lifecycle.md), [Building and shipping](editor/shipping.md)).
+- **A minimal start-up driver,** proposed: on desktop it blocks inside the first `can_create_surfaces`, with a waker
+  that unparks the main thread; on the web it is one future, polled in `about_to_wait` and woken through winit's
+  `EventLoopProxy::wake_up`. No `Task<T>`, no spawning, no public API. Why: getting the GPU is a promise on the web,
+  so start-up needs a driver before the job system exists; step 3 grows it into the main-thread executor without
+  changing the start-up function.
+- The `#[wutengine::main]` entry point, in the engine's first proc-macro crate, generating each target's `main`
+  ([Lifecycle and memory](core/lifecycle.md)).
+- **The main window, on internals built for several,** proposed: the main window with default settings,
+  `window::main()`, the `Window` handle, events routed and a surface held per window following `can_create_surfaces`
+  and `destroy_surfaces`, and closing the main window quits. On the web the canvas is the window
+  ([Windowing and display](systems/windowing.md)). Why: one window or several changes how events are routed, how
+  surfaces are held and how a frame renders, so single-window internals aren't written first; the API for more
+  windows waits for step 3's frame loop, which renders them all.
 - **The GPU device, and each window's surface cleared to a colour,** proposed: the device with every available
   feature, checked at runtime. It is the first piece of renderer step 0, pulled forward so there are pixels and an
   overlay (step 3) early; the renderer's feature order is unchanged ([Renderer](rendering/README.md)).
-- Shut-down as flush and exit, quit requested and quitting, `panic = "abort"` with a panic hook, `fatal_error`, and
-  the crash message ([Error handling](core/errors.md)). Strict mode for the smoke runs, proposed.
+- Shut-down as flush and exit, quit requested and quitting, and `panic = "abort"` with a panic hook ([Lifecycle and
+  memory](core/lifecycle.md)). Until step 3 brings `fatal_error`, a failed start-up logs and quits with an error
+  code.
 - Headless as an additive build feature. **Fixed:** from the start ([Lifecycle and memory](core/lifecycle.md)).
-- The typed configuration: sections registered in the entry point, the layered files, the command line, and the
-  engine's early sections ([Configuration](core/configuration.md)).
 
 Demos:
-1. A window opens, cleared to a colour from the demo's own configuration section, and closes cleanly; the log shows
-   the start-up order and the flush.
-2. The window's title and size come from `config.toml`, and the command line (on the web, the loader's arguments)
-   overrides them.
-3. On desktop, more windows, each cleared to its own colour: closing one leaves the others, closing the main window
-   quits. On the web, the second window's error is logged.
-4. A demo setting causes a panic or a `fatal_error`: the crash message box (on the web, the page message) and the
-   log, with the right path taken for each.
-5. The headless build starts, logs and quits.
+1. A window opens, cleared to a colour, and closes cleanly; the log shows the start-up order and the flush.
+2. The headless build starts, logs and quits.
 
-Done when windows open and close cleanly on desktop and in a browser, configured from a file and the command line.
+Done when a window opens, is cleared and closes cleanly on desktop and in a browser, and the headless build starts
+and quits.
 
-## 3. Time, frame and jobs
+## 3. Time, frame, jobs and configuration
 
 - The frame's phases, the fixed-update loop with the 0.25 s clamp, pause and time scale ([Time and the
   frame](core/frame.md)). Frame timing: **Fixed:** the raw measured delta first; snapping and presentation timestamps
   come later (steps 16 and Later).
-- The job system: `Task<T>`, the main-thread executor (`run_async`) also driving desktop start-up, `compute` on rayon,
-  budgeted work on the web ([Jobs and async](core/jobs.md)).
-- `Name`, the conventions' math types, and `WorldPos` with the f32/f64 build switch ([Conventions and
-  names](core/conventions.md), [Game size and precision](goals/game_size.md)).
+- The job system: `Task<T>`, the main-thread executor (`run_async`), grown from step 2's start-up driver and
+  replacing it, `compute` on rayon, budgeted work on the web ([Jobs and async](core/jobs.md)).
+- The typed configuration: sections registered in the entry point, the layered files, the command line, and the
+  engine's early sections; their steps go at the top of the start-up function ([Configuration](core/configuration.md)).
+- **More windows:** `window::create` returning a handle at once with a `ready()` task, close requests for other
+  windows (closing one never quits), the main window's settings from the configuration, and on the web an error for a
+  second window ([Windowing and display](systems/windowing.md)).
+- **The crash paths:** `fatal_error`, the crash message (a message box on desktop, the page message on
+  the web), and strict mode for the smoke runs, proposed ([Error handling](core/errors.md)).
 - Frame pacing: simulation once per frame and every window rendered, vsync, acquiring each surface at the end of the
   frame, the frame limiter ([Time and the frame](core/frame.md)).
-- Memory attribution by logical counters ([Lifecycle and memory](core/lifecycle.md)).
 - The puffin backend for the profiling scopes, finishing a profiler frame each frame, and the development overlay
   with the puffin flamegraph and stats, the development console over settings, and pause, step and time scale from
   it ([Profiling and debugging tools](editor/debug_tools.md), [Configuration](core/configuration.md)). The overlay
   takes raw keyboard and mouse events from the window, since input comes in step 7.
+- **Open questions settled in this step** ([Open questions](open.md), marked step 3): reserved configuration section
+  names, engine and game log levels, `Color` in code, an already-finished task, cursor shapes, the development overlay
+  (panels, profiler recording, diagnostics, input and cursor while open, the egui integration, the flamegraph).
 
 Demos:
-1. Each window's colour pulses with `time()`; a log line each second shows the frame rate and the fixed steps (about
+1. The window's title and size come from `config.toml`, the command line (on the web, the loader's arguments)
+   overrides them, and its colour comes from the demo's own configuration section.
+2. On desktop, more windows, each cleared to its own colour: closing one leaves the others, closing the main window
+   quits. On the web, the second window's error is logged.
+3. A demo setting causes a panic or a `fatal_error`: the crash message box (on the web, the page message) and the
+   log, with the right path taken for each.
+4. Each window's colour pulses with `time()`; a log line each second shows the frame rate and the fixed steps (about
    60). Vsync and the frame cap, set from the command line, change the frame rate.
-2. A file read (a fetch on the web) and a long `compute` job run while the colours keep pulsing without a hitch;
+5. A file read (a fetch on the web) and a long `compute` job run while the colours keep pulsing without a hitch;
    their results are logged.
-3. The overlay shows the compute job in the flamegraph, and the memory counters; the console changes the demo's
-   colour setting live, pauses, steps and changes the time scale.
+6. The overlay shows the compute job in the flamegraph; the console changes the demo's colour setting live, pauses,
+   steps and changes the time scale.
 
-Done when the game loop runs at a steady pace with the overlay and console, on desktop and the web.
+Done when the game loop runs at a steady pace with the overlay and console, configured from a file and the command
+line, on desktop and the web.
 
 ## 4. The world in Rust
 
+- `Name`, the conventions' math types, and `WorldPos` with the f32/f64 build switch. Here rather than earlier
+  because the transform hierarchy is their first user ([Conventions and names](core/conventions.md), [Game size and
+  precision](goals/game_size.md)).
+- Memory attribution by logical counters. Here because entities and components are the first things to count; the
+  overlay shows them ([Lifecycle and memory](core/lifecycle.md)).
 - The object model on hecs: entities, components with UUIDs and explicit registration, systems with declared access,
   the scheduler (non-conflicting systems in parallel, conflicting ones in registration order), commands applied after
   each group, and the schedule view ([Object model](world/object_model.md), [Time and the frame](core/frame.md)).
@@ -125,12 +150,16 @@ Done when the game loop runs at a steady pace with the overlay and console, on d
   and edited through reflection. Why: it is the only view of the world before the renderer exists, and a first
   version of the editor's inspector and of runtime inspection ([Profiling and debugging
   tools](editor/debug_tools.md)).
+- **Open questions settled in this step** ([Open questions](open.md), marked step 4): the order of commands and new
+  entity IDs, the scheduler's placement rule, system handles and registration time, services called from parallel
+  systems, separate local and world transforms, removal tracking.
 
 Demos:
 1. Several systems move a hierarchy of entities, and the demo logs a hash of every world transform after a set number
    of frames: the same hash with one worker thread, with many, and in a browser.
 2. The schedule view shows which systems ran in parallel.
 3. The overlay lists the entities; editing a component's field changes how its entity moves.
+4. The overlay's memory counters show entity and component counts; despawning half the entities brings them down.
 
 Done when Rust systems move a hierarchy of entities in parallel with the same result as on one thread, and a
 component round-trips through its reflected form.
@@ -150,6 +179,9 @@ component round-trips through its reflected form.
   toggle for the bounds view ([Profiling and debugging tools](editor/debug_tools.md)). Why: the first engine pass at
   an injection point, and it makes step 8's physics visible. Text in the world comes with text (step 13), the script
   API with scripting (step 10).
+- **Open questions settled in this step** ([Open questions](open.md), marked step 5): shader validation targets, the
+  variant cache key, `weshc`'s source map, engine-owned bind groups, multi-valued keywords, missing vertex streams,
+  the pipeline cache, labels in release, per-view state across frames, the viewport's origin.
 
 Demos:
 1. The render graph clears the `rgba16float` target and outputs sRGB; its labelled passes show in a GPU capture.
@@ -171,6 +203,9 @@ Done when Rust code draws meshes with unlit materials through a camera, on deskt
   in now; reloading itself comes later. **Fixed:** "API first" ([Assets and project files](world/assets.md)).
 - Packs and the manifest, loaded on desktop and the web, with texture formats chosen per target at build time and
   variants in the web build ([Building and shipping](editor/shipping.md)).
+- **Open questions settled in this step** ([Open questions](open.md), marked step 6): sub-asset IDs, type UUIDs and
+  format versions in packs and caches, multi-file formats and staleness, optional asset fields, editor-made bulk data,
+  asset path rules, CLI conventions.
 
 Demos:
 1. The CLI tools turn a glTF and a PNG into the import cache and then a pack; the pack tool lists its contents.
@@ -186,6 +221,8 @@ Done when the CLI tools turn a glTF and a PNG into a pack that a Rust game loads
 - The windowing a single-window game needs on top of step 2: cursor modes, fullscreen, and application focus with
   held keys released ([Windowing and display](systems/windowing.md)). IME and the clipboard come with text fields
   (step 13), file drop with the editor (step 15).
+- **Open questions settled in this step** ([Open questions](open.md), marked step 7): analog press thresholds, several
+  devices on one action, motion and scroll directions, unmapped keys.
 
 Demos:
 1. The input asset's actions are logged as they fire, from keyboard, mouse and gamepad, including one rebound at
@@ -209,6 +246,8 @@ it doesn't count towards 1.0 ([Principles and constraints](goals/principles.md#v
   ray query and a key press, a door opens by moving its transform, the exit is a distance check. Without in-game text,
   the ending resets the room or turns the screen black.
 - Left out: scenes (step 9), scripting (step 10), the PSX look (step 11), audio (step 12), UI (step 13).
+- **Open questions settled in this step** ([Open questions](open.md), marked step 8): a collider's local centre and
+  rotation.
 
 Demos:
 1. Walking the level with collision: the character controller against static colliders, with the colliders view and
@@ -274,6 +313,7 @@ too.
   ([Physics](systems/physics.md)).
 - The engine's own mixer (desktop output thread, web audio worklet), `Sound` assets, sources and one-shots with
   playbacks, the bus tree, the listener, and the web's audio unlock ([Audio](systems/audio.md)).
+- **Open questions settled in this step** ([Open questions](open.md), marked step 12): pausing one audio source.
 
 Demos:
 1. A sound test: one-shots, a looping source, bus volumes from the console, and the web's audio unlock.
@@ -303,6 +343,9 @@ The small 3D project with a PSX look ([Why the engine exists](goals/why.md)), ma
 tools, before the editor exists. Saves come in now if the game needs them ([Save games and
 storage](world/save_storage.md)).
 
+- **Open questions settled in this step** ([Open questions](open.md), marked step 14): Windows executable metadata and
+  console, build identity, third-party licence notices.
+
 Done when the game is finished and playable on desktop and the web.
 
 ## 15. The editor
@@ -316,6 +359,8 @@ Done when the game is finished and playable on desktop and the web.
   shipping](editor/shipping.md)).
 - Editor extensions in TypeScript and Rust; packages ([Packages](world/packages.md)).
 - File drop, for dragging assets in ([Windowing and display](systems/windowing.md)).
+- **Open questions settled in this step** ([Open questions](open.md), marked step 15): the project marker and version
+  check, one editor process per project, menu placement for extensions.
 
 Demos:
 1. The editor opens the first room's project, imports a dropped file, and shows a scene in the scene view with a

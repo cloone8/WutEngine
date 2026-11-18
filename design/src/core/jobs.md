@@ -80,10 +80,16 @@ Both return a `Task<T>`. Rule for users, as in JavaScript: no long CPU work betw
 - **A wake from any thread reaches the event loop,** even when idle, so the executor gets polled; no manual "request a
   frame" after awaiting. Why: wakers are called from I/O threads, libraries' own threads and OS callbacks (a native file
   dialog, for example).
+  - **Through winit's `EventLoopProxy::wake_up`,** which wakes the loop. Wakes carry no data, merge, and may arrive
+    a few loop iterations late, so the executor keeps its own queue of woken tasks and never counts wakes.
+  - **During desktop's blocking start-up the waker unparks the main thread instead,** since the event loop isn't
+    turning then.
 - **One main-thread time slice between frames** is shared by polling the executor, the follow-up work after
   background jobs and, on the web, `compute` jobs. Why: the three can't add up to more than the frame has.
-- **The executor polls once per loop iteration,** however many windows there are, always inside a winit callback, so
-  async code can create windows.
+- **The executor polls once per loop iteration, in winit's `about_to_wait`,** however many windows there are. Every
+  iteration ends there, including one started by a wake, so no other callback needs to poll. Windows requested
+  since the last iteration are created just before polling, in the same callback, so code awaiting a new window's
+  `ready()` resumes one iteration after asking ([Windowing and display](../systems/windowing.md)).
 - **On desktop, start-up's blocking driver is this executor** in a blocking mode ([Lifecycle and
   memory](lifecycle.md)); on the web start-up is its first task.
 - **No async runtime crate.** Nothing needs one.

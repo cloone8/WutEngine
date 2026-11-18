@@ -15,11 +15,27 @@ publish.workspace = true
 readme = "README.md"
 
 [features]
-default = []
+default = ["interactive", "labels"]
+interactive = ["dep:winit", "dep:wgpu"] # No-headless
+labels = []
 
 [dependencies]
 wutengine_log = { workspace = true, features = ["terminal_output", "file_output"] }
+wutengine_macro = { workspace = true }
 profiling = { workspace = true }
+
+# Non-headless builds
+winit = { workspace = true, features = ["wayland", "x11", "wayland-dlopen", "wayland-csd-adwaita"], optional = true }
+wgpu = { workspace = true, features = [
+  "dx12",
+  "metal",
+  "parking_lot",
+  "std",
+  "vulkan",
+  "webgpu",
+  "wgsl",
+
+], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }

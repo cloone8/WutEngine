@@ -10,14 +10,33 @@ the window settings in the configuration. The engine decides only what game code
   window never calls the window API.
 - **`window::main()` returns an `Option<Window>`:** `None` in a headless build, where the window API still compiles
   because game code compiles the same in both builds ([Lifecycle and memory](../core/lifecycle.md)), and `null` in
-  scripts. On a client it is always `Some`: the main window exists before game code runs. On mobile the surface comes
-  and goes; the handle stays. Why: an explicit absence instead of a window that silently does nothing on a server.
-- **More windows:** `window::create(settings)` returns a `Window` handle (title, size, mode, resizable, ...). The
-  handle has the window's state and methods (size, scale factor, focus as a property, close) and is the one runtime
-  control of a window; what the window reports is the truth. Cameras name a `Window` as their target. Scripts get the
-  same API.
-- **Where a platform has one window** (Android, the web, and iOS for now), creating a second returns an error. On the
-  web the window is the page's canvas, given by the page or appended. Kept possible: several canvases on one page.
+  scripts. On a client it is always `Some`: the main window's handle exists before game code runs, and the window is
+  open by the time start-up finishes. On mobile the surface comes and goes; the handle stays. Why: an explicit
+  absence instead of a window that silently does nothing on a server.
+- **More windows:** `window::create(settings)` (title, size, mode, resizable, ...) returns a `Window` handle at once;
+  the engine creates the OS window in the event loop's next iteration. The handle has the window's state and methods
+  (size, scale factor, focus as a property, close) and is the one runtime control of a window; what the window
+  reports is the truth. Cameras name a `Window` as their target. Scripts get the same API.
+  - **An explicit state:** pending, open, failed (with its error) or closed. **`ready()`** returns a task that
+    completes with the open window or the error ([Jobs and async](../core/jobs.md)): awaited in async code, checked
+    each frame otherwise, a promise in scripts.
+  - **Commands given before the window opens are queued** and applied in order once it does.
+  - **Getters report the last known values,** never made-up ones: while pending, the requested settings (the state
+    says they are provisional); after closing, the values it had.
+  - Why a handle at once: code can keep it, give it to a camera or set its title right away, and synchronous frame
+    code doesn't poll a task to get one. Why not a promise of synchronous creation: winit creates windows only inside
+    its own callbacks, and a window's real state arrives later anyway (its size on Wayland once the compositor
+    configures it, its surface on Android when the system allows one). It also keeps winit's event loop out of reach
+    of plain functions.
+- **The handle reads a snapshot, refreshed at frame start** (phase 0, [Time and the frame](../core/frame.md));
+  setters are queued and applied on the main thread at the next frame start, as configuration sets are. Why: systems
+  running in parallel read window state safely, and a value never changes in the middle of a phase.
+- **`window::create`'s settings default to a windowed window,** with an optional minimum and maximum size. Why: a
+  fullscreen default forces every tool window to override it.
+- **Where a platform has one window** (Android, the web, and iOS for now), creating a second fails: its state becomes
+  failed and `ready()` completes with the error. On the web the window is the page's canvas, given by the page or
+  appended. Kept possible: several canvases on one page,
+  which winit already supports, so the one-window rule on the web is the engine's own.
 - Why windows aren't entities: they are an engine service, not game objects, and aren't saved in scenes
   ([Principles and constraints](../goals/principles.md)). The editor's needs (the play-mode window, floating tools
   later) are met by the same function.
@@ -127,4 +146,6 @@ The runtime features the editor needs, at their minimum:
 - **Mobile specifics** (safe areas, orientation) come with mobile ([Later](../later.md)).
 - **Native popups, owner and modal windows** come with the editor's design (egui draws its panels inside a window
   first).
-- **Monitors:** a query for the monitors and the window's current one is enough for fullscreen.
+- **Monitors:** a query for the monitors and the window's current one is enough for fullscreen. It asks the
+  platform each time, since monitors come and go, and a monitor's refresh rate and name are optional, since platforms
+  don't always report them (snapping and the frame cap's divisor rule handle an unknown rate).

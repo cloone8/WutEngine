@@ -5,7 +5,8 @@ What the design hasn't settled yet, grouped by chapter. Three kinds:
 - **Implementation:** left to implementation on purpose; decide while building it.
 - **Verify:** an assumption the design rests on that hasn't been checked or measured yet.
 
-When an item is settled, its answer goes into the chapter and the item leaves this page.
+When an item is settled, its answer goes into the chapter and the item leaves this page. Items marked with a
+planning step, such as **(step 4)**, are settled in that step; [Planning](planning.md) lists them there too.
 
 ## Goals
 
@@ -24,6 +25,9 @@ When an item is settled, its answer goes into the chapter and the item leaves th
 - **Implementation:** the concrete subsystem order at start-up and shut-down, the fatal-error hook's timeout, the
   headless feature's name (one feature or one per subsystem), and a splash window during start-up
   ([Lifecycle and memory](core/lifecycle.md)).
+- **Decide:** for quitting on winit 0.31 ([Lifecycle and memory](core/lifecycle.md)):
+  - how `quit()` stops the game on the web. It throws today, which from inside a winit callback would unwind through
+    winit's web runner mid-dispatch. To start: quit through winit's `exit()`, then show the page message.
 - **Implementation:** for errors ([Error handling](core/errors.md)):
   - the library that shows the desktop crash message box;
   - the script loop-limit default (10 million iterations per call to start, then tuned);
@@ -48,10 +52,31 @@ When an item is settled, its answer goes into the chapter and the item leaves th
   - whether the web page gets any say in vsync;
   - the allocator tagging cost on Linux, Windows and wasm;
   - whether boa's loop-limit error can name the script line;
-  - whether winit's web backend reports tab visibility as `Occluded`;
   - whether winit reports the OS ending the session on desktop (Windows doesn't);
   - mobile backgrounding beyond winit's events, and iOS `quit()` behaviour;
   - the cost of the plain distance loop over collider-less entities at jam-to-indie counts.
+- **Decide (step 3):** reserved names for the engine's configuration sections, with a registration error that names
+  a clash between a game's section and the engine's ([Configuration](core/configuration.md)).
+- **Decide (step 3):** separate default log levels for the engine with its dependencies (wgpu, naga, ...) and for
+  game code, also as the editor console's default filters ([Profiling and debugging
+  tools](editor/debug_tools.md)).
+- **Decide (step 3):** what `Color` means in code: linear in memory; hex and byte constructors taking sRGB as CSS
+  does, next to explicit linear ones; alpha defaulting to 1 ([Conventions and names](core/conventions.md)).
+- **Decide (step 3):** an already-finished task (`Task::from_value`), so a cache hit and a load share one code path
+  ([Jobs and async](core/jobs.md)).
+- **Decide (step 4):** the order of commands and new entity IDs coming from parallel systems: for example buffers
+  per system merged in registration order, then chunk order, then call order; whether a Rust `spawn` returns a
+  usable entity ID at once; and that IDs which feed any ordering (sorts, tie-breaks) are minted at deterministic
+  points. Related to the entity ID question under Goals ([Object model](world/object_model.md)).
+- **Decide (step 4):** the scheduler's placement rule: a system goes after the last set that holds any earlier
+  system it conflicts with, not into the first set without a conflict, which breaks registration order
+  ([Time and the frame](core/frame.md)).
+- **Decide (step 4):** how a system is referred to in before/after orderings (typed handles), a cycle check and an
+  error for orderings across phases at registration, and whether systems are registered only in the entry point
+  ([Time and the frame](core/frame.md)).
+- **Decide (step 4):** one general rule for engine services called from parallel systems: read-only for the phase,
+  or queued and applied in registration order, then call order, as audio and signals already do
+  ([Time and the frame](core/frame.md)).
 
 ## The game world
 
@@ -86,6 +111,21 @@ When an item is settled, its answer goes into the chapter and the item leaves th
   - API names such as `saves.write`.
 - **Verify:** that the native `tsc` resolves package imports through the generated `tsconfig.json` without Node, and
   with which `moduleResolution` mode ([Packages](world/packages.md)).
+- **Decide (step 4):** local and world transforms as separate component types, the world one written only by
+  propagation, so "world transforms as of the start of the phase" works with access tracked per type
+  ([Object model](world/object_model.md)).
+- **Decide (step 4):** removed components and despawned entities as part of change tracking, read by every
+  subsystem with proxy components (physics, audio, renderer) ([Object model](world/object_model.md)).
+- **Decide (step 6):** for assets ([Assets and project files](world/assets.md), [Building and
+  shipping](editor/shipping.md)):
+  - where the IDs of several assets imported from one source live (for example in the source's settings file, keyed
+    by a stable sub-path), and what a rename or removal inside the source does;
+  - the asset type's UUID in every pack and manifest entry, and a format version per cache entry and pack header;
+  - formats spanning several files: readers get a resolver for related files, imports record the files they read,
+    and staleness covers sources, settings and the importer version;
+  - optional asset fields as `Option<Asset<T>>`, shown as "None" in the inspector;
+  - bulk data made in the editor (heightmaps, baked maps) written as standard source formats next to a JSON asset;
+  - asset path rules: project-relative, `/`-separated, case-exact, with a build error on a case-only clash.
 
 ## Scripting
 
@@ -129,6 +169,25 @@ When an item is settled, its answer goes into the chapter and the item leaves th
   - which platforms lack runtime shader compilation.
 - **Decide:** whether texture variants get one manifest location per variant or one manifest per variant, and how
   assets are compressed inside packs ([Building and shipping](editor/shipping.md)).
+- **Decide (step 5):** for shaders ([Shaders and materials](rendering/shaders.md)):
+  - which capability set each variant is validated against (the WebGPU core for baseline variants), so the runtime
+    never picks a variant that needs a capability the device lacks;
+  - the variant cache key: the content of all imports (transitively), the `weshc` version, the capability target, the
+    pass and binding axes;
+  - a source map in `weshc` (keep line structure, map spans to file and line through imports and `@if`), with the
+    graph's line-to-node table on top;
+  - engine-owned bind groups (view, object) reflected from the engine's own WGSL with a test, and an actionable error
+    when a user shader binds into them;
+  - how a dropdown keyword with several values lowers to `@if`, errors for undeclared or out-of-range keywords, and a
+    variant key normalised with defaults;
+  - what a shading model gets when a mesh lacks a stream it reads (defaults fed by the wrapper, or a check at
+    material assignment logged once, never per draw);
+  - the pipeline cache on disk: keyed by adapter, driver and the game's identity, treated as untrusted input, saved
+    after loads rather than on exit;
+  - formatted debug labels compiled out of release builds.
+- **Decide (step 5):** state that lives across frames per view (history buffers, auto exposure, query sets), owned
+  outside each frame's graph and imported into it, freed with the view ([Renderer
+  architecture](rendering/architecture.md)).
 
 ## Engine systems
 
@@ -175,6 +234,20 @@ When an item is settled, its answer goes into the chapter and the item leaves th
   - the speed cost of rapier's `enhanced-determinism`, needed only for the multiplayer door;
   - the character controller's autostep cost;
   - the query sync's cost on the engine side, on the web, for child colliders and for triangle meshes.
+- **Decide (step 3):** standard cursor shapes per window (arrow, text, resize, grab, pointer), with egui driving
+  the shape while it has the pointer ([Windowing and display](systems/windowing.md)).
+- **Decide (step 5):** the camera viewport rectangle's origin: top-left, matching screen positions
+  ([Input and camera](systems/input_camera.md)).
+- **Decide (step 7):** for input ([Input and camera](systems/input_camera.md)):
+  - a press threshold with hysteresis per binding, for an analog input bound to a button action;
+  - how several devices driving one player combine on one action, and a last-used-device query for button prompts;
+  - the axis directions of mouse motion and scroll;
+  - whether a key without a mapping can still be bound (by raw code, not portable between machines).
+- **Decide (step 8):** whether a `Collider` has a local centre and rotation, applied through its entity's world
+  transform; and, when 2D physics comes, how the 3D transform maps to 2D (the XY plane, the angle about Z, what tilt
+  and scale do) ([Physics](systems/physics.md)).
+- **Decide (step 12):** a pause per audio source that keeps its position, or the documented workaround
+  ([Audio](systems/audio.md)).
 
 ## Editor and tools
 
@@ -190,6 +263,28 @@ When an item is settled, its answer goes into the chapter and the item leaves th
 - **Implementation:** how doc strings are compiled out of the release player ([Documentation](editor/documentation.md)).
 - **Decide later:** how the versioned online documentation is served and deployed
   ([Documentation](editor/documentation.md)).
+- **Decide (step 3):** for the development overlay ([Profiling and debugging tools](editor/debug_tools.md)):
+  - a registry of overlay panels (Rust only, development builds only) with an open/close hook;
+  - profiler scopes recording only while someone watches (the overlay's profiler open, or the editor link
+    subscribed), with a setting to always record;
+  - built-in diagnostic panels: GPU adapter, driver, features and limits (also logged at start-up), each window's
+    surface format, present mode and latency, a browsable settings view; input devices with live action states come
+    with step 7;
+  - who gets input and the cursor while the overlay is open: consuming what egui wanted in the previous frame,
+    unlocking the cursor while the overlay has focus, and restoring the game's mode afterwards;
+  - the engine's egui integration: fed from ordered window events (positions, repeats, physical keys, pointer gone,
+    scroll in pixels), never rebuilt from polled state; user textures (render textures shown in egui) from the start;
+    drawn last, after tonemapping, at full resolution, blending in encoded values;
+  - who draws the flamegraph: the engine's own view on egui, or upstream puffin_egui with its egui version lag.
+- **Decide (step 6):** conventions for the CLI tools: data on stdout and logs on stderr, a non-zero exit when any
+  input failed, and a JSON dump of a cache or pack entry ([Building and shipping](editor/shipping.md)).
+- **Decide (step 14):** for shipped builds ([Building and shipping](editor/shipping.md)): the Windows executable's
+  icon and version resource, the GUI subsystem attaching to a parent console for command-line use, a build identity
+  in logs and crash messages (a git commit optional, never required); and a third-party licence notices file in every
+  build, the web included.
+- **Decide (step 15):** for the editor ([Editor](editor/README.md)): a project marker file with a real check of the
+  editor against the project's locked engine version; opening or switching a project in a fresh editor process; how
+  extensions place menu items.
 - **Placeholder names,** first drafts like those listed above: `AudioSource`, `Sound` and `audio.play`
   ([Audio](systems/audio.md)); `RigidBody`, `Collider` and `physics.raycast` ([Physics](systems/physics.md)); `edit.set`
   and `edit.group` ([Editor](editor/README.md)); the term "UI screen" ([In-game UI and text](systems/ui_text.md)).

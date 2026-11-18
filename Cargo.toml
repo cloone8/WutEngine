@@ -1,6 +1,14 @@
 [workspace]
 resolver = "3"
-members = ["demos/hello", "runtime/wutengine", "runtime/wutengine_log", "runtime/wutengine_sync", "xtask"]
+members = [
+  "runtime/wutengine",
+  "runtime/wutengine_log",
+  "runtime/wutengine_macro",
+  "runtime/wutengine_sync",
+  "xtask",
+  "demos/hello",
+  "demos/window",
+]
 
 [workspace.package]
 version = "0.7.0"
@@ -16,9 +24,11 @@ publish = false
 
 [workspace.dependencies]
 # Crates in the workspace
-wutengine = { version = "0.7.0", path = "runtime/wutengine", default-features = false }
+wutengine = { version = "0.7.0", path = "runtime/wutengine" } # We want the default features here. Workspace tools can switch them off if needed
+
 wutengine_log = { version = "0.7.0", path = "runtime/wutengine_log", default-features = false }
 wutengine_sync = { version = "0.7.0", path = "runtime/wutengine_sync", default-features = false }
+wutengine_macro = { version = "0.7.0", path = "runtime/wutengine_macro", default-features = false }
 
 # External crates
 anstyle = { version = "1.0", default-features = false }
@@ -32,6 +42,11 @@ web-sys = { version = "0.3", default-features = false }
 web-time = { version = "1.1", default-features = false }
 js-sys = { version = "0.3", default-features = false }
 tiny_http = { version = "0.12", default-features = false }
+winit = { version = "=0.31.0-beta.4", default-features = false } # TODO: Remove pin once 0.31.0 is out of beta
+syn = { version = "3", default-features = false }
+quote = { version = "1", default-features = false }
+proc-macro2 = { version = "1", default-features = false }
+wgpu = { version = "30", default-features = false }
 
 
 [workspace.lints.rust]

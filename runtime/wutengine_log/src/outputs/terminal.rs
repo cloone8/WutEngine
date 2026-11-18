@@ -122,7 +122,11 @@ impl LoggerOutput for TerminalLogger {
         });
 
         self.output.with_writer(|writer| {
-            _ = writeln!(writer, "({time:.3}s) [{}] {}", level, entry.message);
+            _ = writeln!(
+                writer,
+                "{time:.3}s [{}] ({}) {}",
+                level, entry.category, entry.message
+            );
         });
     }
 

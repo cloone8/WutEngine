@@ -11,7 +11,14 @@ architecture](architecture.md), shaders and materials in [Shaders and materials]
   has compute shaders, storage buffers, single indirect draws, up to 8 colour attachments and MSAA 1 or 4, but no
   bindless, mesh shaders, ray tracing, multi-draw indirect or push constants.
 - **Use any feature and limit wgpu exposes, always checked at runtime.** Shipped games request everything the GPU
-  supports. Why: each platform gets its maximum while the engine stays compatible with the WebGPU baseline.
+  supports. Why: each platform gets its maximum while the engine stays compatible with the WebGPU baseline. Left out:
+  - **experimental features:** wgpu requires an `unsafe` opt-in for them and documents them as possibly buggy;
+  - **mappable primary buffers unless CPU and GPU share memory:** they only help where memory is shared and hurt
+    badly where it isn't. So they are requested only on integrated GPUs and software (CPU) renderers, never on
+    discrete or virtual GPUs or an unknown device type; where requested, code checks the feature before relying on
+    it, as with any other;
+  - **passthrough shaders, for now:** they bypass naga's validation, which the shader pipeline relies on
+    ([Shaders and materials](shaders.md); a later use is in [Later](../later.md)).
 - **Accelerators** (same output, faster: timestamp queries, pipeline cache, multi-draw indirect, subgroups) are used
   freely; **enhancements** (different output) need a baseline fallback.
 - **A baseline switch:** a development tool (editor or development build) that requests only the WebGPU minimum, to

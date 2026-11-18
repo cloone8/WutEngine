@@ -11,8 +11,9 @@ starts. User code sees a strictly sequential frame. Parallelism the user can't o
 background work that doesn't touch the world, whose results enter the world at fixed sync points.
 Why: user code can then reason about the frame as if it ran on one thread, which it does on the web.
 
-0. **Frame start:** platform events and input; results of background work enter the world: loaded assets, finished
-   scene loads (a scene switch takes effect here), GPU readbacks, editor-link messages, configuration changes.
+0. **Frame start:** platform events and input (the development overlay takes the input it wants first); results of
+   background work enter the world: loaded assets, finished scene loads (a scene switch takes effect here), GPU
+   readbacks, editor-link messages, configuration changes.
 1. **Fixed-update loop, 0..n steps** at a fixed rate. Per step: fixed update (Rust systems, then scripts), transform
    propagation, physics step, collision and trigger callbacks.
 2. **Update** (Rust systems, then scripts). Between the two is the **settle point**: queued Rust and engine signal
@@ -20,11 +21,13 @@ Why: user code can then reason about the frame as if it ran on one thread, which
    [Script API](../scripting/api.md)).
 3. **Animation** (once it exists): writes local transforms.
 4. **Late update** (Rust systems, then scripts): camera follow, overriding animation. Then **UI layout** writes UI
-   elements' transforms ([In-game UI and text](../systems/ui_text.md)).
+   elements' transforms ([In-game UI and text](../systems/ui_text.md)). Then, in development builds, **the
+   development overlay's UI**, on the main thread, so its inspector edits go through propagation in this frame
+   ([Profiling and debugging tools](../editor/debug_tools.md)).
 5. **Transform propagation.**
 6. **Render preparation:** the one sync of changes into the retained GPU scene; audio sources and the listener read
    their final positions (in parallel with render preparation).
-7. **Render graph:** build, record, submit, present.
+7. **Render graph:** build, record, submit, present. The development overlay draws last.
 
 Rules within the frame:
 
@@ -110,16 +113,21 @@ anti-goal is magic (parameter injection, macros), and explicit declarations avoi
   mode the surface lacks. Ignored on the web, where the browser decides.
 - **A frame-rate cap, off by default on desktop,** for vsync off, battery and laptops. It waits at the same point as the
   display wait, as above, without spinning by default (a "precise" option spins the last part). With vsync on, only
-  divisors of the refresh rate are allowed (others round down, since they judder). For variable refresh rate the
-  suggested cap is `r - r²/3600`. On the web, animation frames are skipped by timestamp. Mobile will use the OS
+  divisors of the refresh rate are allowed (others round down, since they judder). **Each deadline is the previous
+  deadline plus the interval,** re-anchored to now when more than one interval late. Why: measuring from the end of
+  the frame makes every frame take its work plus a full interval, so the cap always runs slow. For variable refresh
+  rate the suggested cap is `r - r²/3600`. On the web, animation frames are skipped by timestamp. Mobile will use the OS
   frame-rate APIs.
 - **Background and minimized:** a minimized window doesn't render; an unfocused game runs at a low cap (a setting);
-  mobile suspend stops the loop. The editor and every WutEngine GUI application redraw only when something changes.
+  mobile suspend stops the loop. The editor and every WutEngine GUI application redraw only when something changes:
+  input, an explicit `request_redraw()`, an egui repaint request (a delayed one wakes the loop at its time through
+  `WaitUntil`), or a woken task ([Jobs and async](jobs.md)). After such an idle wait, the next frame's delta counts as
+  one nominal frame, as the first frame does (below), so a tool never runs a burst of catch-up steps.
 - **Surface robustness:** `Timeout` and `Occluded` from acquire skip the frame, and after an `Occluded` frame a
   reactive application requests another redraw (the first macOS frame may report `Occluded`); `Lost` and `Outdated`
-  reconfigure. When
-  no frames come (there is no portable "hidden" signal), a timer keeps running logic-only frames at the background
-  rate.
+  reconfigure; `Suboptimal` presents that frame, then reconfigures. winit's `pre_present_notify` is called right
+  before each present (it paces redraws on Wayland). When no frames come (there is no portable "hidden" signal), a
+  timer keeps running logic-only frames at the background rate.
 - **Kept possible:** late latching of the camera (recomputing only the view from the newest input right before
   submitting, cheap because per-view data is stored separately); a "low latency" option later (just-in-time frame
   start with one frame in flight).
@@ -132,6 +140,9 @@ Plain functions:
   step. Why: gameplay code uses one `delta()` everywhere.
 - **Real time** `unscaled_time()`, `unscaled_delta()`: never scaled or paused (UI, menus, the editor).
 - **Fixed time** `fixed_time()`, `fixed_delta()`, plus **`tick()`**, the fixed-step counter (for multiplayer).
+  `fixed_time()` is the exact sum of the fixed steps actually run: never reset to frame time, and never scaled per
+  step (time scale already changed how many steps ran). Not `tick() × fixed_delta()`, since the fixed rate can
+  change at runtime.
 - **`frame_num()`.** An audio clock belongs to [Audio](../systems/audio.md).
 
 Representation:
@@ -149,6 +160,8 @@ Representation:
   time beyond it is dropped, so an overloaded game slows down rather than running away. Why: a hitch, breakpoint or
   loading pause then doesn't trigger a burst of fixed steps. Kept possible: a step cap as a setting if responsiveness
   under overload turns out to matter.
+- **The frame clock starts when the event loop does,** so the first frame's delta is one nominal frame, not the time
+  start-up took. Why: otherwise the first frame always hits the clamp and runs a burst of fixed steps.
 - **Time scale changes the number of fixed steps, not their length,** and is global only. Why: physics keeps its tuned
   step and a tick keeps one meaning, which networking needs; interpolation smooths slow motion. Kept possible: a
   per-scene time scale.

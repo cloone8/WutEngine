@@ -6,19 +6,43 @@ dependencies when they are built.
 
 ## Start-up
 
-- **Start-up is one `async` function on every target.** The steps read top to bottom, awaiting where they wait (the
-  GPU, fetches); that function is the documented start-up order. Configuration's steps come first
-  ([Configuration](configuration.md)), then logging, then the window and GPU. Until start-up finishes, the game runs
-  nothing but its entry point's registrations.
-  Why: on the web, getting a GPU is a promise and the main thread may never block; one function avoids a second
-  start-up path that drifts apart and is tested least.
-- **The driver differs per target.** On desktop, the job system's main-thread executor in blocking mode drives it to
-  completion, parking the main thread until a waker fires; on the web, start-up is that executor's first task
+- **The engine provides the entry point: a `#[wutengine::main]` attribute** on the game's entry function, from a
+  proc-macro crate. It generates what each target needs: on desktop a `main` that runs the event loop, then flushes
+  and exits; on the web a `main` that hands the application to winit and returns normally; later, Android's
+  `android_main`. The game's source is the same on every target; the attribute's arguments are a first draft.
+  Why: winit's `run_app` blocks on desktop but returns at once on the web, so a start function the game calls can't
+  have one honest signature (a `-> !` on the web would need a control-flow exception out of `main`). Android has no
+  `main` at all, and the attribute is one place for what must run before any game code (the panic hook). Why a
+  proc macro over `macro_rules!`: an attribute on a normal function, and the proc-macro crate is needed for derives
+  later anyway.
+- **Start-up is a synchronous part, the main window, then one `async` function, the same on every target:**
+  1. **The synchronous part** runs in the start function, before the event loop exists: configuration's steps
+     ([Configuration](configuration.md)), logging, the game's entry point (its registrations), and the report of
+     unregistered sections. A headless build runs it too.
+  2. **The main window** is created in winit's first `can_create_surfaces`, directly from the event loop winit hands
+     that callback, together with the wgpu instance and the window's surface (all synchronous). On desktop and the
+     web that callback comes once, right after the loop starts.
+  3. **The async part** follows from there: the GPU adapter, requested as compatible with that surface, the device,
+     the surface's configuration, and whatever start-up awaits later (asset loads). It never creates windows itself.
+     Why the surface first: with several GPUs, an adapter chosen without it may not present to the window.
+
+  Read top to bottom, the three are the documented start-up order. Until start-up finishes, the game runs nothing
+  but its entry point's registrations.
+  Why: on the web, getting a GPU is a promise and the main thread may never block, while everything before the
+  window is synchronous (player settings are a file or `localStorage`, and the loader hands in the project
+  configuration). One path on every target avoids a second start-up path that drifts apart and is tested least, and
+  creating the main window inside the callback needs no way for plain functions to reach winit's event loop.
+- **Nothing before the main window may await.** A later need to (an asynchronous player-settings store on the web,
+  say) would move the main window into the async part, created like any other window and awaited through its
+  `ready()` ([Windowing and display](../systems/windowing.md)).
+- **The async part's driver differs per target.** On desktop, the job system's main-thread executor in blocking mode
+  drives it to completion, parking the main thread until a waker fires; on the web, it is that executor's first task
   ([Jobs and async](jobs.md)). Why: one executor lets start-up await asset loads on every target.
-- **Consequence of the blocking driver:** while it runs the event loop doesn't, so on desktop start-up can't await
-  anything the event loop delivers (it runs inside winit's `resumed` and creates the window there directly), and
-  nothing is drawn until it finishes. An animated splash during a long start-up would need the event-loop driver on
-  desktop too; switching drivers doesn't change the start-up function.
+- **Where it runs in winit's flow:** on desktop winit's `run_app` blocks until the loop exits; on the web it
+  registers the application and returns at once, and the browser drives the loop from then on.
+- **Consequence of the blocking driver:** while it runs the event loop doesn't, so on desktop the async part can't
+  await anything the event loop delivers, and nothing is drawn until it finishes. An animated splash during a long
+  start-up would need the event-loop driver on desktop too; switching drivers doesn't change the start-up function.
 
 ## Where the engine's services live
 
@@ -62,8 +86,12 @@ dependencies when they are built.
   objects: assets, views, render targets, GPU jobs. Raw wgpu objects are available inside a render-graph pass or GPU
   job while it executes, not kept across frames. Rust programmers can still reach the device, documented as "may be
   replaced". Why: headless builds and clean ownership, and it keeps a renderer restart possible without planning it.
-- **Surfaces follow `resumed` and `suspended`** on every platform: created on `resumed`, dropped before `suspended`
-  returns, the held swapchain image included. Why: Android drops the surface on every suspend.
+- **Surfaces follow winit's `can_create_surfaces` and `destroy_surfaces`** on every platform: created in
+  `can_create_surfaces`, dropped before `destroy_surfaces` returns, the held swapchain image included. Only Android
+  destroys surfaces; desktop and the web get one `can_create_surfaces` and never a destroy. The two may come back to
+  back and repeat: start-up runs only in the first `can_create_surfaces`, later ones only recreate surfaces.
+  Why: Android drops the surface on every suspend. winit's `resumed` and `suspended` are the app lifecycle instead,
+  and exist only on iOS, Android and the web (below).
 - **Device loss stays fatal** ([Error handling](errors.md)). Restarting the renderer in process is not planned; it is
   revisited when the web build shows how often losses happen there.
 
@@ -97,8 +125,15 @@ dependencies when they are built.
   the game and shows a "the game has ended" page message.
 - **On fatal error:** the opt-in hook above.
 - **Backgrounded / foregrounded, on mobile and the web only:** the platform may kill the game soon without another
-  event, so this is **the save point** there. It fires where the platform still gives time to save (on Android from
-  `onStop`, on iOS on entering the background). Not on desktop: a minimized game keeps running and isn't killed;
+  event, so this is **the save point** there. It fires where the platform still gives time to save:
+  - on Android from `onStop`, which is winit's `suspended` there;
+  - on iOS on entering the background. winit's `suspended` there is resigning active, which is earlier and also fires
+    for an incoming call or Control Center, so this needs its own hook;
+  - on the web when the page is hidden, from the engine's own `visibilitychange` listener. winit's `suspended` there
+    only means the page went into the back/forward cache, and its `Occluded` also fires when the canvas scrolls out of
+    view.
+
+  Not on desktop: a minimized game keeps running and isn't killed;
   desktop games save in "quitting" and pause on focus lost ([Windowing and display](../systems/windowing.md)).
   Why: one clear meaning, "you may be killed soon", rather than an event that also fires on desktop minimize.
 - **A development command "simulate background / foreground"** fires those events in play mode, so desktop development

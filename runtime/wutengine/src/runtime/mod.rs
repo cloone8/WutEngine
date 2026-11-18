@@ -2,32 +2,61 @@
 
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
+use std::panic;
 
+use winit::event_loop::EventLoop;
 use wutengine_log::FileLogger;
 
 use crate::log;
+use crate::panic_handling;
+use crate::runtime::winit_app::WutEngineApp;
+
+mod startup;
+mod winit_app;
 
 /// Startup options used to start the [WutEngine runtime](crate::runtime)
-#[derive(Debug)]
-pub struct StartupOptions<'a> {
+/// Not public API, should be used through the [`wutengine_macro::main`] macro
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy)]
+pub struct StartupOptions {
     /// Organization name, used for storing/loading data
-    pub org_name: &'a str,
+    pub org_name: &'static str,
 
     /// Application name, used for storing/loading data
-    pub app_name: &'a str,
+    pub app_name: &'static str,
+}
+
+cfg_select! {
+    target_arch = "wasm32" => {
+        type StartRet = ();
+    }
+    _ => {
+        type StartRet = !;
+    }
 }
 
 /// Starts the WutEngine runtime. Must be called once, from the main thread
-pub fn start(options: &StartupOptions, post_startup: impl FnOnce() + 'static) -> ! {
+/// Not public API, should be used through the [`wutengine_macro::main`] macro
+#[doc(hidden)]
+pub fn _wutengine_entry(
+    options: &StartupOptions,
+    app_entrypoint: impl FnOnce() + 'static,
+) -> StartRet {
     static INIT: AtomicBool = AtomicBool::new(false);
 
     if INIT.swap(true, Ordering::Relaxed) {
-        panic!("Runtime already initialized")
+        panic!("Runtime already initialized");
     }
 
+    panic::set_hook(Box::new(panic_handling::panic_hook));
+
     let basic_logger = cfg_select! {
-        target_arch = "wasm32" => {{ Box::new(wutengine_log::BrowserConsoleLogger::new()) }}
+        target_arch = "wasm32" => {{
+            // Web logs to `console` API
+            Box::new(wutengine_log::BrowserConsoleLogger::new())
+        }}
         _ => {{
+            // Native logs to terminal
             Box::new(wutengine_log::TerminalLogger::new(
                 wutengine_log::OutputMode::Stdout,
                 wutengine_log::ColorMode::Auto,
@@ -38,6 +67,7 @@ pub fn start(options: &StartupOptions, post_startup: impl FnOnce() + 'static) ->
     log::init(log::LogSettings::new(), vec![basic_logger]);
 
     if !cfg!(target_arch = "wasm32") {
+        // Web can't log to files. Native can
         match FileLogger::new(options.org_name, options.app_name, "engine") {
             Ok(fl) => log::add_output(Box::new(fl)),
             Err(e) => {
@@ -46,13 +76,31 @@ pub fn start(options: &StartupOptions, post_startup: impl FnOnce() + 'static) ->
         }
     }
 
-    log::info!("WutEngine start-up done");
+    // Run the app entrypoint first, so that users can have chance to run registrations
+    app_entrypoint();
 
-    post_startup();
+    let event_loop = match EventLoop::builder().build() {
+        Ok(el) => el,
+        Err(e) => {
+            panic!("Failed to build an event loop: {e}"); //TODO: Replace with fatal error once we have an API for it
+        }
+    };
 
-    quit(0);
+    let app = WutEngineApp::new();
 
-    unreachable!("Quit still immediately aborts for now");
+    if let Err(e) = event_loop.run_app(app) {
+        panic!("Error while running app event loop: {e}"); //TODO: Replace with fatal error later
+    }
+
+    cfg_select! {
+        target_arch = "wasm32" => {
+            return;
+        }
+        _ => {
+            quit(0);
+            unreachable!("Quit still immediately aborts for now");
+        }
+    }
 }
 
 /// Requests that the WutEngine runtime quits as soon as possible.

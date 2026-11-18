@@ -120,8 +120,8 @@ Hard constraints, not traded off against the priority order.
   Why: wasm threads still need a nightly toolchain (`-Zbuild-std`), and they need COOP/COEP headers that game hosts
   handle poorly.
 - **Web and mobile share requirements:** no plain filesystem for assets (APK, browser fetch), an app lifecycle
-  (suspend and resume; graphics initializes after the app is resumed), touch input. Designing for the web covers most
-  of mobile.
+  (suspend and resume; render surfaces only exist while the platform allows them), touch input. Designing for the web
+  covers most of mobile.
 - **No JIT.** Why: iOS forbids it for apps, and keeping consoles possible requires it too.
 - **Consoles kept possible.** They can't be designed for without SDKs, so "kept possible" means the same rules as web
   and iOS (no OS assumptions, no JIT, no plain filesystem), plus platform code (windowing, input, files) kept behind

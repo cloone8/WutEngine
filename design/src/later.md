@@ -52,6 +52,9 @@ forgotten; none of them has a design yet.
 - HDR display output.
 - A low-end option without the HDR target.
 - Binding arrays and bindless as a native accelerator (a `weshc` variant); GPU-driven rendering.
+- Shaders compiled to each backend's own format at build time and loaded as passthrough shaders, skipping naga's
+  translation at runtime: a possible stutter win in exchange for a little unsafety (the build's validation is then
+  the only check). The driver still compiles pipelines on the player's machine; the pipeline cache helps there.
 - Render layers per view (a first-person weapon camera, a minimap).
 - Light intensity presets in the inspector (candle, bulb, overcast, sun).
 - Render bundles to record one heavy pass in parallel chunks.
@@ -107,6 +110,8 @@ forgotten; none of them has a design yet.
 - Exclusive fullscreen, if a platform needs it.
 - Several canvases on one web page.
 - Window position; a pixel-exact window size; opting a window out of high-DPI.
+- The application and window icon: mostly a build setting (embedded in the executable or bundle), plus the window
+  icon at runtime where a platform shows one (Windows, X11).
 - IME on the web; an on-screen keyboard for gamepad-only text entry.
 - Mobile specifics: safe areas, orientation, screen density.
 
