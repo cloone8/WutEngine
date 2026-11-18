@@ -5,7 +5,6 @@ use std::env;
 use wutengine::log;
 use wutengine::profiling;
 use wutengine::runtime;
-use wutengine::runtime::StartupOptions;
 
 #[wutengine::main(org = "wutengine", app = "demo_hello")]
 fn main() {

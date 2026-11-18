@@ -11,7 +11,7 @@ use crate::renderer;
 
 pub(super) fn startup_sync(
     active_el: &dyn ActiveEventLoop,
-) -> (Instance, Arc<dyn Window>, Surface) {
+) -> (Instance, Arc<dyn Window>, Surface<'static>) {
     log::debug!("Beginning start-up");
 
     // Now we need an instance and a surface in order to find a compatible adapter

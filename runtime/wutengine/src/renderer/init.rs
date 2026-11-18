@@ -1,13 +1,6 @@
-//! The renderer
-
 use std::sync::Arc;
-use std::sync::OnceLock;
 
-use log::Level;
-use wgpu::Adapter;
 use wgpu::Backends;
-use wgpu::Device;
-use wgpu::DeviceDescriptor;
 use wgpu::DeviceType;
 use wgpu::Features;
 use wgpu::Instance;
@@ -15,51 +8,15 @@ use wgpu::InstanceDescriptor;
 use wgpu::InstanceFlags;
 use wgpu::MemoryBudgetThresholds;
 use wgpu::PowerPreference;
-use wgpu::Queue;
 use wgpu::RequestAdapterOptions;
 use wgpu::Surface;
+use wgpu::wgt::DeviceDescriptor;
 
+use crate::label;
 use crate::log;
-
-/// Creates a generic label for the [`wgpu`] API
-#[macro_export]
-#[cfg(feature = "labels")]
-macro_rules! label {
-    () => {
-        None
-    };
-
-    ($arg:literal) => {
-        Some($arg)
-    };
-
-    ($arg:expr) => {
-        Some($arg)
-    };
-
-    ($($arg:tt)+) => {
-        Some(format!($($arg)*).as_str())
-    };
-}
-
-/// Creates a generic label for the [`wgpu`] API
-#[macro_export]
-#[cfg(not(feature = "labels"))]
-macro_rules! label {
-    ($($arg:tt)+) => {
-        None
-    };
-}
-
-#[derive(Debug)]
-struct Renderer {
-    instance: Instance,
-    adapter: Adapter,
-    device: Device,
-    queue: Queue,
-}
-
-static RENDERER: OnceLock<Renderer> = OnceLock::new();
+use crate::renderer::RENDERER;
+use crate::renderer::Renderer;
+use log::Level;
 
 /// Initializes the [`Instance`] based on the config of the renderer
 pub(crate) fn init_instance() -> Instance {
