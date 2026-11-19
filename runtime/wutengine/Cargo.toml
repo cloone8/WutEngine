@@ -22,6 +22,7 @@ labels = []
 [dependencies]
 wutengine_log = { workspace = true, features = ["terminal_output", "file_output"] }
 wutengine_macro = { workspace = true }
+wutengine_sync = { workspace = true }
 profiling = { workspace = true }
 
 # Non-headless builds

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use log::Level;
 use wgpu::Backends;
 use wgpu::DeviceType;
 use wgpu::Features;
@@ -14,12 +15,13 @@ use wgpu::wgt::DeviceDescriptor;
 
 use crate::label;
 use crate::log;
+use crate::renderer::INSTANCE;
 use crate::renderer::RENDERER;
 use crate::renderer::Renderer;
-use log::Level;
+use crate::renderer::instance;
 
 /// Initializes the [`Instance`] based on the config of the renderer
-pub(crate) fn init_instance() -> Instance {
+pub(crate) fn init_instance() {
     log::debug!("Initializing WGPU instance");
 
     log::trace!(
@@ -27,19 +29,24 @@ pub(crate) fn init_instance() -> Instance {
         backends_to_str(wgpu::Backends::all())
     );
 
-    Instance::new(InstanceDescriptor {
+    let instance = Instance::new(InstanceDescriptor {
         backends: Backends::all(),
         display: None,
         flags: InstanceFlags::default(),
         memory_budget_thresholds: MemoryBudgetThresholds::default(),
         backend_options: default_backend_options(),
-    })
+    });
+
+    INSTANCE
+        .set(instance)
+        .expect("Rendering instance already initialized");
 }
 
 /// Initializes the renderer, making sure it supports at least the given surface
-pub(crate) async fn init_renderer(instance: Instance, surface: &Surface<'_>) -> bool {
+pub(crate) async fn init_renderer(surface: &Surface<'_>) -> bool {
     log::debug!("Initializing renderer");
 
+    let instance = instance();
     let adapter = match instance
         .request_adapter(&RequestAdapterOptions {
             power_preference: PowerPreference::HighPerformance,
@@ -95,7 +102,6 @@ pub(crate) async fn init_renderer(instance: Instance, surface: &Surface<'_>) -> 
 
     RENDERER
         .set(Renderer {
-            instance,
             adapter,
             device,
             queue,

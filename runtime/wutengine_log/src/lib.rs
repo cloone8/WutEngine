@@ -275,3 +275,55 @@ pub fn duration_since_logger_start(time: &Instant) -> Duration {
 
     time.duration_since(*start_time)
 }
+
+/// Logs at the given level, but only once. Same syntax as [`crate::log`]
+#[macro_export]
+macro_rules! log_once {
+    ($level:expr, $($arg:tt)*) => {{
+        static LOG_ONCE: ::std::sync::Once = ::std::sync::Once::new();
+
+        LOG_ONCE.call_once(|| {
+            $crate::log!($level, $($arg)*);
+        });
+    }};
+}
+
+/// Shorthand for [`log_once`] with level [`Level::Trace`]
+#[macro_export]
+macro_rules! trace_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!($crate::log::Level::Trace, $($arg)*);
+    };
+}
+
+/// Shorthand for [`log_once`] with level [`Level::Debug`]
+#[macro_export]
+macro_rules! debug_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!($crate::log::Level::Debug, $($arg)*);
+    };
+}
+
+/// Shorthand for [`log_once`] with level [`Level::Info`]
+#[macro_export]
+macro_rules! info_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!($crate::log::Level::Info, $($arg)*);
+    };
+}
+
+/// Shorthand for [`log_once`] with level [`Level::Warn`]
+#[macro_export]
+macro_rules! warn_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!($crate::log::Level::Warn, $($arg)*);
+    };
+}
+
+/// Shorthand for [`log_once`] with level [`Level::Error`]
+#[macro_export]
+macro_rules! error_once {
+    ($($arg:tt)*) => {
+        $crate::log_once!($crate::Level::Error, $($arg)*);
+    };
+}

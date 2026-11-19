@@ -5,7 +5,4 @@ use wutengine::profiling;
 #[wutengine::main(org = "wutengine", app = "demo_window")]
 fn main() {
     profiling::function_scope!();
-
 }
-
-

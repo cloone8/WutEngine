@@ -2450,6 +2450,7 @@ dependencies = [
  "winit",
  "wutengine_log",
  "wutengine_macro",
+ "wutengine_sync",
 ]
 
 [[package]]

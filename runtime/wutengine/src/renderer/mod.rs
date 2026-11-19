@@ -41,9 +41,11 @@ macro_rules! label {
     };
 }
 
+static INSTANCE: OnceLock<Instance> = OnceLock::new();
+
+/// The global data for the renderer
 #[derive(Debug)]
 struct Renderer {
-    instance: Instance,
     adapter: Adapter,
     device: Device,
     queue: Queue,
@@ -51,13 +53,17 @@ struct Renderer {
 
 static RENDERER: OnceLock<Renderer> = OnceLock::new();
 
+/// Returns the global [`Instance`]
+///
+/// Panics if called before [`init::init_renderer`]
 #[inline]
 pub(crate) fn instance() -> &'static Instance {
-    &RENDERER
-        .get()
-        .expect("Renderer not yet initialized")
-        .instance
+    INSTANCE.get().expect("Instance not yet initialized")
 }
+
+/// Returns the global [`Adapter`]
+///
+/// Panics if called before [`init::init_renderer`]
 #[inline]
 pub(crate) fn adapter() -> &'static Adapter {
     &RENDERER
@@ -66,11 +72,17 @@ pub(crate) fn adapter() -> &'static Adapter {
         .adapter
 }
 
+/// Returns the global [`Device`]
+///
+/// Panics if called before [`init::init_renderer`]
 #[inline]
 pub(crate) fn device() -> &'static Device {
     &RENDERER.get().expect("Renderer not yet initialized").device
 }
 
+/// Returns the global [`Queue`]
+///
+/// Panics if called before [`init::init_renderer`]
 #[inline]
 pub(crate) fn queue() -> &'static Queue {
     &RENDERER.get().expect("Renderer not yet initialized").queue

@@ -35,7 +35,7 @@ impl ApplicationHandler for WutEngineApp {
         if self.phase == AppPhase::NotStarted {
             log::info!("Beginning WutEngine main startup");
 
-            let (instance, main_window, main_window_surface) = startup::startup_sync(event_loop);
+            let (main_window, main_window_surface) = startup::startup_sync(event_loop);
 
             cfg_select! {
                 target_arch = "wasm32" => {
@@ -43,7 +43,7 @@ impl ApplicationHandler for WutEngineApp {
                     self.phase = AppPhase::Starting;
                 }
                 _ => {
-                    executor::block_on(startup::startup_async(instance, &main_window_surface));
+                    executor::block_on(startup::startup_async(&main_window_surface));
                     self.phase = AppPhase::Running;
                 }
             }
@@ -52,7 +52,7 @@ impl ApplicationHandler for WutEngineApp {
         }
 
         //TODO: Recreate surfaces
-        todo!("Recreate surfaces");
+        log::error_once!("Recreating surfaces not yet supported");
     }
 
     fn window_event(
