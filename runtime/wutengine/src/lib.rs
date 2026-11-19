@@ -3,9 +3,11 @@
 #[doc(inline)]
 pub use wutengine_log as log;
 mod executor;
+pub mod graphics;
 mod panic_handling;
 pub mod profiling;
 mod renderer;
 pub mod runtime;
+pub mod window;
 
 pub use wutengine_macro::main;
