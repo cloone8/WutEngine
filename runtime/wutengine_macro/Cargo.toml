@@ -18,7 +18,7 @@ readme = "README.md"
 proc-macro = true
 
 [dependencies]
-syn = { workspace = true, features = ["full", "parsing", "proc-macro", "printing"] }
+syn = { workspace = true, features = ["full", "parsing", "proc-macro", "printing", "clone-impls"] }
 quote = { workspace = true, features = ["proc-macro"] }
 proc-macro2 = { workspace = true }
 

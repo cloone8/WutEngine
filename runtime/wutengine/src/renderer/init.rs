@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use log::Level;
+use wgpu::Adapter;
 use wgpu::Backends;
 use wgpu::DeviceType;
 use wgpu::Features;
@@ -46,6 +47,36 @@ pub(crate) fn init_instance() {
 pub(crate) async fn init_renderer(surface: &Surface<'_>) -> bool {
     log::debug!("Initializing renderer");
 
+    let Some((adapter, adapter_features)) = init_adapter(surface).await else {
+        return false;
+    };
+
+    let (device, queue) = match adapter
+        .request_device(&DeviceDescriptor {
+            label: label!("WutEngine Main GPU"),
+            required_features: adapter_features,
+            ..Default::default()
+        })
+        .await
+    {
+        Ok(dq) => dq,
+        Err(e) => {
+            log::error!("Failed to get a device from the graphics adapter: {e}");
+            return false;
+        }
+    };
+
+    device.set_device_lost_callback(on_device_lost);
+    device.on_uncaptured_error(Arc::new(on_uncaptured_error));
+
+    RENDERER
+        .set(Renderer::new(adapter, device, queue))
+        .expect("Renderer already initialized");
+
+    true
+}
+
+async fn init_adapter(surface: &Surface<'_>) -> Option<(Adapter, Features)> {
     let instance = instance();
     let adapter = match instance
         .request_adapter(&RequestAdapterOptions {
@@ -59,7 +90,7 @@ pub(crate) async fn init_renderer(surface: &Surface<'_>) -> bool {
         Ok(a) => a,
         Err(e) => {
             log::error!("Failed to find a graphics adapter: {e}");
-            return false;
+            return None;
         }
     };
 
@@ -82,33 +113,7 @@ pub(crate) async fn init_renderer(surface: &Surface<'_>) -> bool {
         log_features(adapter_requested_features);
     }
 
-    let (device, queue) = match adapter
-        .request_device(&DeviceDescriptor {
-            label: label!("WutEngine Main GPU"),
-            required_features: adapter_requested_features,
-            ..Default::default()
-        })
-        .await
-    {
-        Ok(dq) => dq,
-        Err(e) => {
-            log::error!("Failed to get a device from the graphics adapter: {e}");
-            return false;
-        }
-    };
-
-    device.set_device_lost_callback(on_device_lost);
-    device.on_uncaptured_error(Arc::new(on_uncaptured_error));
-
-    RENDERER
-        .set(Renderer {
-            adapter,
-            device,
-            queue,
-        })
-        .expect("Renderer already initialized");
-
-    true
+    Some((adapter, adapter_requested_features))
 }
 
 fn log_features(features: Features) {

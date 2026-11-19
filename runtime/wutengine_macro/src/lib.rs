@@ -187,12 +187,6 @@ fn unique_id_type(config: UniqueIdConfig) -> proc_macro::TokenStream {
         // TODO: Maybe add this back later
         // impl ::nohash_hasher::IsEnabled for #ident_id {}
 
-        impl Default for #ident_id {
-            fn default() -> Self {
-                Self::new()
-            }
-        }
-
         impl #ident_id {
             #[doc = #ident_new_doc]
             #[inline]

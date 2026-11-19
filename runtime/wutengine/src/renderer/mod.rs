@@ -1,15 +1,23 @@
 //! The renderer
 
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::sync::OnceLock;
 
 use wgpu::Adapter;
 use wgpu::Device;
 use wgpu::Instance;
 use wgpu::Queue;
-mod init;
+use winit::window::Window as WinitWindow;
 
 pub(crate) use init::init_instance;
 pub(crate) use init::init_renderer;
+use wgpu::Surface;
+
+use crate::window::Window;
+use wutengine_sync::RwLock;
+
+mod init;
 
 /// Creates a generic label for the [`wgpu`] API
 #[macro_export]
@@ -49,9 +57,25 @@ struct Renderer {
     adapter: Adapter,
     device: Device,
     queue: Queue,
+    surfaces: RwLock<HashMap<Window, Surface<'static>>>,
+}
+
+impl Renderer {
+    fn new(adapter: Adapter, device: Device, queue: Queue) -> Self {
+        Self {
+            adapter,
+            device,
+            queue,
+            surfaces: RwLock::new(HashMap::new()),
+        }
+    }
 }
 
 static RENDERER: OnceLock<Renderer> = OnceLock::new();
+
+fn renderer() -> &'static Renderer {
+    RENDERER.get().expect("Renderer not yet initialized")
+}
 
 /// Returns the global [`Instance`]
 ///
@@ -66,10 +90,7 @@ pub(crate) fn instance() -> &'static Instance {
 /// Panics if called before [`init::init_renderer`]
 #[inline]
 pub(crate) fn adapter() -> &'static Adapter {
-    &RENDERER
-        .get()
-        .expect("Renderer not yet initialized")
-        .adapter
+    &renderer().adapter
 }
 
 /// Returns the global [`Device`]
@@ -77,7 +98,7 @@ pub(crate) fn adapter() -> &'static Adapter {
 /// Panics if called before [`init::init_renderer`]
 #[inline]
 pub(crate) fn device() -> &'static Device {
-    &RENDERER.get().expect("Renderer not yet initialized").device
+    &renderer().device
 }
 
 /// Returns the global [`Queue`]
@@ -85,5 +106,27 @@ pub(crate) fn device() -> &'static Device {
 /// Panics if called before [`init::init_renderer`]
 #[inline]
 pub(crate) fn queue() -> &'static Queue {
-    &RENDERER.get().expect("Renderer not yet initialized").queue
+    &renderer().queue
+}
+
+/// Initializes the rendering surface for the given native window, with the given handle
+pub(crate) fn initialize_surface(window: Window, native: Arc<dyn WinitWindow>) {
+    profiling::function_scope!();
+
+    let surface = instance()
+        .create_surface(Arc::clone(&native))
+        .expect("Failed to initialize surface for window"); //TODO: Handle properly
+
+    renderer().surfaces.write().insert(window, surface);
+}
+
+/// Runs the callback with the [`Surface`] for the given window
+pub(crate) fn get_surface<T>(window: Window, cb: impl FnOnce(&Surface<'static>) -> T) -> T {
+    profiling::function_scope!();
+
+    let surfaces = renderer().surfaces.read();
+
+    let surface = surfaces.get(&window).expect("Missing surface for window");
+
+    cb(surface)
 }

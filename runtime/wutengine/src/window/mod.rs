@@ -1,17 +1,13 @@
 //! Windowing API
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
-use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::SyncSender;
-use std::sync::mpsc::TrySendError;
+use wutengine_sync::RwLock;
 
-use winit::event_loop::ActiveEventLoop;
 use winit::window::Window as WinitWindow;
 use winit::window::WindowAttributes;
 use wutengine_macro::unique_id_type32;
-use wutengine_sync::Mutex;
 
 use crate::log;
 
@@ -22,13 +18,17 @@ unique_id_type32! {
 
 #[derive(Debug)]
 struct WindowManager {
-    queue_send: SyncSender<WindowRequest>,
-    queue_recv: Mutex<Receiver<WindowRequest>>,
+    windows: RwLock<HashMap<Window, WindowData>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum WindowRequest {
-    Create(Window),
+#[derive(Debug)]
+enum WindowData {
+    Pending {
+        requested_attributes: WindowAttributes,
+    },
+    Open {
+        native: Arc<dyn WinitWindow>,
+    },
 }
 
 static WINDOW_MANAGER: OnceLock<WindowManager> = OnceLock::new();
@@ -48,12 +48,9 @@ pub(crate) fn init() {
 
     log::debug!("Initializing window manager");
 
-    let (queue_send, queue_recv) = mpsc::sync_channel(32);
-
     WINDOW_MANAGER
         .set(WindowManager {
-            queue_send,
-            queue_recv: Mutex::new(queue_recv),
+            windows: RwLock::new(HashMap::new()),
         })
         .expect("Window manager already initialized");
 }
@@ -64,45 +61,37 @@ pub(crate) fn init() {
 pub fn create() -> Window {
     let handle = Window::new();
 
-    match window_manager()
-        .queue_send
-        .try_send(WindowRequest::Create(handle))
-    {
-        Ok(()) => handle,
-        Err(TrySendError::Full(_)) => {
-            log::error!(
-                "Failed to create window because there are too many window creation requests in the queue"
-            );
-            handle // TODO: Return error? Might be too complex of an API for this edge case
-        }
-        Err(TrySendError::Disconnected(_)) => {
-            panic!("Window manager dead");
-        }
-    }
+    window_manager().windows.write().insert(
+        handle,
+        WindowData::Pending {
+            requested_attributes: WindowAttributes::default(),
+        },
+    );
+
+    handle
 }
 
-pub(crate) fn run_queued(event_loop: &dyn ActiveEventLoop) {
+/// Runs the queued window actions. This actually spawns native windows.
+/// Return whether queued actions were actually executed
+pub(crate) fn initialize_windows(
+    mut initializer: impl FnMut(Window, &WindowAttributes) -> Arc<dyn WinitWindow>,
+) {
     profiling::function_scope!();
 
-    let queue = window_manager().queue_recv.lock();
+    for (window, data) in window_manager().windows.write().iter_mut() {
+        let WindowData::Pending {
+            requested_attributes,
+        } = data
+        else {
+            continue;
+        };
 
-    for request in queue.try_iter() {
-        profiling::scope!("Handle request");
+        profiling::scope!("initialize_window");
 
-        log::trace!("Handling window request: {request:#?}");
+        let native_window = initializer(*window, requested_attributes);
 
-        match request {
-            WindowRequest::Create(window) => {
-                let native_window = create_window(event_loop);
-            }
-        }
+        *data = WindowData::Open {
+            native: native_window,
+        };
     }
-}
-
-fn create_window(event_loop: &dyn ActiveEventLoop) -> Arc<dyn WinitWindow> {
-    let window = event_loop
-        .create_window(WindowAttributes::default())
-        .expect("Failed to create native window");
-
-    Arc::from(window)
 }

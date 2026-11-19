@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use winit::application::ApplicationHandler;
 use winit::event::DeviceEvent;
 use winit::event::DeviceId;
@@ -8,7 +10,9 @@ use winit::window::WindowId;
 
 use crate::executor;
 use crate::log;
+use crate::renderer;
 use crate::runtime::startup;
+use crate::window;
 
 pub(crate) struct WutEngineApp {
     phase: AppPhase,
@@ -32,10 +36,12 @@ enum AppPhase {
 
 impl ApplicationHandler for WutEngineApp {
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
+        _ = event_loop;
+
         if self.phase == AppPhase::NotStarted {
             log::info!("Beginning WutEngine main startup");
 
-            let (main_window, main_window_surface) = startup::startup_sync(event_loop);
+            let main_window = startup::startup_sync();
 
             cfg_select! {
                 target_arch = "wasm32" => {
@@ -43,7 +49,7 @@ impl ApplicationHandler for WutEngineApp {
                     self.phase = AppPhase::Starting;
                 }
                 _ => {
-                    executor::block_on(startup::startup_async(&main_window_surface));
+                    executor::block_on(startup::startup_async(main_window));
                     self.phase = AppPhase::Running;
                 }
             }
@@ -113,4 +119,19 @@ impl ApplicationHandler for WutEngineApp {
     ) -> Option<&mut dyn winit::application::macos::ApplicationHandlerExtMacOS> {
         None
     }
+}
+
+fn initialize_pending_windows(el: &dyn ActiveEventLoop) {
+    profiling::function_scope!();
+
+    window::initialize_windows(|window, attrs| {
+        let native_window = Arc::from(
+            el.create_window(attrs.clone())
+                .expect("Failed to initialize window"),
+        );
+
+        renderer::initialize_surface(window, Arc::clone(&native_window));
+
+        native_window
+    });
 }
