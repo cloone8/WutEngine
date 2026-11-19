@@ -43,6 +43,8 @@ impl ApplicationHandler for WutEngineApp {
 
             let main_window = startup::startup_sync();
 
+            initialize_pending_windows(event_loop);
+
             cfg_select! {
                 target_arch = "wasm32" => {
                     startup::driver::start(startup::startup());
@@ -121,6 +123,7 @@ impl ApplicationHandler for WutEngineApp {
     }
 }
 
+/// Creates native windows and surfaces for all pending windows
 fn initialize_pending_windows(el: &dyn ActiveEventLoop) {
     profiling::function_scope!();
 

@@ -57,7 +57,6 @@ struct Renderer {
     adapter: Adapter,
     device: Device,
     queue: Queue,
-    surfaces: RwLock<HashMap<Window, Surface<'static>>>,
 }
 
 impl Renderer {
@@ -66,7 +65,6 @@ impl Renderer {
             adapter,
             device,
             queue,
-            surfaces: RwLock::new(HashMap::new()),
         }
     }
 }
@@ -75,6 +73,12 @@ static RENDERER: OnceLock<Renderer> = OnceLock::new();
 
 fn renderer() -> &'static Renderer {
     RENDERER.get().expect("Renderer not yet initialized")
+}
+
+static SURFACES: OnceLock<RwLock<HashMap<Window, Surface<'static>>>> = OnceLock::new();
+
+fn surfaces() -> &'static RwLock<HashMap<Window, Surface<'static>>> {
+    SURFACES.get().expect("Surfaces not yet initialized")
 }
 
 /// Returns the global [`Instance`]
@@ -117,14 +121,14 @@ pub(crate) fn initialize_surface(window: Window, native: Arc<dyn WinitWindow>) {
         .create_surface(Arc::clone(&native))
         .expect("Failed to initialize surface for window"); //TODO: Handle properly
 
-    renderer().surfaces.write().insert(window, surface);
+    surfaces().write().insert(window, surface);
 }
 
 /// Runs the callback with the [`Surface`] for the given window
 pub(crate) fn get_surface<T>(window: Window, cb: impl FnOnce(&Surface<'static>) -> T) -> T {
     profiling::function_scope!();
 
-    let surfaces = renderer().surfaces.read();
+    let surfaces = surfaces().read();
 
     let surface = surfaces.get(&window).expect("Missing surface for window");
 
