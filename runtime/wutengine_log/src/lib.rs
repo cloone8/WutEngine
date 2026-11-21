@@ -101,6 +101,20 @@ impl LogSettings {
         }
     }
 
+    /// A [`LogSettings`] that applies some harsher filters to some external categories
+    #[must_use]
+    pub fn with_default_categories() -> Self {
+        let mut base = Self::new();
+
+        base.categories = vec![
+            (String::from("naga"), LevelFilter::Warn),
+            (String::from("wgpu"), LevelFilter::Warn),
+            (String::from("sctk"), LevelFilter::Warn),
+        ];
+
+        base
+    }
+
     /// Returns the highest possible level configured
     #[must_use]
     #[inline]

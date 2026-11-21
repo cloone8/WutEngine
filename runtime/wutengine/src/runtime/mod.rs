@@ -64,7 +64,10 @@ pub fn _wutengine_entry(
         }}
     };
 
-    log::init(log::LogSettings::new(), vec![basic_logger]);
+    log::init(
+        log::LogSettings::with_default_categories(),
+        vec![basic_logger],
+    );
 
     if !cfg!(target_arch = "wasm32") {
         // Web can't log to files. Native can

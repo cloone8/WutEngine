@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use winit::application::ApplicationHandler;
@@ -6,22 +7,27 @@ use winit::event::DeviceId;
 use winit::event::StartCause;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
+use winit::window::Window as WinitWindow;
 use winit::window::WindowId;
 
 use crate::executor;
 use crate::log;
-use crate::renderer;
+use crate::renderer::surfaces;
 use crate::runtime::startup;
 use crate::window;
+use crate::window::Window;
 
+#[derive(Debug)]
 pub(crate) struct WutEngineApp {
     phase: AppPhase,
+    window_map: HashMap<WindowId, Window>,
 }
 
 impl WutEngineApp {
     pub(crate) fn new() -> Self {
         Self {
             phase: AppPhase::NotStarted,
+            window_map: HashMap::default(),
         }
     }
 }
@@ -43,7 +49,7 @@ impl ApplicationHandler for WutEngineApp {
 
             let main_window = startup::startup_sync();
 
-            initialize_pending_windows(event_loop);
+            self.initialize_pending_windows(event_loop);
 
             cfg_select! {
                 target_arch = "wasm32" => {
@@ -123,18 +129,29 @@ impl ApplicationHandler for WutEngineApp {
     }
 }
 
-/// Creates native windows and surfaces for all pending windows
-fn initialize_pending_windows(el: &dyn ActiveEventLoop) {
-    profiling::function_scope!();
+impl WutEngineApp {
+    /// Creates native windows and surfaces for all pending windows
+    fn initialize_pending_windows(&mut self, el: &dyn ActiveEventLoop) {
+        profiling::function_scope!();
 
-    window::initialize_windows(|window, attrs| {
-        let native_window = Arc::from(
-            el.create_window(attrs.clone())
-                .expect("Failed to initialize window"),
-        );
+        window::initialize_windows(|window, attrs| {
+            log::debug!("Initializing window {window}");
 
-        renderer::initialize_surface(window, Arc::clone(&native_window));
+            let native_window: Arc<dyn WinitWindow> = Arc::from(
+                el.create_window(attrs.clone())
+                    .expect("Failed to initialize window"),
+            );
 
-        native_window
-    });
+            let prev = self.window_map.insert(native_window.id(), window);
+
+            assert!(
+                prev.is_none(),
+                "Window with native window ID already in map"
+            );
+
+            surfaces::initialize_surface(window, Arc::clone(&native_window));
+
+            native_window
+        });
+    }
 }

@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
+use wutengine_sync::Mutex;
 use wutengine_sync::RwLock;
 
 use winit::window::Window as WinitWindow;
@@ -18,6 +19,13 @@ unique_id_type32! {
 
 #[derive(Debug)]
 struct WindowManager {
+    /// Which window is the main window. Should only be [`None`] if the [`Self::windows`] map is
+    /// empty.
+    ///
+    /// TODO: Change to an atomic type later.
+    main_window: Mutex<Option<Window>>,
+
+    /// All currently active windows
     windows: RwLock<HashMap<Window, WindowData>>,
 }
 
@@ -50,6 +58,7 @@ pub(crate) fn init() {
 
     WINDOW_MANAGER
         .set(WindowManager {
+            main_window: Mutex::new(None),
             windows: RwLock::new(HashMap::new()),
         })
         .expect("Window manager already initialized");
@@ -61,7 +70,17 @@ pub(crate) fn init() {
 pub fn create() -> Window {
     let handle = Window::new();
 
-    window_manager().windows.write().insert(
+    log::info!("Creating new window with handle {handle}");
+
+    let mut window_map = window_manager().windows.write();
+
+    if window_map.is_empty() {
+        log::debug!("Setting main window to {handle}");
+        // Set the main window if this is the first window to be created
+        *window_manager().main_window.lock() = Some(handle);
+    }
+
+    window_map.insert(
         handle,
         WindowData::Pending {
             requested_attributes: Box::new(WindowAttributes::default()),
@@ -72,7 +91,6 @@ pub fn create() -> Window {
 }
 
 /// Runs the queued window actions. This actually spawns native windows.
-/// Return whether queued actions were actually executed
 pub(crate) fn initialize_windows(
     mut initializer: impl FnMut(Window, &WindowAttributes) -> Arc<dyn WinitWindow>,
 ) {

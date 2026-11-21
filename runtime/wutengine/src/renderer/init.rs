@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use log::Level;
@@ -14,15 +13,14 @@ use wgpu::PowerPreference;
 use wgpu::RequestAdapterOptions;
 use wgpu::Surface;
 use wgpu::wgt::DeviceDescriptor;
-use wutengine_sync::RwLock;
 
 use crate::label;
 use crate::log;
 use crate::renderer::INSTANCE;
 use crate::renderer::RENDERER;
 use crate::renderer::Renderer;
-use crate::renderer::SURFACES;
 use crate::renderer::instance;
+use crate::renderer::surfaces::init_surface_map;
 
 /// Initializes the [`Instance`] based on the config of the renderer
 pub(crate) fn init_instance() {
@@ -45,9 +43,7 @@ pub(crate) fn init_instance() {
         .set(instance)
         .expect("Rendering instance already initialized");
 
-    SURFACES
-        .set(RwLock::new(HashMap::new()))
-        .expect("Surface map already initialized");
+    init_surface_map();
 }
 
 /// Requests a new [`Adapter`] compatible with the provided [`Surface`] and returns the future that provides it

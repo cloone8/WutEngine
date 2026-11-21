@@ -35,6 +35,7 @@ wgpu = { workspace = true, features = [
   "vulkan",
   "webgpu",
   "wgsl",
+  "fragile-send-sync-non-atomic-wasm",
 
 ], optional = true }
 

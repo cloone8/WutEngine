@@ -2,6 +2,7 @@ use core::panic;
 
 use crate::log;
 use crate::renderer;
+use crate::renderer::surfaces;
 use crate::window;
 use crate::window::Window;
 
@@ -22,7 +23,7 @@ pub(super) async fn startup_async(main_window: Window) {
     log::debug!("Requesting async resources");
 
     // First we set up the adapter using the main surface.
-    let init_adapter = renderer::get_surface(main_window, |main_surface| {
+    let init_adapter = surfaces::get_surface(main_window, |main_surface| {
         renderer::init_adapter(main_surface)
     });
 
