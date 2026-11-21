@@ -216,7 +216,7 @@ Done when the CLI tools turn a glTF and a PNG into a pack that a Rust game loads
 
 ## 7. Input and windowing
 
-- Input actions in one input asset, the per-tick input record, action sets and rebinding, keys by physical position,
+- Input actions in one input asset, the per-step input record, action sets and rebinding, keys by physical position,
   gamepads through gilrs, and the mouse ([Input and camera](systems/input_camera.md)).
 - The windowing a single-window game needs on top of step 2: cursor modes, fullscreen, and application focus with
   held keys released ([Windowing and display](systems/windowing.md)). IME and the clipboard come with text fields

@@ -108,7 +108,7 @@ dependencies when they are built.
 - **The frame loop runs without winit** as a plain timer-driven loop. Why: winit needs a display server on Linux,
   which a server doesn't have.
 - **Without a window,** `fatal_error` and the panic hook write to stderr and the log; input on a server comes only as
-  per-tick data ([Multiplayer](../goals/multiplayer.md)). The headless build is checked occasionally with clippy
+  per-step data ([Multiplayer](../goals/multiplayer.md)). The headless build is checked occasionally with clippy
   without default features.
 - Kept possible: choosing headless at runtime in a graphics build.
 

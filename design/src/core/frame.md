@@ -139,10 +139,10 @@ Plain functions:
 - **Game time** `time()`, `delta()`: scaled, stops while paused. Inside the fixed update, `delta()` returns the fixed
   step. Why: gameplay code uses one `delta()` everywhere.
 - **Real time** `unscaled_time()`, `unscaled_delta()`: never scaled or paused (UI, menus, the editor).
-- **Fixed time** `fixed_time()`, `fixed_delta()`, plus **`tick()`**, the fixed-step counter (for multiplayer).
-  `fixed_time()` is the exact sum of the fixed steps actually run: never reset to frame time, and never scaled per
-  step (time scale already changed how many steps ran). Not `tick() × fixed_delta()`, since the fixed rate can
-  change at runtime.
+- **Fixed time** `fixed_time()`, `fixed_delta()`, plus **`fixed_step_num()`**, the fixed-step counter (for
+  multiplayer). `fixed_time()` is the exact sum of the fixed steps actually run: never reset to frame time, and never
+  scaled per step (time scale already changed how many steps ran). Not `fixed_step_num() × fixed_delta()`, since the
+  fixed rate can change at runtime.
 - **`frame_num()`.** An audio clock belongs to [Audio](../systems/audio.md).
 
 Representation:
@@ -163,8 +163,8 @@ Representation:
 - **The frame clock starts when the event loop does,** so the first frame's delta is one nominal frame, not the time
   start-up took. Why: otherwise the first frame always hits the clamp and runs a burst of fixed steps.
 - **Time scale changes the number of fixed steps, not their length,** and is global only. Why: physics keeps its tuned
-  step and a tick keeps one meaning, which networking needs; interpolation smooths slow motion. Kept possible: a
-  per-scene time scale.
+  step and a fixed step keeps one meaning, which networking needs; interpolation smooths slow motion. Kept possible:
+  a per-scene time scale.
 - **Pause is its own flag, not time scale 0.** While paused, game time stops and the fixed update, physics and the
   updates of pausable entities don't run. An entity can be marked **runs while paused** (inherited by its children),
   for menus and pause screens; Rust systems declare it at registration. The development tools' pause is separate and

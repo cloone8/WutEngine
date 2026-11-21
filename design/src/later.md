@@ -187,7 +187,7 @@ forgotten; none of them has a design yet.
 - A strict mode making logged errors fatal, for automated runs.
 - Developer menus, free camera, cheats, screenshots and video capture.
 - CPU memory stats and leak detection, on the engine's memory counters.
-- Replay and input journaling; games writing the per-tick input record themselves.
+- Replay and input journaling; games writing the per-step input record themselves.
 - GPU-side printf and debug drawing.
 
 ## Ecosystem

@@ -107,7 +107,7 @@ the window settings in the configuration. The engine decides only what game code
   an engine service object ([Signals](../scripting/signals.md)).
 - **On application focus loss the engine releases every held key and button** (moving between the game's own windows
   doesn't count). Why: keys pressed during alt-tab would otherwise stay stuck, since their release goes to another
-  application. The per-tick record sees the releases.
+  application. The per-step record sees the releases.
 - **No automatic pause or mute.** The game decides; a template can show a pause menu on focus loss. Why: pausing by
   default surprises networked games and background music.
 - **A minimized window doesn't render; an unfocused game runs at a low frame cap** (a setting)

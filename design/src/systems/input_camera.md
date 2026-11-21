@@ -1,6 +1,6 @@
 # Input and camera
 
-How games read input (actions, "just pressed" across fixed steps, the per-tick record, keys, mouse, gamepads) and how
+How games read input (actions, "just pressed" across fixed steps, the per-step record, keys, mouse, gamepads) and how
 cameras turn into views. Windows, cursor modes and text input are in [Windowing and display](windowing.md); how UI
 takes input before actions is in [In-game UI and text](ui_text.md).
 
@@ -36,10 +36,10 @@ would miss taps or jump three times. One function everywhere matches `delta()`, 
 inside the fixed update ([Time and the frame](../core/frame.md)). A press read by both a per-frame and a fixed-step
 script is seen once by each.
 
-## The fixed update reads a per-tick input record
+## The fixed update reads a per-step input record
 
 - **At each fixed step the engine fills one record per local player:** every action's value and its edges for that
-  step. Action reads in the fixed update read that record, never the devices. It is the per-tick data a replay plays
+  step. Action reads in the fixed update read that record, never the devices. It is the per-step data a replay plays
   back and a client would send ([Multiplayer](../goals/multiplayer.md)); nothing is recorded, stored or sent now.
 - **Only actions can be read in the fixed update.** A raw device read there is a logged error (once per call site,
   "not pressed" or zero, the game continues), with a message saying what to do: add an action, or read it per frame.
@@ -114,7 +114,7 @@ Each source is read for what it's good at, never summed.
 
 ## Other inputs
 
-- **Several local players:** each has its own action state and per-tick record; devices are assigned to players
+- **Several local players:** each has its own action state and per-step record; devices are assigned to players
   through an API; a single-player game gets every device by default.
 - **Android's back button** arrives as a key and binds to an action like any key.
 - **Touch** arrives as pointers; gestures are later.

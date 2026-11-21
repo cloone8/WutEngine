@@ -15,8 +15,8 @@ redesign. Networking itself comes later.
 
 1. **A headless runtime** (no window, no GPU) for dedicated servers, also useful for automated tests; graphics,
    windowing and audio are optional, not assumed ([Lifecycle and memory](../core/lifecycle.md)).
-2. **A tick number** on the fixed-step loop ([Time and the frame](../core/frame.md)).
-3. **Input as per-tick data, separate from the device that produced it,** so it can be sent or replayed: a per-tick
+2. **A fixed-step number** on the fixed-step loop ([Time and the frame](../core/frame.md)).
+3. **Input as per-step data, separate from the device that produced it,** so it can be sent or replayed: a per-step
    input record per local player ([Input and camera](../systems/input_camera.md)).
 4. **Network identity for entities spawned at runtime** (scene entities already have UUIDs;
    [Scenes](../world/scenes.md) keeps derived UUIDs for spawned entities possible).
