@@ -17,6 +17,8 @@ forgotten; none of them has a design yet.
 
 - Frame pacing: presentation timestamps for frame-time snapping, a "low latency" option (one frame in flight), late
   latching.
+- Each window rendered at its own monitor's refresh rate, decoupled from the simulation and interpolated, if judder
+  on monitors with another refresh rate than the main window's ever matters (most likely for the editor).
 - A step cap setting for the fixed-update loop, if the delta clamp ever isn't enough.
 - An own job scheduler replacing rayon, if its overhead shows in a real game's profile, or by interest.
 - An engine-wide spatial index and k-nearest queries, if gameplay needs more than physics queries.

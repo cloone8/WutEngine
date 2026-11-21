@@ -107,8 +107,8 @@ and quits.
   second window ([Windowing and display](systems/windowing.md)).
 - **The crash paths:** `fatal_error`, the crash message (a message box on desktop, the page message on
   the web), and strict mode for the smoke runs, proposed ([Error handling](core/errors.md)).
-- Frame pacing: simulation once per frame and every window rendered, vsync, acquiring each surface at the end of the
-  frame, the frame limiter ([Time and the frame](core/frame.md)).
+- Frame pacing: simulation once per frame and every window rendered, vsync paced by the main window, acquiring each
+  surface at the end of the frame, the frame limiter ([Time and the frame](core/frame.md)).
 - The puffin backend for the profiling scopes, finishing a profiler frame each frame, and the development overlay
   with the puffin flamegraph and stats, the development console over settings, and pause, step and time scale from
   it ([Profiling and debugging tools](editor/debug_tools.md), [Configuration](core/configuration.md)). The overlay

@@ -107,10 +107,17 @@ anti-goal is magic (parameter injection, macros), and explicit declarations avoi
     next frame.
   - **Web:** the browser's animation frame already gives "wait, then events, then frame"; nothing blocks.
 - **The frame runs in `RedrawRequested`,** so it keeps working during Windows' modal resize and move loops.
-  **Simulation runs once per loop iteration, however many windows there are; each window renders.**
+  **Simulation runs once per frame, however many windows there are; each window renders.** A frame isn't a loop
+  iteration: on Windows, winit delivers each window's redraw in an iteration of its own.
 - **A vsync setting with safe fallbacks:** On (`Fifo`, the default, no tearing), Off (`AutoNoVsync`), Adaptive
   (`FifoRelaxed` where supported, else On), Fast (`Mailbox` where supported, else On). The engine never requests a
   mode the surface lacks. Ignored on the web, where the browser decides.
+- **The main window paces the frame:** the vsync setting applies to it, and only its acquire waits for the display.
+  Other windows present without waiting (`Mailbox` where supported, else `Immediate`, else `Fifo`): each shows the
+  newest frame, with judder on a monitor whose refresh rate differs. While the main window can't present (minimized
+  or hidden), the frame limiter paces at its refresh rate. Why: one frame can follow only one display's refresh;
+  waiting on every window lets the slowest monitor set the pace, and waits in turn have been reported to divide the
+  frame rate. Kept possible: each window rendered at its own monitor's rate ([Later](../later.md)).
 - **A frame-rate cap, off by default on desktop,** for vsync off, battery and laptops. It waits at the same point as the
   display wait, as above, without spinning by default (a "precise" option spins the last part). With vsync on, only
   divisors of the refresh rate are allowed (others round down, since they judder). **Each deadline is the previous
