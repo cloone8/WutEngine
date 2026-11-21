@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::log;
 use crate::renderer;
 use crate::window;
@@ -12,23 +14,26 @@ pub(super) fn startup_sync() -> Window {
     // Now we need an instance and a surface in order to find a compatible adapter
     renderer::init_instance();
 
-    let main_window = window::create();
-
-    main_window
+    window::create()
 }
 
 /// Main startup function that sets up the full engine context and runs the app entrypoint
 pub(super) async fn startup_async(main_window: Window) {
     log::debug!("Requesting async resources");
 
-    let init_renderer_fut = renderer::get_surface(main_window, |main_surface| {
-        renderer::init_renderer(main_surface)
+    // First we set up the adapter using the main surface.
+    let init_adapter = renderer::get_surface(main_window, |main_surface| {
+        renderer::init_adapter(main_surface)
     });
 
-    // With the instance and surface, we can fully set up the rest of
-    // the renderer
-    if !init_renderer_fut.await {
-        //TODO: Better handling
+    // Wait for WGPU to set up the adapter
+    let Some((adapter, adapter_features)) = init_adapter.await else {
+        panic!("Failed to set up adapter");
+    };
+
+    // And with the adapter and its features, we can set up the actual device and the rest of the
+    // renderer
+    if !renderer::init_renderer(adapter, adapter_features).await {
         panic!("Failed to set up renderer");
     }
 

@@ -50,13 +50,55 @@ pub(crate) fn init_instance() {
         .expect("Surface map already initialized");
 }
 
-/// Initializes the renderer, making sure it supports at least the given surface
-pub(crate) async fn init_renderer(surface: &Surface<'_>) -> bool {
-    log::debug!("Initializing renderer");
+/// Requests a new [`Adapter`] compatible with the provided [`Surface`] and returns the future that provides it
+pub(crate) fn init_adapter(
+    surface: &Surface<'_>,
+) -> impl Future<Output = Option<(Adapter, Features)>> + use<> {
+    log::debug!("Initializing adapter");
 
-    let Some((adapter, adapter_features)) = init_adapter(surface).await else {
-        return false;
-    };
+    let instance = instance();
+    let req_adapter_fut = instance.request_adapter(&RequestAdapterOptions {
+        power_preference: PowerPreference::HighPerformance,
+        force_fallback_adapter: false,
+        compatible_surface: Some(surface),
+        apply_limit_buckets: false,
+    });
+
+    async {
+        let adapter = match req_adapter_fut.await {
+            Ok(a) => a,
+            Err(e) => {
+                log::error!("Failed to find a graphics adapter: {e}");
+                return None;
+            }
+        };
+
+        let adapter_info = adapter.get_info();
+
+        log::info!(
+            "Using graphics device '{}' with backend '{}' and driver '{} {}'",
+            adapter_info.name,
+            adapter_info.backend,
+            adapter_info.driver,
+            adapter_info.driver_info
+        );
+
+        // We request all features supported by the device, excluding "unwanted" ones.
+        let adapter_requested_features = adapter
+            .features()
+            .intersection(all_wanted_features(adapter_info.device_type));
+
+        if log::log_enabled!(Level::Debug) {
+            log_features(adapter_requested_features);
+        }
+
+        Some((adapter, adapter_requested_features))
+    }
+}
+
+/// Initializes the renderer, making sure it supports at least the given surface
+pub(crate) async fn init_renderer(adapter: Adapter, adapter_features: Features) -> bool {
+    log::debug!("Initializing renderer");
 
     let (device, queue) = match adapter
         .request_device(&DeviceDescriptor {
@@ -81,46 +123,6 @@ pub(crate) async fn init_renderer(surface: &Surface<'_>) -> bool {
         .expect("Renderer already initialized");
 
     true
-}
-
-async fn init_adapter(surface: &Surface<'_>) -> Option<(Adapter, Features)> {
-    let instance = instance();
-    let adapter = match instance
-        .request_adapter(&RequestAdapterOptions {
-            power_preference: PowerPreference::HighPerformance,
-            force_fallback_adapter: false,
-            compatible_surface: Some(surface),
-            apply_limit_buckets: false,
-        })
-        .await
-    {
-        Ok(a) => a,
-        Err(e) => {
-            log::error!("Failed to find a graphics adapter: {e}");
-            return None;
-        }
-    };
-
-    let adapter_info = adapter.get_info();
-
-    log::info!(
-        "Using graphics device '{}' with backend '{}' and driver '{} {}'",
-        adapter_info.name,
-        adapter_info.backend,
-        adapter_info.driver,
-        adapter_info.driver_info
-    );
-
-    // We request all features supported by the device, excluding "unwanted" ones.
-    let adapter_requested_features = adapter
-        .features()
-        .intersection(all_wanted_features(adapter_info.device_type));
-
-    if log::log_enabled!(Level::Debug) {
-        log_features(adapter_requested_features);
-    }
-
-    Some((adapter, adapter_requested_features))
 }
 
 fn log_features(features: Features) {

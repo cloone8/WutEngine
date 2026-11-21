@@ -24,7 +24,7 @@ struct WindowManager {
 #[derive(Debug)]
 enum WindowData {
     Pending {
-        requested_attributes: WindowAttributes,
+        requested_attributes: Box<WindowAttributes>,
     },
     Open {
         native: Arc<dyn WinitWindow>,
@@ -64,7 +64,7 @@ pub fn create() -> Window {
     window_manager().windows.write().insert(
         handle,
         WindowData::Pending {
-            requested_attributes: WindowAttributes::default(),
+            requested_attributes: Box::new(WindowAttributes::default()),
         },
     );
 

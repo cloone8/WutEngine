@@ -10,8 +10,10 @@ use wgpu::Instance;
 use wgpu::Queue;
 use winit::window::Window as WinitWindow;
 
+pub(crate) use init::init_adapter;
 pub(crate) use init::init_instance;
 pub(crate) use init::init_renderer;
+
 use wgpu::Surface;
 
 use crate::window::Window;
@@ -118,7 +120,7 @@ pub(crate) fn initialize_surface(window: Window, native: Arc<dyn WinitWindow>) {
     profiling::function_scope!();
 
     let surface = instance()
-        .create_surface(Arc::clone(&native))
+        .create_surface(native)
         .expect("Failed to initialize surface for window"); //TODO: Handle properly
 
     surfaces().write().insert(window, surface);
