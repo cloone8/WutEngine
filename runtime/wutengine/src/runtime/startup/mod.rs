@@ -5,6 +5,7 @@ use crate::renderer;
 use crate::renderer::surfaces;
 use crate::window;
 use crate::window::Window;
+use crate::window::WindowSettings;
 
 pub(super) fn startup_sync() -> Window {
     log::debug!("Beginning start-up");
@@ -15,7 +16,7 @@ pub(super) fn startup_sync() -> Window {
     // Now we need an instance and a surface in order to find a compatible adapter
     renderer::init_instance();
 
-    window::create()
+    Window::create(WindowSettings::default())
 }
 
 /// Main startup function that sets up the full engine context and runs the app entrypoint
@@ -23,7 +24,7 @@ pub(super) async fn startup_async(main_window: Window) {
     log::debug!("Requesting async resources");
 
     // First we set up the adapter using the main surface.
-    let init_adapter = surfaces::get_surface(main_window, |main_surface| {
+    let init_adapter = surfaces::get(main_window, |main_surface| {
         renderer::init_adapter(main_surface)
     });
 

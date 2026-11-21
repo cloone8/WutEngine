@@ -8,6 +8,7 @@ use winit::event::StartCause;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window as WinitWindow;
+use winit::window::WindowAttributes;
 use winit::window::WindowId;
 
 use crate::executor;
@@ -33,6 +34,7 @@ impl WutEngineApp {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 enum AppPhase {
     NotStarted,
     #[cfg(target_arch = "wasm32")]
@@ -75,12 +77,47 @@ impl ApplicationHandler for WutEngineApp {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        _ = event_loop;
-        _ = window_id;
-        _ = event;
+        profiling::function_scope!();
 
-        if event == WindowEvent::CloseRequested {
-            event_loop.exit();
+        let Some(window) = self.window_map.get(&window_id).copied() else {
+            log::warn!("Got window event for unknown window (winit ID: {window_id:?})");
+            return;
+        };
+
+        match event {
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                profiling::scope!("ScaleFactorChanged");
+
+                log::debug!("Window {window} scale factor changed to {scale_factor}");
+
+                window::refresh_window_data(window);
+            }
+            WindowEvent::SurfaceResized(physical_size) => {
+                profiling::scope!("SurfaceResized");
+
+                log::debug!(
+                    "Window {window} resized to {}x{}",
+                    physical_size.width,
+                    physical_size.height
+                );
+
+                window::refresh_window_data(window);
+                surfaces::mark_unconfigured(window);
+            }
+            WindowEvent::CloseRequested => {
+                profiling::scope!("CloseRequested");
+
+                if window.is_main() {
+                    event_loop.exit();
+                }
+            }
+            WindowEvent::Destroyed => {
+                profiling::scope!("Destroyed");
+
+                log::debug!("Native window for window {window} destroyed");
+                self.window_map.remove(&window_id);
+            }
+            _ => {}
         }
     }
 
@@ -134,11 +171,11 @@ impl WutEngineApp {
     fn initialize_pending_windows(&mut self, el: &dyn ActiveEventLoop) {
         profiling::function_scope!();
 
-        window::initialize_windows(|window, attrs| {
+        window::initialize_windows(|window, settings| {
             log::debug!("Initializing window {window}");
 
             let native_window: Arc<dyn WinitWindow> = Arc::from(
-                el.create_window(attrs.clone())
+                el.create_window(WindowAttributes::from(settings))
                     .expect("Failed to initialize window"),
             );
 
@@ -149,7 +186,7 @@ impl WutEngineApp {
                 "Window with native window ID already in map"
             );
 
-            surfaces::initialize_surface(window, Arc::clone(&native_window));
+            surfaces::initialize(window, Arc::clone(&native_window));
 
             native_window
         });
