@@ -11,6 +11,7 @@ use crate::log;
 use crate::panic_handling;
 use crate::runtime::winit_app::WutEngineApp;
 
+mod frame;
 mod startup;
 mod winit_app;
 

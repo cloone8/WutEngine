@@ -108,7 +108,7 @@ pub(crate) fn configure(window: Window, size: (u32, u32)) {
     let capabilities = surface.surface.get_capabilities(renderer::adapter());
 
     let (format, color_space) = get_best_format(&capabilities.format_capabilities, HdrMode::Sdr);
-    let present_mode = get_best_present_mode(&capabilities.present_modes, false); // TODO: Make this configurable
+    let present_mode = get_best_present_mode(&capabilities.present_modes, true); // TODO: Make this configurable
 
     let surface_configuration = SurfaceConfiguration {
         usage: TextureUsages::RENDER_ATTACHMENT,

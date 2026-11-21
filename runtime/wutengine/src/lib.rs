@@ -8,6 +8,7 @@ mod panic_handling;
 pub mod profiling;
 mod renderer;
 pub mod runtime;
+pub mod time;
 pub mod window;
 
 pub use wutengine_macro::main;

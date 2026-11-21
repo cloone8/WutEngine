@@ -22,6 +22,7 @@ use crate::window::Window;
 pub(crate) struct WutEngineApp {
     phase: AppPhase,
     window_map: HashMap<WindowId, Window>,
+    pending_frame: bool,
 }
 
 impl WutEngineApp {
@@ -29,6 +30,7 @@ impl WutEngineApp {
         Self {
             phase: AppPhase::NotStarted,
             window_map: HashMap::default(),
+            pending_frame: true,
         }
     }
 }
@@ -117,6 +119,9 @@ impl ApplicationHandler for WutEngineApp {
                 log::debug!("Native window for window {window} destroyed");
                 self.window_map.remove(&window_id);
             }
+            WindowEvent::RedrawRequested => {
+                profiling::scope!("RedrawRequested");
+            }
             _ => {}
         }
     }
@@ -143,7 +148,7 @@ impl ApplicationHandler for WutEngineApp {
     }
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
-        let _ = event_loop;
+        self.initialize_pending_windows(event_loop);
     }
 
     fn suspended(&mut self, event_loop: &dyn ActiveEventLoop) {
