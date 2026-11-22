@@ -8,12 +8,12 @@ the window settings in the configuration. The engine decides only what game code
 
 - **The main window** is created at start-up from the configuration, unless the build is headless. A game with one
   window never calls the window API.
-- **`window::main()` returns an `Option<Window>`:** `None` in a headless build, where the window API still compiles
+- **`Window::main()` returns an `Option<Window>`:** `None` in a headless build, where the window API still compiles
   because game code compiles the same in both builds ([Lifecycle and memory](../core/lifecycle.md)), and `null` in
   scripts. On a client it is always `Some`: the main window's handle exists before game code runs, and the window is
   open by the time start-up finishes. On mobile the surface comes and goes; the handle stays. Why: an explicit
   absence instead of a window that silently does nothing on a server.
-- **More windows:** `window::create(settings)` (title, size, mode, resizable, ...) returns a `Window` handle at once;
+- **More windows:** `Window::create(settings)` (title, size, mode, resizable, ...) returns a `Window` handle at once;
   the engine creates the OS window in the event loop's next iteration. The handle has the window's state and methods
   (size, scale factor, focus as a property, close) and is the one runtime control of a window; what the window
   reports is the truth. Cameras name a `Window` as their target. Scripts get the same API.
@@ -31,7 +31,7 @@ the window settings in the configuration. The engine decides only what game code
 - **The handle reads a snapshot, refreshed at frame start** (phase 0, [Time and the frame](../core/frame.md));
   setters are queued and applied on the main thread at the next frame start, as configuration sets are. Why: systems
   running in parallel read window state safely, and a value never changes in the middle of a phase.
-- **`window::create`'s settings default to a windowed window,** with an optional minimum and maximum size. Why: a
+- **`Window::create`'s settings default to a windowed window,** with an optional minimum and maximum size. Why: a
   fullscreen default forces every tool window to override it.
 - **Where a platform has one window** (Android, the web, and iOS for now), creating a second fails: its state becomes
   failed and `ready()` completes with the error. On the web the window is the page's canvas, given by the page or
@@ -65,7 +65,7 @@ the window settings in the configuration. The engine decides only what game code
 
 - **What's drawn and pointed at is in the window's physical pixels:** cursor and touch positions, the camera's screen
   conversions for window targets, surface, render and render-texture sizes. One unit, the same as the image.
-- **Window geometry is in OS-scaled units:** the configuration's windowed size, `window::create`'s size, the handle's
+- **Window geometry is in OS-scaled units:** the configuration's windowed size, `Window::create`'s size, the handle's
   size (get and set) and monitor sizes. *OS-scaled units* are the unit the OS sizes windows in: points on macOS,
   device-independent pixels on Windows, CSS pixels on the web; physical pixels are OS-scaled units times the window's
   scale factor.
@@ -128,7 +128,7 @@ The runtime features the editor needs, at their minimum:
 ## Window settings in the configuration
 
 - **The configuration holds the main window's start-up settings** ([Configuration](../core/configuration.md)): a
-  window section with the same settings struct `window::create` takes (title, mode, windowed size, resizable), next to
+  window section with the same settings struct `Window::create` takes (title, mode, windowed size, resizable), next to
   the vsync and frame-cap settings. The project sets the defaults; the player settings can override them.
 - **At runtime the `Window` handle is the one control,** and what the window reports is the truth. The player can
   change the window without the game (Esc on the web, macOS's green button, dragging the edges), so the configuration

@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use wgpu::CompositeAlphaMode;
+use wgpu::CurrentSurfaceTexture;
+use wgpu::DownlevelFlags;
 use wgpu::PresentMode;
 use wgpu::Surface;
 use wgpu::SurfaceColorSpace;
@@ -11,8 +13,11 @@ use wgpu::SurfaceColorSpaces;
 use wgpu::SurfaceConfiguration;
 use wgpu::SurfaceFormatCapabilities;
 use wgpu::SurfaceTarget;
+use wgpu::SurfaceTexture;
 use wgpu::TextureFormat;
 use wgpu::TextureUsages;
+use wgpu::TextureView;
+use wgpu::wgt::TextureViewDescriptor;
 use wutengine_macro::unique_id_type32;
 use wutengine_sync::RwLock;
 
@@ -20,6 +25,7 @@ use crate::adapter;
 use crate::device;
 use crate::instance;
 use crate::log;
+use crate::queue;
 
 unique_id_type32! {
     /// Identifier for a single surface
@@ -32,7 +38,7 @@ type PrePresentFn = dyn Fn() + Send + Sync;
 
 #[derive(derive_more::Debug)]
 struct SurfaceData {
-    surface: Surface<'static>,
+    native_surface: Surface<'static>,
     configured: bool,
     surface_type: SurfaceType,
     size: (u32, u32),
@@ -43,13 +49,13 @@ struct SurfaceData {
 
 impl SurfaceData {
     fn new(
-        surface: Surface<'static>,
+        native_surface: Surface<'static>,
         surface_type: SurfaceType,
         size: (u32, u32),
         pre_present_callback: Option<Box<PrePresentFn>>,
     ) -> Self {
         Self {
-            surface,
+            native_surface,
             surface_type,
             size,
             pre_present_callback,
@@ -69,7 +75,7 @@ pub(super) fn init_surface_map() {
         .expect("Surface map already initialized");
 }
 
-/// Initializes the rendering surface for the given native surface_id, with the given handle
+/// Initializes the rendering surface for the given native `surface_id`, with the given handle
 pub fn initialize(
     surface_type: SurfaceType,
     surface_size: (u32, u32),
@@ -92,7 +98,7 @@ pub fn initialize(
     surface_id
 }
 
-/// Removes the rendering surface for the given surface_id
+/// Removes the rendering surface for the given `surface_id`
 pub fn remove(surface_id: SurfaceId) {
     profiling::function_scope!();
 
@@ -103,7 +109,7 @@ pub fn remove(surface_id: SurfaceId) {
     }
 }
 
-/// Runs the callback with the [`Surface`] for the given surface_id
+/// Runs the callback with the [`Surface`] for the given `surface_id`
 pub fn get<T>(surface_id: SurfaceId, cb: impl FnOnce(&Surface<'static>) -> T) -> T {
     profiling::function_scope!();
 
@@ -113,16 +119,108 @@ pub fn get<T>(surface_id: SurfaceId, cb: impl FnOnce(&Surface<'static>) -> T) ->
         .get(&surface_id)
         .expect("Missing surface for surface_id");
 
-    cb(&surface.surface)
+    cb(&surface.native_surface)
 }
 
-/// Returns whether the surface for the given surface_id is configured
-pub(crate) fn is_configured(surface_id: SurfaceId) -> bool {
-    surfaces()
-        .read()
-        .get(&surface_id)
-        .expect("Unknown surface")
-        .configured
+/// An acquired rendering surface
+#[derive(Debug)]
+pub(crate) struct AcquiredSurface {
+    /// The ID of the surface
+    pub(crate) id: SurfaceId,
+
+    /// The actual surface texture
+    pub(crate) texture: SurfaceTexture,
+
+    /// The view into the surface texture
+    pub(crate) view: TextureView,
+}
+
+impl AcquiredSurface {
+    /// Presents this surface texture
+    pub(crate) fn present(self) {
+        profiling::function_scope!();
+
+        let surfaces = surfaces().read();
+
+        let surface_data = surfaces.get(&self.id).expect("Missing surface");
+
+        if let Some(pre_present) = surface_data.pre_present_callback.as_ref() {
+            pre_present();
+        }
+
+        queue().present(self.texture);
+    }
+}
+
+/// Attempts to acquire all known surfaces. If any surfaces are not yet configured,
+/// this function does so. Returns an [`AcquiredSurface`] for each surface that was successfully
+/// acquired. Note that this does not mean that _all_ surfaces were acquired
+pub(crate) fn acquire_surfaces() -> Vec<AcquiredSurface> {
+    profiling::function_scope!();
+
+    let mut surfaces = surfaces().write();
+
+    let mut output_surfaces = Vec::with_capacity(surfaces.len());
+
+    for (surface, data) in surfaces.iter_mut() {
+        if data.size.0 == 0 || data.size.1 == 0 {
+            // Zero sized surfaces are not valid render targets
+            continue;
+        }
+
+        if !data.configured {
+            configure(*surface, data);
+        }
+
+        let Some(surface_texture) = acquire_surface_texture_for_surface(*surface, data) else {
+            // If we're unable to acquire the surface texture for whatever reason, we'll skip rendering
+            // to this window
+            continue;
+        };
+
+        output_surfaces.push(AcquiredSurface {
+            id: *surface,
+            view: surface_texture
+                .texture
+                .create_view(&TextureViewDescriptor::default()),
+            texture: surface_texture,
+        });
+    }
+
+    output_surfaces
+}
+
+fn acquire_surface_texture_for_surface(
+    surface_id: SurfaceId,
+    surface_data: &mut SurfaceData,
+) -> Option<SurfaceTexture> {
+    profiling::function_scope!();
+
+    match surface_data.native_surface.get_current_texture() {
+        CurrentSurfaceTexture::Success(surface_texture) => Some(surface_texture),
+        CurrentSurfaceTexture::Suboptimal(surface_texture) => {
+            // Make sure we reconfigure the next time we acquire surfaces
+            surface_data.configured = false;
+            Some(surface_texture)
+        }
+        CurrentSurfaceTexture::Timeout => {
+            log::warn!("Skipping rendering to surface {surface_id} due to timeout");
+            None
+        }
+        CurrentSurfaceTexture::Occluded => None,
+        CurrentSurfaceTexture::Outdated => {
+            surface_data.configured = false;
+            None
+        }
+        CurrentSurfaceTexture::Lost => {
+            surface_data.configured = false;
+            None
+        }
+        CurrentSurfaceTexture::Validation => {
+            log::error!("Validation error when acquiring surface {surface_id}");
+            None
+        }
+    }
 }
 
 /// Updates the size of the given surface. The size is the physical size (in pixels)
@@ -146,16 +244,10 @@ pub fn change_surface_size(surface_id: SurfaceId, size: (u32, u32)) {
 }
 
 /// Reconfigures the surface for the given `surface_id`
-pub(crate) fn configure(surface_id: SurfaceId) {
+fn configure(surface_id: SurfaceId, surface: &mut SurfaceData) {
     profiling::function_scope!();
 
-    let mut surfaces = surfaces().write();
-
-    let surface = surfaces
-        .get_mut(&surface_id)
-        .expect("Missing surface for surface_id");
-
-    let capabilities = surface.surface.get_capabilities(adapter());
+    let capabilities = surface.native_surface.get_capabilities(adapter());
 
     let (format, color_space) = get_best_format(&capabilities.format_capabilities, HdrMode::Sdr);
     let present_mode = get_best_present_mode(
@@ -163,6 +255,19 @@ pub(crate) fn configure(surface_id: SurfaceId) {
         surface.surface_type,
         VsyncSetting::On,
     );
+
+    // Only an sRGB surface needs an extra view format: its non-sRGB variant, if the adapter allows surface view
+    // formats. Otherwise the view uses the configured format itself
+    let view_formats = if format.is_srgb()
+        && adapter()
+            .get_downlevel_capabilities()
+            .flags
+            .contains(DownlevelFlags::SURFACE_VIEW_FORMATS)
+    {
+        vec![format.remove_srgb_suffix()]
+    } else {
+        Vec::new()
+    };
 
     let surface_configuration = SurfaceConfiguration {
         usage: TextureUsages::RENDER_ATTACHMENT,
@@ -173,12 +278,14 @@ pub(crate) fn configure(surface_id: SurfaceId) {
         present_mode,
         desired_maximum_frame_latency: 2, // TODO: Make configurable
         alpha_mode: CompositeAlphaMode::Opaque,
-        view_formats: vec![format.remove_srgb_suffix(), format.add_srgb_suffix()],
+        view_formats,
     };
 
     log::debug!("Configuring surface for surface_id {surface_id} to: {surface_configuration:#?}");
 
-    surface.surface.configure(device(), &surface_configuration);
+    surface
+        .native_surface
+        .configure(device(), &surface_configuration);
 
     surface.configured = true;
 }
@@ -213,15 +320,30 @@ fn get_best_format(
     panic!("HDR Output is not yet implemented")
 }
 
+/// Returns the most preferred format with the sRGB color space, preferring formats without an sRGB suffix since
+/// output encoding happens in the renderer. Only falls back to an sRGB format if the surface offers nothing else
 fn get_best_sdr_format(supported_formats: &[SurfaceFormatCapabilities]) -> Option<TextureFormat> {
-    supported_formats
+    // First we find all non-HDR color spaces
+    let srgb_color_space_formats = supported_formats
         .iter()
-        .find(|format_capability| {
+        .filter(|format_capability| {
             format_capability
                 .color_spaces
                 .contains(SurfaceColorSpaces::SRGB)
         })
         .map(|format_capability| format_capability.format)
+        .collect::<Vec<_>>();
+
+    // Then, for those color spaces, we try to find one that has a non-sRGB-encoding
+    // texture format
+    for color_space_format in &srgb_color_space_formats {
+        if !color_space_format.is_srgb() {
+            return Some(*color_space_format);
+        }
+    }
+
+    // If we can't find one, we simply pick the first supported one
+    srgb_color_space_formats.first().copied()
 }
 
 /// The vsync setting for the main surface
@@ -241,7 +363,7 @@ pub enum VsyncSetting {
 }
 
 /// The type of the surface. The main surface is used for pacing the entire game,
-/// so has more options to control it. Other surface_ids always choose the best supported
+/// so has more options to control it. Other `surface_ids` always choose the best supported
 /// mode that follows the main surface
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SurfaceType {

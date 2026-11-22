@@ -20,6 +20,7 @@ labels = []
 wutengine_log = { workspace = true }
 wutengine_macro = { workspace = true }
 wutengine_sync = { workspace = true }
+wutengine_math = { workspace = true }
 profiling = { workspace = true }
 derive_more = { workspace = true, features = ["debug"] }
 wgpu = { workspace = true, features = [

@@ -9,6 +9,7 @@ members = [
   "xtask",
   "demos/hello",
   "demos/window",
+  "runtime/wutengine_math",
 ]
 
 [workspace.package]
@@ -31,6 +32,7 @@ wutengine_log = { version = "0.7.0", path = "runtime/wutengine_log", default-fea
 wutengine_sync = { version = "0.7.0", path = "runtime/wutengine_sync", default-features = false }
 wutengine_macro = { version = "0.7.0", path = "runtime/wutengine_macro", default-features = false }
 wutengine_renderer = { version = "0.7.0", path = "runtime/wutengine_renderer", default-features = false }
+wutengine_math = { version = "0.7.0", path = "runtime/wutengine_math", default-features = false }
 
 # External crates
 anstyle = { version = "1.0", default-features = false }
@@ -49,6 +51,7 @@ syn = { version = "3", default-features = false }
 quote = { version = "1", default-features = false }
 proc-macro2 = { version = "1", default-features = false }
 wgpu = { version = "30", default-features = false }
+glam = { version = "0.34", default-features = false }
 
 
 [workspace.lints.rust]

@@ -1,0 +1,20 @@
+[package]
+name = "wutengine_math"
+description = "Math and other numericals types and functions for WutEngine"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
+readme = "README.md"
+
+[dependencies]
+glam = { workspace = true, features = ["std", "all-types", "debug-glam-assert"] }
+
+[lints]
+workspace = true

@@ -540,6 +540,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.34.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "627003914c6057c9c8f0832ee4f870b5a4f599d0cfa83f4072675114860cd0ff"
+
+[[package]]
 name = "gpu-allocator"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2451,6 +2457,7 @@ dependencies = [
  "winit",
  "wutengine_log",
  "wutengine_macro",
+ "wutengine_math",
  "wutengine_renderer",
  "wutengine_sync",
 ]
@@ -2478,6 +2485,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "wutengine_math"
+version = "0.7.0"
+dependencies = [
+ "glam",
+]
+
+[[package]]
 name = "wutengine_renderer"
 version = "0.7.0"
 dependencies = [
@@ -2486,6 +2500,7 @@ dependencies = [
  "wgpu",
  "wutengine_log",
  "wutengine_macro",
+ "wutengine_math",
  "wutengine_sync",
 ]
 

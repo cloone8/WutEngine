@@ -6,6 +6,7 @@ use log::Level;
 use wgpu::Adapter;
 use wgpu::Backends;
 use wgpu::DeviceType;
+use wgpu::DownlevelFlags;
 use wgpu::Features;
 use wgpu::Instance;
 use wgpu::InstanceDescriptor;
@@ -13,6 +14,7 @@ use wgpu::InstanceFlags;
 use wgpu::MemoryBudgetThresholds;
 use wgpu::PowerPreference;
 use wgpu::RequestAdapterOptions;
+use wgpu::ShaderModel;
 use wgpu::Surface;
 use wgpu::wgt::DeviceDescriptor;
 
@@ -23,6 +25,22 @@ use crate::instance;
 use crate::label;
 use crate::log;
 use crate::surfaces::init_surface_map;
+
+macro_rules! dump_bitflag_string {
+    ($flags:expr) => {{
+        let mut flag_names = Vec::new();
+
+        for (flag_name, _) in $flags.iter_names() {
+            flag_names.push(flag_name);
+        }
+
+        flag_names.sort_unstable();
+
+        let flag_string: String = format!("\t{}", flag_names.join("\n\t"));
+
+        flag_string
+    }};
+}
 
 /// Initializes the [`Instance`] based on the config of the renderer
 pub fn init_instance() {
@@ -74,12 +92,16 @@ pub fn init_adapter(
         let adapter_info = adapter.get_info();
 
         log::info!(
-            "Using graphics device '{}' with backend '{}' and driver '{} {}'",
+            "Found graphics device '{}' with backend '{}' and driver '{} {}'",
             adapter_info.name,
             adapter_info.backend,
             adapter_info.driver,
             adapter_info.driver_info
         );
+
+        if !adapter_supported(&adapter) {
+            return None;
+        }
 
         // We request all features supported by the device, excluding "unwanted" ones.
         let adapter_requested_features = adapter
@@ -87,11 +109,43 @@ pub fn init_adapter(
             .intersection(all_wanted_features(adapter_info.device_type));
 
         if log::log_enabled!(Level::Debug) {
-            log_features(adapter_requested_features);
+            let features_string = dump_bitflag_string!(adapter_requested_features);
+            log::debug!("Supported features:\n{features_string}");
         }
 
         Some((adapter, adapter_requested_features))
     }
+}
+
+fn adapter_supported(adapter: &Adapter) -> bool {
+    // The base compliant flags, except for `SURFACE_VIEW_FORMATS`, which is
+    // unsupported on Vulkan on Android. Requiring it would lock us out of Android
+    // support
+    const REQUIRED_FLAGS: DownlevelFlags =
+        DownlevelFlags::compliant().difference(DownlevelFlags::SURFACE_VIEW_FORMATS);
+
+    let downlevel_capabilities = adapter.get_downlevel_capabilities();
+
+    if downlevel_capabilities.shader_model < ShaderModel::Sm5 {
+        log::error!(
+            "Adapter does not support at least shader model 5: {:?}",
+            downlevel_capabilities.shader_model
+        );
+        return false;
+    }
+
+    if !downlevel_capabilities.flags.contains(REQUIRED_FLAGS) {
+        let missing = REQUIRED_FLAGS.difference(downlevel_capabilities.flags);
+
+        let missing_string = dump_bitflag_string!(missing);
+
+        log::error!(
+            "Adapter does not support the required minimum compliant feature set. Missing features:\n{missing_string}"
+        );
+        return false;
+    }
+
+    true
 }
 
 /// Initializes the renderer, making sure it supports at least the given surface
@@ -121,24 +175,6 @@ pub async fn init_renderer(adapter: Adapter, adapter_features: Features) -> bool
         .expect("Renderer already initialized");
 
     true
-}
-
-fn log_features(features: Features) {
-    let mut features_string = String::new();
-
-    let mut feature_names = Vec::new();
-
-    for (feature, _) in features.iter_names() {
-        feature_names.push(feature);
-    }
-
-    feature_names.sort_unstable();
-
-    for feature in feature_names {
-        features_string = format!("{features_string}\n\t{feature}");
-    }
-
-    log::debug!("Supported features:{features_string}");
 }
 
 #[expect(clippy::needless_pass_by_value, reason = "WGPU API")]

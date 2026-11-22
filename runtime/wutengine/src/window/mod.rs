@@ -49,8 +49,25 @@ impl Window {
         handle
     }
 
+    /// Returns a handle to the main window
+    #[must_use]
+    #[inline]
+    pub fn main() -> Option<Self> {
+        if cfg!(not(feature = "interactive")) {
+            None
+        } else {
+            Some(
+                window_manager()
+                    .main_window
+                    .lock()
+                    .expect("Main window not yet created"),
+            )
+        }
+    }
+
     /// Returns `true` if this window is the main window
     #[must_use]
+    #[inline]
     pub fn is_main(self) -> bool {
         window_manager()
             .main_window
@@ -61,6 +78,7 @@ impl Window {
     /// Returns the logical size of the window.
     /// To get the size in pixels, see [`Self::pixels`]
     #[must_use]
+    #[inline]
     pub fn size(self) -> LogicalSize {
         self.with_data(|data| match data {
             WindowData::Pending { settings } => settings.size,
@@ -72,6 +90,7 @@ impl Window {
     /// Returns the physical size (in pixels) of the window. If the window has not yet been created
     /// by the OS, the scale factor is not yet known, so the size in pixels might be off.
     #[must_use]
+    #[inline]
     pub fn pixels(self) -> PixelSize {
         self.with_data(|data| match data {
             WindowData::Pending { settings } => {
@@ -84,6 +103,7 @@ impl Window {
 
     /// Returns the OS scale factor for this window
     #[must_use]
+    #[inline]
     pub fn scale_factor(self) -> f64 {
         self.with_data(|data| match data {
             WindowData::Pending { .. } => 1.0, // Can only guess

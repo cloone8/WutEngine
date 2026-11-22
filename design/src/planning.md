@@ -73,7 +73,7 @@ frame loop and the settings that use them.
 - The `#[wutengine::main]` entry point, in the engine's first proc-macro crate, generating each target's `main`
   ([Lifecycle and memory](core/lifecycle.md)).
 - **The main window, on internals built for several,** proposed: the main window with default settings,
-  `window::main()`, the `Window` handle, events routed and a surface held per window following `can_create_surfaces`
+  `Window::main()`, the `Window` handle, events routed and a surface held per window following `can_create_surfaces`
   and `destroy_surfaces`, and closing the main window quits. On the web the canvas is the window
   ([Windowing and display](systems/windowing.md)). Why: one window or several changes how events are routed, how
   surfaces are held and how a frame renders, so single-window internals aren't written first; the API for more
@@ -102,7 +102,7 @@ and quits.
   replacing it, `compute` on rayon, budgeted work on the web ([Jobs and async](core/jobs.md)).
 - The typed configuration: sections registered in the entry point, the layered files, the command line, and the
   engine's early sections; their steps go at the top of the start-up function ([Configuration](core/configuration.md)).
-- **More windows:** `window::create` returning a handle at once with a `ready()` task, close requests for other
+- **More windows:** `Window::create` returning a handle at once with a `ready()` task, close requests for other
   windows (closing one never quits), the main window's settings from the configuration, and on the web an error for a
   second window ([Windowing and display](systems/windowing.md)).
 - **The crash paths:** `fatal_error`, the crash message (a message box on desktop, the page message on
