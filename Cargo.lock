@@ -2446,6 +2446,7 @@ dependencies = [
  "js-sys",
  "profiling",
  "wasm-bindgen",
+ "web-time",
  "wgpu",
  "winit",
  "wutengine_log",

@@ -1,8 +1,10 @@
 use core::panic;
+use core::time::Duration;
 
 use crate::log;
 use crate::renderer;
 use crate::renderer::surfaces;
+use crate::time;
 use crate::window;
 use crate::window::Window;
 use crate::window::WindowSettings;
@@ -15,6 +17,8 @@ pub(super) fn startup_sync() -> Window {
 
     // Now we need an instance and a surface in order to find a compatible adapter
     renderer::init_instance();
+
+    time::set_fixed_delta(Duration::from_secs_f64(1.0 / 60.0).as_nanos() as u64); // TODO: Make configurable
 
     Window::create(WindowSettings::default())
 }

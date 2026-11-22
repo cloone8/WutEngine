@@ -7,6 +7,8 @@ use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
 use std::sync::TryLockError;
 
+pub mod thread_context;
+
 /// Wrapper around [the standard `Mutex`](std::sync::Mutex) for nonpoisoning calls
 #[derive(Debug)]
 #[repr(transparent)]

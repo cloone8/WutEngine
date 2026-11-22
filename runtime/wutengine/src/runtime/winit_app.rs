@@ -1,3 +1,4 @@
+use core::time::Duration;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -14,7 +15,8 @@ use winit::window::WindowId;
 use crate::executor;
 use crate::log;
 use crate::renderer::surfaces;
-use crate::runtime::frame;
+use crate::runtime::frame::FrameState;
+use crate::runtime::frame::FrameType;
 use crate::runtime::startup;
 use crate::time;
 use crate::window;
@@ -35,20 +37,22 @@ impl WutEngineApp {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 #[non_exhaustive]
 enum AppPhase {
     NotStarted,
     #[cfg(target_arch = "wasm32")]
     Starting,
-    Running,
+    Running {
+        frame_state: FrameState,
+    },
 }
 
 impl ApplicationHandler for WutEngineApp {
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         _ = event_loop;
 
-        if self.phase == AppPhase::NotStarted {
+        if matches!(self.phase, AppPhase::NotStarted) {
             log::info!("Beginning WutEngine main startup");
 
             let main_window = startup::startup_sync();
@@ -62,7 +66,11 @@ impl ApplicationHandler for WutEngineApp {
                 }
                 _ => {
                     executor::block_on(startup::startup_async(main_window));
-                    self.phase = AppPhase::Running;
+                    self.phase = AppPhase::Running {
+                        frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)) // TODO:
+                                                                                          // Make
+                                                                                          // configurable?
+                    }
                 }
             }
 
@@ -137,8 +145,8 @@ impl ApplicationHandler for WutEngineApp {
                     }
                 };
 
-                if should_run_frame {
-                    frame::run_frame();
+                if should_run_frame && let AppPhase::Running { frame_state } = &mut self.phase {
+                    frame_state.run_frame(FrameType::Continuous);
                     window::request_redraws(time::frame_num());
                 }
             }

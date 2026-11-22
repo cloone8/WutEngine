@@ -6,6 +6,7 @@ use std::panic;
 
 use winit::event_loop::EventLoop;
 use wutengine_log::FileLogger;
+use wutengine_sync::thread_context;
 
 use crate::log;
 use crate::panic_handling;
@@ -48,6 +49,8 @@ pub fn _wutengine_entry(
     if INIT.swap(true, Ordering::Relaxed) {
         panic!("Runtime already initialized");
     }
+
+    thread_context::mark_main_thread();
 
     panic::set_hook(Box::new(panic_handling::panic_hook));
 
