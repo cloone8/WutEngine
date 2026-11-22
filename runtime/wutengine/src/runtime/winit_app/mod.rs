@@ -13,15 +13,17 @@ use winit::window::WindowAttributes;
 use winit::window::WindowId;
 use wutengine_renderer::surfaces;
 use wutengine_renderer::surfaces::SurfaceId;
+use wutengine_renderer::surfaces::SurfaceType;
 
 use crate::executor;
 use crate::log;
 use crate::runtime::frame::FrameState;
-use crate::runtime::frame::FrameType;
 use crate::runtime::startup;
 use crate::time;
 use crate::window;
 use crate::window::Window;
+
+mod window_events;
 
 #[derive(Debug)]
 pub(crate) struct WutEngineApp {
@@ -106,62 +108,24 @@ impl ApplicationHandler for WutEngineApp {
         let surface = self.surface_map.get(&window).copied();
 
         match event {
-            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                profiling::scope!("ScaleFactorChanged");
-
-                log::debug!("Window {window} scale factor changed to {scale_factor}");
-
-                window::refresh_window_data(window);
+            WindowEvent::ScaleFactorChanged { .. } => {
+                Self::window_scale_factor_changed(window, &event);
             }
-            WindowEvent::SurfaceResized(physical_size) => {
-                profiling::scope!("SurfaceResized");
-
-                log::debug!(
-                    "Window {window} resized to {}x{}",
-                    physical_size.width,
-                    physical_size.height
-                );
-
-                window::refresh_window_data(window);
-                surfaces::mark_unconfigured(surface.expect("Missing surface for window"));
+            WindowEvent::SurfaceResized(_) => {
+                Self::window_surface_resized(window, surface.expect("Missing surface"), &event);
             }
             WindowEvent::CloseRequested => {
-                profiling::scope!("CloseRequested");
-
-                if window.is_main() {
-                    event_loop.exit();
-                }
+                Self::window_close_requested(event_loop, window);
             }
             WindowEvent::Destroyed => {
-                profiling::scope!("Destroyed");
-
-                log::debug!("Native window for window {window} destroyed");
-
-                self.window_map.remove(&window_id);
-                surfaces::remove(surface.expect("Missing surface for window"));
+                self.window_destroyed(
+                    window_id,
+                    window,
+                    surface.expect("Missing surface for window"),
+                );
             }
             WindowEvent::RedrawRequested => {
-                profiling::scope!("RedrawRequested");
-
-                let should_run_frame = match window::take_frame_stamp(window) {
-                    Some(redraw_request_stamp) => {
-                        // For frame `N`, we've sent redraw requests to all `M` windows.
-                        // If we've already drawn frame `N`, that means `time::frame_num()` now
-                        // returns at least `N + 1` because we've advanced the frame count while
-                        // rendering that frame.
-                        redraw_request_stamp == time::frame_num()
-                    }
-                    None => {
-                        // Winit asked for a redraw outside of our normal flow. This could be due to various OS related
-                        // things, so for safety we just run our frame loop.
-                        true
-                    }
-                };
-
-                if should_run_frame && let AppPhase::Running { frame_state } = &mut self.phase {
-                    frame_state.run_frame(FrameType::Continuous);
-                    window::request_redraws(time::frame_num());
-                }
+                self.window_redraw_requested(window);
             }
             _ => {}
         }
@@ -237,7 +201,17 @@ impl WutEngineApp {
                 "Window with native window ID already in map"
             );
 
+            let surface_type = if window.is_main() {
+                SurfaceType::Main
+            } else {
+                SurfaceType::Other
+            };
+
+            let surface_size: (u32, u32) = native_window.surface_size().into();
+
             let surface_id = surfaces::initialize(
+                surface_type,
+                surface_size,
                 Arc::clone(&native_window),
                 Some(Box::new(move || {
                     window::pre_present(window);

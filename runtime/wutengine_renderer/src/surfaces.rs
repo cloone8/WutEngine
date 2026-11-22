@@ -34,17 +34,26 @@ type PrePresentFn = dyn Fn() + Send + Sync;
 struct SurfaceData {
     surface: Surface<'static>,
     configured: bool,
+    surface_type: SurfaceType,
+    size: (u32, u32),
 
     #[debug(skip)]
     pre_present_callback: Option<Box<PrePresentFn>>,
 }
 
 impl SurfaceData {
-    fn new(surface: Surface<'static>, pre_present_callback: Option<Box<PrePresentFn>>) -> Self {
+    fn new(
+        surface: Surface<'static>,
+        surface_type: SurfaceType,
+        size: (u32, u32),
+        pre_present_callback: Option<Box<PrePresentFn>>,
+    ) -> Self {
         Self {
             surface,
-            configured: false,
+            surface_type,
+            size,
             pre_present_callback,
+            configured: false,
         }
     }
 }
@@ -53,14 +62,17 @@ fn surfaces() -> &'static RwLock<HashMap<SurfaceId, SurfaceData>> {
     SURFACES.get().expect("Surfaces not yet initialized")
 }
 
+/// Initializes the surfaces map. Should just be called once
 pub(super) fn init_surface_map() {
     SURFACES
         .set(RwLock::new(HashMap::new()))
         .expect("Surface map already initialized");
 }
 
-/// Initializes the rendering surface for the given native window, with the given handle
+/// Initializes the rendering surface for the given native surface_id, with the given handle
 pub fn initialize(
+    surface_type: SurfaceType,
+    surface_size: (u32, u32),
     native: impl Into<SurfaceTarget<'static>>,
     pre_present_callback: Option<Box<PrePresentFn>>,
 ) -> SurfaceId {
@@ -70,90 +82,101 @@ pub fn initialize(
 
     let surface = instance()
         .create_surface(native)
-        .expect("Failed to initialize surface for window"); //TODO: Handle properly
+        .expect("Failed to initialize surface for surface_id"); //TODO: Handle properly
 
-    surfaces()
-        .write()
-        .insert(surface_id, SurfaceData::new(surface, pre_present_callback));
+    surfaces().write().insert(
+        surface_id,
+        SurfaceData::new(surface, surface_type, surface_size, pre_present_callback),
+    );
 
     surface_id
 }
 
-/// Removes the rendering surface for the given window
-pub fn remove(window: SurfaceId) {
+/// Removes the rendering surface for the given surface_id
+pub fn remove(surface_id: SurfaceId) {
     profiling::function_scope!();
 
-    let surface = surfaces().write().remove(&window);
+    let surface = surfaces().write().remove(&surface_id);
 
     if surface.is_none() {
-        log::error!("Failed to remove surface for unknown window {window}");
+        log::error!("Failed to remove surface for unknown surface_id {surface_id}");
     }
 }
 
-/// Runs the callback with the [`Surface`] for the given window
-pub fn get<T>(window: SurfaceId, cb: impl FnOnce(&Surface<'static>) -> T) -> T {
+/// Runs the callback with the [`Surface`] for the given surface_id
+pub fn get<T>(surface_id: SurfaceId, cb: impl FnOnce(&Surface<'static>) -> T) -> T {
     profiling::function_scope!();
 
     let surfaces = surfaces().read();
 
-    let surface = surfaces.get(&window).expect("Missing surface for window");
+    let surface = surfaces
+        .get(&surface_id)
+        .expect("Missing surface for surface_id");
 
     cb(&surface.surface)
 }
 
-/// Returns whether the surface for the given window is configured
-pub(crate) fn is_configured(window: SurfaceId) -> bool {
+/// Returns whether the surface for the given surface_id is configured
+pub(crate) fn is_configured(surface_id: SurfaceId) -> bool {
     surfaces()
         .read()
-        .get(&window)
-        .expect("Unknown window")
+        .get(&surface_id)
+        .expect("Unknown surface")
         .configured
 }
 
-/// Marks the surface for the given window as "unconfigured", causing the runtime to
-/// reconfigure it the next time that it's needed
-pub fn mark_unconfigured(window: SurfaceId) {
+/// Updates the size of the given surface. The size is the physical size (in pixels)
+pub fn change_surface_size(surface_id: SurfaceId, size: (u32, u32)) {
     profiling::function_scope!();
-    log::trace!("Marking surface for window {window} as unconfigured");
+    log::trace!(
+        "Updating size for surface {surface_id} to {}x{}",
+        size.0,
+        size.1
+    );
 
     let mut surfaces = surfaces().write();
 
-    let Some(surface) = surfaces.get_mut(&window) else {
-        log::error!("Cannot find surface for window {window}");
+    let Some(surface) = surfaces.get_mut(&surface_id) else {
+        log::error!("Cannot find surface for surface_id {surface_id}");
         return;
     };
 
+    surface.size = size;
     surface.configured = false;
 }
 
-/// Reconfigures the surface for the given window
-pub(crate) fn configure(window: SurfaceId, size: (u32, u32)) {
+/// Reconfigures the surface for the given `surface_id`
+pub(crate) fn configure(surface_id: SurfaceId) {
     profiling::function_scope!();
 
     let mut surfaces = surfaces().write();
 
     let surface = surfaces
-        .get_mut(&window)
-        .expect("Missing surface for window");
+        .get_mut(&surface_id)
+        .expect("Missing surface for surface_id");
 
     let capabilities = surface.surface.get_capabilities(adapter());
 
     let (format, color_space) = get_best_format(&capabilities.format_capabilities, HdrMode::Sdr);
-    let present_mode = get_best_present_mode(&capabilities.present_modes, true); // TODO: Make this configurable
+    let present_mode = get_best_present_mode(
+        &capabilities.present_modes,
+        surface.surface_type,
+        VsyncSetting::On,
+    );
 
     let surface_configuration = SurfaceConfiguration {
         usage: TextureUsages::RENDER_ATTACHMENT,
         format,
         color_space,
-        width: size.0,
-        height: size.1,
+        width: surface.size.0,
+        height: surface.size.1,
         present_mode,
         desired_maximum_frame_latency: 2, // TODO: Make configurable
         alpha_mode: CompositeAlphaMode::Opaque,
         view_formats: vec![format.remove_srgb_suffix(), format.add_srgb_suffix()],
     };
 
-    log::debug!("Configuring surface for window {window} to: {surface_configuration:#?}");
+    log::debug!("Configuring surface for surface_id {surface_id} to: {surface_configuration:#?}");
 
     surface.surface.configure(device(), &surface_configuration);
 
@@ -162,7 +185,8 @@ pub(crate) fn configure(window: SurfaceId, size: (u32, u32)) {
 
 /// Placeholder for later when we might support HDR
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum HdrMode {
+pub enum HdrMode {
+    /// Standard dynamic range
     Sdr,
 }
 
@@ -200,14 +224,65 @@ fn get_best_sdr_format(supported_formats: &[SurfaceFormatCapabilities]) -> Optio
         .map(|format_capability| format_capability.format)
 }
 
-fn get_best_present_mode(supported_modes: &[PresentMode], vsync: bool) -> PresentMode {
-    // TODO: Make a better selection once we allow configuring the present mode
-    // with a config file
-    _ = supported_modes;
+/// The vsync setting for the main surface
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VsyncSetting {
+    /// Vsync on: [`PresentMode::Fifo`]
+    On,
 
-    if vsync {
-        PresentMode::AutoVsync
-    } else {
-        PresentMode::AutoNoVsync
+    /// [`PresentMode::Mailbox`] if supported, [`PresentMode::Fifo`] otherwise
+    Fast,
+    /// [`PresentMode::FifoRelaxed`] if supported, [`PresentMode::Fifo`] otherwise
+    Adaptive,
+
+    /// First supported out of [`PresentMode::Immediate`], [`PresentMode::Mailbox`] and
+    /// [`PresentMode::Fifo`]
+    Off,
+}
+
+/// The type of the surface. The main surface is used for pacing the entire game,
+/// so has more options to control it. Other surface_ids always choose the best supported
+/// mode that follows the main surface
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SurfaceType {
+    /// The main surface
+    Main,
+
+    /// Any other surface
+    Other,
+}
+
+fn get_best_present_mode(
+    supported_modes: &[PresentMode],
+    surface_type: SurfaceType,
+    vsync: VsyncSetting,
+) -> PresentMode {
+    match surface_type {
+        SurfaceType::Main => match vsync {
+            VsyncSetting::On => PresentMode::Fifo,
+            VsyncSetting::Fast => first_supported_out_of(supported_modes, &[PresentMode::Mailbox]),
+            VsyncSetting::Adaptive => {
+                first_supported_out_of(supported_modes, &[PresentMode::FifoRelaxed])
+            }
+            VsyncSetting::Off => first_supported_out_of(
+                supported_modes,
+                &[PresentMode::Immediate, PresentMode::Mailbox],
+            ),
+        },
+        SurfaceType::Other => first_supported_out_of(
+            supported_modes,
+            &[PresentMode::Mailbox, PresentMode::Immediate],
+        ),
     }
+}
+
+fn first_supported_out_of(supported_modes: &[PresentMode], to_try: &[PresentMode]) -> PresentMode {
+    for present_mode in to_try {
+        if supported_modes.contains(present_mode) {
+            return *present_mode;
+        }
+    }
+
+    // Fallback is always FIFO, since that's the only mode always supported everywhere
+    PresentMode::Fifo
 }
