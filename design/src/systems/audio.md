@@ -19,10 +19,11 @@ different on the web. One mixer gives the same sound everywhere and no glitch wh
   worklet's message port. A sound's data is sent when the sound is loaded and dropped when it's freed; a playing sound
   keeps its asset loaded until it ends.
 - **The game side keeps each sound's time,** from the clip length stored at import and the pitch, without asking the
-  mixer. It advances by the **real-time delta,** not the clamped game delta, because the mixer keeps playing during a
-  hitch. It stops only for a paused bus, the development tools' pause and backgrounded. So whether a sound has
-  finished, its playback position and `finished` are the same in a headless build, while the web waits for a click,
-  and for the silence placeholder; the game never waits on the mixer.
+  mixer. It advances at frame start, in every build ([Time and the frame](../core/frame.md)), by the **real-time
+  delta,** not the clamped game delta, because the mixer keeps playing during a hitch; a sound that ends there queues
+  its `finished` for the settle point. It stops only for a paused bus, the development tools' pause and
+  backgrounded. So whether a sound has finished, its playback position and `finished` are the same in a headless
+  build, while the web waits for a click, and for the silence placeholder; the game never waits on the mixer.
 - **Plays from parallel Rust systems are queued and applied in a fixed order** (system registration order, then call
   order), so instance limits pick the same sounds on every platform.
 - **Stand-ins:** cpal for desktop output; decoders from crates. The mixer itself is in-house from the start, since a

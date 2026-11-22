@@ -13,7 +13,8 @@ Why: user code can then reason about the frame as if it ran on one thread, which
 
 0. **Frame start:** platform events and input (the development overlay takes the input it wants first); results of
    background work enter the world: loaded assets, finished scene loads (a scene switch takes effect here), GPU
-   readbacks, editor-link messages, configuration changes.
+   readbacks, editor-link messages, configuration changes. Then the game side of audio advances each sound's time,
+   and sounds that ended queue their `finished` for the settle point ([Audio](../systems/audio.md)).
 1. **Fixed-update loop, 0..n steps** at a fixed rate. Per step: fixed update (Rust systems, then scripts), transform
    propagation, physics step, collision and trigger callbacks.
 2. **Update** (Rust systems, then scripts). Between the two is the **settle point**: queued Rust and engine signal
@@ -25,9 +26,12 @@ Why: user code can then reason about the frame as if it ran on one thread, which
    development overlay's UI**, on the main thread, so its inspector edits go through propagation in this frame
    ([Profiling and debugging tools](../editor/debug_tools.md)).
 5. **Transform propagation.**
-6. **Render preparation:** the one sync of changes into the retained GPU scene; audio sources and the listener read
-   their final positions (in parallel with render preparation).
+6. **Render preparation:** the one sync of changes into the retained GPU scene; in parallel, audio sources and the
+   listener read their displayed poses and the frame's batch goes to the mixer.
 7. **Render graph:** build, record, submit, present. The development overlay draws last.
+
+A headless build still runs every phase; only the backend work in phases 6 and 7 is skipped
+([Lifecycle and memory](lifecycle.md#headless)).
 
 Rules within the frame:
 

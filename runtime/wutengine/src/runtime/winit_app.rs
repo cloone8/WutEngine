@@ -11,10 +11,11 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::Window as WinitWindow;
 use winit::window::WindowAttributes;
 use winit::window::WindowId;
+use wutengine_renderer::surfaces;
+use wutengine_renderer::surfaces::SurfaceId;
 
 use crate::executor;
 use crate::log;
-use crate::renderer::surfaces;
 use crate::runtime::frame::FrameState;
 use crate::runtime::frame::FrameType;
 use crate::runtime::startup;
@@ -26,6 +27,7 @@ use crate::window::Window;
 pub(crate) struct WutEngineApp {
     phase: AppPhase,
     window_map: HashMap<WindowId, Window>,
+    surface_map: HashMap<Window, SurfaceId>,
 }
 
 impl WutEngineApp {
@@ -33,6 +35,7 @@ impl WutEngineApp {
         Self {
             phase: AppPhase::NotStarted,
             window_map: HashMap::default(),
+            surface_map: HashMap::default(),
         }
     }
 }
@@ -59,13 +62,20 @@ impl ApplicationHandler for WutEngineApp {
 
             self.initialize_pending_windows(event_loop);
 
+            let main_surface = self
+                .surface_map
+                .get(&main_window)
+                .copied()
+                .expect("Missing main window surface");
+
             cfg_select! {
                 target_arch = "wasm32" => {
                     startup::driver::start(startup::startup());
                     self.phase = AppPhase::Starting;
                 }
                 _ => {
-                    executor::block_on(startup::startup_async(main_window));
+
+                    executor::block_on(startup::startup_async(main_surface));
                     self.phase = AppPhase::Running {
                         frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)) // TODO:
                                                                                           // Make
@@ -94,6 +104,8 @@ impl ApplicationHandler for WutEngineApp {
             return;
         };
 
+        let surface = self.surface_map.get(&window).copied();
+
         match event {
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 profiling::scope!("ScaleFactorChanged");
@@ -112,7 +124,7 @@ impl ApplicationHandler for WutEngineApp {
                 );
 
                 window::refresh_window_data(window);
-                surfaces::mark_unconfigured(window);
+                surfaces::mark_unconfigured(surface.expect("Missing surface for window"));
             }
             WindowEvent::CloseRequested => {
                 profiling::scope!("CloseRequested");
@@ -125,7 +137,9 @@ impl ApplicationHandler for WutEngineApp {
                 profiling::scope!("Destroyed");
 
                 log::debug!("Native window for window {window} destroyed");
+
                 self.window_map.remove(&window_id);
+                surfaces::remove(surface.expect("Missing surface for window"));
             }
             WindowEvent::RedrawRequested => {
                 profiling::scope!("RedrawRequested");
@@ -193,6 +207,7 @@ impl ApplicationHandler for WutEngineApp {
 
     fn destroy_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         let _ = event_loop;
+        //TODO: Destroy all surfaces here
     }
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -223,7 +238,14 @@ impl WutEngineApp {
                 "Window with native window ID already in map"
             );
 
-            surfaces::initialize(window, Arc::clone(&native_window));
+            let surface_id = surfaces::initialize(
+                Arc::clone(&native_window),
+                Some(Box::new(move || {
+                    window::pre_present(window);
+                })),
+            );
+
+            self.surface_map.insert(window, surface_id);
 
             native_window
         });

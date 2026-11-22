@@ -101,8 +101,11 @@ dependencies when they are built.
   window, graphics, audio and input devices, and a headless build turns it off. Why: Cargo unifies features, so they
   must add, never remove; dedicated servers are already a separate build (the precision switch,
   [Game size and precision](../goals/game_size.md)).
-- **Rendering and audio only read world data** in their own phases; headless skips those phases. Setting a material or
-  playing a sound still changes data and is never an error; assets load without their GPU or audio upload step.
+- **Rendering and audio output only read world data** in their own phases (render preparation and the render graph);
+  headless skips that backend work, decided inside the renderer and audio rather than by skipping phases, so headless
+  chosen at runtime stays possible. The game side of audio (each sound's time, `finished`) runs in both builds, at
+  frame start ([Audio](../systems/audio.md)). Setting a material or playing a sound still changes data and is never
+  an error; assets load without their GPU or audio upload step.
 - **User-facing types live apart from their backends:** only the renderer and audio crates depend on wgpu and the
   audio backend, so game code compiles the same in both builds.
 - **The frame loop runs without winit** as a plain timer-driven loop. Why: winit needs a display server on Linux,

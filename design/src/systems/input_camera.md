@@ -136,8 +136,13 @@ Each source is read for what it's good at, never summed.
   are `#[non_exhaustive]`, leaving room for "fix the smaller axis".
 - **Every enabled camera renders.** Switching cameras is enabling one and disabling the other.
 - **`order` is per target:** among cameras on one target, lower first; a later camera draws over an earlier one (an
-  overlay doesn't clear colour). Equal orders on one target are a development warning and fall back to hierarchy
-  order, so the result is still deterministic.
+  overlay keeps their colour, see the background below). Equal orders on one target are a development warning and
+  fall back to hierarchy order, so the result is still deterministic.
+- **A camera's background fills its viewport before it draws:** the sky (the default once the sky exists), a colour
+  of its own (the only choice before then), or none, for an overlay that keeps what earlier cameras on the target
+  drew. The target's clear colour fills the whole target first, so it shows around smaller viewports and where no
+  camera draws. **Every camera clears depth in its viewport,** an overlay too. Why: a first-person weapon camera
+  drawn over the world must not be depth-tested against it.
 - **Across targets the renderer orders by dependency,** never by `order`; cycles read the previous frame
   ([Renderer architecture](../rendering/architecture.md)).
 - **No "main camera" tag.** Code that needs a camera takes it as an argument; a helper returns the camera that draws

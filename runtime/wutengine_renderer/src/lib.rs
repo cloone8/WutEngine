@@ -1,4 +1,4 @@
-//! The renderer
+#![doc = include_str!("../README.md")]
 
 use std::sync::OnceLock;
 
@@ -6,13 +6,15 @@ use wgpu::Adapter;
 use wgpu::Device;
 use wgpu::Instance;
 use wgpu::Queue;
+use wutengine_log as log;
 
-pub(crate) use init::init_adapter;
-pub(crate) use init::init_instance;
-pub(crate) use init::init_renderer;
+pub use init::init_adapter;
+pub use init::init_instance;
+pub use init::init_renderer;
 
 mod init;
-pub(crate) mod surfaces;
+pub mod render;
+pub mod surfaces;
 
 /// Creates a generic label for the [`wgpu`] API
 #[macro_export]

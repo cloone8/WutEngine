@@ -6,7 +6,6 @@ mod executor;
 pub mod graphics;
 mod panic_handling;
 pub mod profiling;
-mod renderer;
 pub mod runtime;
 pub mod time;
 pub mod window;

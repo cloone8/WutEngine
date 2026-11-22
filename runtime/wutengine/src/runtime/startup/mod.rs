@@ -1,9 +1,11 @@
 use core::panic;
 use core::time::Duration;
 
+use wutengine_renderer as renderer;
+use wutengine_renderer::surfaces;
+use wutengine_renderer::surfaces::SurfaceId;
+
 use crate::log;
-use crate::renderer;
-use crate::renderer::surfaces;
 use crate::time;
 use crate::window;
 use crate::window::Window;
@@ -24,11 +26,11 @@ pub(super) fn startup_sync() -> Window {
 }
 
 /// Main startup function that sets up the full engine context and runs the app entrypoint
-pub(super) async fn startup_async(main_window: Window) {
+pub(super) async fn startup_async(main_surface_id: SurfaceId) {
     log::debug!("Requesting async resources");
 
     // First we set up the adapter using the main surface.
-    let init_adapter = surfaces::get(main_window, |main_surface| {
+    let init_adapter = surfaces::get(main_surface_id, |main_surface| {
         renderer::init_adapter(main_surface)
     });
 

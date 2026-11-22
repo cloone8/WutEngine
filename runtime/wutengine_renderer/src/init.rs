@@ -14,16 +14,16 @@ use wgpu::RequestAdapterOptions;
 use wgpu::Surface;
 use wgpu::wgt::DeviceDescriptor;
 
+use crate::INSTANCE;
+use crate::RENDERER;
+use crate::Renderer;
+use crate::instance;
 use crate::label;
 use crate::log;
-use crate::renderer::INSTANCE;
-use crate::renderer::RENDERER;
-use crate::renderer::Renderer;
-use crate::renderer::instance;
-use crate::renderer::surfaces::init_surface_map;
+use crate::surfaces::init_surface_map;
 
 /// Initializes the [`Instance`] based on the config of the renderer
-pub(crate) fn init_instance() {
+pub fn init_instance() {
     log::debug!("Initializing WGPU instance");
 
     log::trace!(
@@ -47,7 +47,7 @@ pub(crate) fn init_instance() {
 }
 
 /// Requests a new [`Adapter`] compatible with the provided [`Surface`] and returns the future that provides it
-pub(crate) fn init_adapter(
+pub fn init_adapter(
     surface: &Surface<'_>,
 ) -> impl Future<Output = Option<(Adapter, Features)>> + use<> {
     log::debug!("Initializing adapter");
@@ -93,7 +93,7 @@ pub(crate) fn init_adapter(
 }
 
 /// Initializes the renderer, making sure it supports at least the given surface
-pub(crate) async fn init_renderer(adapter: Adapter, adapter_features: Features) -> bool {
+pub async fn init_renderer(adapter: Adapter, adapter_features: Features) -> bool {
     log::debug!("Initializing renderer");
 
     let (device, queue) = match adapter

@@ -4,6 +4,7 @@ members = [
   "runtime/wutengine",
   "runtime/wutengine_log",
   "runtime/wutengine_macro",
+  "runtime/wutengine_renderer",
   "runtime/wutengine_sync",
   "xtask",
   "demos/hello",
@@ -29,6 +30,7 @@ wutengine = { version = "0.7.0", path = "runtime/wutengine" } # We want the defa
 wutengine_log = { version = "0.7.0", path = "runtime/wutengine_log", default-features = false }
 wutengine_sync = { version = "0.7.0", path = "runtime/wutengine_sync", default-features = false }
 wutengine_macro = { version = "0.7.0", path = "runtime/wutengine_macro", default-features = false }
+wutengine_renderer = { version = "0.7.0", path = "runtime/wutengine_renderer", default-features = false }
 
 # External crates
 anstyle = { version = "1.0", default-features = false }

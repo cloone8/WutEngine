@@ -3,6 +3,9 @@
 use core::hint;
 use core::time::Duration;
 
+#[cfg(feature = "interactive")]
+use wutengine_renderer::render;
+
 use crate::log;
 use crate::time;
 
@@ -52,7 +55,28 @@ impl FrameState {
     )]
     pub(super) fn run_frame(&mut self, frame_type: FrameType) {
         profiling::function_scope!();
+
         log::trace!("Running frame");
+
+        self.prepare_frame(frame_type);
+
+        Self::fixed_update();
+
+        Self::game_update();
+
+        Self::animation();
+
+        Self::late_update();
+
+        Self::propagate_transforms();
+
+        Self::prepare_render();
+
+        Self::render_graph();
+    }
+
+    fn prepare_frame(&self, frame_type: FrameType) {
+        profiling::function_scope!();
 
         let cur_clock = Instant::now();
 
@@ -60,10 +84,6 @@ impl FrameState {
 
         // Updates all non-fixed timers so they become visible to callers
         time::begin_frame(real_time, game_delta);
-
-        Self::fixed_update();
-
-        //TODO: The rest of the owl
     }
 
     fn fixed_update() {
@@ -94,6 +114,33 @@ impl FrameState {
         }
 
         time::end_fixed_steps();
+    }
+
+    fn game_update() {
+        profiling::function_scope!();
+    }
+
+    fn animation() {
+        profiling::function_scope!();
+    }
+
+    fn late_update() {
+        profiling::function_scope!();
+    }
+
+    fn propagate_transforms() {
+        profiling::function_scope!();
+    }
+
+    fn prepare_render() {
+        profiling::function_scope!();
+    }
+
+    fn render_graph() {
+        profiling::function_scope!();
+
+        #[cfg(feature = "interactive")]
+        render::render();
     }
 
     /// Returns `(real_time, game_delta)`

@@ -1,0 +1,38 @@
+[package]
+name = "wutengine_renderer"
+description = "The WutEngine renderer"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
+readme = "README.md"
+
+[features]
+labels = []
+
+[dependencies]
+wutengine_log = { workspace = true }
+wutengine_macro = { workspace = true }
+wutengine_sync = { workspace = true }
+profiling = { workspace = true }
+derive_more = { workspace = true, features = ["debug"] }
+wgpu = { workspace = true, features = [
+  "dx12",
+  "metal",
+  "parking_lot",
+  "std",
+  "vulkan",
+  "webgpu",
+  "wgsl",
+  "fragile-send-sync-non-atomic-wasm",
+
+] }
+
+[lints]
+workspace = true

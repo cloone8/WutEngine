@@ -254,6 +254,24 @@ pub(crate) fn refresh_window_data(window: Window) {
     *state.as_mut() = WindowSnapshot::create(native.as_ref());
 }
 
+/// Notifies the native windowing system that we are about to present to the given window
+pub(crate) fn pre_present(window: Window) {
+    profiling::function_scope!();
+
+    let windows = window_manager().windows.read();
+    let Some(window_data) = windows.get(&window) else {
+        log::error!("Cannot call pre-present for unknown window {window}");
+        return;
+    };
+
+    let WindowData::Open { native, .. } = window_data else {
+        log::error!("Cannot pre-present a non-open window {window}");
+        return;
+    };
+
+    native.pre_present_notify();
+}
+
 /// Request a redraw for all windows that don't already have an outstanding redraw request
 pub(crate) fn request_redraws(frame: u64) {
     for data in window_manager().windows.write().values_mut() {

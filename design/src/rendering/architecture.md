@@ -112,7 +112,9 @@ every Rust project.
   maintain, not a second LDR path with tonemapping folded into materials; at the first game's low resolution the cost
   is small. Kept possible: a low-end option without the HDR target.
 - **Tonemapping belongs to the target, not the camera:** the cameras on one target draw in their order into one
-  shared linear HDR buffer, and the target's tonemapper runs once, after its last camera. **A render texture stays
+  shared linear HDR buffer, and the target's tonemapper runs once, after its last camera. The target's clear colour
+  fills the buffer once; each camera's background ([Input and camera](../systems/input_camera.md)) is then a draw
+  limited to its viewport, since a pass's clear always covers the whole attachment. **A render texture stays
   linear** by default (tonemapper None, no encoding), so a material sampling it gets linear values and nothing is
   tonemapped twice.
 - **The order per target, fixed now so later features slot in:**

@@ -123,7 +123,8 @@ The order:
 
 0. **Foundation:** render graph with injection points, views (perspective and orthographic), retained GPU scene,
    shared mesh buffers, shading-model wrapping and pass variants in `weshc`, debug labels, a linear colour workflow
-   (sRGB textures, an `rgba16float` target per view, tonemapper None, sRGB output encoding). Unlit on top of it.
+   (sRGB textures, an `rgba16float` buffer per target shared by its cameras, tonemapper None, sRGB output encoding).
+   Unlit on top of it.
    Compute passes in the render graph and compute shaders in `weshc` from the start.
 1. **Unlit complete, and 2D basics:** alpha clip and blending, a sorted transparent pass; vertex colours; a sky
    (cubemap or gradient); sprites (a Sprite shading model on a shared quad) with sorting layers and order in layer;

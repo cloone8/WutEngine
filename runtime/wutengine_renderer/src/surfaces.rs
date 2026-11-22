@@ -1,7 +1,6 @@
 //! Rendering surface management
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::OnceLock;
 
 use wgpu::CompositeAlphaMode;
@@ -11,34 +10,46 @@ use wgpu::SurfaceColorSpace;
 use wgpu::SurfaceColorSpaces;
 use wgpu::SurfaceConfiguration;
 use wgpu::SurfaceFormatCapabilities;
+use wgpu::SurfaceTarget;
 use wgpu::TextureFormat;
 use wgpu::TextureUsages;
+use wutengine_macro::unique_id_type32;
 use wutengine_sync::RwLock;
 
+use crate::adapter;
+use crate::device;
+use crate::instance;
 use crate::log;
-use crate::renderer;
-use crate::window::Window;
 
-use winit::window::Window as WinitWindow;
+unique_id_type32! {
+    /// Identifier for a single surface
+    pub SurfaceId
+}
 
-static SURFACES: OnceLock<RwLock<HashMap<Window, SurfaceData>>> = OnceLock::new();
+static SURFACES: OnceLock<RwLock<HashMap<SurfaceId, SurfaceData>>> = OnceLock::new();
 
-#[derive(Debug)]
+type PrePresentFn = dyn Fn() + Send + Sync;
+
+#[derive(derive_more::Debug)]
 struct SurfaceData {
     surface: Surface<'static>,
     configured: bool,
+
+    #[debug(skip)]
+    pre_present_callback: Option<Box<PrePresentFn>>,
 }
 
 impl SurfaceData {
-    fn new(surface: Surface<'static>) -> Self {
+    fn new(surface: Surface<'static>, pre_present_callback: Option<Box<PrePresentFn>>) -> Self {
         Self {
             surface,
             configured: false,
+            pre_present_callback,
         }
     }
 }
 
-fn surfaces() -> &'static RwLock<HashMap<Window, SurfaceData>> {
+fn surfaces() -> &'static RwLock<HashMap<SurfaceId, SurfaceData>> {
     SURFACES.get().expect("Surfaces not yet initialized")
 }
 
@@ -49,18 +60,38 @@ pub(super) fn init_surface_map() {
 }
 
 /// Initializes the rendering surface for the given native window, with the given handle
-pub(crate) fn initialize(window: Window, native: Arc<dyn WinitWindow>) {
+pub fn initialize(
+    native: impl Into<SurfaceTarget<'static>>,
+    pre_present_callback: Option<Box<PrePresentFn>>,
+) -> SurfaceId {
     profiling::function_scope!();
 
-    let surface = renderer::instance()
+    let surface_id = SurfaceId::new();
+
+    let surface = instance()
         .create_surface(native)
         .expect("Failed to initialize surface for window"); //TODO: Handle properly
 
-    surfaces().write().insert(window, SurfaceData::new(surface));
+    surfaces()
+        .write()
+        .insert(surface_id, SurfaceData::new(surface, pre_present_callback));
+
+    surface_id
+}
+
+/// Removes the rendering surface for the given window
+pub fn remove(window: SurfaceId) {
+    profiling::function_scope!();
+
+    let surface = surfaces().write().remove(&window);
+
+    if surface.is_none() {
+        log::error!("Failed to remove surface for unknown window {window}");
+    }
 }
 
 /// Runs the callback with the [`Surface`] for the given window
-pub(crate) fn get<T>(window: Window, cb: impl FnOnce(&Surface<'static>) -> T) -> T {
+pub fn get<T>(window: SurfaceId, cb: impl FnOnce(&Surface<'static>) -> T) -> T {
     profiling::function_scope!();
 
     let surfaces = surfaces().read();
@@ -71,7 +102,7 @@ pub(crate) fn get<T>(window: Window, cb: impl FnOnce(&Surface<'static>) -> T) ->
 }
 
 /// Returns whether the surface for the given window is configured
-pub(crate) fn is_configured(window: Window) -> bool {
+pub(crate) fn is_configured(window: SurfaceId) -> bool {
     surfaces()
         .read()
         .get(&window)
@@ -81,7 +112,7 @@ pub(crate) fn is_configured(window: Window) -> bool {
 
 /// Marks the surface for the given window as "unconfigured", causing the runtime to
 /// reconfigure it the next time that it's needed
-pub(crate) fn mark_unconfigured(window: Window) {
+pub fn mark_unconfigured(window: SurfaceId) {
     profiling::function_scope!();
     log::trace!("Marking surface for window {window} as unconfigured");
 
@@ -96,7 +127,7 @@ pub(crate) fn mark_unconfigured(window: Window) {
 }
 
 /// Reconfigures the surface for the given window
-pub(crate) fn configure(window: Window, size: (u32, u32)) {
+pub(crate) fn configure(window: SurfaceId, size: (u32, u32)) {
     profiling::function_scope!();
 
     let mut surfaces = surfaces().write();
@@ -105,7 +136,7 @@ pub(crate) fn configure(window: Window, size: (u32, u32)) {
         .get_mut(&window)
         .expect("Missing surface for window");
 
-    let capabilities = surface.surface.get_capabilities(renderer::adapter());
+    let capabilities = surface.surface.get_capabilities(adapter());
 
     let (format, color_space) = get_best_format(&capabilities.format_capabilities, HdrMode::Sdr);
     let present_mode = get_best_present_mode(&capabilities.present_modes, true); // TODO: Make this configurable
@@ -124,9 +155,7 @@ pub(crate) fn configure(window: Window, size: (u32, u32)) {
 
     log::debug!("Configuring surface for window {window} to: {surface_configuration:#?}");
 
-    surface
-        .surface
-        .configure(renderer::device(), &surface_configuration);
+    surface.surface.configure(device(), &surface_configuration);
 
     surface.configured = true;
 }

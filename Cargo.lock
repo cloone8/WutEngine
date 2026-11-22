@@ -2451,6 +2451,7 @@ dependencies = [
  "winit",
  "wutengine_log",
  "wutengine_macro",
+ "wutengine_renderer",
  "wutengine_sync",
 ]
 
@@ -2474,6 +2475,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.10",
+]
+
+[[package]]
+name = "wutengine_renderer"
+version = "0.7.0"
+dependencies = [
+ "derive_more",
+ "profiling",
+ "wgpu",
+ "wutengine_log",
+ "wutengine_macro",
+ "wutengine_sync",
 ]
 
 [[package]]
