@@ -156,6 +156,8 @@ enum WindowData {
     },
     Open {
         native: Arc<dyn WinitWindow>,
+        /// The frame of the last outstanding redraw request, if any
+        frame_stamp: Option<u64>,
         state: Box<WindowSnapshot>,
     },
     Closed(Box<WindowSnapshot>),
@@ -170,6 +172,8 @@ struct WindowSnapshot {
 
 impl WindowSnapshot {
     fn create(native: &dyn WinitWindow) -> Self {
+        profiling::function_scope!();
+
         Self {
             pixels: native.surface_size().into(),
             scale_factor: native.scale_factor(),
@@ -186,6 +190,7 @@ static WINDOW_MANAGER: OnceLock<WindowManager> = OnceLock::new();
 /// Returns the [`WindowManager`]
 ///
 /// Panics if not yet initialized
+#[inline]
 fn window_manager() -> &'static WindowManager {
     WINDOW_MANAGER
         .get()
@@ -223,11 +228,14 @@ pub(crate) fn initialize_windows(
 
         *data = WindowData::Open {
             state: Box::new(WindowSnapshot::create(native_window.as_ref())),
+            frame_stamp: None,
             native: native_window,
         };
     }
 }
 
+/// Refreshes the cached window data for this window by querying the
+/// native window
 pub(crate) fn refresh_window_data(window: Window) {
     profiling::function_scope!();
     log::trace!("Refreshing window data for window {window}");
@@ -238,10 +246,42 @@ pub(crate) fn refresh_window_data(window: Window) {
         return;
     };
 
-    let WindowData::Open { native, state } = window_data else {
+    let WindowData::Open { native, state, .. } = window_data else {
         log::error!("Cannot refresh data for non-open window {window}");
         return;
     };
 
     *state.as_mut() = WindowSnapshot::create(native.as_ref());
+}
+
+/// Request a redraw for all windows that don't already have an outstanding redraw request
+pub(crate) fn request_redraws(frame: u64) {
+    for data in window_manager().windows.write().values_mut() {
+        let WindowData::Open {
+            native,
+            frame_stamp,
+            ..
+        } = data
+        else {
+            continue;
+        };
+
+        if frame_stamp.is_none() {
+            // No outstanding redraw request yet, send one
+            *frame_stamp = Some(frame);
+            native.request_redraw();
+        }
+    }
+}
+
+/// Takes the outstanding redraw stamp for the given window and resets it to [`None`].
+/// If this returns [`None`], either the window is unknown or [`winit`] sent the redraw request
+/// unasked
+pub(crate) fn take_frame_stamp(window: Window) -> Option<u64> {
+    let mut windows = window_manager().windows.write();
+
+    match windows.get_mut(&window) {
+        Some(WindowData::Open { frame_stamp, .. }) => frame_stamp.take(),
+        _ => None,
+    }
 }

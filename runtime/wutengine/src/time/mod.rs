@@ -84,3 +84,8 @@ pub fn fixed_step_num() -> u64 {
 pub fn frame_num() -> u64 {
     todo!()
 }
+
+/// Begins a new frame
+pub(crate) fn begin_frame() {
+    todo!()
+}

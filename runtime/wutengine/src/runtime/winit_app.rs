@@ -14,7 +14,9 @@ use winit::window::WindowId;
 use crate::executor;
 use crate::log;
 use crate::renderer::surfaces;
+use crate::runtime::frame;
 use crate::runtime::startup;
+use crate::time;
 use crate::window;
 use crate::window::Window;
 
@@ -22,7 +24,6 @@ use crate::window::Window;
 pub(crate) struct WutEngineApp {
     phase: AppPhase,
     window_map: HashMap<WindowId, Window>,
-    pending_frame: bool,
 }
 
 impl WutEngineApp {
@@ -30,7 +31,6 @@ impl WutEngineApp {
         Self {
             phase: AppPhase::NotStarted,
             window_map: HashMap::default(),
-            pending_frame: true,
         }
     }
 }
@@ -121,6 +121,26 @@ impl ApplicationHandler for WutEngineApp {
             }
             WindowEvent::RedrawRequested => {
                 profiling::scope!("RedrawRequested");
+
+                let should_run_frame = match window::take_frame_stamp(window) {
+                    Some(redraw_request_stamp) => {
+                        // For frame `N`, we've sent redraw requests to all `M` windows.
+                        // If we've already drawn frame `N`, that means `time::frame_num()` now
+                        // returns at least `N + 1` because we've advanced the frame count while
+                        // rendering that frame.
+                        redraw_request_stamp == time::frame_num()
+                    }
+                    None => {
+                        // Winit asked for a redraw outside of our normal flow. This could be due to various OS related
+                        // things, so for safety we just run our frame loop.
+                        true
+                    }
+                };
+
+                if should_run_frame {
+                    frame::run_frame();
+                    window::request_redraws(time::frame_num());
+                }
             }
             _ => {}
         }
@@ -149,6 +169,10 @@ impl ApplicationHandler for WutEngineApp {
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
         self.initialize_pending_windows(event_loop);
+
+        // Both starts the first frame, and requests redraws for any new windows
+        // and windows whose stale redraw requests were dropped
+        window::request_redraws(time::frame_num());
     }
 
     fn suspended(&mut self, event_loop: &dyn ActiveEventLoop) {
