@@ -1,3 +1,5 @@
+//! Initialization routine
+
 use std::sync::Arc;
 
 use log::Level;

@@ -3,13 +3,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
-use winit::dpi::Size;
-use wutengine_sync::Mutex;
-use wutengine_sync::RwLock;
 
+use winit::dpi::Size;
 use winit::window::Window as WinitWindow;
 use winit::window::WindowAttributes;
 use wutengine_macro::unique_id_type32;
+use wutengine_sync::Mutex;
+use wutengine_sync::RwLock;
 
 use crate::log;
 

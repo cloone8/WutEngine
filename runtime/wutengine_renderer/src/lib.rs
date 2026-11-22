@@ -2,15 +2,14 @@
 
 use std::sync::OnceLock;
 
+pub use init::init_adapter;
+pub use init::init_instance;
+pub use init::init_renderer;
 use wgpu::Adapter;
 use wgpu::Device;
 use wgpu::Instance;
 use wgpu::Queue;
 use wutengine_log as log;
-
-pub use init::init_adapter;
-pub use init::init_instance;
-pub use init::init_renderer;
 
 mod init;
 pub mod render;
@@ -46,6 +45,7 @@ macro_rules! label {
     };
 }
 
+/// The global [`wgpu`] instance
 static INSTANCE: OnceLock<Instance> = OnceLock::new();
 
 /// The global data for the renderer
@@ -66,6 +66,7 @@ impl Renderer {
     }
 }
 
+/// The global renderer instance
 static RENDERER: OnceLock<Renderer> = OnceLock::new();
 
 fn renderer() -> &'static Renderer {

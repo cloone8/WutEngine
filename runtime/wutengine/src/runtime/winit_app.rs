@@ -74,12 +74,11 @@ impl ApplicationHandler for WutEngineApp {
                     self.phase = AppPhase::Starting;
                 }
                 _ => {
-
                     executor::block_on(startup::startup_async(main_surface));
                     self.phase = AppPhase::Running {
-                        frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)) // TODO:
-                                                                                          // Make
-                                                                                          // configurable?
+                        frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)), // TODO:
+                                                                                           // Make
+                                                                                           // configurable?
                     }
                 }
             }
