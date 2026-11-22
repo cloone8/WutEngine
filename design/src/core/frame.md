@@ -128,8 +128,8 @@ anti-goal is magic (parameter injection, macros), and explicit declarations avoi
 - **Background and minimized:** a minimized window doesn't render; an unfocused game runs at a low cap (a setting);
   mobile suspend stops the loop. The editor and every WutEngine GUI application redraw only when something changes:
   input, an explicit `request_redraw()`, an egui repaint request (a delayed one wakes the loop at its time through
-  `WaitUntil`), or a woken task ([Jobs and async](jobs.md)). After such an idle wait, the next frame's delta counts as
-  one nominal frame, as the first frame does (below), so a tool never runs a burst of catch-up steps.
+  `WaitUntil`), or a woken task ([Jobs and async](jobs.md)). After such an idle wait, the next frame's game delta
+  counts as one nominal frame, as the first frame's does (below), so a tool never runs a burst of catch-up steps.
 - **Surface robustness:** `Timeout` and `Occluded` from acquire skip the frame, and after an `Occluded` frame a
   reactive application requests another redraw (the first macOS frame may report `Occluded`); `Lost` and `Outdated`
   reconfigure; `Suboptimal` presents that frame, then reconfigures. winit's `pre_present_notify` is called right
@@ -143,13 +143,19 @@ anti-goal is magic (parameter injection, macros), and explicit declarations avoi
 
 Plain functions:
 
-- **Game time** `time()`, `delta()`: scaled, stops while paused. Inside the fixed update, `delta()` returns the fixed
-  step. Why: gameplay code uses one `delta()` everywhere.
-- **Real time** `unscaled_time()`, `unscaled_delta()`: never scaled or paused (UI, menus, the editor).
+- **Game time** `time()`, `delta()`: clamped and scaled, stops while paused. Inside the fixed update, `time()`
+  returns `fixed_time()` and `delta()` the fixed step, so `time()` moves step by step there and stays monotonic across
+  the frame (the previous update, each fixed step, then this update). Why: gameplay code uses one `time()` and one
+  `delta()` everywhere.
+- **Real time** `unscaled_time()`, `unscaled_delta()`: never clamped, scaled or paused, so `unscaled_time()` follows
+  the wall clock since the frame clock started (UI, menus, the editor, real-time waits). Code integrating
+  `unscaled_delta()` must handle large steps: after a breakpoint or a background tab, one frame can span minutes.
 - **Fixed time** `fixed_time()`, `fixed_delta()`, plus **`fixed_step_num()`**, the fixed-step counter (for
   multiplayer). `fixed_time()` is the exact sum of the fixed steps actually run: never reset to frame time, and never
   scaled per step (time scale already changed how many steps ran). Not `fixed_step_num() × fixed_delta()`, since the
-  fixed rate can change at runtime.
+  fixed rate can change at runtime. Outside the fixed update, `fixed_time()` is the end of the last step run and
+  trails `time()` by less than one step (what is left in the accumulator); that difference over `fixed_delta()` is
+  the interpolation factor.
 - **`frame_num()`.** An audio clock belongs to [Audio](../systems/audio.md).
 
 Representation:
@@ -162,13 +168,17 @@ Representation:
 
 - **The fixed rate is 60 Hz by default,** configurable, also at runtime (for bullet time). Why: it matches the
   displays and most engines; frame-time snapping removes most of the two-steps-or-none jitter on 60 Hz displays.
-- **Delta time comes from a monotonic clock at frame start** (`web-time` on the web), **clamped to 0.25 s.** The clamp
+- **Both deltas come from one measurement, from a monotonic clock at frame start** (`web-time` on the web). The real
+  delta is the measured delta; **the game delta is clamped to 0.25 s,** then scaled, and zero while paused. The clamp
   is the only spiral-of-death limit, with no separate step cap: it bounds the fixed steps per frame (15 at 60 Hz), and
-  time beyond it is dropped, so an overloaded game slows down rather than running away. Why: a hitch, breakpoint or
-  loading pause then doesn't trigger a burst of fixed steps. Kept possible: a step cap as a setting if responsiveness
-  under overload turns out to matter.
-- **The frame clock starts when the event loop does,** so the first frame's delta is one nominal frame, not the time
-  start-up took. Why: otherwise the first frame always hits the clamp and runs a burst of fixed steps.
+  time beyond it is dropped, so an overloaded game slows down rather than running away, and game time falls behind
+  real time for good. Why: a hitch, breakpoint or loading pause then doesn't trigger a burst of fixed steps. Kept
+  possible: a step cap as a setting if responsiveness under overload turns out to matter.
+- **The clamp and the nominal-frame rules (the first frame, after an idle wait) apply to game time only.** Why: they
+  protect the fixed-step accumulator, which game time feeds; real time feeds no catch-up steps, and a real-time wait
+  must settle after its wall-clock time.
+- **The frame clock starts when the event loop does,** so the first frame's game delta is one nominal frame, not the
+  time start-up took. Why: otherwise the first frame always hits the clamp and runs a burst of fixed steps.
 - **Time scale changes the number of fixed steps, not their length,** and is global only. Why: physics keeps its tuned
   step and a fixed step keeps one meaning, which networking needs; interpolation smooths slow motion. Kept possible:
   a per-scene time scale.
@@ -179,7 +189,8 @@ Representation:
   so every gameplay script needs its own pause check.
 - **Timers and waits** use game time by default, with real-time variants, and don't settle while their entity is
   paused (real time keeps counting for the real-time variant). Their API: [Script API](../scripting/api.md).
-- **The web:** browsers pause `requestAnimationFrame` in background tabs; on return the delta clamp applies.
+- **The web:** browsers pause `requestAnimationFrame` in background tabs; on return the game delta is clamped, and
+  real time includes the time away.
 
 ## Frame-time measurement
 
