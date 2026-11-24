@@ -39,10 +39,9 @@ fn main() {
     }
 
     if do_err {
-        log::error!("Error requested, returning failure exit code");
-        runtime::quit(1);
+        runtime::fatal_error("Error requested");
     }
 
     log::info!("Program successful");
-    runtime::quit(0);
+    runtime::quit();
 }

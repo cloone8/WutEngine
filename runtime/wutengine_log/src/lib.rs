@@ -262,6 +262,7 @@ pub fn set_settings(settings: LogSettings) {
 
 /// Flush all log outputs
 pub fn flush() {
+    log::trace!("Flushing logs");
     for output in &*LOGGER.outputs.read() {
         output.flush();
     }

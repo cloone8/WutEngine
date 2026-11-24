@@ -1,5 +1,6 @@
 //! Engine runtime lifecycle
 
+use core::panic::Location;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::panic;
@@ -104,16 +105,30 @@ pub fn _wutengine_entry(
             return;
         }
         _ => {
-            quit(0);
-            unreachable!("Quit still immediately aborts for now");
+            exit_now(0);
         }
     }
 }
 
 /// Requests that the WutEngine runtime quits as soon as possible.
 /// This call might still return
-pub fn quit(code: i32) {
+pub fn quit() {
     //TODO: This will probably be handled more neatly by the runtime later, with hooks and stuff
+    exit_now(0);
+}
+
+/// Immediatly quits the WutEngine runtime with an error message and exit code `100`
+#[track_caller]
+pub fn fatal_error(message: &str) -> ! {
+    let location = Location::caller();
+    log::error!("FATAL ERROR @ {location}: {message}");
+
+    exit_now(100); // 100 chosen arbitrarily
+}
+
+/// Exit the application with the given exit code
+pub(crate) fn exit_now(code: i32) -> ! {
+    log::info!("Quitting runtime with exit code {code}");
     log::flush();
 
     cfg_select! {
