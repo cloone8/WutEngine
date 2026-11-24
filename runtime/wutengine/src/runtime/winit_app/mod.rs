@@ -1,6 +1,9 @@
+use core::cell::OnceCell;
+use core::task::Waker;
 use core::time::Duration;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::task::Wake;
 
 use winit::application::ApplicationHandler;
 use winit::event::DeviceEvent;
@@ -8,6 +11,7 @@ use winit::event::DeviceId;
 use winit::event::StartCause;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::EventLoopProxy;
 use winit::window::Window as WinitWindow;
 use winit::window::WindowAttributes;
 use winit::window::WindowId;
@@ -15,7 +19,7 @@ use wutengine_renderer::surfaces;
 use wutengine_renderer::surfaces::SurfaceId;
 use wutengine_renderer::surfaces::SurfaceType;
 
-use crate::executor;
+use crate::executor::ThreadLocalExecutor;
 use crate::log;
 use crate::runtime::frame::FrameState;
 use crate::runtime::startup;
@@ -30,6 +34,8 @@ pub(crate) struct WutEngineApp {
     phase: AppPhase,
     window_map: HashMap<WindowId, Window>,
     surface_map: HashMap<Window, SurfaceId>,
+    main_thread_executor: ThreadLocalExecutor,
+    executor_signal: OnceCell<Waker>,
 }
 
 impl WutEngineApp {
@@ -38,6 +44,8 @@ impl WutEngineApp {
             phase: AppPhase::NotStarted,
             window_map: HashMap::default(),
             surface_map: HashMap::default(),
+            main_thread_executor: ThreadLocalExecutor::new(),
+            executor_signal: OnceCell::new(),
         }
     }
 }
@@ -76,7 +84,8 @@ impl ApplicationHandler for WutEngineApp {
                     self.phase = AppPhase::Starting;
                 }
                 _ => {
-                    executor::block_on(startup::startup_async(main_surface));
+                    self.main_thread_executor
+                        .block_on(startup::startup_async(main_surface));
                     self.phase = AppPhase::Running {
                         frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)), // TODO:
                                                                                            // Make
@@ -158,6 +167,12 @@ impl ApplicationHandler for WutEngineApp {
         // Both starts the first frame, and requests redraws for any new windows
         // and windows whose stale redraw requests were dropped
         window::request_redraws(time::frame_num());
+
+        // Run the event loop
+        self.main_thread_executor.run_ready(
+            self.executor_signal
+                .get_or_init(|| Waker::from(WinitWaker::new(event_loop))),
+        );
     }
 
     fn suspended(&mut self, event_loop: &dyn ActiveEventLoop) {
@@ -222,5 +237,27 @@ impl WutEngineApp {
 
             native_window
         });
+    }
+}
+
+#[derive(Debug)]
+struct WinitWaker {
+    proxy: EventLoopProxy,
+}
+
+impl WinitWaker {
+    fn new(el: &dyn ActiveEventLoop) -> Arc<Self> {
+        Arc::new(Self {
+            proxy: el.create_proxy(),
+        })
+    }
+}
+
+impl Wake for WinitWaker {
+    fn wake(self: Arc<Self>) {
+        self.wake_by_ref();
+    }
+    fn wake_by_ref(self: &Arc<Self>) {
+        self.proxy.wake_up();
     }
 }

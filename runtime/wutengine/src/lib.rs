@@ -9,7 +9,6 @@ pub mod profiling;
 pub mod runtime;
 pub mod time;
 pub mod window;
+pub use wutengine_macro::main;
 #[doc(inline)]
 pub use wutengine_math as math;
-
-pub use wutengine_macro::main;

@@ -2449,6 +2449,7 @@ dependencies = [
 name = "wutengine"
 version = "0.7.0"
 dependencies = [
+ "derive_more",
  "js-sys",
  "profiling",
  "wasm-bindgen",

@@ -25,6 +25,7 @@ wutengine_macro = { workspace = true }
 wutengine_sync = { workspace = true }
 wutengine_math = { workspace = true }
 profiling = { workspace = true }
+derive_more = { workspace = true, features = ["debug"] }
 
 # Non-headless builds
 winit = { workspace = true, features = ["wayland", "x11", "wayland-dlopen", "wayland-csd-adwaita"], optional = true }
