@@ -100,14 +100,8 @@ pub fn _wutengine_entry(
         panic!("Error while running app event loop: {e}"); //TODO: Replace with fatal error later
     }
 
-    cfg_select! {
-        target_arch = "wasm32" => {
-            return;
-        }
-        _ => {
-            exit_now(0);
-        }
-    }
+    #[cfg(not(target_arch = "wasm32"))]
+    exit_now(0);
 }
 
 /// Requests that the WutEngine runtime quits as soon as possible.

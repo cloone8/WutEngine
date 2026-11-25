@@ -1,4 +1,6 @@
 use core::cell::OnceCell;
+use core::sync::atomic::AtomicBool;
+use core::sync::atomic::Ordering;
 use core::task::Waker;
 use core::time::Duration;
 use std::collections::HashMap;
@@ -54,17 +56,12 @@ impl WutEngineApp {
 #[non_exhaustive]
 enum AppPhase {
     NotStarted,
-    #[cfg(target_arch = "wasm32")]
-    Starting,
-    Running {
-        frame_state: FrameState,
-    },
+    Starting { ready: Arc<AtomicBool> },
+    Running { frame_state: FrameState },
 }
 
 impl ApplicationHandler for WutEngineApp {
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
-        _ = event_loop;
-
         if matches!(self.phase, AppPhase::NotStarted) {
             log::info!("Beginning WutEngine main startup");
 
@@ -78,21 +75,20 @@ impl ApplicationHandler for WutEngineApp {
                 .copied()
                 .expect("Missing main window surface");
 
-            cfg_select! {
-                target_arch = "wasm32" => {
-                    startup::driver::start(startup::startup());
-                    self.phase = AppPhase::Starting;
-                }
-                _ => {
-                    self.main_thread_executor
-                        .block_on(startup::startup_async(main_surface));
-                    self.phase = AppPhase::Running {
-                        frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)), // TODO:
-                                                                                           // Make
-                                                                                           // configurable?
-                    }
-                }
+            let ready_signal = Arc::new(AtomicBool::new(false));
+            {
+                let ready_signal_cloned = Arc::clone(&ready_signal);
+
+                self.main_thread_executor.spawn(async move {
+                    startup::startup_async(main_surface).await;
+
+                    ready_signal_cloned.store(true, Ordering::Release);
+                });
             }
+
+            self.phase = AppPhase::Starting {
+                ready: ready_signal,
+            };
 
             return;
         }
@@ -173,6 +169,18 @@ impl ApplicationHandler for WutEngineApp {
             self.executor_signal
                 .get_or_init(|| Waker::from(WinitWaker::new(event_loop))),
         );
+
+        if let AppPhase::Starting { ready } = &self.phase
+            && ready.load(Ordering::Acquire)
+        {
+            log::debug!("Async startup ready signal given.");
+
+            self.phase = AppPhase::Running {
+                frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)), // TODO:
+                                                                                   // Make
+                                                                                   // configurable?
+            }
+        }
     }
 
     fn suspended(&mut self, event_loop: &dyn ActiveEventLoop) {
