@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 
 use winit::dpi::Size;
+use winit::window::PlatformWindowAttributes;
 use winit::window::Window as WinitWindow;
 use winit::window::WindowAttributes;
 use wutengine_macro::unique_id_type32;
@@ -165,7 +166,32 @@ impl From<&WindowSettings> for WindowAttributes {
         attrs.surface_size = Some(Size::Logical(value.size.into()));
         attrs.title.clone_from(&value.title);
 
+        attrs.platform = get_platform_attributes(value);
+
         attrs
+    }
+}
+
+#[allow(clippy::unnecessary_wraps, reason = "Differs based on platform")]
+fn get_platform_attributes(
+    window_settings: &WindowSettings,
+) -> Option<Box<dyn PlatformWindowAttributes>> {
+    cfg_select! {
+        target_arch = "wasm32" => {{
+            use winit::platform::web::WindowAttributesWeb;
+
+            _ = window_settings;
+
+            let mut web_attrs = WindowAttributesWeb::default();
+            web_attrs = web_attrs.with_append(true);
+
+            Some(Box::new(web_attrs))
+        }}
+        _ => {{
+            _ = window_settings;
+
+            None
+        }},
     }
 }
 
