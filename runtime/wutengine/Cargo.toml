@@ -35,6 +35,7 @@ wgpu = { workspace = true, optional = true }                                    
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
+web-sys = { workspace = true }
 web-time = { workspace = true }
 
 [lints]

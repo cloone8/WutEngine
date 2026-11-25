@@ -150,6 +150,39 @@ pub struct WindowSettings {
     pub size: LogicalSize,
 }
 
+impl WindowSettings {
+    /// Converts these window settings to a winit [`WindowAttributes`].
+    /// Note that on web, an extra `canvas` argument is required
+    pub(crate) fn to_window_attributes(
+        &self,
+        #[cfg(target_arch = "wasm32")] canvas: Option<web_sys::HtmlCanvasElement>,
+    ) -> WindowAttributes {
+        let mut attrs = WindowAttributes::default();
+
+        cfg_select! {
+            target_arch = "wasm32" => {
+                if canvas.is_none() {
+                    attrs.surface_size = Some(Size::Logical(self.size.into()));
+                }
+            }
+
+            _ => {
+                attrs.surface_size = Some(Size::Logical(self.size.into()));
+            }
+        }
+
+        attrs.title.clone_from(&self.title);
+
+        attrs.platform = get_platform_attributes(
+            self,
+            #[cfg(target_arch = "wasm32")]
+            canvas,
+        );
+
+        attrs
+    }
+}
+
 impl Default for WindowSettings {
     fn default() -> Self {
         Self {
@@ -159,22 +192,10 @@ impl Default for WindowSettings {
     }
 }
 
-impl From<&WindowSettings> for WindowAttributes {
-    fn from(value: &WindowSettings) -> Self {
-        let mut attrs = WindowAttributes::default();
-
-        attrs.surface_size = Some(Size::Logical(value.size.into()));
-        attrs.title.clone_from(&value.title);
-
-        attrs.platform = get_platform_attributes(value);
-
-        attrs
-    }
-}
-
 #[allow(clippy::unnecessary_wraps, reason = "Differs based on platform")]
 fn get_platform_attributes(
     window_settings: &WindowSettings,
+    #[cfg(target_arch = "wasm32")] canvas: Option<web_sys::HtmlCanvasElement>,
 ) -> Option<Box<dyn PlatformWindowAttributes>> {
     cfg_select! {
         target_arch = "wasm32" => {{
@@ -183,6 +204,7 @@ fn get_platform_attributes(
             _ = window_settings;
 
             let mut web_attrs = WindowAttributesWeb::default();
+            web_attrs = web_attrs.with_canvas(canvas);
             web_attrs = web_attrs.with_append(true);
 
             Some(Box::new(web_attrs))

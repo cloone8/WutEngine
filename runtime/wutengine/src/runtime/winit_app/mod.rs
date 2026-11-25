@@ -15,7 +15,6 @@ use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::event_loop::EventLoopProxy;
 use winit::window::Window as WinitWindow;
-use winit::window::WindowAttributes;
 use winit::window::WindowId;
 use wutengine_renderer::surfaces;
 use wutengine_renderer::surfaces::SurfaceId;
@@ -38,6 +37,9 @@ pub(crate) struct WutEngineApp {
     surface_map: HashMap<Window, SurfaceId>,
     main_thread_executor: ThreadLocalExecutor,
     executor_signal: OnceCell<Waker>,
+
+    #[cfg(target_arch = "wasm32")]
+    main_canvas: Option<web_sys::HtmlCanvasElement>,
 }
 
 impl WutEngineApp {
@@ -48,7 +50,17 @@ impl WutEngineApp {
             surface_map: HashMap::default(),
             main_thread_executor: ThreadLocalExecutor::new(),
             executor_signal: OnceCell::new(),
+
+            #[cfg(target_arch = "wasm32")]
+            main_canvas: None,
         }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn set_main_canvas(&mut self, main_canvas: Option<web_sys::HtmlCanvasElement>) {
+        assert!(self.main_canvas.is_none(), "Main canvas already set");
+
+        self.main_canvas = main_canvas;
     }
 }
 
@@ -212,8 +224,25 @@ impl WutEngineApp {
         window::initialize_windows(|window, settings| {
             log::debug!("Initializing window {window}");
 
+            let surface_type = if window.is_main() {
+                SurfaceType::Main
+            } else {
+                SurfaceType::Other
+            };
+
+            let window_attributes = cfg_select! {
+                target_arch = "wasm32" => {{
+                    if surface_type == SurfaceType::Main {
+                        settings.to_window_attributes(self.main_canvas.take())
+                    } else {
+                        settings.to_window_attributes(None)
+                    }
+                }}
+                _ => settings.to_window_attributes(),
+            };
+
             let native_window: Arc<dyn WinitWindow> = Arc::from(
-                el.create_window(WindowAttributes::from(settings))
+                el.create_window(window_attributes)
                     .expect("Failed to initialize window"),
             );
 
@@ -223,12 +252,6 @@ impl WutEngineApp {
                 prev.is_none(),
                 "Window with native window ID already in map"
             );
-
-            let surface_type = if window.is_main() {
-                SurfaceType::Main
-            } else {
-                SurfaceType::Other
-            };
 
             let surface_size: (u32, u32) = native_window.surface_size().into();
 

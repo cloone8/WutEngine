@@ -23,7 +23,7 @@ use crate::log;
 #[cfg(test)]
 mod test;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod block_on;
 
 #[derive(Debug)]

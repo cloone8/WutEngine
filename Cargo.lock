@@ -2453,6 +2453,7 @@ dependencies = [
  "js-sys",
  "profiling",
  "wasm-bindgen",
+ "web-sys",
  "web-time",
  "wgpu",
  "winit",

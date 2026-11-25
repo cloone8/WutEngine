@@ -66,6 +66,7 @@ pub fn main(
     let app_entrypoint_name = app_entrypoint_item.sig.ident.clone();
 
     quote! {
+        #[cfg(not(target_arch = "wasm32"))]
         fn main() {
             #app_entrypoint_item
 
@@ -77,6 +78,17 @@ pub fn main(
             ::wutengine::runtime::_wutengine_entry(&opts, #app_entrypoint_name);
         }
 
+        #[cfg(target_arch = "wasm32")]
+        fn main() {
+            #app_entrypoint_item
+
+            let opts = ::wutengine::runtime::StartupOptions {
+                org_name: #org_name,
+                app_name: #app_name,
+            };
+
+            ::wutengine::runtime::_wutengine_web_init(opts, #app_entrypoint_name);
+        }
 
     }
     .into()

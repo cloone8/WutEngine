@@ -1,10 +1,14 @@
 //! Engine runtime lifecycle
 
+#[cfg(target_arch = "wasm32")]
+use core::cell::RefCell;
 use core::panic::Location;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::panic;
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
 use winit::event_loop::EventLoop;
 use wutengine_log::FileLogger;
 use wutengine_sync::thread_context;
@@ -38,12 +42,60 @@ cfg_select! {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+struct WebInitArgs {
+    options: StartupOptions,
+    app_entrypoint: Box<dyn FnOnce() + 'static>,
+}
+
+#[cfg(target_arch = "wasm32")]
+thread_local! {
+    static WEB_STARTUP_ARGS: RefCell<Option<WebInitArgs>> = const { RefCell::new(None) };
+}
+
+/// Stores the startup options in a global static, so it can be used by
+#[cfg(target_arch = "wasm32")]
+#[doc(hidden)]
+pub fn _wutengine_web_init(options: StartupOptions, app_entrypoint: impl FnOnce() + 'static) {
+    static INIT: AtomicBool = AtomicBool::new(false);
+
+    if INIT.swap(true, Ordering::Relaxed) {
+        panic!("Web init already called");
+    }
+
+    WEB_STARTUP_ARGS.with(|startup_args| {
+        *startup_args.borrow_mut() = Some(WebInitArgs {
+            options,
+            app_entrypoint: Box::new(app_entrypoint),
+        });
+    });
+}
+
+/// Starts the WutEngine runtime. Should be called by the JavaScript-side loader, after `init()` was
+/// called.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn start_web(canvas: Option<web_sys::HtmlCanvasElement>) {
+    let Some(startup_args) = WEB_STARTUP_ARGS.take() else {
+        panic!("Web init was not called");
+    };
+
+    #[expect(
+        clippy::used_underscore_items,
+        reason = "Hidden for external users only"
+    )]
+    {
+        _wutengine_entry(&startup_args.options, startup_args.app_entrypoint, canvas);
+    }
+}
+
 /// Starts the WutEngine runtime. Must be called once, from the main thread
 /// Not public API, should be used through the [`wutengine_macro::main`] macro
 #[doc(hidden)]
 pub fn _wutengine_entry(
     options: &StartupOptions,
     app_entrypoint: impl FnOnce() + 'static,
+    #[cfg(target_arch = "wasm32")] canvas: Option<web_sys::HtmlCanvasElement>,
 ) -> StartRet {
     static INIT: AtomicBool = AtomicBool::new(false);
 
@@ -94,7 +146,13 @@ pub fn _wutengine_entry(
         }
     };
 
-    let app = WutEngineApp::new();
+    #[allow(unused_mut, reason = "Used for web")]
+    let mut app = WutEngineApp::new();
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        app.set_main_canvas(canvas);
+    }
 
     if let Err(e) = event_loop.run_app(app) {
         panic!("Error while running app event loop: {e}"); //TODO: Replace with fatal error later
