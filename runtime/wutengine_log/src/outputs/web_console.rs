@@ -17,7 +17,7 @@ impl BrowserConsoleLogger {
 
 impl LoggerOutput for BrowserConsoleLogger {
     fn write(&self, entry: &crate::LogEntry) {
-        let msg = JsValue::from_str(&entry.message);
+        let msg = JsValue::from_str(&format!("({}) {}", entry.category, entry.message));
 
         match entry.level {
             log::Level::Error => console::error_1(&msg),
