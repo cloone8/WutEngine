@@ -20,7 +20,7 @@ interactive = ["dep:winit", "dep:wgpu", "dep:wutengine_renderer"] # No-headless
 labels = ["wutengine_renderer?/labels"]
 
 [dependencies]
-wutengine_log = { workspace = true, features = ["terminal_output"] }
+wutengine_log = { workspace = true }
 wutengine_macro = { workspace = true }
 wutengine_sync = { workspace = true }
 wutengine_math = { workspace = true }
@@ -32,9 +32,9 @@ winit = { workspace = true, features = ["wayland", "x11", "wayland-dlopen", "way
 wutengine_renderer = { workspace = true, optional = true }
 wgpu = { workspace = true, optional = true }                                                                          # Only for the public re-export in `graphics`
 
-# Native-only. Web can't write log files
+# Native-only. Web logs to the browser console instead, and can't write to a terminal or log files
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-wutengine_log = { workspace = true, features = ["file_output"] }
+wutengine_log = { workspace = true, features = ["terminal_output", "file_output"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }
