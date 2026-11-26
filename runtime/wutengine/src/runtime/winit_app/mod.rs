@@ -22,6 +22,7 @@ use wutengine_renderer::surfaces::SurfaceType;
 
 use crate::executor::ThreadLocalExecutor;
 use crate::log;
+use crate::platform;
 use crate::runtime::frame::FrameState;
 use crate::runtime::startup;
 use crate::time;
@@ -37,9 +38,6 @@ pub(crate) struct WutEngineApp {
     surface_map: HashMap<Window, SurfaceId>,
     main_thread_executor: ThreadLocalExecutor,
     executor_signal: OnceCell<Waker>,
-
-    #[cfg(target_arch = "wasm32")]
-    main_canvas: Option<web_sys::HtmlCanvasElement>,
 }
 
 impl WutEngineApp {
@@ -50,17 +48,7 @@ impl WutEngineApp {
             surface_map: HashMap::default(),
             main_thread_executor: ThreadLocalExecutor::new(),
             executor_signal: OnceCell::new(),
-
-            #[cfg(target_arch = "wasm32")]
-            main_canvas: None,
         }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub(crate) fn set_main_canvas(&mut self, main_canvas: Option<web_sys::HtmlCanvasElement>) {
-        assert!(self.main_canvas.is_none(), "Main canvas already set");
-
-        self.main_canvas = main_canvas;
     }
 }
 
@@ -230,16 +218,8 @@ impl WutEngineApp {
                 SurfaceType::Other
             };
 
-            let window_attributes = cfg_select! {
-                target_arch = "wasm32" => {{
-                    if surface_type == SurfaceType::Main {
-                        settings.to_window_attributes(self.main_canvas.take())
-                    } else {
-                        settings.to_window_attributes(None)
-                    }
-                }}
-                _ => settings.to_window_attributes(),
-            };
+            let window_attributes =
+                platform::finish_window_attributes(window, settings.to_window_attributes());
 
             let native_window: Arc<dyn WinitWindow> = Arc::from(
                 el.create_window(window_attributes)

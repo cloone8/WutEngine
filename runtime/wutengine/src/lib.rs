@@ -5,6 +5,7 @@ pub use wutengine_log as log;
 mod executor;
 pub mod graphics;
 mod panic_handling;
+mod platform;
 pub mod profiling;
 pub mod runtime;
 pub mod time;

@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 
 use winit::dpi::Size;
-use winit::window::PlatformWindowAttributes;
 use winit::window::Window as WinitWindow;
 use winit::window::WindowAttributes;
 use wutengine_macro::unique_id_type32;
@@ -152,32 +151,13 @@ pub struct WindowSettings {
 
 impl WindowSettings {
     /// Converts these window settings to a winit [`WindowAttributes`].
-    /// Note that on web, an extra `canvas` argument is required
-    pub(crate) fn to_window_attributes(
-        &self,
-        #[cfg(target_arch = "wasm32")] canvas: Option<web_sys::HtmlCanvasElement>,
-    ) -> WindowAttributes {
+    /// This adds the general options. Each specific platform adds their own options later with
+    /// [`platform::finish_window_attributes`](crate::platform::finish_window_attributes)
+    pub(crate) fn to_window_attributes(&self) -> WindowAttributes {
         let mut attrs = WindowAttributes::default();
 
-        cfg_select! {
-            target_arch = "wasm32" => {
-                if canvas.is_none() {
-                    attrs.surface_size = Some(Size::Logical(self.size.into()));
-                }
-            }
-
-            _ => {
-                attrs.surface_size = Some(Size::Logical(self.size.into()));
-            }
-        }
-
+        attrs.surface_size = Some(Size::Logical(self.size.into()));
         attrs.title.clone_from(&self.title);
-
-        attrs.platform = get_platform_attributes(
-            self,
-            #[cfg(target_arch = "wasm32")]
-            canvas,
-        );
 
         attrs
     }
@@ -189,31 +169,6 @@ impl Default for WindowSettings {
             title: "WutEngine".to_string(),
             size: (1280.0, 720.0).into(),
         }
-    }
-}
-
-#[allow(clippy::unnecessary_wraps, reason = "Differs based on platform")]
-fn get_platform_attributes(
-    window_settings: &WindowSettings,
-    #[cfg(target_arch = "wasm32")] canvas: Option<web_sys::HtmlCanvasElement>,
-) -> Option<Box<dyn PlatformWindowAttributes>> {
-    cfg_select! {
-        target_arch = "wasm32" => {{
-            use winit::platform::web::WindowAttributesWeb;
-
-            _ = window_settings;
-
-            let mut web_attrs = WindowAttributesWeb::default();
-            web_attrs = web_attrs.with_canvas(canvas);
-            web_attrs = web_attrs.with_append(true);
-
-            Some(Box::new(web_attrs))
-        }}
-        _ => {{
-            _ = window_settings;
-
-            None
-        }},
     }
 }
 
