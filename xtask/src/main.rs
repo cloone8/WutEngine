@@ -34,7 +34,7 @@ enum Commands {
     /// Run a demo
     Demo(DemoCommand),
 
-    /// Check formatting, and run clippy for native and wasm
+    /// Check formatting, and run clippy for native, wasm and the headless build
     Check,
 }
 

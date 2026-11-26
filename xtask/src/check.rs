@@ -14,6 +14,7 @@ pub(crate) fn run_checks() -> bool {
         ("fmt", fmt_command()),
         ("clippy (native)", clippy_command(None)),
         ("clippy (wasm)", clippy_command(Some(WASM_TARGET))),
+        ("clippy (headless)", clippy_headless_command()),
     ];
 
     let root = workspace_root();
@@ -69,5 +70,28 @@ fn clippy_command(target: Option<&str>) -> Command {
     }
 
     command.args(["--", "-D", "warnings"]);
+    command
+}
+
+/// `cargo clippy` over the headless build: the engine without default features, and the headless demo, failing on
+/// any warning. Native only, since there is no headless build on the web.
+///
+/// Selects the packages instead of the whole workspace, because Cargo unifies features over every selected package:
+/// the other demos use the engine's default features and would turn the interactive build back on
+fn clippy_headless_command() -> Command {
+    let mut command = Command::new(env!("CARGO"));
+    command.args([
+        "clippy",
+        "--package",
+        "wutengine",
+        "--package",
+        "headless",
+        "--no-default-features",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings",
+    ]);
     command
 }

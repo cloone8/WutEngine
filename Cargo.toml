@@ -4,12 +4,13 @@ members = [
   "runtime/wutengine",
   "runtime/wutengine_log",
   "runtime/wutengine_macro",
+  "runtime/wutengine_math",
   "runtime/wutengine_renderer",
   "runtime/wutengine_sync",
   "xtask",
   "demos/hello",
   "demos/window",
-  "runtime/wutengine_math",
+  "demos/headless",
 ]
 
 [workspace.package]
