@@ -1,5 +1,7 @@
 //! Window management
 
+use core::sync::atomic::AtomicBool;
+use core::sync::atomic::Ordering;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -12,6 +14,7 @@ use wutengine_sync::Mutex;
 use wutengine_sync::RwLock;
 
 use crate::log;
+use crate::runtime;
 
 mod size;
 
@@ -43,10 +46,39 @@ impl Window {
             handle,
             WindowData::Pending {
                 settings: Box::new(settings),
+                close_requested: AtomicBool::new(false),
             },
         );
 
         handle
+    }
+
+    /// Sends a request to close this window as soon as possible.
+    /// If the window is the main window, also closes the game.
+    pub fn close(self) {
+        if self.is_main() {
+            log::info!("Closing main window {self}");
+            runtime::quit();
+            return;
+        }
+
+        log::info!("Closing window {self}");
+
+        let window_map = window_manager().windows.read();
+
+        let window = window_map.get(&self).expect("Missing window");
+
+        match window {
+            WindowData::Pending {
+                close_requested, ..
+            } => close_requested.store(true, Ordering::Relaxed),
+            WindowData::Open {
+                close_requested, ..
+            } => close_requested.store(true, Ordering::Relaxed),
+            WindowData::Closed(_) => {
+                // Nothing to do
+            }
+        }
     }
 
     /// Returns a handle to the main window
@@ -81,7 +113,7 @@ impl Window {
     #[inline]
     pub fn size(self) -> LogicalSize {
         self.with_data(|data| match data {
-            WindowData::Pending { settings } => settings.size,
+            WindowData::Pending { settings, .. } => settings.size,
             WindowData::Open { state, .. } => state.size,
             WindowData::Closed(window_snapshot) => window_snapshot.size,
         })
@@ -93,9 +125,7 @@ impl Window {
     #[inline]
     pub fn pixels(self) -> PixelSize {
         self.with_data(|data| match data {
-            WindowData::Pending { settings } => {
-                PixelSize::from((settings.size.width as u32, settings.size.height as u32))
-            }
+            WindowData::Pending { settings, .. } => PixelSize::from_logical(settings.size, 1.0),
             WindowData::Open { state, .. } => state.pixels,
             WindowData::Closed(window_snapshot) => window_snapshot.pixels,
         })
@@ -176,12 +206,14 @@ impl Default for WindowSettings {
 enum WindowData {
     Pending {
         settings: Box<WindowSettings>,
+        close_requested: AtomicBool,
     },
     Open {
         native: Arc<dyn WinitWindow>,
         /// The frame of the last outstanding redraw request, if any
         frame_stamp: Option<u64>,
         state: Box<WindowSnapshot>,
+        close_requested: AtomicBool,
     },
     Closed(Box<WindowSnapshot>),
 }
@@ -204,6 +236,14 @@ impl WindowSnapshot {
                 .surface_size()
                 .to_logical(native.scale_factor())
                 .into(),
+        }
+    }
+
+    fn guess_from_settings(settings: &WindowSettings) -> Self {
+        Self {
+            pixels: PixelSize::from_logical(settings.size, 1.0),
+            size: settings.size,
+            scale_factor: 1.0,
         }
     }
 }
@@ -241,11 +281,19 @@ pub(crate) fn initialize_windows(
     profiling::function_scope!();
 
     for (window, data) in window_manager().windows.write().iter_mut() {
-        let WindowData::Pending { settings } = data else {
+        let WindowData::Pending {
+            settings,
+            close_requested: wants_to_close,
+        } = data
+        else {
             continue;
         };
 
         profiling::scope!("initialize_window");
+
+        if wants_to_close.load(Ordering::Relaxed) {
+            continue;
+        }
 
         let native_window = initializer(*window, settings.as_ref());
 
@@ -253,8 +301,49 @@ pub(crate) fn initialize_windows(
             state: Box::new(WindowSnapshot::create(native_window.as_ref())),
             frame_stamp: None,
             native: native_window,
+            close_requested: AtomicBool::new(false),
         };
     }
+}
+
+/// Closes any open windows that have been requested to close. Returns the closed windows
+/// with their IDs and native windows
+pub(crate) fn close_windows() -> Vec<(Window, Arc<dyn WinitWindow>)> {
+    profiling::function_scope!();
+
+    let mut closed: Vec<(Window, Arc<dyn WinitWindow>)> = Vec::new();
+
+    for (&window, data) in window_manager().windows.write().iter_mut() {
+        match data {
+            WindowData::Pending {
+                settings,
+                close_requested,
+            } => {
+                if close_requested.load(Ordering::Relaxed) {
+                    // Change state to closed, but don't return to the runtime. It was never open
+                    *data =
+                        WindowData::Closed(Box::new(WindowSnapshot::guess_from_settings(settings)));
+                }
+            }
+            WindowData::Open {
+                native,
+                state,
+                close_requested,
+                ..
+            } => {
+                if close_requested.load(Ordering::Relaxed) {
+                    // Change state to closed and return to the runtime
+                    closed.push((window, Arc::clone(native)));
+                    *data = WindowData::Closed(state.clone());
+                }
+            }
+            WindowData::Closed(_) => {
+                // Already closed
+            }
+        }
+    }
+
+    closed
 }
 
 /// Refreshes the cached window data for this window by querying the

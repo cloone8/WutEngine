@@ -1,17 +1,13 @@
 use winit::event::WindowEvent;
-use winit::event_loop::ActiveEventLoop;
-use winit::window::WindowId;
 use wutengine_renderer::surfaces;
-use wutengine_renderer::surfaces::SurfaceId;
 
+use crate::log;
 use crate::runtime::frame::FrameType;
 use crate::runtime::winit_app::AppPhase;
 use crate::runtime::winit_app::WutEngineApp;
 use crate::time;
 use crate::window;
 use crate::window::Window;
-
-use crate::log;
 
 impl WutEngineApp {
     pub(super) fn window_scale_factor_changed(window: Window, event: &WindowEvent) {
@@ -26,7 +22,7 @@ impl WutEngineApp {
         window::refresh_window_data(window);
     }
 
-    pub(super) fn window_surface_resized(window: Window, surface: SurfaceId, event: &WindowEvent) {
+    pub(super) fn window_surface_resized(&self, window: Window, event: &WindowEvent) {
         let WindowEvent::SurfaceResized(physical_size) = event else {
             unreachable!();
         };
@@ -40,29 +36,33 @@ impl WutEngineApp {
         );
 
         window::refresh_window_data(window);
+
+        let surface = self
+            .surface_map
+            .get(&window)
+            .copied()
+            .expect("Missing surface");
+
         surfaces::change_surface_size(surface, (*physical_size).into());
     }
 
-    pub(super) fn window_close_requested(event_loop: &dyn ActiveEventLoop, window: Window) {
+    pub(super) fn window_close_requested(window: Window) {
         profiling::scope!("CloseRequested");
 
-        if window.is_main() {
-            event_loop.exit();
-        }
+        log::debug!("Close requested for window {window}");
+
+        // Forward to our own closing function
+        window.close();
     }
 
-    pub(super) fn window_destroyed(
-        &mut self,
-        window_id: WindowId,
-        window: Window,
-        surface: SurfaceId,
-    ) {
+    pub(super) fn window_destroyed(window: Window) {
         profiling::scope!("Destroyed");
 
         log::debug!("Native window for window {window} destroyed");
 
-        self.window_map.remove(&window_id);
-        surfaces::remove(surface);
+        // We'll just "request" the close here so the window goes through our normal
+        // cleanup path later
+        window.close();
     }
 
     pub(super) fn window_redraw_requested(&mut self, window: Window) {

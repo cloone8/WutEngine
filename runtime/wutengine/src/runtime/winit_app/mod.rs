@@ -105,29 +105,25 @@ impl ApplicationHandler for WutEngineApp {
     ) {
         profiling::function_scope!();
 
+        _ = event_loop;
+
         let Some(window) = self.window_map.get(&window_id).copied() else {
-            log::warn!("Got window event for unknown window (winit ID: {window_id:?})");
+            log::debug!("Got window event for unknown window (winit ID: {window_id:?})");
             return;
         };
-
-        let surface = self.surface_map.get(&window).copied();
 
         match event {
             WindowEvent::ScaleFactorChanged { .. } => {
                 Self::window_scale_factor_changed(window, &event);
             }
             WindowEvent::SurfaceResized(_) => {
-                Self::window_surface_resized(window, surface.expect("Missing surface"), &event);
+                self.window_surface_resized(window, &event);
             }
             WindowEvent::CloseRequested => {
-                Self::window_close_requested(event_loop, window);
+                Self::window_close_requested(window);
             }
             WindowEvent::Destroyed => {
-                self.window_destroyed(
-                    window_id,
-                    window,
-                    surface.expect("Missing surface for window"),
-                );
+                Self::window_destroyed(window);
             }
             WindowEvent::RedrawRequested => {
                 self.window_redraw_requested(window);
@@ -159,6 +155,7 @@ impl ApplicationHandler for WutEngineApp {
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
         self.initialize_pending_windows(event_loop);
+        self.handle_closed_windows();
 
         // Both starts the first frame, and requests redraws for any new windows
         // and windows whose stale redraw requests were dropped
@@ -248,6 +245,32 @@ impl WutEngineApp {
 
             native_window
         });
+    }
+
+    fn handle_closed_windows(&mut self) {
+        profiling::function_scope!();
+
+        let closed = window::close_windows();
+
+        for (window, native_window) in closed {
+            self.cleanup_closed_window(window, native_window.id());
+        }
+    }
+
+    fn cleanup_closed_window(&mut self, window: Window, native_window_id: WindowId) {
+        profiling::function_scope!();
+
+        let removed = self.window_map.remove(&native_window_id);
+
+        assert_eq!(Some(window), removed, "Invalid window mapping given");
+
+        let surface_id = self.surface_map.remove(&window);
+
+        if let Some(surface_id) = surface_id {
+            surfaces::remove(surface_id);
+        } else {
+            log::warn!("Could not find surface for removed window {window}");
+        }
     }
 }
 
