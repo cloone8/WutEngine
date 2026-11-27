@@ -4,19 +4,17 @@
 //! implementation for the platform being built. The rest of the engine calls these, so it needs no
 //! `#[cfg]` of its own. Items that only exist on one platform stay in that platform's module.
 
-use winit::window::WindowAttributes;
 use wutengine_log::LoggerOutput;
 
 use crate::runtime::StartupOptions;
-use crate::window::Window;
 
 cfg_select! {
     target_arch = "wasm32" => {
-        mod web;
+        pub(crate) mod web;
         use web as imp;
     }
     _ => {
-        mod native;
+        pub(crate) mod native;
         use native as imp;
     }
 }
@@ -44,16 +42,6 @@ pub(crate) fn base_log_output() -> Box<dyn LoggerOutput> {
 #[inline]
 pub(crate) fn add_log_outputs(options: &StartupOptions) {
     imp::add_log_outputs(options);
-}
-
-/// Adds the platform-specific window attributes to the platform-independent `attributes` of
-/// `window`
-#[inline]
-pub(crate) fn finish_window_attributes(
-    window: Window,
-    attributes: WindowAttributes,
-) -> WindowAttributes {
-    imp::finish_window_attributes(window, attributes)
 }
 
 /// Exits the application with the given exit code

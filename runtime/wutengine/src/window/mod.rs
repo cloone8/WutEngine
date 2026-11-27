@@ -1,17 +1,16 @@
 //! Window management
 
+use core::error::Error;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use winit::dpi::Size;
-use winit::window::Window as WinitWindow;
-use winit::window::WindowAttributes;
 use wutengine_macro::unique_id_type32;
 use wutengine_sync::Mutex;
 use wutengine_sync::RwLock;
+use wutengine_sync::thread_context;
 
 use crate::log;
 use crate::runtime;
@@ -25,6 +24,29 @@ unique_id_type32! {
     pub Window
 }
 
+/// The current state of a [`Window`]
+#[derive(Debug, Clone)]
+pub enum WindowState {
+    /// Window is queued for creation, but not actually created yet
+    Pending,
+
+    /// Window is open. Normal state
+    Open,
+
+    /// Window has been requested to close
+    Closing,
+
+    /// Window is closed
+    Closed,
+
+    /// Window creation failed. See contained error for reason
+    Error(Arc<dyn Error + Send + Sync>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("Headless builds do not support window creation")]
+struct HeadlessBuildErr;
+
 impl Window {
     /// Sends a request to create a new window. The handle is returned immediately,
     /// and the window itself is created as soon as possible on the main thread
@@ -36,21 +58,52 @@ impl Window {
 
         let mut window_map = window_manager().windows.write();
 
-        if window_map.is_empty() {
-            log::debug!("Setting main window to {handle}");
-            // Set the main window if this is the first window to be created
-            *window_manager().main_window.lock() = Some(handle);
+        if cfg!(feature = "interactive") {
+            window_map.insert(
+                handle,
+                WindowData::Pending {
+                    settings: Box::new(settings),
+                    close_requested: AtomicBool::new(false),
+                },
+            );
+        } else {
+            window_map.insert(
+                handle,
+                WindowData::Failed {
+                    snapshot: Box::new(WindowSnapshot::guess_from_settings(&settings)),
+                    err: Arc::new(HeadlessBuildErr),
+                },
+            );
         }
 
-        window_map.insert(
-            handle,
-            WindowData::Pending {
-                settings: Box::new(settings),
-                close_requested: AtomicBool::new(false),
-            },
-        );
-
         handle
+    }
+
+    /// Gets the current state of the window
+    #[must_use]
+    pub fn state(self) -> WindowState {
+        self.with_data(|data| match data {
+            WindowData::Pending {
+                close_requested, ..
+            } => {
+                if close_requested.load(Ordering::Relaxed) {
+                    WindowState::Closing
+                } else {
+                    WindowState::Pending
+                }
+            }
+            WindowData::Open {
+                close_requested, ..
+            } => {
+                if close_requested.load(Ordering::Relaxed) {
+                    WindowState::Closing
+                } else {
+                    WindowState::Open
+                }
+            }
+            WindowData::Closed(_) => WindowState::Closed,
+            WindowData::Failed { err, .. } => WindowState::Error(Arc::clone(err)),
+        })
     }
 
     /// Sends a request to close this window as soon as possible.
@@ -75,7 +128,7 @@ impl Window {
             WindowData::Open {
                 close_requested, ..
             } => close_requested.store(true, Ordering::Relaxed),
-            WindowData::Closed(_) => {
+            WindowData::Closed(_) | WindowData::Failed { .. } => {
                 // Nothing to do
             }
         }
@@ -85,16 +138,7 @@ impl Window {
     #[must_use]
     #[inline]
     pub fn main() -> Option<Self> {
-        if cfg!(not(feature = "interactive")) {
-            None
-        } else {
-            Some(
-                window_manager()
-                    .main_window
-                    .lock()
-                    .expect("Main window not yet created"),
-            )
-        }
+        *window_manager().main_window.lock()
     }
 
     /// Returns `true` if this window is the main window
@@ -107,6 +151,21 @@ impl Window {
             .is_some_and(|main_window| main_window == self)
     }
 
+    /// Marks this window as the "main" window.
+    /// This is the window used for frame pacing, and also the window
+    /// that quits the application if closed.
+    pub fn mark_main(self) {
+        self.with_data(|data| {
+            if !matches!(data, WindowData::Pending { .. } | WindowData::Open { .. }) {
+                log::error!("Cannot mark non pending/open window {self} as main window");
+                return;
+            }
+
+            *window_manager().main_window.lock() = Some(self);
+            log::debug!("Marked {self} as main window");
+        });
+    }
+
     /// Returns the logical size of the window.
     /// To get the size in pixels, see [`Self::pixels`]
     #[must_use]
@@ -116,6 +175,7 @@ impl Window {
             WindowData::Pending { settings, .. } => settings.size,
             WindowData::Open { state, .. } => state.size,
             WindowData::Closed(window_snapshot) => window_snapshot.size,
+            WindowData::Failed { snapshot, .. } => snapshot.size,
         })
     }
 
@@ -128,6 +188,7 @@ impl Window {
             WindowData::Pending { settings, .. } => PixelSize::from_logical(settings.size, 1.0),
             WindowData::Open { state, .. } => state.pixels,
             WindowData::Closed(window_snapshot) => window_snapshot.pixels,
+            WindowData::Failed { snapshot, .. } => snapshot.pixels,
         })
     }
 
@@ -139,6 +200,7 @@ impl Window {
             WindowData::Pending { .. } => 1.0, // Can only guess
             WindowData::Open { state, .. } => state.scale_factor,
             WindowData::Closed(window_snapshot) => window_snapshot.scale_factor,
+            WindowData::Failed { snapshot, .. } => snapshot.scale_factor,
         })
     }
 }
@@ -179,20 +241,6 @@ pub struct WindowSettings {
     pub size: LogicalSize,
 }
 
-impl WindowSettings {
-    /// Converts these window settings to a winit [`WindowAttributes`].
-    /// This adds the general options. Each specific platform adds their own options later with
-    /// [`platform::finish_window_attributes`](crate::platform::finish_window_attributes)
-    pub(crate) fn to_window_attributes(&self) -> WindowAttributes {
-        let mut attrs = WindowAttributes::default();
-
-        attrs.surface_size = Some(Size::Logical(self.size.into()));
-        attrs.title.clone_from(&self.title);
-
-        attrs
-    }
-}
-
 impl Default for WindowSettings {
     fn default() -> Self {
         Self {
@@ -209,36 +257,32 @@ enum WindowData {
         close_requested: AtomicBool,
     },
     Open {
-        native: Arc<dyn WinitWindow>,
-        /// The frame of the last outstanding redraw request, if any
-        frame_stamp: Option<u64>,
+        // /// The frame of the last outstanding redraw request, if any
         state: Box<WindowSnapshot>,
         close_requested: AtomicBool,
     },
     Closed(Box<WindowSnapshot>),
+    Failed {
+        snapshot: Box<WindowSnapshot>,
+        err: Arc<dyn Error + Send + Sync>,
+    },
 }
 
+/// A snapshot of the state of a native window,
+/// filled by the driver
 #[derive(Debug, Clone, Copy)]
-struct WindowSnapshot {
-    pixels: PixelSize,
-    size: LogicalSize,
-    scale_factor: f64,
+pub(crate) struct WindowSnapshot {
+    /// The size of the (inner) window in pixels
+    pub(crate) pixels: PixelSize,
+
+    /// The size of the (inner) window in points
+    pub(crate) size: LogicalSize,
+
+    /// The scale factor of the native window
+    pub(crate) scale_factor: f64,
 }
 
 impl WindowSnapshot {
-    fn create(native: &dyn WinitWindow) -> Self {
-        profiling::function_scope!();
-
-        Self {
-            pixels: native.surface_size().into(),
-            scale_factor: native.scale_factor(),
-            size: native
-                .surface_size()
-                .to_logical(native.scale_factor())
-                .into(),
-        }
-    }
-
     fn guess_from_settings(settings: &WindowSettings) -> Self {
         Self {
             pixels: PixelSize::from_logical(settings.size, 1.0),
@@ -263,6 +307,7 @@ fn window_manager() -> &'static WindowManager {
 /// Initializes the windowing subsystem
 pub(crate) fn init() {
     profiling::function_scope!();
+    thread_context::assert_main_context();
 
     log::debug!("Initializing window manager");
 
@@ -275,10 +320,16 @@ pub(crate) fn init() {
 }
 
 /// Runs the queued window actions. This actually spawns native windows.
+/// NOTE: The Window API cannot be used in the `initializer` callback as it will
+/// deadlock.
 pub(crate) fn initialize_windows(
-    mut initializer: impl FnMut(Window, &WindowSettings) -> Arc<dyn WinitWindow>,
+    mut initializer: impl FnMut(
+        Window,
+        &WindowSettings,
+    ) -> Result<WindowSnapshot, Arc<dyn Error + Send + Sync>>,
 ) {
     profiling::function_scope!();
+    thread_context::assert_main_context();
 
     for (window, data) in window_manager().windows.write().iter_mut() {
         let WindowData::Pending {
@@ -292,15 +343,27 @@ pub(crate) fn initialize_windows(
         profiling::scope!("initialize_window");
 
         if wants_to_close.load(Ordering::Relaxed) {
+            // If the window is pending but already wants to close, we won't
+            // open it
             continue;
         }
 
-        let native_window = initializer(*window, settings.as_ref());
+        let window_snapshot = match initializer(*window, settings.as_ref()) {
+            Ok(snapshot) => snapshot,
+            Err(e) => {
+                // Driver failed to open the window
+
+                *data = WindowData::Failed {
+                    snapshot: Box::new(WindowSnapshot::guess_from_settings(settings)),
+                    err: e,
+                };
+
+                continue;
+            }
+        };
 
         *data = WindowData::Open {
-            state: Box::new(WindowSnapshot::create(native_window.as_ref())),
-            frame_stamp: None,
-            native: native_window,
+            state: Box::new(window_snapshot),
             close_requested: AtomicBool::new(false),
         };
     }
@@ -308,10 +371,11 @@ pub(crate) fn initialize_windows(
 
 /// Closes any open windows that have been requested to close. Returns the closed windows
 /// with their IDs and native windows
-pub(crate) fn close_windows() -> Vec<(Window, Arc<dyn WinitWindow>)> {
+pub(crate) fn close_windows() -> Vec<Window> {
     profiling::function_scope!();
+    thread_context::assert_main_context();
 
-    let mut closed: Vec<(Window, Arc<dyn WinitWindow>)> = Vec::new();
+    let mut closed: Vec<Window> = Vec::new();
 
     for (&window, data) in window_manager().windows.write().iter_mut() {
         match data {
@@ -326,19 +390,20 @@ pub(crate) fn close_windows() -> Vec<(Window, Arc<dyn WinitWindow>)> {
                 }
             }
             WindowData::Open {
-                native,
                 state,
                 close_requested,
-                ..
             } => {
                 if close_requested.load(Ordering::Relaxed) {
                     // Change state to closed and return to the runtime
-                    closed.push((window, Arc::clone(native)));
+                    closed.push(window);
                     *data = WindowData::Closed(state.clone());
                 }
             }
             WindowData::Closed(_) => {
                 // Already closed
+            }
+            WindowData::Failed { .. } => {
+                // Nothing to handle here
             }
         }
     }
@@ -346,11 +411,11 @@ pub(crate) fn close_windows() -> Vec<(Window, Arc<dyn WinitWindow>)> {
     closed
 }
 
-/// Refreshes the cached window data for this window by querying the
-/// native window
-pub(crate) fn refresh_window_data(window: Window) {
+/// Refreshes the cached window data for this window to the new snapshot.
+/// The window must be open
+pub(crate) fn update_window_snapshot(window: Window, snapshot: WindowSnapshot) {
     profiling::function_scope!();
-    log::trace!("Refreshing window data for window {window}");
+    thread_context::assert_main_context();
 
     let mut windows = window_manager().windows.write();
     let Some(window_data) = windows.get_mut(&window) else {
@@ -358,60 +423,12 @@ pub(crate) fn refresh_window_data(window: Window) {
         return;
     };
 
-    let WindowData::Open { native, state, .. } = window_data else {
+    let WindowData::Open { state, .. } = window_data else {
         log::error!("Cannot refresh data for non-open window {window}");
         return;
     };
 
-    *state.as_mut() = WindowSnapshot::create(native.as_ref());
-}
+    *state.as_mut() = snapshot;
 
-/// Notifies the native windowing system that we are about to present to the given window
-pub(crate) fn pre_present(window: Window) {
-    profiling::function_scope!();
-
-    let windows = window_manager().windows.read();
-    let Some(window_data) = windows.get(&window) else {
-        log::error!("Cannot call pre-present for unknown window {window}");
-        return;
-    };
-
-    let WindowData::Open { native, .. } = window_data else {
-        log::error!("Cannot pre-present a non-open window {window}");
-        return;
-    };
-
-    native.pre_present_notify();
-}
-
-/// Request a redraw for all windows that don't already have an outstanding redraw request
-pub(crate) fn request_redraws(frame: u64) {
-    for data in window_manager().windows.write().values_mut() {
-        let WindowData::Open {
-            native,
-            frame_stamp,
-            ..
-        } = data
-        else {
-            continue;
-        };
-
-        if frame_stamp.is_none() {
-            // No outstanding redraw request yet, send one
-            *frame_stamp = Some(frame);
-            native.request_redraw();
-        }
-    }
-}
-
-/// Takes the outstanding redraw stamp for the given window and resets it to [`None`].
-/// If this returns [`None`], either the window is unknown or [`winit`] sent the redraw request
-/// unasked
-pub(crate) fn take_frame_stamp(window: Window) -> Option<u64> {
-    let mut windows = window_manager().windows.write();
-
-    match windows.get_mut(&window) {
-        Some(WindowData::Open { frame_stamp, .. }) => frame_stamp.take(),
-        _ => None,
-    }
+    log::trace!("Window snapshot for window {window} updated");
 }

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::task::Wake;
 
 use winit::application::ApplicationHandler;
+use winit::dpi::Size;
 use winit::event::DeviceEvent;
 use winit::event::DeviceId;
 use winit::event::StartCause;
@@ -15,6 +16,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::event_loop::EventLoopProxy;
 use winit::window::Window as WinitWindow;
+use winit::window::WindowAttributes;
 use winit::window::WindowId;
 use wutengine_renderer::surfaces;
 use wutengine_renderer::surfaces::SurfaceId;
@@ -22,20 +24,22 @@ use wutengine_renderer::surfaces::SurfaceType;
 
 use crate::executor::ThreadLocalExecutor;
 use crate::log;
-use crate::platform;
 use crate::runtime::frame::FrameState;
-use crate::runtime::startup;
 use crate::time;
 use crate::window;
 use crate::window::Window;
+use crate::window::WindowSettings;
+use crate::window::WindowSnapshot;
 
+mod conversion;
+mod init;
 mod window_events;
 
 #[derive(Debug)]
 pub(crate) struct WutEngineApp {
     phase: AppPhase,
     window_map: HashMap<WindowId, Window>,
-    surface_map: HashMap<Window, SurfaceId>,
+    native_windows: HashMap<Window, WindowData>,
     main_thread_executor: ThreadLocalExecutor,
     executor_signal: OnceCell<Waker>,
 }
@@ -45,11 +49,18 @@ impl WutEngineApp {
         Self {
             phase: AppPhase::NotStarted,
             window_map: HashMap::default(),
-            surface_map: HashMap::default(),
+            native_windows: HashMap::default(),
             main_thread_executor: ThreadLocalExecutor::new(),
             executor_signal: OnceCell::new(),
         }
     }
+}
+
+#[derive(Debug)]
+struct WindowData {
+    native: Arc<dyn WinitWindow>,
+    surface: SurfaceId,
+    frame_stamp: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -63,16 +74,16 @@ enum AppPhase {
 impl ApplicationHandler for WutEngineApp {
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         if matches!(self.phase, AppPhase::NotStarted) {
-            log::info!("Beginning WutEngine main startup");
+            log::info!("Beginning windowing application main startup");
 
-            let main_window = startup::startup_sync();
+            let main_window = init::initialize_renderer_and_main_window();
 
             self.initialize_pending_windows(event_loop);
 
             let main_surface = self
-                .surface_map
+                .native_windows
                 .get(&main_window)
-                .copied()
+                .map(|win| win.surface)
                 .expect("Missing main window surface");
 
             let ready_signal = Arc::new(AtomicBool::new(false));
@@ -80,7 +91,7 @@ impl ApplicationHandler for WutEngineApp {
                 let ready_signal_cloned = Arc::clone(&ready_signal);
 
                 self.main_thread_executor.spawn(async move {
-                    startup::startup_async(main_surface).await;
+                    init::initialize_main_surface_and_device(main_surface).await;
 
                     ready_signal_cloned.store(true, Ordering::Release);
                 });
@@ -114,7 +125,7 @@ impl ApplicationHandler for WutEngineApp {
 
         match event {
             WindowEvent::ScaleFactorChanged { .. } => {
-                Self::window_scale_factor_changed(window, &event);
+                self.window_scale_factor_changed(window, &event);
             }
             WindowEvent::SurfaceResized(_) => {
                 self.window_surface_resized(window, &event);
@@ -159,7 +170,7 @@ impl ApplicationHandler for WutEngineApp {
 
         // Both starts the first frame, and requests redraws for any new windows
         // and windows whose stale redraw requests were dropped
-        window::request_redraws(time::frame_num());
+        self.request_redraws(time::frame_num());
 
         // Run the event loop
         self.main_thread_executor.run_ready(
@@ -215,13 +226,19 @@ impl WutEngineApp {
                 SurfaceType::Other
             };
 
-            let window_attributes =
-                platform::finish_window_attributes(window, settings.to_window_attributes());
+            let window_attributes = window_settings_to_attributes(settings);
 
-            let native_window: Arc<dyn WinitWindow> = Arc::from(
-                el.create_window(window_attributes)
-                    .expect("Failed to initialize window"),
-            );
+            #[cfg(target_arch = "wasm32")]
+            let window_attributes =
+                platform::web::finish_window_attributes(window, window_attributes);
+
+            let native_window: Arc<dyn WinitWindow> = match el.create_window(window_attributes) {
+                Ok(native) => Arc::from(native),
+                Err(e) => {
+                    log::error!("Failed to create native window: {e}");
+                    return Err(Arc::new(e));
+                }
+            };
 
             let prev = self.window_map.insert(native_window.id(), window);
 
@@ -232,18 +249,31 @@ impl WutEngineApp {
 
             let surface_size: (u32, u32) = native_window.surface_size().into();
 
-            let surface_id = surfaces::initialize(
-                surface_type,
-                surface_size,
-                Arc::clone(&native_window),
-                Some(Box::new(move || {
-                    window::pre_present(window);
-                })),
+            let surface_id = {
+                let native_window = Arc::clone(&native_window);
+
+                surfaces::initialize(
+                    surface_type,
+                    surface_size,
+                    Arc::clone(&native_window),
+                    Some(Box::new(move || {
+                        native_window.pre_present_notify();
+                    })),
+                )
+            };
+
+            let snapshot = create_snapshot_from_native(native_window.as_ref());
+
+            self.native_windows.insert(
+                window,
+                WindowData {
+                    native: native_window,
+                    surface: surface_id,
+                    frame_stamp: None,
+                },
             );
 
-            self.surface_map.insert(window, surface_id);
-
-            native_window
+            Ok(snapshot)
         });
     }
 
@@ -252,25 +282,26 @@ impl WutEngineApp {
 
         let closed = window::close_windows();
 
-        for (window, native_window) in closed {
-            self.cleanup_closed_window(window, native_window.id());
+        for window in closed {
+            self.cleanup_closed_window(window);
         }
     }
 
-    fn cleanup_closed_window(&mut self, window: Window, native_window_id: WindowId) {
+    fn cleanup_closed_window(&mut self, window: Window) {
         profiling::function_scope!();
+
+        let window_data = self
+            .native_windows
+            .remove(&window)
+            .expect("Missing native window");
+
+        let native_window_id = window_data.native.id();
 
         let removed = self.window_map.remove(&native_window_id);
 
         assert_eq!(Some(window), removed, "Invalid window mapping given");
 
-        let surface_id = self.surface_map.remove(&window);
-
-        if let Some(surface_id) = surface_id {
-            surfaces::remove(surface_id);
-        } else {
-            log::warn!("Could not find surface for removed window {window}");
-        }
+        surfaces::remove(window_data.surface);
     }
 }
 
@@ -293,5 +324,32 @@ impl Wake for WinitWaker {
     }
     fn wake_by_ref(self: &Arc<Self>) {
         self.proxy.wake_up();
+    }
+}
+
+/// Converts these window settings to a winit [`WindowAttributes`].
+/// This adds the general options. Each specific platform adds their own options later with
+/// [`platform::finish_window_attributes`](crate::platform::finish_window_attributes)
+fn window_settings_to_attributes(settings: &WindowSettings) -> WindowAttributes {
+    let mut attrs = WindowAttributes::default();
+
+    attrs.surface_size = Some(Size::Logical(conversion::logical_size_to_winit(
+        settings.size,
+    )));
+    attrs.title.clone_from(&settings.title);
+
+    attrs
+}
+fn create_snapshot_from_native(native: &dyn WinitWindow) -> WindowSnapshot {
+    profiling::function_scope!();
+
+    let pixels = conversion::pixel_size_from_winit(native.surface_size());
+    let scale_factor = native.scale_factor();
+    let size = pixels.to_logical(scale_factor);
+
+    WindowSnapshot {
+        pixels,
+        size,
+        scale_factor,
     }
 }

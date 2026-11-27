@@ -20,6 +20,7 @@ use wgpu::TextureView;
 use wgpu::wgt::TextureViewDescriptor;
 use wutengine_macro::unique_id_type32;
 use wutengine_sync::RwLock;
+use wutengine_sync::thread_context;
 
 use crate::adapter;
 use crate::device;
@@ -83,6 +84,7 @@ pub fn initialize(
     pre_present_callback: Option<Box<PrePresentFn>>,
 ) -> SurfaceId {
     profiling::function_scope!();
+    thread_context::assert_main_context();
 
     let surface_id = SurfaceId::new();
 
@@ -101,6 +103,7 @@ pub fn initialize(
 /// Removes the rendering surface for the given `surface_id`
 pub fn remove(surface_id: SurfaceId) {
     profiling::function_scope!();
+    thread_context::assert_main_context();
 
     let surface = surfaces().write().remove(&surface_id);
 

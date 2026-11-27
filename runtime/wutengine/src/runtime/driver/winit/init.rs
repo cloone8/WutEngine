@@ -1,32 +1,41 @@
 use core::panic;
-use core::time::Duration;
 
 use wutengine_renderer as renderer;
 use wutengine_renderer::surfaces;
 use wutengine_renderer::surfaces::SurfaceId;
+use wutengine_sync::thread_context;
 
 use crate::log;
-use crate::time;
-use crate::window;
+use crate::runtime::fatal_error;
 use crate::window::Window;
 use crate::window::WindowSettings;
+use crate::window::WindowState;
 
-pub(super) fn startup_sync() -> Window {
-    log::debug!("Beginning start-up");
+pub(super) fn initialize_renderer_and_main_window() -> Window {
+    thread_context::assert_main_context();
 
-    // Start the window manager
-    window::init();
+    log::debug!("Initializing renderer instance");
 
     // Now we need an instance and a surface in order to find a compatible adapter
     renderer::init_instance();
 
-    time::set_fixed_delta(Duration::from_secs_f64(1.0 / 60.0).as_nanos() as u64); // TODO: Make configurable
+    let main_window = Window::create(WindowSettings::default());
 
-    Window::create(WindowSettings::default())
+    if let WindowState::Error(e) = main_window.state() {
+        if cfg!(feature = "interactive") {
+            fatal_error(format!("Failed to create main window: {e}").as_str());
+        }
+
+        // Headless builds are expected not to be able to create windows
+    } else {
+        main_window.mark_main();
+    }
+
+    main_window
 }
+pub(super) async fn initialize_main_surface_and_device(main_surface_id: SurfaceId) {
+    thread_context::assert_main_context();
 
-/// Main startup function that sets up the full engine context and runs the app entrypoint
-pub(super) async fn startup_async(main_surface_id: SurfaceId) {
     log::debug!("Requesting async resources");
 
     // First we set up the adapter using the main surface.
@@ -45,5 +54,5 @@ pub(super) async fn startup_async(main_surface_id: SurfaceId) {
         panic!("Failed to set up renderer");
     }
 
-    log::info!("Start-up done");
+    log::info!("Renderer device initialization done");
 }

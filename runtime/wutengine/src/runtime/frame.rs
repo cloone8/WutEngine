@@ -5,6 +5,7 @@ use core::time::Duration;
 
 #[cfg(feature = "interactive")]
 use wutengine_renderer::render;
+use wutengine_sync::thread_context;
 
 use crate::log;
 use crate::time;
@@ -55,6 +56,7 @@ impl FrameState {
     )]
     pub(super) fn run_frame(&mut self, frame_type: FrameType) {
         profiling::function_scope!();
+        thread_context::assert_main_context();
 
         log::trace!("Running frame");
 

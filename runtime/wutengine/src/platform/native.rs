@@ -2,14 +2,12 @@
 
 use std::process;
 
-use winit::window::WindowAttributes;
 use wutengine_log::FileLogger;
 use wutengine_log::LoggerOutput;
 
 use crate::log;
 use crate::runtime;
 use crate::runtime::StartupOptions;
-use crate::window::Window;
 
 /// Return type of the engine entry point. Native runs the engine to completion and exits the
 /// process from there, so the entry point never returns
@@ -38,14 +36,6 @@ pub(super) fn add_log_outputs(options: &StartupOptions) {
             log::error!("Failed to create file logger: {e}");
         }
     }
-}
-
-/// Applies the platform-specific window attributes. Native needs none
-pub(super) fn finish_window_attributes(
-    _window: Window,
-    attributes: WindowAttributes,
-) -> WindowAttributes {
-    attributes
 }
 
 /// Exits the process with the given exit code

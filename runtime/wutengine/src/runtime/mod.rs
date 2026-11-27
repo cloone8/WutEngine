@@ -3,19 +3,32 @@
 use core::panic::Location;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
+use core::time::Duration;
 use std::panic;
 
-use winit::event_loop::EventLoop;
 use wutengine_sync::thread_context;
 
 use crate::log;
 use crate::panic_handling;
 use crate::platform;
-use crate::runtime::winit_app::WutEngineApp;
+use crate::time;
+use crate::window;
 
+mod driver;
 mod frame;
-mod startup;
-mod winit_app;
+
+#[cfg(feature = "interactive")]
+static HEADLESS: AtomicBool = AtomicBool::new(false);
+
+/// Whether the runtime is running in headless mode
+#[inline]
+#[must_use]
+pub(crate) fn is_headless() -> bool {
+    cfg_select! {
+        feature = "interactive" => HEADLESS.load(Ordering::Relaxed),
+        _ => true,
+    }
+}
 
 /// Startup options used to start the [WutEngine runtime](crate::runtime)
 /// Not public API, should be used through the [`wutengine_macro::main`] macro
@@ -27,6 +40,11 @@ pub struct StartupOptions {
 
     /// Application name, used for storing/loading data
     pub app_name: &'static str,
+
+    /// Whether the application should be run in headless mode, even if the
+    /// build is an interactive one. If the build is a headless build, this is
+    /// ignored
+    pub headless: bool,
 }
 
 /// Entry point of the WutEngine runtime. Must be called once, from the main thread.
@@ -61,8 +79,37 @@ pub(crate) fn run(options: &StartupOptions, app_entrypoint: impl FnOnce() + 'sta
 
     platform::add_log_outputs(options);
 
+    #[cfg(feature = "interactive")]
+    {
+        if options.headless {
+            HEADLESS.store(true, Ordering::Relaxed);
+            log::info!("Starting application in headless mode");
+        }
+    }
+
     // Run the app entrypoint first, so that users can have chance to run registrations
     app_entrypoint();
+
+    // Start the window manager
+    window::init();
+
+    time::set_fixed_delta(Duration::from_secs_f64(1.0 / 60.0).as_nanos() as u64); // TODO: Make configurable
+
+    #[cfg(feature = "interactive")]
+    {
+        if is_headless() {
+            run_headless();
+        } else {
+            run_winit();
+        }
+    }
+}
+
+#[cfg(feature = "interactive")]
+fn run_winit() {
+    use winit::event_loop::EventLoop;
+
+    use crate::runtime::driver::winit::WutEngineApp;
 
     let event_loop = match EventLoop::builder().build() {
         Ok(el) => el,
@@ -75,6 +122,8 @@ pub(crate) fn run(options: &StartupOptions, app_entrypoint: impl FnOnce() + 'sta
         panic!("Error while running app event loop: {e}"); //TODO: Replace with fatal error later
     }
 }
+
+fn run_headless() {}
 
 /// Requests that the WutEngine runtime quits as soon as possible.
 /// This call might still return

@@ -16,7 +16,7 @@ readme = "README.md"
 
 [features]
 default = ["interactive", "labels"]
-interactive = ["dep:winit", "dep:wgpu", "dep:wutengine_renderer"] # No-headless
+interactive = ["dep:winit", "dep:wutengine_renderer"] # No-headless
 labels = ["wutengine_renderer?/labels"]
 
 [dependencies]
@@ -25,12 +25,12 @@ wutengine_macro = { workspace = true }
 wutengine_sync = { workspace = true }
 wutengine_math = { workspace = true }
 profiling = { workspace = true }
-derive_more = { workspace = true, features = ["debug"] }
+derive_more = { workspace = true, features = ["debug", "display", "error"] }
 
 # Non-headless builds
 winit = { workspace = true, features = ["wayland", "x11", "wayland-dlopen", "wayland-csd-adwaita"], optional = true }
 wutengine_renderer = { workspace = true, optional = true }
-wgpu = { workspace = true, optional = true }                                                                          # Only for the public re-export in `graphics`
+wgpu = { workspace = true }                                                                                           # Only for the public re-export in `graphics`
 
 # Native-only. Web logs to the browser console instead, and can't write to a terminal or log files
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

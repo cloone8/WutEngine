@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 use proc_macro2::Span;
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Attribute;
 use syn::Ident;
@@ -9,6 +10,7 @@ use syn::LitStr;
 use syn::Visibility;
 use syn::meta;
 use syn::parse::Parse;
+use syn::parse::Parser;
 use syn::parse_macro_input;
 use syn::parse_str;
 
@@ -22,6 +24,34 @@ pub fn main(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
+    let (org_name, app_name) = match get_org_app_name(attr) {
+        Ok(oa) => oa,
+        Err(e) => return e,
+    };
+
+    let app_entrypoint_item = parse_macro_input!(item as ItemFn);
+    let app_entrypoint_name = app_entrypoint_item.sig.ident.clone();
+
+    quote! {
+        fn main() {
+            #app_entrypoint_item
+
+            let opts = ::wutengine::runtime::StartupOptions {
+                org_name: #org_name,
+                app_name: #app_name,
+                headless: false
+            };
+
+            ::wutengine::runtime::_wutengine_entry(opts, #app_entrypoint_name);
+        }
+    }
+    .into()
+}
+
+/// Gets the org and app name from the attributes in [`main`]
+fn get_org_app_name(
+    attr: proc_macro::TokenStream,
+) -> Result<(TokenStream, TokenStream), proc_macro::TokenStream> {
     let mut org_name: Option<LitStr> = None;
     let mut app_name: Option<LitStr> = None;
 
@@ -51,7 +81,7 @@ pub fn main(
         Ok(())
     });
 
-    parse_macro_input!(attr with arg_parser);
+    arg_parser.parse(attr).map_err(|e| e.to_compile_error())?;
 
     let org_name = if let Some(org_name) = org_name {
         quote! {#org_name}
@@ -65,22 +95,7 @@ pub fn main(
         quote! { env!("CARGO_PKG_NAME") }
     };
 
-    let app_entrypoint_item = parse_macro_input!(item as ItemFn);
-    let app_entrypoint_name = app_entrypoint_item.sig.ident.clone();
-
-    quote! {
-        fn main() {
-            #app_entrypoint_item
-
-            let opts = ::wutengine::runtime::StartupOptions {
-                org_name: #org_name,
-                app_name: #app_name,
-            };
-
-            ::wutengine::runtime::_wutengine_entry(opts, #app_entrypoint_name);
-        }
-    }
-    .into()
+    Ok((org_name, app_name))
 }
 
 /// Input for the [`unique_id_type32`] and [`unique_id_type64`] macros

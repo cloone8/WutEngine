@@ -16,7 +16,8 @@ the window settings in the configuration. The engine decides only what game code
 - **More windows:** `Window::create(settings)` (title, size, mode, resizable, ...) returns a `Window` handle at once;
   the engine creates the OS window in the event loop's next iteration. The handle has the window's state and methods
   (size, scale factor, focus as a property, close) and is the one runtime control of a window; what the window
-  reports is the truth. Cameras name a `Window` as their target. Scripts get the same API.
+  reports is the truth. Cameras name a `Window` as their target. Scripts get the same API. In a headless build the
+  handle starts out failed, its error saying the build is headless.
   - **An explicit state:** pending, open, failed (with its error) or closed. **`ready()`** returns a task that
     completes with the open window or the error ([Jobs and async](../core/jobs.md)): awaited in async code, checked
     each frame otherwise, a promise in scripts.

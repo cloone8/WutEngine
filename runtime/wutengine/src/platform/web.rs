@@ -15,6 +15,7 @@ use web_sys::HtmlCanvasElement;
 use winit::platform::web::WindowAttributesWeb;
 use winit::window::WindowAttributes;
 use wutengine_log::LoggerOutput;
+use wutengine_sync::thread_context;
 
 use crate::runtime;
 use crate::runtime::StartupOptions;
@@ -85,10 +86,13 @@ pub(super) fn add_log_outputs(_options: &StartupOptions) {}
 
 /// Applies the platform-specific window attributes. The main window gets the loader's canvas, if
 /// it passed one
-pub(super) fn finish_window_attributes(
+pub(crate) fn finish_window_attributes(
     window: Window,
     mut attributes: WindowAttributes,
 ) -> WindowAttributes {
+    // `MAIN_CANVAS` is thread-local, so any other thread would silently see no canvas
+    thread_context::assert_main_context();
+
     let canvas = if window.is_main() {
         MAIN_CANVAS.take()
     } else {

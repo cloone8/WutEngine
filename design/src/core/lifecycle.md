@@ -85,7 +85,8 @@ dependencies when they are built.
 - **Only the renderer holds wgpu objects.** Everything else (game code, other subsystems, the editor) holds engine
   objects: assets, views, render targets, GPU jobs. Raw wgpu objects are available inside a render-graph pass or GPU
   job while it executes, not kept across frames. Rust programmers can still reach the device, documented as "may be
-  replaced". Why: headless builds and clean ownership, and it keeps a renderer restart possible without planning it.
+  replaced", and `None` in a headless build. Why: headless builds and clean ownership, and it keeps a renderer restart
+  possible without planning it.
 - **Surfaces follow winit's `can_create_surfaces` and `destroy_surfaces`** on every platform: created in
   `can_create_surfaces`, dropped before `destroy_surfaces` returns, the held swapchain image included. Only Android
   destroys surfaces; desktop and the web get one `can_create_surfaces` and never a destroy. The two may come back to
@@ -106,14 +107,25 @@ dependencies when they are built.
   chosen at runtime stays possible. The game side of audio (each sound's time, `finished`) runs in both builds, at
   frame start ([Audio](../systems/audio.md)). Setting a material or playing a sound still changes data and is never
   an error; assets load without their GPU or audio upload step.
-- **User-facing types live apart from their backends:** only the renderer and audio crates depend on wgpu and the
-  audio backend, so game code compiles the same in both builds.
+- **A headless build keeps the graphics and audio APIs and drops only their backends,** as Unity's dedicated server (a
+  null graphics device) and Unreal's (NullRHI) do. Only the renderer and audio crates use wgpu and the audio backend,
+  and the headless build leaves those crates out; user-facing types live outside them, so game code compiles the same
+  in both builds.
+- **The `wutengine` crate re-exports wgpu in both builds,** with no wgpu backend in a headless build, so custom render
+  passes, GPU jobs and code that reaches the device compile unchanged. In a headless build, registered passes and GPU
+  jobs never run and the device is `None`. Why: raw wgpu inside passes and GPU jobs is part of the API for Rust
+  programmers, and wgpu without backends needs no system libraries or display server; the cost is compiling wgpu's
+  core and naga in server builds.
+- **Leaving code out of a headless build is the game's choice,** through its own Cargo feature that turns on the
+  engine's; the engine never requires it. Like `UNITY_SERVER` in Unity and `UE_SERVER` in Unreal.
 - **The frame loop runs without winit** as a plain timer-driven loop. Why: winit needs a display server on Linux,
   which a server doesn't have.
 - **Without a window,** `fatal_error` and the panic hook write to stderr and the log; input on a server comes only as
   per-step data ([Multiplayer](../goals/multiplayer.md)). The headless build is checked occasionally with clippy
   without default features.
-- Kept possible: choosing headless at runtime in a graphics build.
+- Kept possible: choosing headless at runtime in a graphics build, and server packs without GPU and audio data,
+  stripped when packing (as Unity's dedicated-server build and Unreal's server cook do), since assets already load
+  without their upload step.
 
 ## Lifecycle events games see
 
