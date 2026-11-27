@@ -98,22 +98,34 @@ dependencies when they are built.
 
 ## Headless
 
-- **Headless is a build feature, from the start.** The feature is additive: a default-on feature brings in the
-  window, graphics, audio and input devices, and a headless build turns it off. Why: Cargo unifies features, so they
-  must add, never remove; dedicated servers are already a separate build (the precision switch,
+A run is headless in a headless build, or in a graphics build started headless from the command line. Both behave
+the same; "headless" below means either.
+
+- **Headless is a build feature, from the start.** The feature is additive: a default-on feature, `interactive`,
+  brings in the window, graphics, audio and input devices, and a headless build turns it off. Why: Cargo unifies
+  features, so they must add, never remove; dedicated servers are already a separate build (the precision switch,
   [Game size and precision](../goals/game_size.md)).
+- **A graphics build can also run headless,** turned on by a command-line switch, like Unity's `-batchmode
+  -nographics`, Unreal's `-nullrhi` and Godot's `--headless`. It runs without winit, a window, or a GPU or audio
+  device, as a headless build does. The switch's exact form comes with the command-line layer
+  ([Configuration](configuration.md)). Why: the same build then serves as a local test server, or runs in CI without
+  a display.
+- **Engine code asks one question: is this run headless?** (`is_headless()`, always true in a headless build), and
+  never checks the build feature to decide behaviour. `#[cfg]` is only for code that names what a headless build
+  leaves out: the winit driver and the renderer and audio crates. Why: checking the feature gives the wrong answer in
+  a headless run of a graphics build, and with few `#[cfg]`s both builds compile the same code.
 - **Rendering and audio output only read world data** in their own phases (render preparation and the render graph);
-  headless skips that backend work, decided inside the renderer and audio rather than by skipping phases, so headless
-  chosen at runtime stays possible. The game side of audio (each sound's time, `finished`) runs in both builds, at
-  frame start ([Audio](../systems/audio.md)). Setting a material or playing a sound still changes data and is never
-  an error; assets load without their GPU or audio upload step.
+  headless skips that backend work, decided inside the renderer and audio rather than by skipping phases. The game
+  side of audio (each sound's time, `finished`) runs either way, at frame start ([Audio](../systems/audio.md)).
+  Setting a material or playing a sound still changes data and is never an error; assets load without their GPU or
+  audio upload step.
 - **A headless build keeps the graphics and audio APIs and drops only their backends,** as Unity's dedicated server (a
   null graphics device) and Unreal's (NullRHI) do. Only the renderer and audio crates use wgpu and the audio backend,
   and the headless build leaves those crates out; user-facing types live outside them, so game code compiles the same
   in both builds.
 - **The `wutengine` crate re-exports wgpu in both builds,** with no wgpu backend in a headless build, so custom render
-  passes, GPU jobs and code that reaches the device compile unchanged. In a headless build, registered passes and GPU
-  jobs never run and the device is `None`. Why: raw wgpu inside passes and GPU jobs is part of the API for Rust
+  passes, GPU jobs and code that reaches the device compile unchanged. When headless, registered passes and GPU jobs
+  never run and the device is `None`. Why: raw wgpu inside passes and GPU jobs is part of the API for Rust
   programmers, and wgpu without backends needs no system libraries or display server; the cost is compiling wgpu's
   core and naga in server builds.
 - **Leaving code out of a headless build is the game's choice,** through its own Cargo feature that turns on the
@@ -121,11 +133,10 @@ dependencies when they are built.
 - **The frame loop runs without winit** as a plain timer-driven loop. Why: winit needs a display server on Linux,
   which a server doesn't have.
 - **Without a window,** `fatal_error` and the panic hook write to stderr and the log; input on a server comes only as
-  per-step data ([Multiplayer](../goals/multiplayer.md)). The headless build is checked occasionally with clippy
-  without default features.
-- Kept possible: choosing headless at runtime in a graphics build, and server packs without GPU and audio data,
-  stripped when packing (as Unity's dedicated-server build and Unreal's server cook do), since assets already load
-  without their upload step.
+  per-step data ([Multiplayer](../goals/multiplayer.md)). The headless build is checked with clippy without default
+  features.
+- Kept possible: server packs without GPU and audio data, stripped when packing (as Unity's dedicated-server build
+  and Unreal's server cook do), since assets already load without their upload step.
 
 ## Lifecycle events games see
 

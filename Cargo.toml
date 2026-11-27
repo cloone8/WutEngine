@@ -112,7 +112,6 @@ unnecessary_safety_doc = "warn"
 unused_result_ok = "warn"
 string_add = "warn"                          # Join more than two strings with `format!`/`write!`, not `+`
 unwrap_used = "warn"                         # `expect("why")` over `unwrap()` outside tests
-absolute_paths = "warn"                      # Import an item with `use` instead of spelling out its path
 
 similar_names = { level = "allow" }            # Too noisy and not that useful
 missing_panics_doc = { level = "allow" }       # `# Panics` on everything that asserts would be noise

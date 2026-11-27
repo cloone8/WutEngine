@@ -73,7 +73,7 @@ dictionary word breaking ([In-game UI and text](../systems/ui_text.md)).
   features turns them back on, silently.
 - **Without a feature, a subsystem's API is either absent or present and inert, decided per subsystem.** Absent for
   subsystems a game opts into (physics, scripting, UI): calling them without the feature is a compile error. Present
-  and inert for backends (window, rendering, audio output in a headless build): the API compiles and does nothing or
+  and inert for backends (window, rendering, audio output when headless): the API compiles and does nothing or
   returns `None`, so game code compiles the same either way ([Lifecycle and memory](../core/lifecycle.md)).
 - **Data for a disabled feature is an error, not dropped.** A scene holding components whose feature is off in the
   build fails to load with an error naming the scene, the entity and the missing feature. Why: dropping them silently

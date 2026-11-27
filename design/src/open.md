@@ -22,9 +22,11 @@ planning step, such as **(step 4)**, are settled in that step; [Planning](planni
   - the name table's implementation (locking, sharding);
   - whether release builds keep the name strings;
   - whether bone names are resolved to indices at load.
-- **Implementation:** the concrete subsystem order at start-up and shut-down, the fatal-error hook's timeout, the
-  headless feature's name (one feature or one per subsystem), and a splash window during start-up
-  ([Lifecycle and memory](core/lifecycle.md)).
+- **Implementation:** the concrete subsystem order at start-up and shut-down, the fatal-error hook's timeout, and a
+  splash window during start-up ([Lifecycle and memory](core/lifecycle.md)).
+- **Decide (with the command line):** the switch that starts a graphics build headless, and whether it is a
+  configuration value or read before the configuration ([Lifecycle and memory](core/lifecycle.md#headless),
+  [Configuration](core/configuration.md)).
 - **Decide:** for quitting on winit 0.31 ([Lifecycle and memory](core/lifecycle.md)):
   - how `quit()` stops the game on the web. It throws today, which from inside a winit callback would unwind through
     winit's web runner mid-dispatch. To start: quit through winit's `exit()`, then show the page message.

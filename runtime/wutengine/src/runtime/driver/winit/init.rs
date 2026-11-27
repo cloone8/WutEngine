@@ -6,10 +6,8 @@ use wutengine_renderer::surfaces::SurfaceId;
 use wutengine_sync::thread_context;
 
 use crate::log;
-use crate::runtime::fatal_error;
 use crate::window::Window;
 use crate::window::WindowSettings;
-use crate::window::WindowState;
 
 pub(super) fn initialize_renderer_and_main_window() -> Window {
     thread_context::assert_main_context();
@@ -19,19 +17,11 @@ pub(super) fn initialize_renderer_and_main_window() -> Window {
     // Now we need an instance and a surface in order to find a compatible adapter
     renderer::init_instance();
 
-    let main_window = Window::create(WindowSettings::default());
+    let window = Window::create(WindowSettings::default());
 
-    if let WindowState::Error(e) = main_window.state() {
-        if cfg!(feature = "interactive") {
-            fatal_error(format!("Failed to create main window: {e}").as_str());
-        }
+    window.mark_main();
 
-        // Headless builds are expected not to be able to create windows
-    } else {
-        main_window.mark_main();
-    }
-
-    main_window
+    window
 }
 pub(super) async fn initialize_main_surface_and_device(main_surface_id: SurfaceId) {
     thread_context::assert_main_context();

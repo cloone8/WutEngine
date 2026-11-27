@@ -11,23 +11,20 @@ use wutengine_sync::thread_context;
 use crate::log;
 use crate::panic_handling;
 use crate::platform;
+use crate::runtime::driver::headless::HeadlessApp;
 use crate::time;
 use crate::window;
 
 mod driver;
 mod frame;
 
-#[cfg(feature = "interactive")]
 static HEADLESS: AtomicBool = AtomicBool::new(false);
 
 /// Whether the runtime is running in headless mode
 #[inline]
 #[must_use]
 pub(crate) fn is_headless() -> bool {
-    cfg_select! {
-        feature = "interactive" => HEADLESS.load(Ordering::Relaxed),
-        _ => true,
-    }
+    cfg!(not(feature = "interactive")) || HEADLESS.load(Ordering::Relaxed)
 }
 
 /// Startup options used to start the [WutEngine runtime](crate::runtime)
@@ -79,12 +76,8 @@ pub(crate) fn run(options: &StartupOptions, app_entrypoint: impl FnOnce() + 'sta
 
     platform::add_log_outputs(options);
 
-    #[cfg(feature = "interactive")]
-    {
-        if options.headless {
-            HEADLESS.store(true, Ordering::Relaxed);
-            log::info!("Starting application in headless mode");
-        }
+    if options.headless {
+        HEADLESS.store(true, Ordering::Relaxed);
     }
 
     // Run the app entrypoint first, so that users can have chance to run registrations
@@ -96,13 +89,11 @@ pub(crate) fn run(options: &StartupOptions, app_entrypoint: impl FnOnce() + 'sta
     time::set_fixed_delta(Duration::from_secs_f64(1.0 / 60.0).as_nanos() as u64); // TODO: Make configurable
 
     #[cfg(feature = "interactive")]
-    {
-        if is_headless() {
-            run_headless();
-        } else {
-            run_winit();
-        }
+    if !is_headless() {
+        run_winit();
     }
+
+    run_headless();
 }
 
 #[cfg(feature = "interactive")]
@@ -123,7 +114,13 @@ fn run_winit() {
     }
 }
 
-fn run_headless() {}
+fn run_headless() {
+    log::info!("Starting application in headless mode");
+
+    let mut app = HeadlessApp::new();
+
+    app.run();
+}
 
 /// Requests that the WutEngine runtime quits as soon as possible.
 /// This call might still return

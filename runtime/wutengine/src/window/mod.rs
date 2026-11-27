@@ -58,20 +58,20 @@ impl Window {
 
         let mut window_map = window_manager().windows.write();
 
-        if cfg!(feature = "interactive") {
-            window_map.insert(
-                handle,
-                WindowData::Pending {
-                    settings: Box::new(settings),
-                    close_requested: AtomicBool::new(false),
-                },
-            );
-        } else {
+        if runtime::is_headless() {
             window_map.insert(
                 handle,
                 WindowData::Failed {
                     snapshot: Box::new(WindowSnapshot::guess_from_settings(&settings)),
                     err: Arc::new(HeadlessBuildErr),
+                },
+            );
+        } else {
+            window_map.insert(
+                handle,
+                WindowData::Pending {
+                    settings: Box::new(settings),
+                    close_requested: AtomicBool::new(false),
                 },
             );
         }
@@ -154,7 +154,7 @@ impl Window {
     /// Marks this window as the "main" window.
     /// This is the window used for frame pacing, and also the window
     /// that quits the application if closed.
-    pub fn mark_main(self) {
+    pub(crate) fn mark_main(self) {
         self.with_data(|data| {
             if !matches!(data, WindowData::Pending { .. } | WindowData::Open { .. }) {
                 log::error!("Cannot mark non pending/open window {self} as main window");
@@ -320,8 +320,9 @@ pub(crate) fn init() {
 }
 
 /// Runs the queued window actions. This actually spawns native windows.
-/// NOTE: The Window API cannot be used in the `initializer` callback as it will
-/// deadlock.
+///
+/// NOTE: The [`Window`] API cannot be used in the `initializer` callback as it will
+/// deadlock, with the exception of [`Window::main`] and [`Window::is_main`].
 pub(crate) fn initialize_windows(
     mut initializer: impl FnMut(
         Window,

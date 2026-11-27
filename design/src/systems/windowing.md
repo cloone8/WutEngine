@@ -6,18 +6,21 @@ the window settings in the configuration. The engine decides only what game code
 
 ## A window is an engine object created by a plain function
 
-- **The main window** is created at start-up from the configuration, unless the build is headless. A game with one
-  window never calls the window API.
-- **`Window::main()` returns an `Option<Window>`:** `None` in a headless build, where the window API still compiles
+- **The main window** is created at start-up from the configuration, unless the run is headless
+  ([Lifecycle and memory](../core/lifecycle.md#headless)). A game with one window never calls the window API.
+- **`Window::main()` returns an `Option<Window>`:** `None` when headless, where the window API still compiles
   because game code compiles the same in both builds ([Lifecycle and memory](../core/lifecycle.md)), and `null` in
-  scripts. On a client it is always `Some`: the main window's handle exists before game code runs, and the window is
-  open by the time start-up finishes. On mobile the surface comes and goes; the handle stays. Why: an explicit
-  absence instead of a window that silently does nothing on a server.
+  scripts. On a client it is always `Some` from the Started event on: the main window is open by the time start-up
+  finishes. On mobile the surface comes and goes; the handle stays. Why: an explicit absence instead of a window that
+  silently does nothing on a server.
+- **The window API is an error in the game's entry point,** which runs before the main window exists and only
+  registers ([Lifecycle and memory](../core/lifecycle.md#start-up)); game set-up that needs windows goes in Started.
+  Why: a `None` from `Window::main()` there would read as "headless", and a quietly queued window as a working one.
 - **More windows:** `Window::create(settings)` (title, size, mode, resizable, ...) returns a `Window` handle at once;
   the engine creates the OS window in the event loop's next iteration. The handle has the window's state and methods
   (size, scale factor, focus as a property, close) and is the one runtime control of a window; what the window
-  reports is the truth. Cameras name a `Window` as their target. Scripts get the same API. In a headless build the
-  handle starts out failed, its error saying the build is headless.
+  reports is the truth. Cameras name a `Window` as their target. Scripts get the same API. When headless, the handle
+  starts out failed, its error saying the run is headless.
   - **An explicit state:** pending, open, failed (with its error) or closed. **`ready()`** returns a task that
     completes with the open window or the error ([Jobs and async](../core/jobs.md)): awaited in async code, checked
     each frame otherwise, a promise in scripts.

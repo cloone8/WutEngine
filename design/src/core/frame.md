@@ -30,7 +30,7 @@ Why: user code can then reason about the frame as if it ran on one thread, which
    listener read their displayed poses and the frame's batch goes to the mixer.
 7. **Render graph:** build, record, submit, present. The development overlay draws last.
 
-A headless build still runs every phase; only the backend work in phases 6 and 7 is skipped
+A headless run still runs every phase; only the backend work in phases 6 and 7 is skipped
 ([Lifecycle and memory](lifecycle.md#headless)).
 
 Rules within the frame:

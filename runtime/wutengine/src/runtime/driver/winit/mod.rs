@@ -24,12 +24,14 @@ use wutengine_renderer::surfaces::SurfaceType;
 
 use crate::executor::ThreadLocalExecutor;
 use crate::log;
+use crate::runtime;
 use crate::runtime::frame::FrameState;
 use crate::time;
 use crate::window;
 use crate::window::Window;
 use crate::window::WindowSettings;
 use crate::window::WindowSnapshot;
+use crate::window::WindowState;
 
 mod conversion;
 mod init;
@@ -79,6 +81,10 @@ impl ApplicationHandler for WutEngineApp {
             let main_window = init::initialize_renderer_and_main_window();
 
             self.initialize_pending_windows(event_loop);
+
+            if let WindowState::Error(e) = main_window.state() {
+                runtime::fatal_error(format!("Failed to create main window: {e}").as_str());
+            }
 
             let main_surface = self
                 .native_windows
@@ -230,7 +236,7 @@ impl WutEngineApp {
 
             #[cfg(target_arch = "wasm32")]
             let window_attributes =
-                platform::web::finish_window_attributes(window, window_attributes);
+                crate::platform::web::finish_window_attributes(window, window_attributes);
 
             let native_window: Arc<dyn WinitWindow> = match el.create_window(window_attributes) {
                 Ok(native) => Arc::from(native),
