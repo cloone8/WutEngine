@@ -1,16 +1,32 @@
 //! Headless driver. Only runs the frame loop without any renderer interaction
 
+use core::assert_matches;
+use core::task::Waker;
 use core::time::Duration;
 use std::thread;
 use std::time::Instant;
 
+use wutengine_executor::ThreadLocalExecutor;
+
 use crate::runtime::frame::FrameState;
 use crate::runtime::frame::FrameType;
 
+mod init;
+
 #[derive(Debug)]
 pub(crate) struct HeadlessApp {
-    frame_state: FrameState,
     tick_interval: Duration,
+    main_thread_executor: ThreadLocalExecutor,
+    phase: AppPhase,
+}
+
+#[derive(Debug)]
+enum AppPhase {
+    /// [`HeadlessApp::run`] has not been called yet
+    NotStarted,
+
+    /// Driver is running
+    Running(FrameState),
 }
 
 impl HeadlessApp {
@@ -25,18 +41,36 @@ impl HeadlessApp {
 
         Self {
             tick_interval,
-            frame_state: FrameState::new(tick_interval),
+            main_thread_executor: ThreadLocalExecutor::new(),
+            phase: AppPhase::NotStarted,
         }
     }
 
     pub(crate) fn run(&mut self) {
+        assert_matches!(
+            self.phase,
+            AppPhase::NotStarted,
+            "Cannot run headless driver twice"
+        );
+
+        // Run initialization
+        self.main_thread_executor.block_on(init::initialize());
+
+        // Start running the frames/ticks
+        self.phase = AppPhase::Running(FrameState::new(self.tick_interval));
+
         // The first frame runs right away. Each next deadline is the previous one plus the
         // interval, so sleep overshoot doesn't add up over frames
         let mut next_tick = Instant::now();
 
-        #[expect(clippy::infinite_loop, reason = "Stopped by runtime functions")]
         loop {
-            self.frame_state.run_frame(FrameType::Continuous);
+            self.main_thread_executor.run_ready(Waker::noop());
+
+            let AppPhase::Running(frame_state) = &mut self.phase else {
+                unreachable!();
+            };
+
+            frame_state.run_frame(FrameType::Continuous);
 
             next_tick = next_tick
                 .checked_add(self.tick_interval)

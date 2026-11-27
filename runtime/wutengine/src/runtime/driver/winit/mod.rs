@@ -18,11 +18,11 @@ use winit::event_loop::EventLoopProxy;
 use winit::window::Window as WinitWindow;
 use winit::window::WindowAttributes;
 use winit::window::WindowId;
+use wutengine_executor::ThreadLocalExecutor;
 use wutengine_renderer::surfaces;
 use wutengine_renderer::surfaces::SurfaceId;
 use wutengine_renderer::surfaces::SurfaceType;
 
-use crate::executor::ThreadLocalExecutor;
 use crate::log;
 use crate::runtime;
 use crate::runtime::frame::FrameState;

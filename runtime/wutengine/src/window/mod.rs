@@ -1,5 +1,13 @@
 //! Window management
 
+#![cfg_attr(
+    not(feature = "interactive"),
+    allow(
+        unused,
+        reason = "No windows in headless. Blanket allowing unused code for headless builds is cleaner than sprinkling attributes everywhere"
+    )
+)]
+
 use core::error::Error;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;

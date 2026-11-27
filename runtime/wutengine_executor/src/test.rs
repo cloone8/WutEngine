@@ -13,7 +13,7 @@ mod block_on {
     use std::sync::mpsc::RecvTimeoutError;
     use std::thread;
 
-    use crate::executor::ThreadLocalExecutor;
+    use crate::ThreadLocalExecutor;
 
     /// Runs `fut` to completion with [`ThreadLocalExecutor::block_on`] on a new executor
     fn block_on<T>(fut: impl Future<Output = T>) -> T {

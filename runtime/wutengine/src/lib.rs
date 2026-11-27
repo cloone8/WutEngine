@@ -2,7 +2,6 @@
 
 #[doc(inline)]
 pub use wutengine_log as log;
-mod executor;
 pub mod graphics;
 mod panic_handling;
 mod platform;

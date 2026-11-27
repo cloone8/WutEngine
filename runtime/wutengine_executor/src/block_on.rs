@@ -1,3 +1,5 @@
+//! Implementation for `block_on`
+
 use core::mem::DropGuard;
 use core::pin::pin;
 use core::sync::atomic::AtomicBool;
@@ -10,7 +12,7 @@ use std::task::Wake;
 use std::thread;
 use std::thread::Thread;
 
-use crate::executor::ThreadLocalExecutor;
+use crate::ThreadLocalExecutor;
 
 /// Basic async signal
 struct Signal {
@@ -40,8 +42,12 @@ impl Wake for Signal {
 
 impl ThreadLocalExecutor {
     /// Blocks the current thread until `fut` is done, and keeps running futures while it's not
-    pub(crate) fn block_on<T>(&self, fut: impl Future<Output = T>) -> T {
+    pub fn block_on<T>(&self, fut: impl Future<Output = T>) -> T {
         profiling::function_scope!();
+
+        if cfg!(target_arch = "wasm32") {
+            panic!("Unsupported on web");
+        }
 
         // Make sure we restore the old waker so tasks don't try
         // to wake this local-thread signal after we're done here

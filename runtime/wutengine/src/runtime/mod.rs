@@ -91,6 +91,7 @@ pub(crate) fn run(options: &StartupOptions, app_entrypoint: impl FnOnce() + 'sta
     #[cfg(feature = "interactive")]
     if !is_headless() {
         run_winit();
+        return;
     }
 
     run_headless();

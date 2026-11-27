@@ -24,6 +24,7 @@ wutengine_log = { workspace = true }
 wutengine_macro = { workspace = true }
 wutengine_sync = { workspace = true }
 wutengine_math = { workspace = true }
+wutengine_executor = { workspace = true }
 profiling = { workspace = true }
 derive_more = { workspace = true, features = ["debug", "display", "error"] }
 

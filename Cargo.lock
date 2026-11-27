@@ -2464,10 +2464,22 @@ dependencies = [
  "web-time",
  "wgpu",
  "winit",
+ "wutengine_executor",
  "wutengine_log",
  "wutengine_macro",
  "wutengine_math",
  "wutengine_renderer",
+ "wutengine_sync",
+]
+
+[[package]]
+name = "wutengine_executor"
+version = "0.7.0"
+dependencies = [
+ "derive_more",
+ "profiling",
+ "wutengine_log",
+ "wutengine_macro",
  "wutengine_sync",
 ]
 

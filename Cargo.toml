@@ -7,6 +7,7 @@ members = [
   "runtime/wutengine_math",
   "runtime/wutengine_renderer",
   "runtime/wutengine_sync",
+  "runtime/wutengine_executor",
   "xtask",
   "demos/hello",
   "demos/window",
@@ -34,6 +35,7 @@ wutengine_sync = { version = "0.7.0", path = "runtime/wutengine_sync", default-f
 wutengine_macro = { version = "0.7.0", path = "runtime/wutengine_macro", default-features = false }
 wutengine_renderer = { version = "0.7.0", path = "runtime/wutengine_renderer", default-features = false }
 wutengine_math = { version = "0.7.0", path = "runtime/wutengine_math", default-features = false }
+wutengine_executor = { version = "0.7.0", path = "runtime/wutengine_executor", default-features = false }
 
 # External crates
 anstyle = { version = "1.0", default-features = false }

@@ -30,6 +30,19 @@ planning step, such as **(step 4)**, are settled in that step; [Planning](planni
 - **Decide:** for quitting on winit 0.31 ([Lifecycle and memory](core/lifecycle.md)):
   - how `quit()` stops the game on the web. It throws today, which from inside a winit callback would unwind through
     winit's web runner mid-dispatch. To start: quit through winit's `exit()`, then show the page message.
+- **Decide:** termination signals on desktop, for interactive and headless runs alike: `SIGINT` and `SIGTERM` on Linux
+  and macOS; Ctrl+C, Ctrl+Break and closing the console on Windows. Today they end the process without the log flush
+  or the quitting hooks, which matters most for a dedicated server stopped by a service manager
+  ([Lifecycle and memory](core/lifecycle.md#lifecycle-events-games-see)). To decide:
+  - which event a signal raises: "quit requested" (cancellable) or straight to "quitting";
+  - what a second signal does while the first is being handled (to start: exit at once, after a log flush);
+  - how the handler reaches the loop: it may only set a flag (and on Windows it runs on a thread of its own), so the
+    winit driver needs a wake-up through its event-loop proxy, and the headless driver a check each tick;
+  - the time limits: a service manager kills the process after its stop timeout, and Windows ends a process a few
+    seconds after its console closes;
+  - an existing crate (`ctrlc`, `signal-hook`) or the engine's own handlers.
+
+  To start: the first signal raises "quitting", like a normal quit; a second exits at once after a flush.
 - **Implementation:** for errors ([Error handling](core/errors.md)):
   - the library that shows the desktop crash message box;
   - the script loop-limit default (10 million iterations per call to start, then tuned);

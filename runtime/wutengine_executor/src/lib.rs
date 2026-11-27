@@ -1,4 +1,4 @@
-//! Async executor
+#![doc = include_str!("../README.md")]
 
 use core::cell::RefCell;
 use core::pin::Pin;
@@ -15,26 +15,29 @@ use std::sync::mpsc::Sender;
 use std::sync::mpsc::TryRecvError;
 use std::task::Wake;
 
+use wutengine_log as log;
 use wutengine_macro::unique_id_type64;
 use wutengine_sync::Mutex;
-
-use crate::log;
 
 #[cfg(test)]
 mod test;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
 mod block_on;
 
+/// Signal for a task in a [`ThreadLocalExecutor`]
 #[derive(Debug)]
 struct ThreadLocalExecutorSignal {
+    /// The ID of the task this signal is for
     task: TaskId,
 
     /// Set while the task's ID is in the ready queue, so repeated wakes queue it only once.
     /// Cleared by the executor right before it polls the task
     queued: AtomicBool,
 
+    /// The queue used to mark a task as ready
     mark_ready: Sender<TaskId>,
+
+    /// The waker for this task
     waker: Arc<Mutex<Waker>>,
 }
 
@@ -66,17 +69,25 @@ unique_id_type64! {
     TaskId
 }
 
+/// Alias for a pinned and boxed future
 type PinnedFuture = Pin<Box<dyn Future<Output = ()>>>;
 
+/// Data for a single async task
 #[derive(derive_more::Debug)]
 struct TaskInfo {
     #[debug(skip)]
+    /// The future itself
     future: PinnedFuture,
+
+    /// The signal
     signal: Arc<ThreadLocalExecutorSignal>,
+
+    /// The waker
     waker: Waker,
 }
 
 impl TaskInfo {
+    /// Create a new [`TaskInfo`]
     fn new(
         fut: impl Future<Output = ()> + 'static,
         signal: Arc<ThreadLocalExecutorSignal>,
@@ -91,17 +102,31 @@ impl TaskInfo {
 
 /// An async executor that runs on the main thread
 #[derive(derive_more::Debug)]
-pub(crate) struct ThreadLocalExecutor {
+pub struct ThreadLocalExecutor {
+    /// The running tasks
     #[debug(skip)]
     tasks: RefCell<HashMap<TaskId, TaskInfo>>,
+
+    /// The queue containing the ready tasks
     ready: Receiver<TaskId>,
+
+    /// The queue used by signals to mark a task as ready
     mark_ready: Sender<TaskId>,
+
+    /// The current waker
     waker: Arc<Mutex<Waker>>,
+}
+
+impl Default for ThreadLocalExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ThreadLocalExecutor {
     /// Create a new, empty, [`ThreadLocalExecutor`]
-    pub(crate) fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         let (send, recv) = mpsc::channel::<TaskId>();
 
         Self {
@@ -113,7 +138,7 @@ impl ThreadLocalExecutor {
     }
 
     /// Spawns a future on this executor
-    pub(crate) fn spawn(&self, future: impl Future<Output = ()> + 'static) {
+    pub fn spawn(&self, future: impl Future<Output = ()> + 'static) {
         profiling::function_scope!();
 
         let id = TaskId::new();
@@ -135,7 +160,7 @@ impl ThreadLocalExecutor {
 
     /// Runs all ready tasks in the executor once. Returns how many
     /// tasks were polled
-    pub(crate) fn run_ready(&self, host: &Waker) -> usize {
+    pub fn run_ready(&self, host: &Waker) -> usize {
         profiling::function_scope!();
 
         // Replace the waker with the new one
