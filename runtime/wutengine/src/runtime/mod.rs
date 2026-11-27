@@ -105,19 +105,19 @@ fn run_winit() {
     let event_loop = match EventLoop::builder().build() {
         Ok(el) => el,
         Err(e) => {
-            panic!("Failed to build an event loop: {e}"); //TODO: Replace with fatal error once we have an API for it
+            fatal_error(format!("Failed to build an event loop: {e}").as_str());
         }
     };
 
     if let Err(e) = event_loop.run_app(WutEngineApp::new()) {
-        panic!("Error while running app event loop: {e}"); //TODO: Replace with fatal error later
+        fatal_error(format!("Error while running app event loop: {e}").as_str());
     }
 }
 
 fn run_headless() {
     log::info!("Starting application in headless mode");
 
-    let mut app = HeadlessApp::new();
+    let mut app = HeadlessApp::new(60.0); //TODO: Make configurable
 
     app.run();
 }
