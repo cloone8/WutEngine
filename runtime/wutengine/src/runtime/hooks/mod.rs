@@ -127,7 +127,10 @@ pub(crate) fn run_quitting_hooks() {
 
 /// Information about a quit request, delivered through a [`quit requested` hook](register_quit_requested_hook)
 #[derive(Debug)]
-#[expect(missing_copy_implementations, reason = "Should be shared")]
+#[expect(
+    missing_copy_implementations,
+    reason = "Should be shared between all hooks and not copy/clonable"
+)]
 pub struct QuitRequest {
     cancelled: bool,
 }

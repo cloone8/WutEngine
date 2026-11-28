@@ -50,7 +50,9 @@ impl WutEngineApp {
             super::create_snapshot_from_native(window_data.native.as_ref()),
         );
 
-        surfaces::change_surface_size(window_data.surface, (*physical_size).into());
+        if let Some(surface) = window_data.surface {
+            surfaces::change_surface_size(surface, (*physical_size).into());
+        }
     }
 
     pub(super) fn window_close_requested(window: Window) {

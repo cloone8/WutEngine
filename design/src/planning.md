@@ -59,31 +59,33 @@ both.
 
 ## 2. Start-up, a window, shut-down
 
-The first pixels: kept small on purpose. Configuration, more windows and the crash paths come in step 3, next to the
-frame loop and the settings that use them.
+The first pixels: kept small on purpose. Configuration, the rest of the API for more windows and the crash paths come
+in step 3, next to the frame loop and the settings that use them.
 
 - Start-up as a synchronous part, the main window, then one `async` function; a static per service; the winit 0.31
   event loop; on the web, a canvas and the loader library's start function ([Lifecycle and
   memory](core/lifecycle.md), [Building and shipping](editor/shipping.md)).
-- **A minimal start-up driver,** proposed: on desktop it blocks inside the first `can_create_surfaces`, with a waker
-  that unparks the main thread; on the web it is one future, polled in `about_to_wait` and woken through winit's
-  `EventLoopProxy::wake_up`. No `Task<T>`, no spawning, no public API. Why: getting the GPU is a promise on the web,
-  so start-up needs a driver before the job system exists; step 3 grows it into the main-thread executor without
-  changing the start-up function.
+- **A minimal start-up driver:** built as the main-thread executor, without a public API. Start-up's async part is
+  its first task, polled in `about_to_wait` and woken through winit's `EventLoopProxy::wake_up` on desktop and the
+  web; a headless run blocks on it. Why: getting the GPU is a promise on the web, so start-up needs a driver before
+  the job system exists; step 3 adds the executor's public API (`run_async`, `Task<T>`) without changing the
+  start-up function.
 - The `#[wutengine::main]` entry point, in the engine's first proc-macro crate, generating each target's `main`
   ([Lifecycle and memory](core/lifecycle.md)).
 - **The main window, on internals built for several,** proposed: the main window with default settings,
   `Window::main()`, the `Window` handle, events routed and a surface held per window following `can_create_surfaces`
   and `destroy_surfaces`, and closing the main window quits. On the web the canvas is the window
   ([Windowing and display](systems/windowing.md)). Why: one window or several changes how events are routed, how
-  surfaces are held and how a frame renders, so single-window internals aren't written first; the API for more
-  windows waits for step 3's frame loop, which renders them all.
+  surfaces are held and how a frame renders, so single-window internals aren't written first.
+- **`Window::create` and `Window::close` are public from this step on,** pulled forward from step 3 since the
+  internals they need are already here. The rest of the API for more windows (the `ready()` task, the web's error for
+  a second window, the main window's settings from the configuration) and its demo stay in step 3.
 - **The GPU device, and each window's surface cleared to a colour,** proposed: the device with every available
   feature, checked at runtime. It is the first piece of renderer step 0, pulled forward so there are pixels and an
   overlay (step 3) early; the renderer's feature order is unchanged ([Renderer](rendering/README.md)).
 - Shut-down as flush and exit, quit requested and quitting, and `panic = "abort"` with a panic hook ([Lifecycle and
-  memory](core/lifecycle.md)). Until step 3 brings `fatal_error`, a failed start-up logs and quits with an error
-  code.
+  memory](core/lifecycle.md)). `fatal_error` is pulled forward from step 3's crash paths, without the crash
+  message: a failed start-up goes through it, logging and quitting with an error code.
 - Headless as an additive build feature. **Fixed:** from the start ([Lifecycle and memory](core/lifecycle.md)).
 
 Demos:
@@ -97,19 +99,21 @@ and quits.
 
 - The frame's phases, the fixed-update loop with the 0.25 s clamp, pause and time scale ([Time and the
   frame](core/frame.md)). Frame timing: **Fixed:** the raw measured delta first; snapping and presentation timestamps
-  come later (steps 16 and Later).
-- The job system: `Task<T>`, the main-thread executor (`run_async`), grown from step 2's start-up driver and
-  replacing it, `compute` on rayon, budgeted work on the web ([Jobs and async](core/jobs.md)).
+  come later (steps 16 and Later). Already in from step 2: the phases (still empty), the fixed-update loop with the
+  clamp, the time API, and pause and time scale as internal state; left is their API.
+- The job system: `Task<T>`, the main-thread executor's public API (`run_async`) on the executor step 2 built for
+  start-up, `compute` on rayon, budgeted work on the web ([Jobs and async](core/jobs.md)).
 - The typed configuration: sections registered in the entry point, the layered files, the command line, and the
   engine's early sections; their steps go at the top of the start-up function ([Configuration](core/configuration.md)).
-- **More windows:** `Window::create` returning a handle at once with a `ready()` task, close requests for other
+- **More windows:** `Window::create` (public since step 2) gets a `ready()` task, close requests for other
   windows (closing one never quits), the main window's settings from the configuration, and on the web an error for a
   second window ([Windowing and display](systems/windowing.md)).
-- **The crash paths:** `fatal_error`, the crash message (a message box on desktop, the page message on
-  the web), and strict mode for the smoke runs, proposed ([Error handling](core/errors.md)).
+- **The crash paths:** the crash message (a message box on desktop, the page message on the web) for `fatal_error`
+  (in since step 2), and strict mode for the smoke runs, proposed ([Error handling](core/errors.md)).
 - Frame pacing: simulation once per frame and every window rendered, vsync paced by the main window, acquiring each
   surface at the end of the frame, the frame limiter ([Time and the frame](core/frame.md)).
-- The puffin backend for the profiling scopes, finishing a profiler frame each frame, and the development overlay
+- The puffin backend for the profiling scopes (each driver already finishes a profiler frame per frame, and one for
+  start-up, since step 2), and the development overlay
   with the puffin flamegraph and stats, the development console over settings, and pause, step and time scale from
   it ([Profiling and debugging tools](editor/debug_tools.md), [Configuration](core/configuration.md)). The overlay
   takes raw keyboard and mouse events from the window, since input comes in step 7.

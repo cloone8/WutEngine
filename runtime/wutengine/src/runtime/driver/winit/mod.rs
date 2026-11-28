@@ -1,8 +1,6 @@
 use core::cell::OnceCell;
 use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
 use core::task::Waker;
-use core::time::Duration;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::task::Wake;
@@ -33,7 +31,6 @@ use crate::window;
 use crate::window::Window;
 use crate::window::WindowSettings;
 use crate::window::WindowSnapshot;
-use crate::window::WindowState;
 
 mod conversion;
 mod init;
@@ -41,11 +38,23 @@ mod window_events;
 
 #[derive(Debug)]
 pub(crate) struct WutEngineApp {
+    /// State-specific data
     phase: AppPhase,
+
+    /// Mappings from `winit` to WutEngine window IDs
     window_map: HashMap<WindowId, Window>,
+
+    /// Driver-specific data for each window
     native_windows: HashMap<Window, WindowData>,
+
+    /// The main-thread async executor
     main_thread_executor: ThreadLocalExecutor,
+
+    /// The waker given to the executor
     executor_signal: OnceCell<Waker>,
+
+    /// Whether we are currently allowed to create/have surfaces
+    surfaces_allowed: bool,
 
     /// Used only to choose when to call [`profiling::finish_frame`]
     ran_frame: bool,
@@ -59,6 +68,7 @@ impl WutEngineApp {
             native_windows: HashMap::default(),
             main_thread_executor: ThreadLocalExecutor::new(),
             executor_signal: OnceCell::new(),
+            surfaces_allowed: false,
             ran_frame: false,
         }
     }
@@ -67,7 +77,7 @@ impl WutEngineApp {
 #[derive(Debug)]
 struct WindowData {
     native: Arc<dyn WinitWindow>,
-    surface: SurfaceId,
+    surface: Option<SurfaceId>,
     frame_stamp: Option<u64>,
 }
 
@@ -81,43 +91,36 @@ enum AppPhase {
 
 impl ApplicationHandler for WutEngineApp {
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
+        self.surfaces_allowed = true;
+
         if matches!(self.phase, AppPhase::NotStarted) {
-            log::info!("Beginning windowing application main startup");
-
-            let main_window = init::initialize_renderer_and_main_window();
-
-            self.initialize_pending_windows(event_loop);
-
-            if let WindowState::Error(e) = main_window.state() {
-                runtime::fatal_error(format!("Failed to create main window: {e}").as_str());
-            }
-
-            let main_surface = self
-                .native_windows
-                .get(&main_window)
-                .map(|win| win.surface)
-                .expect("Missing main window surface");
-
-            let ready_signal = Arc::new(AtomicBool::new(false));
-            {
-                let ready_signal_cloned = Arc::clone(&ready_signal);
-
-                self.main_thread_executor.spawn(async move {
-                    init::initialize_main_surface_and_device(main_surface).await;
-
-                    ready_signal_cloned.store(true, Ordering::Release);
-                });
-            }
-
-            self.phase = AppPhase::Starting {
-                ready: ready_signal,
-            };
-
+            // One-time startup for this driver.
+            init::driver_startup(self, event_loop);
             return;
         }
 
-        //TODO: Recreate surfaces
-        log::error_once!("Recreating surfaces not yet supported");
+        // Non-startup: Recreate surfaces
+        profiling::scope!("recreate surfaces");
+        log::debug!("Recreating surfaces");
+
+        let main_window = Window::main();
+
+        for (&window, data) in &mut self.native_windows {
+            if data.surface.is_some() {
+                continue;
+            }
+
+            let surface_type = if Some(window) == main_window {
+                SurfaceType::Main
+            } else {
+                SurfaceType::Other
+            };
+
+            data.surface = Some(Self::initialize_surface(
+                Arc::clone(&data.native),
+                surface_type,
+            ));
+        }
     }
 
     fn window_event(
@@ -195,21 +198,8 @@ impl ApplicationHandler for WutEngineApp {
                 .get_or_init(|| Waker::from(WinitWaker::new(event_loop))),
         );
 
-        if let AppPhase::Starting { ready } = &self.phase
-            && ready.load(Ordering::Acquire)
-        {
-            log::debug!("Async startup ready signal given.");
-
-            hooks::run_started_hooks();
-
-            self.phase = AppPhase::Running {
-                frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)), // TODO:
-                                                                                   // Make
-                                                                                   // configurable?
-            };
-
-            profiling::finish_frame!(); // So we can track the entire startup phase
-        }
+        // This only does something if we're currently in the startup phase
+        init::finish_initialization(self);
 
         if runtime::should_quit() {
             hooks::run_quitting_hooks();
@@ -227,7 +217,20 @@ impl ApplicationHandler for WutEngineApp {
 
     fn destroy_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         let _ = event_loop;
-        //TODO: Destroy all surfaces here
+
+        profiling::function_scope!();
+
+        log::debug!("Destroying all surfaces");
+
+        self.surfaces_allowed = false;
+
+        for window in self.native_windows.values_mut() {
+            let Some(surface_id) = window.surface.take() else {
+                continue;
+            };
+
+            surfaces::remove(surface_id);
+        }
     }
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -273,19 +276,13 @@ impl WutEngineApp {
                 "Window with native window ID already in map"
             );
 
-            let surface_size: (u32, u32) = native_window.surface_size().into();
-
-            let surface_id = {
-                let native_window = Arc::clone(&native_window);
-
-                surfaces::initialize(
-                    surface_type,
-                    surface_size,
+            let surface_id = if self.surfaces_allowed {
+                Some(Self::initialize_surface(
                     Arc::clone(&native_window),
-                    Some(Box::new(move || {
-                        native_window.pre_present_notify();
-                    })),
-                )
+                    surface_type,
+                ))
+            } else {
+                None
             };
 
             let snapshot = create_snapshot_from_native(native_window.as_ref());
@@ -301,6 +298,22 @@ impl WutEngineApp {
 
             Ok(snapshot)
         });
+    }
+
+    fn initialize_surface(
+        native_window: Arc<dyn WinitWindow>,
+        surface_type: SurfaceType,
+    ) -> SurfaceId {
+        let surface_size: (u32, u32) = native_window.surface_size().into();
+
+        surfaces::initialize(
+            surface_type,
+            surface_size,
+            Arc::clone(&native_window),
+            Some(Box::new(move || {
+                native_window.pre_present_notify();
+            })),
+        )
     }
 
     fn handle_closed_windows(&mut self) {
@@ -327,7 +340,9 @@ impl WutEngineApp {
 
         assert_eq!(Some(window), removed, "Invalid window mapping given");
 
-        surfaces::remove(window_data.surface);
+        if let Some(surface) = window_data.surface {
+            surfaces::remove(surface);
+        }
     }
 }
 

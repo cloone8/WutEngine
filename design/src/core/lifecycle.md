@@ -35,14 +35,15 @@ dependencies when they are built.
 - **Nothing before the main window may await.** A later need to (an asynchronous player-settings store on the web,
   say) would move the main window into the async part, created like any other window and awaited through its
   `ready()` ([Windowing and display](../systems/windowing.md)).
-- **The async part's driver differs per target.** On desktop, the job system's main-thread executor in blocking mode
-  drives it to completion, parking the main thread until a waker fires; on the web, it is that executor's first task
-  ([Jobs and async](jobs.md)). Why: one executor lets start-up await asset loads on every target.
+- **The async part is the main-thread executor's first task,** on desktop and the web alike: polled in winit's
+  `about_to_wait` and woken through the event loop ([Jobs and async](jobs.md)). A headless run has no event loop, so
+  there the executor drives it to completion in a blocking mode, parking the main thread until a waker fires.
+  Why: one executor lets start-up await asset loads on every target, and one driver for every run with a window
+  leaves no desktop-only start-up path to drift apart.
 - **Where it runs in winit's flow:** on desktop winit's `run_app` blocks until the loop exits; on the web it
   registers the application and returns at once, and the browser drives the loop from then on.
-- **Consequence of the blocking driver:** while it runs the event loop doesn't, so on desktop the async part can't
-  await anything the event loop delivers, and nothing is drawn until it finishes. An animated splash during a long
-  start-up would need the event-loop driver on desktop too; switching drivers doesn't change the start-up function.
+- **Consequence: the event loop keeps turning during start-up,** so the async part may await anything the event loop
+  delivers, and an animated splash during a long start-up stays possible. Frames start only after Started.
 
 ## Where the engine's services live
 
@@ -132,6 +133,13 @@ the same; "headless" below means either.
   engine's; the engine never requires it. Like `UNITY_SERVER` in Unity and `UE_SERVER` in Unreal.
 - **The frame loop runs without winit** as a plain timer-driven loop. Why: winit needs a display server on Linux,
   which a server doesn't have.
+  - **At a fixed tick rate,** 60 per second until configuration makes it a setting (common server rates are 20 to
+    128).
+  - **Deadline-paced:** each deadline is the previous one plus the interval, so sleep overshoot doesn't add up. A loop
+    more than one interval late re-anchors to now instead of running a burst of frames; the game delta's clamp
+    already limits catch-up fixed steps.
+  - **std's `thread::sleep` is the timer:** precise on Linux, and on Windows from 10 version 1803 on (a
+    high-resolution waitable timer). Not `park_timeout`, which on Windows waits in whole timer ticks (about 15.6 ms).
 - **Without a window,** `fatal_error` and the panic hook write to stderr and the log; input on a server comes only as
   per-step data ([Multiplayer](../goals/multiplayer.md)). The headless build is checked with clippy without default
   features.
@@ -162,6 +170,18 @@ the same; "headless" below means either.
   Not on desktop: a minimized game keeps running and isn't killed;
   desktop games save in "quitting" and pause on focus lost ([Windowing and display](../systems/windowing.md)).
   Why: one clear meaning, "you may be killed soon", rather than an event that also fires on desktop minimize.
+- **Rust hooks can be registered at any time, from any thread;** they run on the main thread, outside a job, in
+  registration order. A hook registered while that event's hooks run fires from the next time on, and a Started
+  hook registered after start-up never runs. Why: registering early is the common case, but nothing gains from
+  forbidding a later one, and per-event lists that are taken out while they run make it safe.
+- **Quit requested runs every handler, and any cancel wins:** a cancel can't be undone, so the outcome doesn't depend
+  on the order, and a later handler can see an earlier cancel and skip its own dialog. Handlers return at once:
+  cancel now, ask the player in later frames, then call `quit()`. Once a quit is scheduled, quit requested no longer
+  fires.
+- **`quit()` schedules the quit and returns;** the driver carries it out at its next safe point on the main thread,
+  then runs the quitting hooks. A scheduled quit is final: later calls are ignored, and a `quit()` inside a quit
+  requested handler overrides a cancel. Why: the quitting hooks need the engine fully working on the main thread,
+  and `quit()` may be called from any thread.
 - **A development command "simulate background / foreground"** fires those events in play mode, so desktop development
   exercises the mobile save path.
 - **Play mode:** the editor's Stop raises "quitting" (never "quit requested"), then ends the play-mode process after a

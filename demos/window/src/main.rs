@@ -1,4 +1,4 @@
-//! Hello: A tiny demo that starts the logger and writes a log at each level, inside a profiler scope
+//! Window: A tiny demo that simply opens a gray window
 
 use wutengine::profiling;
 

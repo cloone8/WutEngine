@@ -52,8 +52,8 @@ pub enum WindowState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("Headless builds do not support window creation")]
-struct HeadlessBuildErr;
+#[display("Headless runs do not support window creation")]
+struct HeadlessErr;
 
 impl Window {
     /// Sends a request to create a new window. The handle is returned immediately,
@@ -71,7 +71,7 @@ impl Window {
                 handle,
                 WindowData::Failed {
                     snapshot: Box::new(WindowSnapshot::guess_from_settings(&settings)),
-                    err: Arc::new(HeadlessBuildErr),
+                    err: Arc::new(HeadlessErr),
                 },
             );
         } else {
