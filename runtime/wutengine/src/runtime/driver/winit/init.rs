@@ -1,9 +1,8 @@
 use core::assert_matches;
+use core::cell::Cell;
 use core::hint;
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::Ordering;
 use core::time::Duration;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use wgpu::Adapter;
 use wgpu::Features;
@@ -25,7 +24,7 @@ use crate::window::WindowState;
 /// Begins the startup of a [`WutEngineApp`] driver, transitioning it to the
 /// [Starting](AppPhase::Starting) phase. Must only be called on [non-started drivers](AppPhase::NotStarted).
 pub(super) fn driver_startup(driver: &mut WutEngineApp, event_loop: &dyn ActiveEventLoop) {
-    profiling::scope!("driver startup");
+    profiling::function_scope!();
     thread_context::assert_main_context();
 
     assert_matches!(
@@ -77,11 +76,11 @@ pub(super) fn driver_startup(driver: &mut WutEngineApp, event_loop: &dyn ActiveE
 
     // Now we created the task that gets the adapter, we can safely
     // defer the rest of the initialization to later
-    let ready_signal = Arc::new(AtomicBool::new(false));
+    let ready_signal = Rc::new(Cell::new(false));
 
     driver.main_thread_executor.spawn(initialize_renderer(
         init_adapter_fut,
-        Arc::clone(&ready_signal),
+        Rc::clone(&ready_signal),
     ));
 
     // Now we wait for startup to be done
@@ -103,11 +102,9 @@ pub(super) fn finish_initialization(driver: &mut WutEngineApp) {
 
     hint::cold_path();
 
-    if !ready.load(Ordering::Acquire) {
+    if !ready.get() {
         return;
     }
-
-    hint::cold_path();
 
     log::debug!("Async startup ready signal given.");
 
@@ -124,7 +121,7 @@ pub(super) fn finish_initialization(driver: &mut WutEngineApp) {
 
 async fn initialize_renderer(
     init_adapter_fut: impl Future<Output = Option<(Adapter, Features)>>,
-    ready_signal: Arc<AtomicBool>,
+    ready_signal: Rc<Cell<bool>>,
 ) {
     // Wait for WGPU to set up the adapter
     let Some((adapter, adapter_features)) = init_adapter_fut.await else {
@@ -139,5 +136,5 @@ async fn initialize_renderer(
 
     log::info!("Renderer device initialization done");
 
-    ready_signal.store(true, Ordering::Release);
+    ready_signal.set(true);
 }

@@ -1,7 +1,8 @@
+use core::cell::Cell;
 use core::cell::OnceCell;
-use core::sync::atomic::AtomicBool;
 use core::task::Waker;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::task::Wake;
 
@@ -85,7 +86,7 @@ struct WindowData {
 #[non_exhaustive]
 enum AppPhase {
     NotStarted,
-    Starting { ready: Arc<AtomicBool> },
+    Starting { ready: Rc<Cell<bool>> },
     Running { frame_state: FrameState },
 }
 
@@ -192,7 +193,7 @@ impl ApplicationHandler for WutEngineApp {
         // and windows whose stale redraw requests were dropped
         self.request_redraws(time::frame_num());
 
-        // Run the event loop
+        // Run the async executor
         self.main_thread_executor.run_ready(
             self.executor_signal
                 .get_or_init(|| Waker::from(WinitWaker::new(event_loop))),
@@ -246,10 +247,12 @@ impl WutEngineApp {
     fn initialize_pending_windows(&mut self, el: &dyn ActiveEventLoop) {
         profiling::function_scope!();
 
+        let main_window = Window::main();
+
         window::initialize_windows(|window, settings| {
             log::debug!("Initializing window {window}");
 
-            let surface_type = if window.is_main() {
+            let surface_type = if main_window == Some(window) {
                 SurfaceType::Main
             } else {
                 SurfaceType::Other
