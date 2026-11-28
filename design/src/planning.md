@@ -118,8 +118,8 @@ and quits.
   it ([Profiling and debugging tools](editor/debug_tools.md), [Configuration](core/configuration.md)). The overlay
   takes raw keyboard and mouse events from the window, since input comes in step 7.
 - **Open questions settled in this step** ([Open questions](open.md), marked step 3): reserved configuration section
-  names, engine and game log levels, `Color` in code, an already-finished task, cursor shapes, the development overlay
-  (panels, profiler recording, diagnostics, input and cursor while open, the egui integration, the flamegraph).
+  names, engine and game log levels, an already-finished task, cursor shapes, the development overlay (panels,
+  profiler recording, diagnostics, input and cursor while open, the egui integration, the flamegraph).
 
 Demos:
 1. The window's title and size come from `config.toml`, the command line (on the web, the loader's arguments)
@@ -140,9 +140,9 @@ line, on desktop and the web.
 
 ## 4. The world in Rust
 
-- `Name`, the conventions' math types, and `WorldPos` with the f32/f64 build switch. Here rather than earlier
-  because the transform hierarchy is their first user ([Conventions and names](core/conventions.md), [Game size and
-  precision](goals/game_size.md)).
+- `Name`, the conventions' math types (`Color` is in since step 2), and `WorldPos` with the f32/f64 build switch.
+  Here rather than earlier because the transform hierarchy is their first user ([Conventions and
+  names](core/conventions.md), [Game size and precision](goals/game_size.md)).
 - Memory attribution by logical counters. Here because entities and components are the first things to count; the
   overlay shows them ([Lifecycle and memory](core/lifecycle.md)).
 - The object model on hecs: entities, components with UUIDs and explicit registration, systems with declared access,

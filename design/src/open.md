@@ -75,8 +75,6 @@ planning step, such as **(step 4)**, are settled in that step; [Planning](planni
 - **Decide (step 3):** separate default log levels for the engine with its dependencies (wgpu, naga, ...) and for
   game code, also as the editor console's default filters ([Profiling and debugging
   tools](editor/debug_tools.md)).
-- **Decide (step 3):** what `Color` means in code: linear in memory; hex and byte constructors taking sRGB as CSS
-  does, next to explicit linear ones; alpha defaulting to 1 ([Conventions and names](core/conventions.md)).
 - **Decide (step 3):** an already-finished task (`Task::from_value`), so a cache hit and a load share one code path
   ([Jobs and async](core/jobs.md)).
 - **Decide (step 4):** the order of commands and new entity IDs coming from parallel systems: for example buffers

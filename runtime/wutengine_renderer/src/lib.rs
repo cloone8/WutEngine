@@ -114,27 +114,14 @@ pub(crate) fn queue() -> &'static Queue {
     &renderer().queue
 }
 
-/// Converts a [WutEngine color](wutengine_math::Color) to a [WGPU color](wgpu::Color)
+/// Converts an array of floats to a [wgpu Color](wgpu::Color). Performs
+/// no conversions, so those have to be done beforehand manually.
 #[inline]
-#[must_use]
-pub const fn color_to_wgpu(color: wutengine_math::Color) -> wgpu::Color {
-    let color_array = color.as_vec4().to_array();
+const fn array_to_wgpu_color(color: [f32; 4]) -> wgpu::Color {
     wgpu::Color {
-        r: color_array[0] as f64,
-        g: color_array[1] as f64,
-        b: color_array[2] as f64,
-        a: color_array[3] as f64,
+        r: color[0] as f64,
+        g: color[1] as f64,
+        b: color[2] as f64,
+        a: color[3] as f64,
     }
-}
-
-/// Converts a [WGPU color](wgpu::Color) to a [WutEngine color](wutengine_math::Color)
-#[inline]
-#[must_use]
-pub const fn color_from_wgpu(color: wgpu::Color) -> wutengine_math::Color {
-    wutengine_math::Color::new(
-        color.r as f32,
-        color.g as f32,
-        color.b as f32,
-        color.a as f32,
-    )
 }

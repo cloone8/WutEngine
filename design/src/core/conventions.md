@@ -37,6 +37,37 @@ the "static" marking; and how spatial queries are split between subsystems.
 - **Named WGSL helpers and documentation from the start:** linear depth, "is closer", view-space position from depth, a
   full-screen triangle. Why: reversed Z only hurts custom-shader authors, and is hard to diagnose without helpers.
 
+## Colour
+
+- **One `Color` type: linear RGBA in f32,** with sRGB primaries and straight alpha (below); values above 1 are allowed,
+  for HDR colours and intensities. Nothing converts a `Color` on its way to shaders, materials or the renderer.
+  Why: engines with one type whose encoding depends on the API it goes through (Unity, Godot, Bevy before 0.14)
+  produce the recurring "washed out" and "too dark" bugs; Unreal's `FLinearColor` and three.js's linear working space
+  avoid them.
+- **Constructors are named by encoding, never a bare `new`:** `srgb`, `srgba`, `srgb_u8`, `srgba_u8` and `hex` take
+  sRGB, as CSS does, and decode it; `linear`, `linear_rgba` and `from_linear_vec4` take linear values. Alpha
+  defaults to 1 and is never converted. Why: a bool flag or an unnamed constructor leaves the encoding to the
+  caller's memory (Unreal's `bSRGB`, Bevy's old `Color::rgb`).
+- **The exact sRGB curve** (IEC 61966-2-1, piecewise), not pow 2.2; encoding rounds to the nearest byte, so bytes
+  round-trip through `Color` unchanged. Why: pow 2.2 moves most byte values, and truncating breaks a third of them.
+- **Named colours: a few basic ones on `Color`, the CSS colours in a `css` module.** `Color` has `BLACK`, `WHITE`,
+  `TRANSPARENT` and pure `RED`, `GREEN` and `BLUE` (one channel at full intensity, as Unity's); `css` has all 148
+  CSS named colours with their CSS names and values, decoded to linear. So `Color::GREEN` is CSS `lime`, and
+  `css::GREEN` is CSS's darker green. Why: pure primaries are what `Color::GREEN` suggests, and the namespace makes
+  the CSS meaning visible where it is used, without a prefix on 148 names.
+- **No arithmetic operators on `Color`; named methods instead,** each name saying what happens to alpha: to start,
+  interpolating linearly (alpha included), scaling the intensity (RGB only), tinting by another colour (all four
+  channels), and replacing the alpha. Adding colours and a perceptual (Oklab) mix come when something needs them.
+  Raw maths goes through an explicit conversion to and from a linear `Vec4`; generic code (tweening, animation)
+  interpolates through an engine interpolation trait, not through `Add` and `Mul`. Why: on colours, `+` and `*` hide
+  which space they work in and what they do to alpha; scripts can't overload operators anyway, so Rust and scripts
+  get the same methods.
+- **In text files** (configuration, project files) a colour is written as hex (sRGB, as in CSS), or as linear floats
+  for values hex can't hold; both are read. The engine writes hex when the value round-trips through it.
+- **Kept possible: an 8-bit colour type** storing sRGB-encoded bytes, for vertex colours, UI and egui's `Color32`,
+  added when the first of them needs it. Why sRGB: linear values in 8 bits merge the darks (only 183 of the 256 sRGB
+  values survive).
+
 ## Alpha
 
 - **Straight alpha:** textures, colours, materials and shaders use straight alpha, as image files and tutorials do.

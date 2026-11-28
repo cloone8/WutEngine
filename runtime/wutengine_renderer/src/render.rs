@@ -10,7 +10,7 @@ use wgpu::StoreOp;
 use wutengine_math::Color;
 use wutengine_sync::thread_context;
 
-use crate::color_to_wgpu;
+use crate::array_to_wgpu_color;
 use crate::device;
 use crate::label;
 use crate::queue;
@@ -53,9 +53,9 @@ fn record(encoder: &mut CommandEncoder, surfaces: &[AcquiredSurface]) {
                 depth_slice: None,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(color_to_wgpu(Color::linear_to_srgb(Color::new(
-                        0.5, 0.5, 0.5, 1.0,
-                    )))),
+                    load: LoadOp::Clear(array_to_wgpu_color(
+                        Color::linear(0.5, 0.5, 0.5).to_srgb(),
+                    )),
                     store: StoreOp::Store,
                 },
             })],
