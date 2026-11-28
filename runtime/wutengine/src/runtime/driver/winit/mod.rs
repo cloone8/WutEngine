@@ -25,7 +25,9 @@ use wutengine_renderer::surfaces::SurfaceType;
 
 use crate::log;
 use crate::runtime;
+use crate::runtime::exit_now;
 use crate::runtime::frame::FrameState;
+use crate::runtime::hooks;
 use crate::time;
 use crate::window;
 use crate::window::Window;
@@ -44,6 +46,9 @@ pub(crate) struct WutEngineApp {
     native_windows: HashMap<Window, WindowData>,
     main_thread_executor: ThreadLocalExecutor,
     executor_signal: OnceCell<Waker>,
+
+    /// Used only to choose when to call [`profiling::finish_frame`]
+    ran_frame: bool,
 }
 
 impl WutEngineApp {
@@ -54,6 +59,7 @@ impl WutEngineApp {
             native_windows: HashMap::default(),
             main_thread_executor: ThreadLocalExecutor::new(),
             executor_signal: OnceCell::new(),
+            ran_frame: false,
         }
     }
 }
@@ -171,6 +177,11 @@ impl ApplicationHandler for WutEngineApp {
     }
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
+        if self.ran_frame {
+            profiling::finish_frame!();
+            self.ran_frame = false;
+        }
+
         self.initialize_pending_windows(event_loop);
         self.handle_closed_windows();
 
@@ -189,11 +200,20 @@ impl ApplicationHandler for WutEngineApp {
         {
             log::debug!("Async startup ready signal given.");
 
+            hooks::run_started_hooks();
+
             self.phase = AppPhase::Running {
                 frame_state: FrameState::new(Duration::from_secs_f64(1.0 / 60.0)), // TODO:
                                                                                    // Make
                                                                                    // configurable?
-            }
+            };
+
+            profiling::finish_frame!(); // So we can track the entire startup phase
+        }
+
+        if runtime::should_quit() {
+            hooks::run_quitting_hooks();
+            exit_now(0);
         }
     }
 

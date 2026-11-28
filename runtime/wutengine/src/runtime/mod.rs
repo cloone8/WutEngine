@@ -17,6 +17,7 @@ use crate::window;
 
 mod driver;
 mod frame;
+pub mod hooks;
 
 static HEADLESS: AtomicBool = AtomicBool::new(false);
 
@@ -115,7 +116,7 @@ fn run_winit() {
     }
 }
 
-fn run_headless() {
+fn run_headless() -> ! {
     log::info!("Starting application in headless mode");
 
     let mut app = HeadlessApp::new(60.0); //TODO: Make configurable
@@ -123,11 +124,26 @@ fn run_headless() {
     app.run();
 }
 
+/// Flag set when [`quit`] was called. Should not be reversed
+static SHOULD_QUIT: AtomicBool = AtomicBool::new(false);
+
+/// Returns whether a quit was requested with [`quit`]
+pub(crate) fn should_quit() -> bool {
+    SHOULD_QUIT.load(Ordering::Acquire)
+}
+
 /// Requests that the WutEngine runtime quits as soon as possible.
-/// This call might still return
+/// This call might still return. Duplicate calls are ignored, as the first
+/// call is already final.
+///
+/// This call always overrides a quit _request_. If called from a `quit requested` handler,
+/// for example, the app _will_ quit as soon as possible, even if the quit request was cancelled.
 pub fn quit() {
-    //TODO: This will probably be handled more neatly by the runtime later, with hooks and stuff
-    exit_now(0);
+    if !SHOULD_QUIT.swap(true, Ordering::AcqRel) {
+        log::info!("Quit scheduled");
+    }
+
+    //TODO: This should probably wake up the driver loops
 }
 
 /// Immediatly quits the WutEngine runtime with an error message and exit code `100`

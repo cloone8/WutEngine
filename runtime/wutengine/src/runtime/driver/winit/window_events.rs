@@ -6,6 +6,9 @@ use crate::runtime::driver::winit::AppPhase;
 use crate::runtime::driver::winit::WindowData;
 use crate::runtime::driver::winit::WutEngineApp;
 use crate::runtime::frame::FrameType;
+use crate::runtime::hooks;
+use crate::runtime::hooks::QuitRequest;
+use crate::runtime::should_quit;
 use crate::time;
 use crate::window;
 use crate::window::Window;
@@ -55,6 +58,19 @@ impl WutEngineApp {
 
         log::debug!("Close requested for window {window}");
 
+        // Closing the main window closes the app, so we confirm using
+        // the hooks if an unstoppable quit is not already running
+        if window.is_main() && !should_quit() {
+            let mut quit_request = QuitRequest::new();
+
+            hooks::run_quit_requested_hooks(&mut quit_request);
+
+            if quit_request.is_cancelled() {
+                log::debug!("Quit request was cancelled");
+                return;
+            }
+        }
+
         // Forward to our own closing function
         window.close();
     }
@@ -89,6 +105,7 @@ impl WutEngineApp {
 
         if should_run_frame && let AppPhase::Running { frame_state } = &mut self.phase {
             frame_state.run_frame(FrameType::Continuous);
+            self.ran_frame = true;
             self.request_redraws(time::frame_num());
         }
     }

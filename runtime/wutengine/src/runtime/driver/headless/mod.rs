@@ -8,8 +8,11 @@ use std::time::Instant;
 
 use wutengine_executor::ThreadLocalExecutor;
 
+use crate::runtime;
+use crate::runtime::exit_now;
 use crate::runtime::frame::FrameState;
 use crate::runtime::frame::FrameType;
+use crate::runtime::hooks;
 
 mod init;
 
@@ -46,7 +49,7 @@ impl HeadlessApp {
         }
     }
 
-    pub(crate) fn run(&mut self) {
+    pub(crate) fn run(&mut self) -> ! {
         assert_matches!(
             self.phase,
             AppPhase::NotStarted,
@@ -56,6 +59,8 @@ impl HeadlessApp {
         // Run initialization
         self.main_thread_executor.block_on(init::initialize());
 
+        hooks::run_started_hooks();
+
         // Start running the frames/ticks
         self.phase = AppPhase::Running(FrameState::new(self.tick_interval));
 
@@ -63,7 +68,9 @@ impl HeadlessApp {
         // interval, so sleep overshoot doesn't add up over frames
         let mut next_tick = Instant::now();
 
-        loop {
+        profiling::finish_frame!(); // So we can track the entire startup as a single "frame"
+
+        while !runtime::should_quit() {
             self.main_thread_executor.run_ready(Waker::noop());
 
             let AppPhase::Running(frame_state) = &mut self.phase else {
@@ -71,6 +78,8 @@ impl HeadlessApp {
             };
 
             frame_state.run_frame(FrameType::Continuous);
+
+            profiling::finish_frame!();
 
             next_tick = next_tick
                 .checked_add(self.tick_interval)
@@ -88,5 +97,8 @@ impl HeadlessApp {
                 next_tick = now;
             }
         }
+
+        hooks::run_quitting_hooks();
+        exit_now(0);
     }
 }
